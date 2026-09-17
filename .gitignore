@@ -1,0 +1,45 @@
+# --- Gradle / build ---
+.gradle/
+build/
+.kotlin/
+/captures
+.externalNativeBuild
+.cxx
+*.iml
+
+# --- Local machine config ---
+local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+/.idea/deploymentTargetSelector.xml
+/.idea/deploymentTargetDropDown.xml
+.DS_Store
+
+# --- Secrets: never commit these ---
+# Firebase config for real projects. dev runs against the emulator and needs none.
+app/src/prod/google-services.json
+app/src/staging/google-services.json
+# Signing
+*.jks
+*.keystore
+keystore.properties
+# Service accounts / admin credentials
+**/serviceAccount*.json
+.env
+.env.*
+!.env.example
+
+# --- Firebase tooling ---
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+database-debug.log
+pubsub-debug.log
+functions/node_modules/
+functions/lib/
+node_modules/

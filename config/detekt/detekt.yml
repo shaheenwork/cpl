@@ -1,0 +1,64 @@
+# Project detekt configuration. Layered on top of detekt's defaults
+# (buildUponDefaultConfig = true), so this file only records deviations.
+
+build:
+  maxIssues: 0
+
+formatting:
+  active: true
+  android: true
+  # Compose composables are PascalCase by convention; detekt's ktlint wrapper flags them.
+  FunctionNaming:
+    active: false
+  MaximumLineLength:
+    active: true
+    maxLineLength: 120
+  ArgumentListWrapping:
+    active: false
+  Wrapping:
+    active: false
+
+complexity:
+  LongParameterList:
+    # Compose functions legitimately take many parameters (state + lambdas).
+    functionThreshold: 8
+    constructorThreshold: 9
+    ignoreAnnotated: ['Composable']
+  TooManyFunctions:
+    ignoreAnnotatedFunctions: ['Composable']
+    thresholdInFiles: 20
+    thresholdInClasses: 20
+  LongMethod:
+    threshold: 80
+    ignoreAnnotated: ['Composable']
+
+style:
+  MagicNumber:
+    ignoreAnnotated: ['Composable', 'Preview']
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    # Enum constructor arguments ARE the definition of the value (Intensity(1)..Intensity(5)).
+    ignoreEnums: true
+  MaxLineLength:
+    maxLineLength: 120
+  UnusedPrivateMember:
+    ignoreAnnotated: ['Preview']
+  ReturnCount:
+    max: 4
+  ForbiddenComment:
+    active: true
+    comments:
+      - reason: 'Track work in PROGRESS.md, not in scattered FIXMEs.'
+        value: 'FIXME:'
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+  TopLevelPropertyNaming:
+    constantPattern: '[A-Z][_A-Za-z0-9]*'
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: true
+  SwallowedException:
+    active: true
