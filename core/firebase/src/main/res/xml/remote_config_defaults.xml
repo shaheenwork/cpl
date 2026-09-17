@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  First-launch defaults. The app must behave correctly before any Remote Config fetch
+  completes, so every key in RemoteConfigKeys has a value here.
+-->
+<defaultsMap>
+    <entry>
+        <key>minimum_app_version</key>
+        <value>1</value>
+    </entry>
+    <entry>
+        <key>maintenance_mode</key>
+        <value>false</value>
+    </entry>
+    <entry>
+        <key>content_version</key>
+        <value>1</value>
+    </entry>
+    <entry>
+        <key>taxonomy_version</key>
+        <value>1</value>
+    </entry>
+
+    <entry>
+        <key>feature_apart_mode</key>
+        <value>true</value>
+    </entry>
+    <entry>
+        <key>feature_multi_day_arcs</key>
+        <value>true</value>
+    </entry>
+    <entry>
+        <key>feature_voice</key>
+        <value>true</value>
+    </entry>
+    <entry>
+        <key>feature_photo_challenges</key>
+        <value>true</value>
+    </entry>
+    <entry>
+        <key>feature_subscription</key>
+        <value>false</value>
+    </entry>
+
+    <entry>
+        <key>reveal_jitter_min_minutes</key>
+        <value>30</value>
+    </entry>
+    <entry>
+        <key>reveal_jitter_max_minutes</key>
+        <value>180</value>
+    </entry>
+
+    <entry>
+        <key>weight_mutual_preference</key>
+        <value>3.0</value>
+    </entry>
+    <entry>
+        <key>weight_affinity</key>
+        <value>2.0</value>
+    </entry>
+    <entry>
+        <key>weight_mood_match</key>
+        <value>2.0</value>
+    </entry>
+    <entry>
+        <key>weight_novelty</key>
+        <value>1.5</value>
+    </entry>
+    <entry>
+        <key>weight_intensity_fit</key>
+        <value>1.5</value>
+    </entry>
+    <entry>
+        <key>weight_recency_penalty</key>
+        <value>2.0</value>
+    </entry>
+    <entry>
+        <key>weight_repetition_penalty</key>
+        <value>3.0</value>
+    </entry>
+</defaultsMap>

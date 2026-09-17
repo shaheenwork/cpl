@@ -13,7 +13,12 @@ but the wrapper still needs a `JAVA_HOME` to bootstrap:
 
 ```bash
 export JAVA_HOME="C:/Users/shahe/.jdks/jbr-21.0.11"
+export PATH="/c/Users/shahe/.jdks/jbr-21.0.11/bin:$PATH"   # the Firebase CLI needs `java` on PATH
 ```
+
+Note the PATH entry uses a **Unix-style** path. In Git Bash a `C:/...` entry on PATH is
+not searched, and `firebase emulators:start` then dies with *"Could not spawn `java
+-version`"* even though `JAVA_HOME` is set.
 
 | Command | What it does |
 |---|---|
@@ -22,6 +27,19 @@ export JAVA_HOME="C:/Users/shahe/.jdks/jbr-21.0.11"
 | `./gradlew :core:engine:test` | The experience-engine suite — the highest bar in the repo |
 | `./gradlew :architecture:test` | Konsist layering rules |
 | `./gradlew projects` | Verify the module graph configures |
+| `./gradlew connectedDevDebugAndroidTest` | Instrumented tests - needs an emulator **and** the Firebase emulators |
+
+### Firebase emulators
+
+The `dev` flavor talks to the local Emulator Suite and needs no Firebase project:
+
+```bash
+firebase emulators:start --only auth,firestore,storage --project afterhours-dev-emulator
+```
+
+Ports (mirrored in `firebase.json` and `FirebaseEnvironment`): auth 9099, firestore 8080,
+storage 9199, functions 5001, UI 4000. From inside an Android emulator the host is
+`10.0.2.2`, which is what `FirebaseEnvironment.ANDROID_EMULATOR_LOOPBACK` resolves to.
 
 Compiled bytecode targets **Java 17** regardless of the daemon JVM.
 

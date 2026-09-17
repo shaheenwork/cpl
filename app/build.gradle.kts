@@ -3,6 +3,9 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("afterhours.android.hilt")
     id("afterhours.detekt")
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
+    alias(libs.plugins.firebase.perf)
 }
 
 android {
@@ -19,7 +22,7 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "com.shnapps.couple.HiltTestRunner"
     }
 
     // BUILD_PROMPT.md §4.3. `dev` must work with no human setup beyond
@@ -69,6 +72,34 @@ android {
     }
 }
 
+/**
+ * Disable the staging and prod variants until their google-services.json is present.
+ *
+ * Without this, `./gradlew check` fails on a fresh clone because the Google Services
+ * plugin refuses to run without a config file — even though `dev` needs none, since it
+ * talks to the Firebase Emulator Suite (BUILD_PROMPT.md §4.3).
+ *
+ * The variants re-enable themselves the moment a human drops the real files in
+ * (HUMAN_SETUP.md §2.2). Silently skipping the plugin instead would produce a staging or
+ * prod build that looks fine and cannot reach Firebase at runtime.
+ */
+androidComponents {
+    beforeVariants { variant ->
+        val environment = variant.productFlavors
+            .firstOrNull { (dimension, _) -> dimension == "environment" }
+            ?.second
+            ?: return@beforeVariants
+
+        if (environment != "dev" && !file("src/$environment/google-services.json").exists()) {
+            logger.lifecycle(
+                "Disabling '${variant.name}': app/src/$environment/google-services.json " +
+                    "is missing. See HUMAN_SETUP.md section 2.2.",
+            )
+            variant.enable = false
+        }
+    }
+}
+
 dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:common"))
@@ -78,6 +109,7 @@ dependencies {
     implementation(project(":core:analytics"))
     implementation(project(":core:security"))
     implementation(project(":core:data"))
+    implementation(project(":core:firebase"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
@@ -103,4 +135,8 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.truth)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.hilt.android.testing)
+    kspAndroidTest(libs.hilt.compiler)
 }

@@ -33,6 +33,10 @@ dependencies {
 }
 
 tasks.withType<Test>().configureEach {
+    // Skeleton modules legitimately have no tests yet. Gradle 9 fails a test task whose
+    // source dir exists but contains nothing, which would block `check` on every module
+    // ahead of the phase that fills it in.
+    failOnNoDiscoveredTests = false
     testLogging {
         events("failed")
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL

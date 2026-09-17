@@ -1,0 +1,88 @@
+rules_version = '2';
+
+// Afterhours Firestore rules.
+//
+// The governing principle (BUILD_PROMPT.md §7.1): client-side hiding is not security.
+// If a rule does not enforce it, it is not enforced. Every privacy claim in §5 must be
+// provable by an emulator rules test — see firebase/tests/ (added in Phase 21, extended
+// by each phase that introduces a collection).
+//
+// Rules are added by the phase that introduces the collection. Anything not explicitly
+// allowed is denied by the final catch-all.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- helpers ---------------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Fields the server owns. A client may never write these, on create or update.
+    // Takes a key SET, so it works with both request.resource.data.keys() and
+    // diff(...).affectedKeys().
+    function noServerFields(keys) {
+      return !keys.hasAny([
+        'entitlement', 'coupleId', 'contentLevelEffective',
+        'revealedAt', 'state', 'reveal'
+      ]);
+    }
+
+    // ---- users -----------------------------------------------------------
+    // A user document is readable and writable only by its owner. `coupleId` and
+    // `entitlement` are written exclusively by Cloud Functions (§7.2).
+
+    match /users/{uid} {
+      allow get, list: if isSelf(uid);
+      allow create: if isSelf(uid) && noServerFields(request.resource.data.keys());
+      allow update: if isSelf(uid)
+                    && noServerFields(request.resource.data.diff(resource.data).affectedKeys());
+      allow delete: if false; // Account deletion goes through a Cloud Function (§72).
+
+      // ---- private, owner-only for life (§5.1) ---------------------------
+      // There is deliberately NO rule anywhere that grants a partner read access to
+      // these paths. Not on reveal, not on match, not ever. Mutual matches are computed
+      // server-side and only positives are materialised (§5.2).
+
+      match /preferences/{preferenceId} {
+        allow read, write: if isSelf(uid);
+      }
+
+      match /boundaries/{themeId} {
+        allow read, write: if isSelf(uid);
+      }
+
+      match /affinity/{dimensionId} {
+        allow read: if isSelf(uid);
+        allow write: if false; // Derived from feedback by a Cloud Function.
+      }
+    }
+
+    // ---- server-only collections ----------------------------------------
+    // No client access at all. Admin SDK only.
+
+    match /pairingCodes/{code} {
+      allow read, write: if false;
+    }
+
+    match /reports/{reportId} {
+      allow read, write: if false; // Written via callable; reporter identity never exposed.
+    }
+
+    // The combined boundary intersection must never reach a device: a user could diff
+    // it against their own boundaries to derive their partner's hard limits (§5.4).
+    match /couples/{coupleId}/engineFilters/{document=**} {
+      allow read, write: if false;
+    }
+
+    // ---- default deny ----------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

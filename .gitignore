@@ -43,3 +43,6 @@ pubsub-debug.log
 functions/node_modules/
 functions/lib/
 node_modules/
+
+# IDE project files
+/.idea/

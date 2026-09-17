@@ -3,7 +3,7 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 0 complete. Next action: **Phase 1 — Firebase wiring.**
+**Current position:** Phase 1 complete. Next action: **Phase 2 — Design system.**
 
 ---
 
@@ -12,8 +12,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 | # | Phase | Status |
 |---|---|---|
 | 0 | Repo & tooling | ✅ **Complete** |
-| 1 | Firebase wiring + emulators | ⬜ Next |
-| 2 | Design system | ⬜ |
+| 1 | Firebase wiring + emulators | ✅ **Complete** |
+| 2 | Design system | ⬜ Next |
 | 3 | Auth + age gate + app lock | ⬜ |
 | 4 | Couple pairing | ⬜ |
 | 5 | Taxonomy + preference discovery | ⬜ |
@@ -95,3 +95,83 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
   the detekt plugin). Harmless now; worth resolving before a Gradle 10 upgrade.
 - `android.disallowKotlinSourceSets=false` prints an experimental-option warning on every
   configuration. Unavoidable while KSP needs it (DECISIONS.md D-007).
+
+
+---
+
+## Phase 1 — Firebase wiring + emulators ✅
+
+### Shipped
+- **Firebase SDKs** via BOM 34.19.0: Auth, Firestore, Storage, Functions, Messaging,
+  Analytics, Crashlytics, Performance, Remote Config, App Check.
+- **Emulator auto-connect.** `FirebaseModule` is the single place every Firebase client is
+  constructed, because emulator endpoints must be set before first use. The `dev` flavor
+  redirects all of them to the local Emulator Suite, so the app runs with **no Firebase
+  project and no credentials**.
+- **`FirebaseEnvironment`** carries the variant decision as plain data, so no core module
+  reads BuildConfig. Firestore also gets a memory-only cache under the emulator, since a
+  wiped emulator plus a persisted local cache produces confusing stale state.
+- **App Check**: debug provider for debug/emulator builds, Play Integrity otherwise.
+- **Crashlytics and Analytics collection are disabled** whenever the emulator is in use,
+  so dev runs never reach real dashboards.
+- **Typed analytics is now end to end**: `FirebaseAnalyticsLogger` is the only bridge to
+  Firebase Analytics, and it accepts nothing but the closed `AnalyticsEvent` hierarchy.
+- **Remote Config**: `RemoteConfigSource` plus `remote_config_defaults.xml` covering
+  feature flags, content/taxonomy pointers, the reveal jitter window (section 5.3) and the
+  engine ranking weights (section 10.3). Defaults apply before any fetch, and the fetch is
+  launched off the main thread without being awaited.
+- **`firebase.json`, `.firebaserc`, `firestore.rules`, `storage.rules`, indexes.**
+- **Security-rules test harness** at `firebase/tests/` — **19 tests, all passing**.
+- **Variant gating**: `staging` and `prod` disable themselves until their
+  `google-services.json` exists, so `check` works on a fresh clone. They re-enable
+  automatically once a human adds the files.
+- `:core:firebase` declares its own permissions manifest — caught by lint, not guessed.
+
+### Verified
+```
+./gradlew check                    BUILD SUCCESSFUL   (detekt + tests + Konsist, all modules)
+./gradlew assembleDevDebug         BUILD SUCCESSFUL
+./gradlew assembleDevDebugAndroidTest  BUILD SUCCESSFUL
+firebase emulators:start           auth + firestore + storage ready, rules loaded clean
+npm --prefix firebase/tests test   19/19 passing
+```
+
+Rules rows from section 7.3 now proven: **A** (partner cannot read preferences),
+**B** (partner cannot read boundaries), **K** (non-member cannot read a couple),
+**L** (engineFilters unreadable by any client), **Q** (reports not client-writable).
+
+### NOT verified — blocked on a human
+**The app has still never been run.** The x86_64 Android emulator cannot start:
+
+```
+ERROR | x86_64 emulation currently requires hardware acceleration!
+CPU acceleration status: Android Emulator hypervisor driver is not installed
+```
+
+The hardware is capable (virtualization enabled in firmware, SLAT and DEP present) — only
+the hypervisor driver is missing, and installing one needs an elevated shell this session
+does not have. **See HUMAN_SETUP.md section 1.3**; it is a one-time fix.
+
+Consequently these remain unrun, though both compile:
+- `FirebaseEmulatorSmokeTest` — the Phase 1 exit criterion (anonymous sign-in, Firestore
+  round trip, and a cross-user read denial from a real client).
+- "Empty app launches" from Phase 0.
+
+Everything else is in place: `cmdline-tools`, the `android-36 google_apis x86_64` image,
+and an AVD named `afterhours_a`.
+
+### Fixed along the way
+- **The Konsist rules were silently passing for the wrong reason.** They matched on
+  `"/core/firebase/"` while Konsist reports native Windows paths, so the path filters never
+  matched and the containment rules were decoration. Now normalised, and confirmed to fire
+  by watching them fail before the fix. Containment now applies to production sources only,
+  since a test must be able to import what it tests.
+- `withoutServerFields` was called with both a map and a key set; it only worked for one.
+  Replaced with a single key-set helper used by create and update alike.
+- Empty test source directories failed `check` under Gradle 9 (`failOnNoDiscoveredTests`).
+
+### Deferred
+- **Cloud Functions** — `functions/` arrives in Phase 4 with the first callable
+  (transactional pairing). The emulator config already reserves port 5001.
+- **Storage couple-scoped rules** — denied outright until Phase 4 defines couple
+  membership, rather than left permissive in the meantime.

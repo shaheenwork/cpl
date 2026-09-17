@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "afterhours-dev-emulator",
+    "staging": "afterhours-staging",
+    "prod": "afterhours-prod"
+  }
+}

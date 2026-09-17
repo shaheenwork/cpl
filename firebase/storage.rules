@@ -1,0 +1,64 @@
+rules_version = '2';
+
+// Afterhours Storage rules (BUILD_PROMPT.md §7.2, §5.8).
+//
+// No object is ever public and no download URL is minted into a shared document. Access
+// is always authenticated and always scoped to the owner or to the couple.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*')
+             && request.resource.size < 10 * 1024 * 1024;
+    }
+
+    function isAudio() {
+      return request.resource.contentType.matches('audio/.*')
+             && request.resource.size < 20 * 1024 * 1024;
+    }
+
+    // ---- user-scoped -----------------------------------------------------
+
+    match /users/{uid}/avatar/{file} {
+      allow read: if isSelf(uid);
+      allow write: if isSelf(uid) && isImage();
+    }
+
+    // Content staged before delivery stays private to its author until the server
+    // marks the surprise delivered (§5.7).
+    match /users/{uid}/outbox/{itemId}/{file} {
+      allow read, write: if isSelf(uid) && (isImage() || isAudio());
+    }
+
+    // ---- couple-scoped ---------------------------------------------------
+    // Couple membership is checked in Phase 4, once couples exist and the membership
+    // shape is settled. Denied until then rather than left open.
+
+    match /couples/{coupleId}/{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // ---- content bundles -------------------------------------------------
+    // Authored content is not private; the SELECTION of it is (§9.2).
+
+    match /content/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if false; // Published by tools/, never by a client.
+    }
+
+    // ---- default deny ----------------------------------------------------
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

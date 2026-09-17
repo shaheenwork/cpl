@@ -24,21 +24,74 @@ For a terminal build:
 
 ```bash
 export JAVA_HOME="C:/Users/shahe/.jdks/jbr-21.0.11"
+export PATH="/c/Users/shahe/.jdks/jbr-21.0.11/bin:$PATH"
 ```
 
-### ⏳ 1.2 SDK command-line tools and an emulator
+The PATH entry must be **Unix-style** (`/c/...`, not `C:/...`) or the Firebase CLI cannot
+find Java, and `firebase emulators:start` fails with *"Could not spawn `java -version`"*
+even though `JAVA_HOME` is set.
 
-The machine had no `cmdline-tools`, no system image and no AVD, so nothing could be
-launched or instrumented. Being installed automatically; if it needs redoing by hand:
+### ✅ 1.2 SDK command-line tools, system image and AVD
 
-> **Android Studio → Settings → Languages & Frameworks → Android SDK**
-> · **SDK Tools** tab → tick **Android SDK Command-line Tools (latest)**
-> · **SDK Platforms** tab → tick **Show Package Details** → under **Android 16 (API 36)**
->   tick a **Google APIs Intel x86_64 Atom System Image**
-> · **Device Manager → Create Virtual Device** → Pixel 8 → that image → Finish
+Done automatically. Installed: `cmdline-tools` (16111833), the
+`system-images;android-36;google_apis;x86_64` image, and an AVD named **`afterhours_a`**.
 
-Two AVDs are needed from Phase 12 onward, because the synchronized-session test drives
-two clients at once.
+### ⬜ 1.3 Install a hypervisor — **BLOCKING, NEEDS ADMIN**
+
+**This is the one thing blocking the app from being run and instrumented.** The emulator
+refuses to start:
+
+```
+ERROR | x86_64 emulation currently requires hardware acceleration!
+CPU acceleration status: Android Emulator hypervisor driver is not installed on this machine
+```
+
+The hardware is fine — virtualization is enabled in firmware, and SLAT and DEP are both
+available. Only the hypervisor *driver* is missing, and installing one requires an
+elevated shell, which this session does not have.
+
+Pick either option, in an **Administrator** terminal:
+
+**Option A — Android Emulator hypervisor driver (lighter, recommended)**
+
+In Android Studio: **Settings → Languages & Frameworks → Android SDK → SDK Tools** →
+tick **Android Emulator hypervisor driver (installer)** → Apply. Then, as Administrator:
+
+```
+cd %LOCALAPPDATA%\Android\Sdk\extras\google\Android_Emulator_hypervisor_driver
+silent_install.bat
+```
+
+**Option B — Windows Hypervisor Platform**
+
+As Administrator, then reboot:
+
+```
+dism /Online /Enable-Feature /FeatureName:HypervisorPlatform /All
+```
+
+Verify afterwards:
+
+```
+%LOCALAPPDATA%\Android\Sdk\emulator\emulator -accel-check
+```
+
+Once this is done, everything else is already in place:
+
+```bash
+$LOCALAPPDATA/Android/Sdk/emulator/emulator -avd afterhours_a -no-window -no-audio &
+firebase emulators:start --only auth,firestore,storage --project afterhours-dev-emulator &
+./gradlew connectedDevDebugAndroidTest
+```
+
+### ⬜ 1.4 A second AVD, before Phase 12
+
+The synchronized-session test drives two clients at once:
+
+```bash
+$LOCALAPPDATA/Android/Sdk/cmdline-tools/latest/bin/avdmanager create avd \
+  -n afterhours_b -k "system-images;android-36;google_apis;x86_64" -d pixel_8
+```
 
 ---
 
