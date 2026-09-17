@@ -30,6 +30,25 @@ because `:core:engine` is a pure JVM module:
 ./gradlew :architecture:test
 ```
 
+### Screenshot tests
+
+The design system is screenshot-tested on the JVM through Robolectric, so it needs no
+device. `verifyRoborazziDebug` is wired into `check`, so a visual regression fails the
+build like any other test.
+
+After an **intentional** visual change, re-record the goldens and review the diff:
+
+```bash
+./gradlew :core:designsystem:recordRoborazziDebug
+```
+
+Goldens live in `core/designsystem/src/test/screenshots/` and are committed.
+
+### Contrast
+
+`ContrastTest` computes WCAG 2.1 ratios for all 20 foreground/background pairs the theme
+uses. If a pair fails, the fix is to change the token, not the threshold.
+
 ---
 
 ## 2. Security-rules tests — needs the Firebase emulator

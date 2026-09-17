@@ -26,6 +26,7 @@ not searched, and `firebase emulators:start` then dies with *"Could not spawn `j
 | `./gradlew check` | detekt + ktlint (via detekt-formatting) + all unit tests + architecture rules |
 | `./gradlew :core:engine:test` | The experience-engine suite — the highest bar in the repo |
 | `./gradlew :architecture:test` | Konsist layering rules |
+| `./gradlew :core:designsystem:recordRoborazziDebug` | Re-record screenshot goldens after an intentional visual change |
 | `./gradlew projects` | Verify the module graph configures |
 | `./gradlew connectedDevDebugAndroidTest` | Instrumented tests - needs an emulator **and** the Firebase emulators |
 
@@ -83,6 +84,21 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
 - One immutable `UiState` data class per screen, exposed as `StateFlow`. No `LiveData`.
 - Repositories return `Outcome<T>`; exceptions do not cross layer boundaries.
 
+### Design system
+
+- Reach tokens through `AfterhoursTheme.colors / .spacing / .motion / .elevations`, and
+  Material slots through `MaterialTheme`. Never hardcode a colour, a dp or a duration.
+- **Dark only.** `AfterhoursTheme` takes no `darkTheme` flag and ignores the system
+  setting (DECISIONS.md D-009).
+- Decorative movement goes through `decorativeTween(..., reduceMotion)` so it collapses
+  under the system reduce-motion setting. Reveals keep their timing on purpose.
+- Component state enums live together in `component/ComponentState.kt`; domain types
+  (`Intensity`, `Mood`, `BoundaryLevel`, `PreferenceValue`) come from `:core:model` and
+  are never redefined.
+- New component → add it to `gallery/ComponentGallery.kt` and to `GallerySnapshotTest`,
+  then `recordRoborazziDebug`.
+- Any screen showing private content calls `SecureScreen()` from `:core:ui`.
+
 ---
 
 ## Rules the build enforces for you
@@ -122,6 +138,11 @@ loses the race.
 **Convention plugins use `implementation`, not `compileOnly`,** for plugin markers.
 They are precompiled *script* plugins, so each `id("…")` in their `plugins { }` block
 must resolve from build-logic's own classpath.
+
+**Gradients must fade a colour to zero alpha, not to `Color.Transparent`.**
+`Color.Transparent` is RGBA(0,0,0,0), so a gradient towards it drags the hue to black as
+well as the alpha — on this dark theme that shows up as a dirty halo. Use
+`color.copy(alpha = 0f)` for the far stop. `Modifier.drawBehind` also does not clip.
 
 **Kotlin/KSP versions are paired.** Kotlin 2.2.10 ↔ KSP `2.2.10-2.0.2`. KSP changed to
 standalone versioning at 2.3.0; do not mix the schemes.

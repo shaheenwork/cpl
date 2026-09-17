@@ -130,3 +130,46 @@ browsing would dominate the cost model.
 Storage, pointed at by a Remote Config `contentVersion` key, downloaded once and cached in
 Room. Firestore holds only admin-edited deltas and disable flags, so a single item can
 still be pulled globally without an app release.
+
+---
+
+## D-009 — Dark only, with no light theme
+**Phase 2.** BUILD_PROMPT.md §15.1 asks for deep near-black grounds and a "luxury
+after-hours lounge" feel. A light scheme was considered and dropped.
+
+`AfterhoursTheme` takes no `darkTheme` parameter and ignores the system setting. This is
+a private room after dark; a light mode would be a different product, and half-supporting
+one — a washed-out palette nobody designed — is worse than not offering it.
+
+**Consequence:** every contrast pair is verified against the dark palette only, which is
+also why `ContrastTest` can be exhaustive rather than sampling.
+
+---
+
+## D-010 — Variable fonts, bundled rather than downloadable
+**Phase 2.** §15.1 calls for editorial typography, which rules out Roboto: it reads as
+stock Android, exactly what the brief warns against.
+
+Playfair Display (high-contrast display serif) and Inter (body) are bundled as **variable**
+fonts — 2 files rather than 12 static instances, the full weight range, ~1.2 MB total.
+Weights are selected with `FontVariation.Settings`, which needs API 26; minSdk is 26.
+
+Downloadable Fonts was rejected: it needs Play Services at runtime, fails on a cold
+network, and would make screenshot tests depend on a font provider.
+
+Both are SIL OFL; licence texts ship in `assets/licenses/`. Subsetting to the glyphs
+actually used is a Phase 22 size optimisation.
+
+---
+
+## D-011 — Roborazzi over Paparazzi for screenshot tests
+**Phase 2.** Paparazzi's only AGP-9-era release is `2.0.0-alpha05`. Roborazzi 1.74.0 is
+stable and runs through Robolectric, which tracks new AGP versions far more closely.
+
+The deciding factor is that Roborazzi runs on the **JVM**: with the Android emulator
+blocked on a hypervisor install this session cannot perform (HUMAN_SETUP.md §1.3), it is
+the difference between Phase 2 being provable now and being blocked indefinitely.
+
+`verifyRoborazziDebug` is wired into `check`, because Roborazzi captures nothing unless a
+record/verify flag is set — without that wiring a visual regression would pass a green
+build. The gate was confirmed by breaking a colour token and watching it fail.

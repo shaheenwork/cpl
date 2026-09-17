@@ -14,6 +14,10 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.shnapps.couple.core.designsystem.component.GlowButton
+import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
+import com.shnapps.couple.core.designsystem.gallery.ComponentGallery
+import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.navigation.Route
 
 /**
@@ -36,13 +40,20 @@ fun CplNavHost(
         modifier = modifier,
     ) {
         composable<Route.Splash> {
-            PhaseZeroPlaceholder()
+            DevLandingScreen(onOpenGallery = { navController.navigate(Route.DesignGallery) })
+        }
+
+        composable<Route.DesignGallery> {
+            ComponentGallery()
         }
     }
 }
 
 @Composable
-private fun PhaseZeroPlaceholder(modifier: Modifier = Modifier) {
+private fun DevLandingScreen(
+    onOpenGallery: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -56,9 +67,15 @@ private fun PhaseZeroPlaceholder(modifier: Modifier = Modifier) {
             textAlign = TextAlign.Center,
         )
         Text(
-            text = "Phase 0 — project skeleton. Auth, pairing and the experience engine follow.",
+            text = "Phase 2 — design system. Auth, pairing and the experience engine follow.",
             style = MaterialTheme.typography.bodyMedium,
+            color = AfterhoursTheme.colors.textMuted,
             textAlign = TextAlign.Center,
+        )
+        GlowButton(
+            text = "Component gallery",
+            onClick = onOpenGallery,
+            style = GlowButtonStyle.Secondary,
         )
     }
 }

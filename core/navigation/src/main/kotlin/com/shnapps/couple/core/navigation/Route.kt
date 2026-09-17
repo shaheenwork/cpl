@@ -41,4 +41,13 @@ object Route {
 
     @Serializable
     data object Home
+
+    // --- Development ---
+
+    /**
+     * The design-system gallery (BUILD_PROMPT.md §15.3). Reachable from debug builds only;
+     * it is a review surface for the component inventory, not a product screen.
+     */
+    @Serializable
+    data object DesignGallery
 }
