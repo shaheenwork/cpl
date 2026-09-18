@@ -190,6 +190,14 @@ do not add status-bar or IME padding of their own (D-028).
 **Never assume a flow's first value.** `collectAsStateWithLifecycle(initialValue = …)` renders
 that guess on the first frame; the lock screen once trapped every user that way (D-027).
 
+**Memory is tight with everything running.** This machine has 7.4 GB; the Android emulator,
+the Firebase emulators and a 4 GB Gradle daemon together can fail a build with "Native
+memory allocation failed". With the emulator up, build with
+`--max-workers=2 "-Dorg.gradle.jvmargs=-Xmx2560m -XX:MaxMetaspaceSize=768m"`.
+
+**The functions e2e suite wipes the dev emulator project.** Seed manual device checks again
+after running it. Integration tests use their own project and touch nothing (D-037).
+
 **Kotlin/KSP versions are paired.** Kotlin 2.2.10 ↔ KSP `2.2.10-2.0.2`. KSP changed to
 standalone versioning at 2.3.0; do not mix the schemes.
 

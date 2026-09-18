@@ -3,7 +3,7 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 6 complete. Next action: **Phase 7 — Mutual discovery, batched reveals, Secretly Curious.**
+**Current position:** Phase 7 complete. Next action: **Phase 8 — Content system and ≥600 seed items.**
 
 ---
 
@@ -18,8 +18,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 | 4 | Couple pairing | ✅ **Complete** |
 | 5 | Taxonomy + preference discovery | ✅ **Complete** |
 | 6 | Boundaries + engine filters | ✅ **Complete** |
-| 7 | Mutual discovery + batched reveals | ⬜ Next |
-| 8 | Content system + ≥600 seed items | ⬜ |
+| 7 | Mutual discovery + batched reveals | ✅ **Complete** |
+| 8 | Content system + ≥600 seed items | ⬜ Next |
 | 9 | Experience engine | ⬜ |
 | 10 | Build Our Night + player | ⬜ |
 | 11 | Game primitives + 7 core games | ⬜ |
@@ -540,3 +540,54 @@ all green. Production triggers retry; Phase 9 recomputes at generation time (D-0
   `BoundaryRepository`.
 - **Cost (Phase 22):** a boundary change costs one recompute — up to about 60 reads and 2
   writes for a couple with every theme set.
+
+
+---
+
+## Phase 7 — Mutual discovery, batched reveals, Secretly Curious ✅
+
+### Shipped
+- **Matching** (`functions/src/discovery/match.ts`): two positives match as BOTH_YES,
+  BOTH_CURIOUS or MIXED_POSITIVE; two secret curiosities as BOTH_SECRET; a secret never
+  matches an open answer (D-021); anything unrecognised is no match.
+- **The reveal queue** (D-035, D-036): every visible change waits server-side for its own
+  random time; the scheduled `releaseMutualRevealBatches` (every 15 minutes) and the
+  `releaseRevealsNow` callable (on app open, minimum delay only) apply it. Triggers queue on
+  every answer change and on pairing; unpairing clears the queue.
+- **Rules**: members read released matches and may mark one seen for themselves, nothing
+  more (7.3 row R: no client-created match); the queue is unreadable by every client.
+- **`:feature:discovery`**: one reveal at a time — a concealed card whose content is not in
+  the tree, a timed reveal that keeps its pacing under reduce-motion, and for the secret one
+  a two-beat reveal ("WAIT… YOU BOTH PICKED THIS 👀", brass bloom). Then everything shared,
+  counted truthfully (§14.10). `SecureScreen`. Analytics gets a count.
+- First run now goes pairing → private discovery → mutual discovery → Home (§14.1). The app
+  asks for due reveals on every start. Callable error mapping is shared in `:core:firebase`.
+
+### Verified
+```
+./gradlew check assembleDevDebug            BUILD SUCCESSFUL
+npm --prefix firebase/tests test            60/60   (7.3 row R; the queue unreadable)
+npm --prefix functions run test:unit        31/31   (11 on matching and timing)
+npm --prefix functions run test:int         48/48   (14 on the queue), 4 runs in a row
+npm --prefix functions run test:e2e         14/14   (4 on reveals through the triggers)
+MutualDiscoveryViewModelTest 10, MutualDiscoverySnapshotTest 6 (5 goldens reviewed)
+```
+- **Exit criteria.** *A two-user test yields a match*: at every tier, and on the device.
+  *A non-match leaks nothing*: nothing queued, nothing revealed, no document anywhere.
+  *Timing jitter verified*: 400-draw spread tests, the window at millisecond precision, an
+  early release refused, and 12 queued matches getting 12 different times.
+- **Mutation-tested rules:** letting a member create a match, change other fields, mark
+  their partner's entry, read the queue, or letting an outsider read matches — each failed
+  exactly its test.
+- **On the device**: the partner answered over the server, Alex answered in the app; the
+  trigger queued BOTH_YES for about 160 minutes out, invisible to both. Aged past the minimum,
+  a fresh app start released it; the concealed card kept its content out of the
+  accessibility tree; revealing it wrote `seenBy` through the rules.
+
+### Deferred
+- **Phase 10:** "Build a night around this" (disabled with an honest caption until then,
+  D-038); `exploredAt` on a match.
+- **Phase 17:** a quiet notification when a reveal lands.
+- **Phase 20:** what happens to an ended couple's revealed matches.
+- **Phase 22 (cost):** every app start is one callable invocation (throttled to one per five
+  minutes per process); every answer change is one small transaction.

@@ -25,7 +25,9 @@ import {
 } from '../pairing/pairing';
 import { PairingError } from '../shared/errors';
 
-const PROJECT = 'afterhours-dev-emulator';
+// Its own project, so the triggers running in the Functions emulator (which serve
+// afterhours-dev-emulator) never touch this data mid-test.
+const PROJECT = 'afterhours-int-test';
 const db = getFirestore(initializeApp({ projectId: PROJECT }, 'pairing-int-test'));
 const NOW = Date.UTC(2026, 8, 18, 20, 0, 0);
 

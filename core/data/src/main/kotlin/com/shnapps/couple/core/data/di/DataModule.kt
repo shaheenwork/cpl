@@ -6,6 +6,8 @@ import com.shnapps.couple.core.data.boundaries.BoundaryRepository
 import com.shnapps.couple.core.data.boundaries.DefaultBoundaryRepository
 import com.shnapps.couple.core.data.couple.CoupleRepository
 import com.shnapps.couple.core.data.couple.DefaultCoupleRepository
+import com.shnapps.couple.core.data.mutual.DefaultMutualRepository
+import com.shnapps.couple.core.data.mutual.MutualRepository
 import com.shnapps.couple.core.data.preferences.DefaultPreferenceRepository
 import com.shnapps.couple.core.data.preferences.PreferenceRepository
 import com.shnapps.couple.core.data.taxonomy.BundledTaxonomyRepository
@@ -39,4 +41,8 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindBoundaryRepository(impl: DefaultBoundaryRepository): BoundaryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindMutualRepository(impl: DefaultMutualRepository): MutualRepository
 }

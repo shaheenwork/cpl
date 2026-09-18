@@ -116,6 +116,7 @@ dependencies {
     implementation(project(":feature:pairing"))
     implementation(project(":feature:preferences"))
     implementation(project(":feature:boundaries"))
+    implementation(project(":feature:discovery"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

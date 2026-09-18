@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -13,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -44,9 +46,10 @@ fun RevealCard(
     modifier: Modifier = Modifier,
     concealedLabel: String = "Not yet",
     concealedDescription: String = "Hidden until it is revealed",
+    /** The bloom's colour. Brass marks the rarest reveal: both secretly curious (§14.7). */
+    glowColor: Color = AfterhoursTheme.colors.glow,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val colors = AfterhoursTheme.colors
     val motion = AfterhoursTheme.motion
     val reduceMotion = AfterhoursTheme.reduceMotion
 
@@ -81,7 +84,7 @@ fun RevealCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .glow(colors.glow, alpha = bloom, spread = 32.dp),
+            .glow(glowColor, alpha = bloom, spread = 32.dp),
     ) {
         CinematicCard(
             glowing = false,
@@ -120,6 +123,8 @@ private fun ConcealedFace(label: String, description: String) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            // A card-sized face: something is clearly waiting to be turned over.
+            .heightIn(min = AfterhoursTheme.spacing.xxxl * 2)
             .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {

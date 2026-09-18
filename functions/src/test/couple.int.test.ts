@@ -17,7 +17,9 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { filtersRef, recomputeCouple } from '../couple/recompute';
 import { createPairingCode, requestPairing, respondToPairing, unpairCouple } from '../pairing/pairing';
 
-const PROJECT = 'afterhours-dev-emulator';
+// Its own project, so the triggers running in the Functions emulator (which serve
+// afterhours-dev-emulator) never touch this data mid-test.
+const PROJECT = 'afterhours-int-test';
 const db = getFirestore(initializeApp({ projectId: PROJECT }, 'couple-int-test'));
 const NOW = Date.UTC(2026, 8, 18, 21, 0, 0);
 

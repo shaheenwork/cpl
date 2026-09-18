@@ -494,3 +494,47 @@ and error banner that discovery and boundaries share are `ScreenColumn`, `Screen
 `BackRow` and `ErrorBanner` in `:core:ui`. Pairing still has its own heading; moving it would
 re-lay out five reviewed goldens for no user-visible gain, so it moves when pairing is next
 touched.
+
+---
+
+## D-035 — Every visible change to a match waits in a server-only queue for a random time
+**Phase 7.** §5.3: a match that appeared the instant B answered would tell A exactly what B
+just answered. So nothing a partner can see changes when an answer does:
+- A new match, a match whose level changed, and a match withdrawn are all queued in
+  `couples/{cid}/revealQueue`, which no client can read. Only released matches exist in
+  `mutualPreferences`, so a pending match cannot leak by existing.
+- Each queued change gets its own release time, uniform in the window (default 30–180
+  minutes, from Remote Config `reveal_min_delay_minutes` / `reveal_max_delay_minutes`). No
+  configuration can take the minimum below a hard floor of 15 minutes.
+- A queued match that changes keeps its original time, so re-answering cannot nudge it.
+- A release re-checks the answers first and drops anything they no longer support; a batch
+  is only sent when it holds at least one visible change.
+- **"Release now on the couple's next app open"** is read conservatively: opening the app
+  releases only changes that have already waited the minimum delay. It can make a reveal
+  arrive sooner than its random time, never soon enough to date the answer behind it.
+- An ended couple's queue is cleared; nothing still waiting is ever revealed.
+
+---
+
+## D-036 — A match either partner withdraws is taken back, on its own random delay
+**Phase 7.** If one partner changes a matched answer to a negative, or removes it, the match
+is no longer true, and the app should stop saying "you both want this" — consent can be
+withdrawn. Before its reveal it simply vanishes. After its reveal, a retraction is queued
+and applied at its own random time, so the moment it disappears does not date the change
+either.
+
+---
+
+## D-037 — Integration tests run in their own emulator project
+**Phase 7.** The Functions emulator serves `afterhours-dev-emulator`, so its triggers fire on
+anything written there — including by integration tests with a pinned clock, which then
+raced the triggers' real clock. Integration tests now use `afterhours-int-test`, where no
+trigger runs; end-to-end tests stay on the dev project precisely because they want the
+triggers. (This is also the likely cause of the one-off Phase 6 flake.)
+
+---
+
+## D-038 — "Build a night around this" says it is coming, rather than pretending
+**Phase 7.** §14.7 ends every reveal with that button, but Build Our Night is Phase 10. Until
+then it is shown disabled, with one line saying it arrives in a later update — not wired to
+a placeholder that would look like a broken promise.

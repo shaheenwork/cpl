@@ -15,6 +15,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.shnapps.couple.core.data.couple.PendingInvite
+import com.shnapps.couple.core.data.mutual.MutualRepository
 import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.navigation.Route
@@ -43,6 +44,9 @@ class MainActivity : FragmentActivity() {
 
     @Inject
     lateinit var pendingInvite: PendingInvite
+
+    @Inject
+    lateinit var mutualRepository: MutualRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -102,6 +106,16 @@ class MainActivity : FragmentActivity() {
                 appLockManager.onForegrounded()
             }
         }
+    }
+
+    /**
+     * The "release now" on opening the app (BUILD_PROMPT.md §5.3): anything that has already
+     * waited the minimum delay is revealed now rather than at its random time. Throttled in
+     * the repository, and harmless when signed out or unpaired.
+     */
+    override fun onStart() {
+        super.onStart()
+        lifecycleScope.launch { mutualRepository.releaseNow() }
     }
 
     override fun onNewIntent(intent: Intent) {

@@ -223,6 +223,60 @@ describe('couples/{coupleId}', () => {
     await assertFails(updateDoc(doc(alice(), 'couples', 'c1'), { contentLevelEffective: 5 }));
   });
 
+  // Section 5.2 and 7.3 row R.
+  const seedMatch = async () => {
+    await seed();
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'couples', 'c1', 'mutualPreferences', 'sensory_massage'), {
+        prefId: 'sensory_massage', matchLevel: 'BOTH_YES', revealedAt: Timestamp.now(), seenBy: {}, sourceVersion: 1,
+      });
+      await setDoc(doc(ctx.firestore(), 'couples', 'c1', 'revealQueue', 'mood_intense'), {
+        op: 'REVEAL', matchLevel: 'BOTH_YES', queuedAt: Timestamp.now(), releaseAfter: Timestamp.now(),
+      });
+    });
+  };
+  const match = (db) => doc(db, 'couples', 'c1', 'mutualPreferences', 'sensory_massage');
+
+  it('lets both members read their revealed matches', async () => {
+    await seedMatch();
+    await assertSucceeds(getDoc(match(alice())));
+    await assertSucceeds(getDocs(collection(bob(), 'couples', 'c1', 'mutualPreferences')));
+  });
+
+  it('denies anyone outside the couple, and everyone once unpaired', async () => {
+    await seedMatch();
+    await assertFails(getDoc(match(mallory())));
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'couples', 'c1'), { status: 'UNPAIRED' });
+    });
+    await assertFails(getDoc(match(alice())));
+  });
+
+  it('denies a client creating a match (7.3 test R)', async () => {
+    await seed();
+    await assertFails(setDoc(doc(alice(), 'couples', 'c1', 'mutualPreferences', 'forged'), {
+      prefId: 'forged', matchLevel: 'BOTH_YES', revealedAt: Timestamp.now(), seenBy: {}, sourceVersion: 1,
+    }));
+  });
+
+  it('lets a member mark a match seen for themselves, and nothing more', async () => {
+    await seedMatch();
+    await assertSucceeds(updateDoc(match(alice()), { [`seenBy.${ALICE}`]: true }));
+    // Not for their partner, not as false, not alongside any other change, and no deleting.
+    await assertFails(updateDoc(match(alice()), { [`seenBy.${BOB}`]: true }));
+    await assertFails(updateDoc(match(bob()), { [`seenBy.${BOB}`]: false }));
+    await assertFails(updateDoc(match(bob()), { [`seenBy.${BOB}`]: true, matchLevel: 'BOTH_SECRET' }));
+    await assertFails(updateDoc(match(bob()), { revealedAt: Timestamp.now() }));
+    await assertFails(deleteDoc(match(alice())));
+  });
+
+  it('denies every client any look at the reveal queue, members included', async () => {
+    await seedMatch();
+    await assertFails(getDoc(doc(alice(), 'couples', 'c1', 'revealQueue', 'mood_intense')));
+    await assertFails(getDocs(collection(bob(), 'couples', 'c1', 'revealQueue')));
+    await assertFails(setDoc(doc(alice(), 'couples', 'c1', 'revealQueue', 'mood_intense'), { op: 'REVEAL' }));
+  });
+
   it('denies a member rewriting the member list', async () => {
     await seed();
     await assertFails(updateDoc(doc(alice(), 'couples', 'c1'), { memberUids: [ALICE, 'uid_mallory'] }));

@@ -32,6 +32,7 @@ import com.shnapps.couple.feature.applock.AppLockSetupScreen
 import com.shnapps.couple.feature.auth.AuthScreen
 import com.shnapps.couple.feature.auth.SignOutViewModel
 import com.shnapps.couple.feature.boundaries.BoundariesScreen
+import com.shnapps.couple.feature.discovery.MutualDiscoveryScreen
 import com.shnapps.couple.feature.onboarding.AgeGateScreen
 import com.shnapps.couple.feature.onboarding.SplashScreen
 import com.shnapps.couple.feature.onboarding.StartDestination
@@ -139,12 +140,25 @@ fun CplNavHost(
         composable<Route.PreferenceDiscovery> {
             PreferenceDiscoveryScreen(
                 onFinished = {
-                    // Reached from Home: go back to it. Reached on first run: Home is not
-                    // on the stack yet, so replace discovery with it. Mutual discovery slots
-                    // in between once Phase 7 builds it.
+                    // Reached from Home: go back to it. On first run Home is not on the stack
+                    // yet, and the journey continues into mutual discovery (§14.1).
+                    if (!navController.popBackStack(Route.Home, inclusive = false)) {
+                        navController.navigate(Route.MutualDiscovery) {
+                            popUpTo(Route.PreferenceDiscovery) { inclusive = true }
+                        }
+                    }
+                },
+            )
+        }
+
+        composable<Route.MutualDiscovery> {
+            MutualDiscoveryScreen(
+                // Build Our Night arrives in Phase 10; until then the button says so.
+                onBuildNight = null,
+                onDone = {
                     if (!navController.popBackStack(Route.Home, inclusive = false)) {
                         navController.navigate(Route.Home) {
-                            popUpTo(Route.PreferenceDiscovery) { inclusive = true }
+                            popUpTo(Route.MutualDiscovery) { inclusive = true }
                         }
                     }
                 },
@@ -217,6 +231,11 @@ private fun ComingSoon(
                 text = "Your private curiosities",
                 onClick = { navController.navigate(Route.PreferenceDiscovery) },
                 leadingEmoji = "👀",
+            )
+            GlowButton(
+                text = "What you both chose",
+                onClick = { navController.navigate(Route.MutualDiscovery) },
+                style = GlowButtonStyle.Secondary,
             )
             GlowButton(
                 text = "Your limits",

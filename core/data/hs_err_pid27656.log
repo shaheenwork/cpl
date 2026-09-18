@@ -1,0 +1,601 @@
+#
+# There is insufficient memory for the Java Runtime Environment to continue.
+# Native memory allocation (malloc) failed to allocate 152736 bytes. Error detail: Chunk::new
+# Possible reasons:
+#   The system is out of physical RAM or swap space
+#   This process is running with CompressedOops enabled, and the Java Heap may be blocking the growth of the native heap
+# Possible solutions:
+#   Reduce memory load on the system
+#   Increase physical memory or swap space
+#   Check if swap backing store is full
+#   Decrease Java heap size (-Xmx/-Xms)
+#   Decrease number of Java threads
+#   Decrease Java thread stack sizes (-Xss)
+#   Set larger code cache with -XX:ReservedCodeCacheSize=
+#   JVM is running with Unscaled Compressed Oops mode in which the Java heap is
+#     placed in the first 4GB address space. The Java Heap base address is the
+#     maximum limit for the native heap growth. Please use -XX:HeapBaseMinAddress
+#     to set the Java Heap base and to place the Java Heap above 4GB virtual address.
+# This output file may be truncated or incomplete.
+#
+#  Out of Memory Error (arena.cpp:168), pid=27656, tid=2192
+#
+# JRE version: OpenJDK Runtime Environment JBR-21.0.11+1-1163.116-nomod (21.0.11+1) (build 21.0.11+1-b1163.116)
+# Java VM: OpenJDK 64-Bit Server VM JBR-21.0.11+1-1163.116-nomod (21.0.11+1-b1163.116, mixed mode, sharing, tiered, compressed oops, compressed class ptrs, g1 gc, windows-amd64)
+# No core dump will be written. Minidumps are not enabled by default on client versions of Windows
+#
+
+---------------  S U M M A R Y ------------
+
+Command Line: -Djava.awt.headless=true -Djava.library.path=C:\Users\shahe\.jdks\jbr-21.0.11\bin;C:\Windows\Sun\Java\bin;C:\Windows\system32;C:\Windows;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Program Files\nodejs\;C:\Users\shahe\miniconda3;C:\Users\shahe\miniconda3\Library\mingw-w64\bin;C:\Users\shahe\miniconda3\Library\usr\bin;C:\Users\shahe\miniconda3\Library\bin;C:\Users\shahe\miniconda3\Scripts;C:\Users\shahe\AppData\Local\Microsoft\WindowsApps;C:\Users\shahe\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-7.0.2-full_build\bin;C:\Users\shahe\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\shahe\AppData\Roaming\npm;.;D:\Android Projects\cpl\core\data\src\testDebug\jniLibs;D:\Android Projects\cpl\core\data\src\test\jniLibs -Dorg.gradle.internal.worker.tmpdir=D:\Android Projects\cpl\core\data\build\tmp\testDebugUnitTest\work --add-opens=java.base/java.io=ALL-UNNAMED -Xmx512m -Dfile.encoding=UTF-8 -Duser.country=US -Duser.language=en -Duser.variant -ea worker.org.gradle.process.internal.worker.GradleWorkerMain 'Gradle Test Executor 60'
+
+Host: AMD Ryzen 7 5800HS with Radeon Graphics         , 16 cores, 7G,  Windows 11 , 64 bit Build 22621 (10.0.22621.4945)
+Time: Fri Sep 18 17:51:56 2026 India Standard Time elapsed time: 2.689291 seconds (0d 0h 0m 2s)
+
+---------------  T H R E A D  ---------------
+
+Current thread (0x000002c0d73ee370):  JavaThread "C2 CompilerThread0" daemon [_thread_in_native, id=2192, stack(0x000000e15b000000,0x000000e15b100000) (1024K)]
+
+
+Current CompileTask:
+C2:2689  668 %     4       sun.nio.fs.WindowsPathParser::normalize @ 15 (138 bytes)
+
+Stack: [0x000000e15b000000,0x000000e15b100000]
+Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+V  [jvm.dll+0x6ed7f9]
+V  [jvm.dll+0x8cbfcb]
+V  [jvm.dll+0x8ce76a]
+V  [jvm.dll+0x8cee43]
+V  [jvm.dll+0x28e496]
+V  [jvm.dll+0xc92bd]
+V  [jvm.dll+0xc980c]
+V  [jvm.dll+0x3051de]
+V  [jvm.dll+0x613bd7]
+V  [jvm.dll+0x25e207]
+V  [jvm.dll+0x256b2f]
+V  [jvm.dll+0x254340]
+V  [jvm.dll+0x1d37ae]
+V  [jvm.dll+0x26423b]
+V  [jvm.dll+0x26276e]
+V  [jvm.dll+0x405515]
+V  [jvm.dll+0x875cad]
+V  [jvm.dll+0x6ebf5d]
+C  [ucrtbase.dll+0x29333]
+C  [KERNEL32.DLL+0x1259d]
+C  [ntdll.dll+0x5af38]
+
+
+---------------  P R O C E S S  ---------------
+
+Threads class SMR info:
+_java_thread_list=0x000002c0d774b9e0, length=11, elements={
+0x000002c0c05a1ee0, 0x000002c0d73e5b50, 0x000002c0d73e7d90, 0x000002c0d73eaab0,
+0x000002c0d73eb510, 0x000002c0d73ebf70, 0x000002c0d73ec9d0, 0x000002c0d73ed5e0,
+0x000002c0d73ee370, 0x000002c0d73effd0, 0x000002c0d7776260
+}
+
+Java Threads: ( => current thread )
+  0x000002c0c05a1ee0 JavaThread "main"                              [_thread_in_native, id=27872, stack(0x000000e15a100000,0x000000e15a200000) (1024K)]
+  0x000002c0d73e5b50 JavaThread "Common-Cleaner"             daemon [_thread_blocked, id=8776, stack(0x000000e15a900000,0x000000e15aa00000) (1024K)]
+  0x000002c0d73e7d90 JavaThread "Reference Handler"          daemon [_thread_blocked, id=1864, stack(0x000000e15aa00000,0x000000e15ab00000) (1024K)]
+  0x000002c0d73eaab0 JavaThread "Finalizer"                  daemon [_thread_blocked, id=7760, stack(0x000000e15ab00000,0x000000e15ac00000) (1024K)]
+  0x000002c0d73eb510 JavaThread "Signal Dispatcher"          daemon [_thread_blocked, id=25480, stack(0x000000e15ac00000,0x000000e15ad00000) (1024K)]
+  0x000002c0d73ebf70 JavaThread "Attach Listener"            daemon [_thread_blocked, id=26764, stack(0x000000e15ad00000,0x000000e15ae00000) (1024K)]
+  0x000002c0d73ec9d0 JavaThread "Service Thread"             daemon [_thread_blocked, id=27540, stack(0x000000e15ae00000,0x000000e15af00000) (1024K)]
+  0x000002c0d73ed5e0 JavaThread "Monitor Deflation Thread"   daemon [_thread_blocked, id=1332, stack(0x000000e15af00000,0x000000e15b000000) (1024K)]
+=>0x000002c0d73ee370 JavaThread "C2 CompilerThread0"         daemon [_thread_in_native, id=2192, stack(0x000000e15b000000,0x000000e15b100000) (1024K)]
+  0x000002c0d73effd0 JavaThread "C1 CompilerThread0"         daemon [_thread_blocked, id=19204, stack(0x000000e15b100000,0x000000e15b200000) (1024K)]
+  0x000002c0d7776260 JavaThread "Notification Thread"        daemon [_thread_blocked, id=21436, stack(0x000000e15b200000,0x000000e15b300000) (1024K)]
+Total: 11
+
+Other Threads:
+  0x000002c0d73cb6a0 VMThread "VM Thread"                           [id=22500, stack(0x000000e15a800000,0x000000e15a900000) (1024K)]
+  0x000002c0d73b9080 WatcherThread "VM Periodic Task Thread"        [id=26904, stack(0x000000e15a700000,0x000000e15a800000) (1024K)]
+  0x000002c0c05cbc20 WorkerThread "GC Thread#0"                     [id=27148, stack(0x000000e15a200000,0x000000e15a300000) (1024K)]
+  0x000002c0c05ed360 ConcurrentGCThread "G1 Main Marker"            [id=16332, stack(0x000000e15a300000,0x000000e15a400000) (1024K)]
+  0x000002c0c05edc20 WorkerThread "G1 Conc#0"                       [id=22736, stack(0x000000e15a400000,0x000000e15a500000) (1024K)]
+  0x000002c0d728d8b0 ConcurrentGCThread "G1 Refine#0"               [id=17508, stack(0x000000e15a500000,0x000000e15a600000) (1024K)]
+  0x000002c0d728e1e0 ConcurrentGCThread "G1 Service"                [id=13712, stack(0x000000e15a600000,0x000000e15a700000) (1024K)]
+Total: 7
+
+Threads with active compile tasks:
+C2 CompilerThread0  2711  668 %     4       sun.nio.fs.WindowsPathParser::normalize @ 15 (138 bytes)
+C1 CompilerThread0  2711  688   !   3       sun.nio.fs.WindowsPath::getPathForWin32Calls (147 bytes)
+Total: 2
+
+VM state: not at safepoint (normal execution)
+
+VM Mutex/Monitor currently owned by a thread: None
+
+Heap address: 0x00000000e0000000, size: 512 MB, Compressed Oops mode: 32-bit
+
+CDS archive(s) mapped at: [0x000002c0d8000000-0x000002c0d9c20000-0x000002c0d9c20000), size 29491200, SharedBaseAddress: 0x000002c0d8000000, ArchiveRelocationMode: 1.
+Compressed class space mapped at: 0x000002c0da000000-0x000002c11a000000, reserved size: 1073741824
+Narrow klass base: 0x000002c0d8000000, Narrow klass shift: 0, Narrow klass range: 0x100000000
+
+GC Precious Log:
+ CardTable entry size: 512
+ Card Set container configuration: InlinePtr #cards 5 size 8 Array Of Cards #cards 12 size 40 Howl #buckets 4 coarsen threshold 1843 Howl Bitmap #cards 512 size 80 coarsen threshold 460 Card regions per heap region 1 cards per card region 2048
+ CPUs: 16 total, 16 available
+ Memory: 7583M
+ Large Page Support: Disabled
+ NUMA Support: Disabled
+ Compressed Oops: Enabled (32-bit)
+ Heap Region Size: 1M
+ Heap Min Capacity: 8M
+ Heap Initial Capacity: 120M
+ Heap Max Capacity: 512M
+ Pre-touch: Disabled
+ Parallel Workers: 13
+ Concurrent Workers: 3
+ Concurrent Refinement Workers: 13
+ Periodic GC: Disabled
+
+Heap:
+ garbage-first heap   total 122880K, used 7168K [0x00000000e0000000, 0x0000000100000000)
+  region size 1024K, 8 young (8192K), 0 survivors (0K)
+ Metaspace       used 1278K, committed 1408K, reserved 1114112K
+  class space    used 121K, committed 192K, reserved 1048576K
+
+Heap Regions: E=young(eden), S=young(survivor), O=old, HS=humongous(starts), HC=humongous(continues), CS=collection set, F=free, TAMS=top-at-mark-start, PB=parsable bottom
+|   0|0x00000000e0000000, 0x00000000e0000000, 0x00000000e0100000|  0%| F|  |TAMS 0x00000000e0000000| PB 0x00000000e0000000| Untracked 
+|   1|0x00000000e0100000, 0x00000000e0100000, 0x00000000e0200000|  0%| F|  |TAMS 0x00000000e0100000| PB 0x00000000e0100000| Untracked 
+|   2|0x00000000e0200000, 0x00000000e0200000, 0x00000000e0300000|  0%| F|  |TAMS 0x00000000e0200000| PB 0x00000000e0200000| Untracked 
+|   3|0x00000000e0300000, 0x00000000e0300000, 0x00000000e0400000|  0%| F|  |TAMS 0x00000000e0300000| PB 0x00000000e0300000| Untracked 
+|   4|0x00000000e0400000, 0x00000000e0400000, 0x00000000e0500000|  0%| F|  |TAMS 0x00000000e0400000| PB 0x00000000e0400000| Untracked 
+|   5|0x00000000e0500000, 0x00000000e0500000, 0x00000000e0600000|  0%| F|  |TAMS 0x00000000e0500000| PB 0x00000000e0500000| Untracked 
+|   6|0x00000000e0600000, 0x00000000e0600000, 0x00000000e0700000|  0%| F|  |TAMS 0x00000000e0600000| PB 0x00000000e0600000| Untracked 
+|   7|0x00000000e0700000, 0x00000000e0700000, 0x00000000e0800000|  0%| F|  |TAMS 0x00000000e0700000| PB 0x00000000e0700000| Untracked 
+|   8|0x00000000e0800000, 0x00000000e0800000, 0x00000000e0900000|  0%| F|  |TAMS 0x00000000e0800000| PB 0x00000000e0800000| Untracked 
+|   9|0x00000000e0900000, 0x00000000e0900000, 0x00000000e0a00000|  0%| F|  |TAMS 0x00000000e0900000| PB 0x00000000e0900000| Untracked 
+|  10|0x00000000e0a00000, 0x00000000e0a00000, 0x00000000e0b00000|  0%| F|  |TAMS 0x00000000e0a00000| PB 0x00000000e0a00000| Untracked 
+|  11|0x00000000e0b00000, 0x00000000e0b00000, 0x00000000e0c00000|  0%| F|  |TAMS 0x00000000e0b00000| PB 0x00000000e0b00000| Untracked 
+|  12|0x00000000e0c00000, 0x00000000e0c00000, 0x00000000e0d00000|  0%| F|  |TAMS 0x00000000e0c00000| PB 0x00000000e0c00000| Untracked 
+|  13|0x00000000e0d00000, 0x00000000e0d00000, 0x00000000e0e00000|  0%| F|  |TAMS 0x00000000e0d00000| PB 0x00000000e0d00000| Untracked 
+|  14|0x00000000e0e00000, 0x00000000e0e00000, 0x00000000e0f00000|  0%| F|  |TAMS 0x00000000e0e00000| PB 0x00000000e0e00000| Untracked 
+|  15|0x00000000e0f00000, 0x00000000e0f00000, 0x00000000e1000000|  0%| F|  |TAMS 0x00000000e0f00000| PB 0x00000000e0f00000| Untracked 
+|  16|0x00000000e1000000, 0x00000000e1000000, 0x00000000e1100000|  0%| F|  |TAMS 0x00000000e1000000| PB 0x00000000e1000000| Untracked 
+|  17|0x00000000e1100000, 0x00000000e1100000, 0x00000000e1200000|  0%| F|  |TAMS 0x00000000e1100000| PB 0x00000000e1100000| Untracked 
+|  18|0x00000000e1200000, 0x00000000e1200000, 0x00000000e1300000|  0%| F|  |TAMS 0x00000000e1200000| PB 0x00000000e1200000| Untracked 
+|  19|0x00000000e1300000, 0x00000000e1300000, 0x00000000e1400000|  0%| F|  |TAMS 0x00000000e1300000| PB 0x00000000e1300000| Untracked 
+|  20|0x00000000e1400000, 0x00000000e1400000, 0x00000000e1500000|  0%| F|  |TAMS 0x00000000e1400000| PB 0x00000000e1400000| Untracked 
+|  21|0x00000000e1500000, 0x00000000e1500000, 0x00000000e1600000|  0%| F|  |TAMS 0x00000000e1500000| PB 0x00000000e1500000| Untracked 
+|  22|0x00000000e1600000, 0x00000000e1600000, 0x00000000e1700000|  0%| F|  |TAMS 0x00000000e1600000| PB 0x00000000e1600000| Untracked 
+|  23|0x00000000e1700000, 0x00000000e1700000, 0x00000000e1800000|  0%| F|  |TAMS 0x00000000e1700000| PB 0x00000000e1700000| Untracked 
+|  24|0x00000000e1800000, 0x00000000e1800000, 0x00000000e1900000|  0%| F|  |TAMS 0x00000000e1800000| PB 0x00000000e1800000| Untracked 
+|  25|0x00000000e1900000, 0x00000000e1900000, 0x00000000e1a00000|  0%| F|  |TAMS 0x00000000e1900000| PB 0x00000000e1900000| Untracked 
+|  26|0x00000000e1a00000, 0x00000000e1a00000, 0x00000000e1b00000|  0%| F|  |TAMS 0x00000000e1a00000| PB 0x00000000e1a00000| Untracked 
+|  27|0x00000000e1b00000, 0x00000000e1b00000, 0x00000000e1c00000|  0%| F|  |TAMS 0x00000000e1b00000| PB 0x00000000e1b00000| Untracked 
+|  28|0x00000000e1c00000, 0x00000000e1c00000, 0x00000000e1d00000|  0%| F|  |TAMS 0x00000000e1c00000| PB 0x00000000e1c00000| Untracked 
+|  29|0x00000000e1d00000, 0x00000000e1d00000, 0x00000000e1e00000|  0%| F|  |TAMS 0x00000000e1d00000| PB 0x00000000e1d00000| Untracked 
+|  30|0x00000000e1e00000, 0x00000000e1e00000, 0x00000000e1f00000|  0%| F|  |TAMS 0x00000000e1e00000| PB 0x00000000e1e00000| Untracked 
+|  31|0x00000000e1f00000, 0x00000000e1f00000, 0x00000000e2000000|  0%| F|  |TAMS 0x00000000e1f00000| PB 0x00000000e1f00000| Untracked 
+|  32|0x00000000e2000000, 0x00000000e2000000, 0x00000000e2100000|  0%| F|  |TAMS 0x00000000e2000000| PB 0x00000000e2000000| Untracked 
+|  33|0x00000000e2100000, 0x00000000e2100000, 0x00000000e2200000|  0%| F|  |TAMS 0x00000000e2100000| PB 0x00000000e2100000| Untracked 
+|  34|0x00000000e2200000, 0x00000000e2200000, 0x00000000e2300000|  0%| F|  |TAMS 0x00000000e2200000| PB 0x00000000e2200000| Untracked 
+|  35|0x00000000e2300000, 0x00000000e2300000, 0x00000000e2400000|  0%| F|  |TAMS 0x00000000e2300000| PB 0x00000000e2300000| Untracked 
+|  36|0x00000000e2400000, 0x00000000e2400000, 0x00000000e2500000|  0%| F|  |TAMS 0x00000000e2400000| PB 0x00000000e2400000| Untracked 
+|  37|0x00000000e2500000, 0x00000000e2500000, 0x00000000e2600000|  0%| F|  |TAMS 0x00000000e2500000| PB 0x00000000e2500000| Untracked 
+|  38|0x00000000e2600000, 0x00000000e2600000, 0x00000000e2700000|  0%| F|  |TAMS 0x00000000e2600000| PB 0x00000000e2600000| Untracked 
+|  39|0x00000000e2700000, 0x00000000e2700000, 0x00000000e2800000|  0%| F|  |TAMS 0x00000000e2700000| PB 0x00000000e2700000| Untracked 
+|  40|0x00000000e2800000, 0x00000000e2800000, 0x00000000e2900000|  0%| F|  |TAMS 0x00000000e2800000| PB 0x00000000e2800000| Untracked 
+|  41|0x00000000e2900000, 0x00000000e2900000, 0x00000000e2a00000|  0%| F|  |TAMS 0x00000000e2900000| PB 0x00000000e2900000| Untracked 
+|  42|0x00000000e2a00000, 0x00000000e2a00000, 0x00000000e2b00000|  0%| F|  |TAMS 0x00000000e2a00000| PB 0x00000000e2a00000| Untracked 
+|  43|0x00000000e2b00000, 0x00000000e2b00000, 0x00000000e2c00000|  0%| F|  |TAMS 0x00000000e2b00000| PB 0x00000000e2b00000| Untracked 
+|  44|0x00000000e2c00000, 0x00000000e2c00000, 0x00000000e2d00000|  0%| F|  |TAMS 0x00000000e2c00000| PB 0x00000000e2c00000| Untracked 
+|  45|0x00000000e2d00000, 0x00000000e2d00000, 0x00000000e2e00000|  0%| F|  |TAMS 0x00000000e2d00000| PB 0x00000000e2d00000| Untracked 
+|  46|0x00000000e2e00000, 0x00000000e2e00000, 0x00000000e2f00000|  0%| F|  |TAMS 0x00000000e2e00000| PB 0x00000000e2e00000| Untracked 
+|  47|0x00000000e2f00000, 0x00000000e2f00000, 0x00000000e3000000|  0%| F|  |TAMS 0x00000000e2f00000| PB 0x00000000e2f00000| Untracked 
+|  48|0x00000000e3000000, 0x00000000e3000000, 0x00000000e3100000|  0%| F|  |TAMS 0x00000000e3000000| PB 0x00000000e3000000| Untracked 
+|  49|0x00000000e3100000, 0x00000000e3100000, 0x00000000e3200000|  0%| F|  |TAMS 0x00000000e3100000| PB 0x00000000e3100000| Untracked 
+|  50|0x00000000e3200000, 0x00000000e3200000, 0x00000000e3300000|  0%| F|  |TAMS 0x00000000e3200000| PB 0x00000000e3200000| Untracked 
+|  51|0x00000000e3300000, 0x00000000e3300000, 0x00000000e3400000|  0%| F|  |TAMS 0x00000000e3300000| PB 0x00000000e3300000| Untracked 
+|  52|0x00000000e3400000, 0x00000000e3400000, 0x00000000e3500000|  0%| F|  |TAMS 0x00000000e3400000| PB 0x00000000e3400000| Untracked 
+|  53|0x00000000e3500000, 0x00000000e3500000, 0x00000000e3600000|  0%| F|  |TAMS 0x00000000e3500000| PB 0x00000000e3500000| Untracked 
+|  54|0x00000000e3600000, 0x00000000e3600000, 0x00000000e3700000|  0%| F|  |TAMS 0x00000000e3600000| PB 0x00000000e3600000| Untracked 
+|  55|0x00000000e3700000, 0x00000000e3700000, 0x00000000e3800000|  0%| F|  |TAMS 0x00000000e3700000| PB 0x00000000e3700000| Untracked 
+|  56|0x00000000e3800000, 0x00000000e3800000, 0x00000000e3900000|  0%| F|  |TAMS 0x00000000e3800000| PB 0x00000000e3800000| Untracked 
+|  57|0x00000000e3900000, 0x00000000e3900000, 0x00000000e3a00000|  0%| F|  |TAMS 0x00000000e3900000| PB 0x00000000e3900000| Untracked 
+|  58|0x00000000e3a00000, 0x00000000e3a00000, 0x00000000e3b00000|  0%| F|  |TAMS 0x00000000e3a00000| PB 0x00000000e3a00000| Untracked 
+|  59|0x00000000e3b00000, 0x00000000e3b00000, 0x00000000e3c00000|  0%| F|  |TAMS 0x00000000e3b00000| PB 0x00000000e3b00000| Untracked 
+|  60|0x00000000e3c00000, 0x00000000e3c00000, 0x00000000e3d00000|  0%| F|  |TAMS 0x00000000e3c00000| PB 0x00000000e3c00000| Untracked 
+|  61|0x00000000e3d00000, 0x00000000e3d00000, 0x00000000e3e00000|  0%| F|  |TAMS 0x00000000e3d00000| PB 0x00000000e3d00000| Untracked 
+|  62|0x00000000e3e00000, 0x00000000e3e00000, 0x00000000e3f00000|  0%| F|  |TAMS 0x00000000e3e00000| PB 0x00000000e3e00000| Untracked 
+|  63|0x00000000e3f00000, 0x00000000e3f00000, 0x00000000e4000000|  0%| F|  |TAMS 0x00000000e3f00000| PB 0x00000000e3f00000| Untracked 
+|  64|0x00000000e4000000, 0x00000000e4000000, 0x00000000e4100000|  0%| F|  |TAMS 0x00000000e4000000| PB 0x00000000e4000000| Untracked 
+|  65|0x00000000e4100000, 0x00000000e4100000, 0x00000000e4200000|  0%| F|  |TAMS 0x00000000e4100000| PB 0x00000000e4100000| Untracked 
+|  66|0x00000000e4200000, 0x00000000e4200000, 0x00000000e4300000|  0%| F|  |TAMS 0x00000000e4200000| PB 0x00000000e4200000| Untracked 
+|  67|0x00000000e4300000, 0x00000000e4300000, 0x00000000e4400000|  0%| F|  |TAMS 0x00000000e4300000| PB 0x00000000e4300000| Untracked 
+|  68|0x00000000e4400000, 0x00000000e4400000, 0x00000000e4500000|  0%| F|  |TAMS 0x00000000e4400000| PB 0x00000000e4400000| Untracked 
+|  69|0x00000000e4500000, 0x00000000e4500000, 0x00000000e4600000|  0%| F|  |TAMS 0x00000000e4500000| PB 0x00000000e4500000| Untracked 
+|  70|0x00000000e4600000, 0x00000000e4600000, 0x00000000e4700000|  0%| F|  |TAMS 0x00000000e4600000| PB 0x00000000e4600000| Untracked 
+|  71|0x00000000e4700000, 0x00000000e4700000, 0x00000000e4800000|  0%| F|  |TAMS 0x00000000e4700000| PB 0x00000000e4700000| Untracked 
+|  72|0x00000000e4800000, 0x00000000e4800000, 0x00000000e4900000|  0%| F|  |TAMS 0x00000000e4800000| PB 0x00000000e4800000| Untracked 
+|  73|0x00000000e4900000, 0x00000000e4900000, 0x00000000e4a00000|  0%| F|  |TAMS 0x00000000e4900000| PB 0x00000000e4900000| Untracked 
+|  74|0x00000000e4a00000, 0x00000000e4a00000, 0x00000000e4b00000|  0%| F|  |TAMS 0x00000000e4a00000| PB 0x00000000e4a00000| Untracked 
+|  75|0x00000000e4b00000, 0x00000000e4b00000, 0x00000000e4c00000|  0%| F|  |TAMS 0x00000000e4b00000| PB 0x00000000e4b00000| Untracked 
+|  76|0x00000000e4c00000, 0x00000000e4c00000, 0x00000000e4d00000|  0%| F|  |TAMS 0x00000000e4c00000| PB 0x00000000e4c00000| Untracked 
+|  77|0x00000000e4d00000, 0x00000000e4d00000, 0x00000000e4e00000|  0%| F|  |TAMS 0x00000000e4d00000| PB 0x00000000e4d00000| Untracked 
+|  78|0x00000000e4e00000, 0x00000000e4e00000, 0x00000000e4f00000|  0%| F|  |TAMS 0x00000000e4e00000| PB 0x00000000e4e00000| Untracked 
+|  79|0x00000000e4f00000, 0x00000000e4f00000, 0x00000000e5000000|  0%| F|  |TAMS 0x00000000e4f00000| PB 0x00000000e4f00000| Untracked 
+|  80|0x00000000e5000000, 0x00000000e5000000, 0x00000000e5100000|  0%| F|  |TAMS 0x00000000e5000000| PB 0x00000000e5000000| Untracked 
+|  81|0x00000000e5100000, 0x00000000e5100000, 0x00000000e5200000|  0%| F|  |TAMS 0x00000000e5100000| PB 0x00000000e5100000| Untracked 
+|  82|0x00000000e5200000, 0x00000000e5200000, 0x00000000e5300000|  0%| F|  |TAMS 0x00000000e5200000| PB 0x00000000e5200000| Untracked 
+|  83|0x00000000e5300000, 0x00000000e5300000, 0x00000000e5400000|  0%| F|  |TAMS 0x00000000e5300000| PB 0x00000000e5300000| Untracked 
+|  84|0x00000000e5400000, 0x00000000e5400000, 0x00000000e5500000|  0%| F|  |TAMS 0x00000000e5400000| PB 0x00000000e5400000| Untracked 
+|  85|0x00000000e5500000, 0x00000000e5500000, 0x00000000e5600000|  0%| F|  |TAMS 0x00000000e5500000| PB 0x00000000e5500000| Untracked 
+|  86|0x00000000e5600000, 0x00000000e5600000, 0x00000000e5700000|  0%| F|  |TAMS 0x00000000e5600000| PB 0x00000000e5600000| Untracked 
+|  87|0x00000000e5700000, 0x00000000e5700000, 0x00000000e5800000|  0%| F|  |TAMS 0x00000000e5700000| PB 0x00000000e5700000| Untracked 
+|  88|0x00000000e5800000, 0x00000000e5800000, 0x00000000e5900000|  0%| F|  |TAMS 0x00000000e5800000| PB 0x00000000e5800000| Untracked 
+|  89|0x00000000e5900000, 0x00000000e5900000, 0x00000000e5a00000|  0%| F|  |TAMS 0x00000000e5900000| PB 0x00000000e5900000| Untracked 
+|  90|0x00000000e5a00000, 0x00000000e5a00000, 0x00000000e5b00000|  0%| F|  |TAMS 0x00000000e5a00000| PB 0x00000000e5a00000| Untracked 
+|  91|0x00000000e5b00000, 0x00000000e5b00000, 0x00000000e5c00000|  0%| F|  |TAMS 0x00000000e5b00000| PB 0x00000000e5b00000| Untracked 
+|  92|0x00000000e5c00000, 0x00000000e5c00000, 0x00000000e5d00000|  0%| F|  |TAMS 0x00000000e5c00000| PB 0x00000000e5c00000| Untracked 
+|  93|0x00000000e5d00000, 0x00000000e5d00000, 0x00000000e5e00000|  0%| F|  |TAMS 0x00000000e5d00000| PB 0x00000000e5d00000| Untracked 
+|  94|0x00000000e5e00000, 0x00000000e5e00000, 0x00000000e5f00000|  0%| F|  |TAMS 0x00000000e5e00000| PB 0x00000000e5e00000| Untracked 
+|  95|0x00000000e5f00000, 0x00000000e5f00000, 0x00000000e6000000|  0%| F|  |TAMS 0x00000000e5f00000| PB 0x00000000e5f00000| Untracked 
+|  96|0x00000000e6000000, 0x00000000e6000000, 0x00000000e6100000|  0%| F|  |TAMS 0x00000000e6000000| PB 0x00000000e6000000| Untracked 
+|  97|0x00000000e6100000, 0x00000000e6100000, 0x00000000e6200000|  0%| F|  |TAMS 0x00000000e6100000| PB 0x00000000e6100000| Untracked 
+|  98|0x00000000e6200000, 0x00000000e6200000, 0x00000000e6300000|  0%| F|  |TAMS 0x00000000e6200000| PB 0x00000000e6200000| Untracked 
+|  99|0x00000000e6300000, 0x00000000e6300000, 0x00000000e6400000|  0%| F|  |TAMS 0x00000000e6300000| PB 0x00000000e6300000| Untracked 
+| 100|0x00000000e6400000, 0x00000000e6400000, 0x00000000e6500000|  0%| F|  |TAMS 0x00000000e6400000| PB 0x00000000e6400000| Untracked 
+| 101|0x00000000e6500000, 0x00000000e6500000, 0x00000000e6600000|  0%| F|  |TAMS 0x00000000e6500000| PB 0x00000000e6500000| Untracked 
+| 102|0x00000000e6600000, 0x00000000e6600000, 0x00000000e6700000|  0%| F|  |TAMS 0x00000000e6600000| PB 0x00000000e6600000| Untracked 
+| 103|0x00000000e6700000, 0x00000000e6700000, 0x00000000e6800000|  0%| F|  |TAMS 0x00000000e6700000| PB 0x00000000e6700000| Untracked 
+| 104|0x00000000e6800000, 0x00000000e6800000, 0x00000000e6900000|  0%| F|  |TAMS 0x00000000e6800000| PB 0x00000000e6800000| Untracked 
+| 105|0x00000000e6900000, 0x00000000e6900000, 0x00000000e6a00000|  0%| F|  |TAMS 0x00000000e6900000| PB 0x00000000e6900000| Untracked 
+| 106|0x00000000e6a00000, 0x00000000e6a00000, 0x00000000e6b00000|  0%| F|  |TAMS 0x00000000e6a00000| PB 0x00000000e6a00000| Untracked 
+| 107|0x00000000e6b00000, 0x00000000e6b00000, 0x00000000e6c00000|  0%| F|  |TAMS 0x00000000e6b00000| PB 0x00000000e6b00000| Untracked 
+| 108|0x00000000e6c00000, 0x00000000e6c00000, 0x00000000e6d00000|  0%| F|  |TAMS 0x00000000e6c00000| PB 0x00000000e6c00000| Untracked 
+| 109|0x00000000e6d00000, 0x00000000e6d00000, 0x00000000e6e00000|  0%| F|  |TAMS 0x00000000e6d00000| PB 0x00000000e6d00000| Untracked 
+| 110|0x00000000e6e00000, 0x00000000e6e00000, 0x00000000e6f00000|  0%| F|  |TAMS 0x00000000e6e00000| PB 0x00000000e6e00000| Untracked 
+| 111|0x00000000e6f00000, 0x00000000e6f00000, 0x00000000e7000000|  0%| F|  |TAMS 0x00000000e6f00000| PB 0x00000000e6f00000| Untracked 
+| 112|0x00000000e7000000, 0x00000000e7079830, 0x00000000e7100000| 47%| E|  |TAMS 0x00000000e7000000| PB 0x00000000e7000000| Complete 
+| 113|0x00000000e7100000, 0x00000000e7200000, 0x00000000e7200000|100%| E|CS|TAMS 0x00000000e7100000| PB 0x00000000e7100000| Complete 
+| 114|0x00000000e7200000, 0x00000000e7300000, 0x00000000e7300000|100%| E|CS|TAMS 0x00000000e7200000| PB 0x00000000e7200000| Complete 
+| 115|0x00000000e7300000, 0x00000000e7400000, 0x00000000e7400000|100%| E|CS|TAMS 0x00000000e7300000| PB 0x00000000e7300000| Complete 
+| 116|0x00000000e7400000, 0x00000000e7500000, 0x00000000e7500000|100%| E|CS|TAMS 0x00000000e7400000| PB 0x00000000e7400000| Complete 
+| 117|0x00000000e7500000, 0x00000000e7600000, 0x00000000e7600000|100%| E|CS|TAMS 0x00000000e7500000| PB 0x00000000e7500000| Complete 
+| 118|0x00000000e7600000, 0x00000000e7700000, 0x00000000e7700000|100%| E|CS|TAMS 0x00000000e7600000| PB 0x00000000e7600000| Complete 
+| 119|0x00000000e7700000, 0x00000000e7800000, 0x00000000e7800000|100%| E|CS|TAMS 0x00000000e7700000| PB 0x00000000e7700000| Complete 
+
+Card table byte_map: [0x000002c0d3b40000,0x000002c0d3c40000] _byte_map_base: 0x000002c0d3440000
+
+Marking Bits: (CMBitMap*) 0x000002c0c05cc8f0
+ Bits: [0x000002c0d3c40000, 0x000002c0d4440000)
+
+Polling page: 0x000002c0be390000
+
+Metaspace:
+
+Usage:
+  Non-class:      1.13 MB used.
+      Class:    121.77 KB used.
+       Both:      1.25 MB used.
+
+Virtual space:
+  Non-class space:       64.00 MB reserved,       1.19 MB (  2%) committed,  1 nodes.
+      Class space:        1.00 GB reserved,     192.00 KB ( <1%) committed,  1 nodes.
+             Both:        1.06 GB reserved,       1.38 MB ( <1%) committed. 
+
+Chunk freelists:
+   Non-Class:  11.53 MB
+       Class:  15.64 MB
+        Both:  27.17 MB
+
+MaxMetaspaceSize: unlimited
+CompressedClassSpaceSize: 1.00 GB
+Initial GC threshold: 21.00 MB
+Current GC threshold: 21.00 MB
+CDS: on
+ - commit_granule_bytes: 65536.
+ - commit_granule_words: 8192.
+ - virtual_space_node_default_size: 8388608.
+ - enlarge_chunks_in_place: 1.
+ - use_allocation_guard: 0.
+
+
+Internal statistics:
+
+num_allocs_failed_limit: 0.
+num_arena_births: 16.
+num_arena_deaths: 0.
+num_vsnodes_births: 2.
+num_vsnodes_deaths: 0.
+num_space_committed: 22.
+num_space_uncommitted: 0.
+num_chunks_returned_to_freelist: 0.
+num_chunks_taken_from_freelist: 45.
+num_chunk_merges: 0.
+num_chunk_splits: 31.
+num_chunks_enlarged: 26.
+num_inconsistent_stats: 0.
+
+CodeHeap 'non-profiled nmethods': size=119168Kb used=197Kb max_used=197Kb free=118970Kb
+ bounds [0x000002c0cbd30000, 0x000002c0cbfa0000, 0x000002c0d3190000]
+CodeHeap 'profiled nmethods': size=119104Kb used=1180Kb max_used=1180Kb free=117923Kb
+ bounds [0x000002c0c4190000, 0x000002c0c4400000, 0x000002c0cb5e0000]
+CodeHeap 'non-nmethods': size=7488Kb used=1258Kb max_used=1274Kb free=6229Kb
+ bounds [0x000002c0cb5e0000, 0x000002c0cb850000, 0x000002c0cbd30000]
+CodeCache: size=245760Kb, used=2635Kb, max_used=2651Kb, free=243122Kb
+ total_blobs=1111, nmethods=686, adapters=330, full_count=0
+Compilation: enabled, stopped_count=0, restarted_count=0
+
+Compilation events (20 events):
+Event: 2.680 Thread 0x000002c0d73effd0 nmethod 671 0x000002c0c42aaf10 code [0x000002c0c42ab1a0, 0x000002c0c42abbe8]
+Event: 2.680 Thread 0x000002c0d73effd0  672       3       sun.nio.fs.WindowsPath::toWindowsPath (32 bytes)
+Event: 2.681 Thread 0x000002c0d73effd0 nmethod 672 0x000002c0c42ac090 code [0x000002c0c42ac260, 0x000002c0c42ac6e0]
+Event: 2.681 Thread 0x000002c0d73effd0  674       3       sun.nio.fs.WindowsPath::checkRead (17 bytes)
+Event: 2.681 Thread 0x000002c0d73effd0 nmethod 674 0x000002c0c42ac810 code [0x000002c0c42ac9c0, 0x000002c0c42acbb0]
+Event: 2.682 Thread 0x000002c0d73effd0  675       3       java.lang.Runtime$Version::feature (17 bytes)
+Event: 2.682 Thread 0x000002c0d73effd0 nmethod 675 0x000002c0c42acc90 code [0x000002c0c42ace40, 0x000002c0c42ad130]
+Event: 2.683 Thread 0x000002c0d73effd0  676       3       java.nio.file.Files::readAttributes (11 bytes)
+Event: 2.683 Thread 0x000002c0d73effd0 nmethod 676 0x000002c0c42ad210 code [0x000002c0c42ad3e0, 0x000002c0c42ad698]
+Event: 2.683 Thread 0x000002c0d73effd0  677       3       sun.nio.fs.WindowsFileSystemProvider::getFileAttributeView (118 bytes)
+Event: 2.684 Thread 0x000002c0d73effd0 nmethod 677 0x000002c0c42ad890 code [0x000002c0c42adbc0, 0x000002c0c42aecc0]
+Event: 2.684 Thread 0x000002c0d73effd0  678       3       sun.nio.fs.WindowsFileAttributeViews$Basic::readAttributes (5 bytes)
+Event: 2.684 Thread 0x000002c0d73effd0 nmethod 678 0x000002c0c42af210 code [0x000002c0c42af400, 0x000002c0c42af8b8]
+Event: 2.684 Thread 0x000002c0d73effd0  679   !   3       sun.nio.fs.WindowsFileAttributeViews$Basic::readAttributes (30 bytes)
+Event: 2.684 Thread 0x000002c0d73effd0 nmethod 679 0x000002c0c42afa90 code [0x000002c0c42afc80, 0x000002c0c42b0050]
+Event: 2.684 Thread 0x000002c0d73effd0  680   !   3       sun.nio.fs.WindowsFileAttributes::get (275 bytes)
+Event: 2.686 Thread 0x000002c0d73effd0 nmethod 680 0x000002c0c42b0210 code [0x000002c0c42b06c0, 0x000002c0c42b2410]
+Event: 2.686 Thread 0x000002c0d73effd0  681       3       sun.nio.fs.NativeBuffers::getNativeBuffer (21 bytes)
+Event: 2.686 Thread 0x000002c0d73effd0 nmethod 681 0x000002c0c42b3490 code [0x000002c0c42b3660, 0x000002c0c42b3978]
+Event: 2.686 Thread 0x000002c0d73effd0  682   !   3       sun.nio.fs.WindowsNativeDispatcher::GetFileAttributesEx (73 bytes)
+
+GC Heap History (0 events):
+No events
+
+Dll operation events (3 events):
+Event: 0.035 Loaded shared library C:\Users\shahe\.jdks\jbr-21.0.11\bin\java.dll
+Event: 0.695 Loaded shared library C:\Users\shahe\.jdks\jbr-21.0.11\bin\jsvml.dll
+Event: 2.201 Loaded shared library C:\Users\shahe\.jdks\jbr-21.0.11\bin\zip.dll
+
+Deoptimization events (20 events):
+Event: 1.589 Thread 0x000002c0c05a1ee0 DEOPT PACKING pc=0x000002c0c41e54cc sp=0x000000e15a1fed50
+Event: 1.589 Thread 0x000002c0c05a1ee0 DEOPT UNPACKING pc=0x000002c0cb634bc2 sp=0x000000e15a1fe1b8 mode 0
+Event: 2.175 Thread 0x000002c0c05a1ee0 DEOPT PACKING pc=0x000002c0c41e54cc sp=0x000000e15a1fca50
+Event: 2.175 Thread 0x000002c0c05a1ee0 DEOPT UNPACKING pc=0x000002c0cb634bc2 sp=0x000000e15a1fbeb8 mode 0
+Event: 2.199 Thread 0x000002c0c05a1ee0 DEOPT PACKING pc=0x000002c0c41e54cc sp=0x000000e15a1fe100
+Event: 2.199 Thread 0x000002c0c05a1ee0 DEOPT UNPACKING pc=0x000002c0cb634bc2 sp=0x000000e15a1fd568 mode 0
+Event: 2.239 Thread 0x000002c0c05a1ee0 DEOPT PACKING pc=0x000002c0c41907c8 sp=0x000000e15a1fa150
+Event: 2.239 Thread 0x000002c0c05a1ee0 DEOPT UNPACKING pc=0x000002c0cb634bc2 sp=0x000000e15a1f95c8 mode 0
+Event: 2.240 Thread 0x000002c0c05a1ee0 DEOPT PACKING pc=0x000002c0c41907c8 sp=0x000000e15a1fa150
+Event: 2.240 Thread 0x000002c0c05a1ee0 DEOPT UNPACKING pc=0x000002c0cb634bc2 sp=0x000000e15a1f95c8 mode 0
+Event: 2.267 Thread 0x000002c0c05a1ee0 DEOPT PACKING pc=0x000002c0c42019c9 sp=0x000000e15a1fa1b0
+Event: 2.267 Thread 0x000002c0c05a1ee0 DEOPT UNPACKING pc=0x000002c0cb634bc2 sp=0x000000e15a1f9620 mode 0
+Event: 2.399 Thread 0x000002c0c05a1ee0 Uncommon trap: trap_request=0xffffff45 fr.pc=0x000002c0cbd4bb10 relative=0x0000000000000070
+Event: 2.399 Thread 0x000002c0c05a1ee0 Uncommon trap: reason=unstable_if action=reinterpret pc=0x000002c0cbd4bb10 method=java.io.WinNTFileSystem.isSlash(C)Z @ 9 c2
+Event: 2.399 Thread 0x000002c0c05a1ee0 DEOPT PACKING pc=0x000002c0cbd4bb10 sp=0x000000e15a1fde30
+Event: 2.399 Thread 0x000002c0c05a1ee0 DEOPT UNPACKING pc=0x000002c0cb634422 sp=0x000000e15a1fddb8 mode 2
+Event: 2.457 Thread 0x000002c0c05a1ee0 DEOPT PACKING pc=0x000002c0c419cf2f sp=0x000000e15a1f9f00
+Event: 2.457 Thread 0x000002c0c05a1ee0 DEOPT UNPACKING pc=0x000002c0cb634bc2 sp=0x000000e15a1f9398 mode 0
+Event: 2.649 Thread 0x000002c0c05a1ee0 DEOPT PACKING pc=0x000002c0c419e543 sp=0x000000e15a1fc320
+Event: 2.649 Thread 0x000002c0c05a1ee0 DEOPT UNPACKING pc=0x000002c0cb634bc2 sp=0x000000e15a1fb798 mode 0
+
+Classes loaded (18 events):
+Event: 1.541 Loading class jdk/internal/vm/PostVMInitHook
+Event: 1.541 Loading class jdk/internal/vm/PostVMInitHook done
+Event: 2.200 Loading class java/io/IoOverNioOsSpecific
+Event: 2.201 Loading class java/io/IoOverNioOsSpecific done
+Event: 2.201 Loading class java/io/JbExtendedOpenOptions
+Event: 2.201 Loading class java/io/JbExtendedOpenOptions done
+Event: 2.201 Loading class sun/nio/fs/ExtendedOptions
+Event: 2.203 Loading class sun/nio/fs/ExtendedOptions done
+Event: 2.203 Loading class sun/nio/fs/ExtendedOptions$InternalOption
+Event: 2.204 Loading class sun/nio/fs/ExtendedOptions$InternalOption done
+Event: 2.204 Loading class sun/nio/fs/ExtendedOptions$Wrapper
+Event: 2.204 Loading class sun/nio/fs/ExtendedOptions$Wrapper done
+Event: 2.359 Loading class java/lang/UnsupportedClassVersionError
+Event: 2.360 Loading class java/lang/UnsupportedClassVersionError done
+Event: 2.396 Loading class java/net/URLClassLoader$3
+Event: 2.397 Loading class java/net/URLClassLoader$3 done
+Event: 2.398 Loading class java/net/URLClassLoader$3$1
+Event: 2.398 Loading class java/net/URLClassLoader$3$1 done
+
+Classes unloaded (0 events):
+No events
+
+Classes redefined (0 events):
+No events
+
+Internal exceptions (4 events):
+Event: 2.192 Thread 0x000002c0c05a1ee0 Exception <a 'java/lang/NoSuchMethodError'{0x00000000e75a6068}: 'void java.lang.invoke.DirectMethodHandle$Holder.invokeInterface(java.lang.Object, java.lang.Object, java.lang.Object)'> (0x00000000e75a6068) 
+thrown [s\src\hotspot\share\interpreter\linkResolver.cpp, line 784]
+Event: 2.534 Thread 0x000002c0c05a1ee0 Exception <a 'sun/nio/fs/WindowsException'{0x00000000e7267ce8}> (0x00000000e7267ce8) 
+thrown [s\src\hotspot\share\prims\jni.cpp, line 537]
+Event: 2.541 Thread 0x000002c0c05a1ee0 Exception <a 'sun/nio/fs/WindowsException'{0x00000000e72762e0}> (0x00000000e72762e0) 
+thrown [s\src\hotspot\share\prims\jni.cpp, line 537]
+Event: 2.543 Thread 0x000002c0c05a1ee0 Exception <a 'sun/nio/fs/WindowsException'{0x00000000e727a248}> (0x00000000e727a248) 
+thrown [s\src\hotspot\share\prims\jni.cpp, line 537]
+
+ZGC Phase Switch (0 events):
+No events
+
+VM Operations (14 events):
+Event: 1.492 Executing safepoint VM operation: Cleanup
+Event: 1.508 Executing safepoint VM operation: Cleanup done
+Event: 1.542 Executing non-safepoint VM operation: HandshakeAllThreads (Deoptimize)
+Event: 1.554 Executing non-safepoint VM operation: HandshakeAllThreads (Deoptimize) done
+Event: 2.217 Executing non-safepoint VM operation: HandshakeAllThreads (Deoptimize)
+Event: 2.217 Executing non-safepoint VM operation: HandshakeAllThreads (Deoptimize) done
+Event: 2.389 Executing non-safepoint VM operation: HandshakeAllThreads (Deoptimize)
+Event: 2.389 Executing non-safepoint VM operation: HandshakeAllThreads (Deoptimize) done
+Event: 2.399 Executing non-safepoint VM operation: HandshakeAllThreads (Deoptimize)
+Event: 2.399 Executing non-safepoint VM operation: HandshakeAllThreads (Deoptimize) done
+Event: 2.515 Executing non-safepoint VM operation: HandshakeAllThreads (Deoptimize)
+Event: 2.515 Executing non-safepoint VM operation: HandshakeAllThreads (Deoptimize) done
+Event: 2.515 Executing safepoint VM operation: Cleanup
+Event: 2.515 Executing safepoint VM operation: Cleanup done
+
+Memory protections (0 events):
+No events
+
+Nmethod flushes (0 events):
+No events
+
+Events (15 events):
+Event: 0.311 Thread 0x000002c0c05a1ee0 Thread added: 0x000002c0c05a1ee0
+Event: 0.516 Thread 0x000002c0c05a1ee0 Thread added: 0x000002c0d73e5b50
+Event: 0.519 Thread 0x000002c0c05a1ee0 Thread added: 0x000002c0d73e7d90
+Event: 0.519 Thread 0x000002c0c05a1ee0 Thread added: 0x000002c0d73eaab0
+Event: 0.520 Thread 0x000002c0c05a1ee0 Thread added: 0x000002c0d73eb510
+Event: 0.520 Thread 0x000002c0c05a1ee0 Thread added: 0x000002c0d73ebf70
+Event: 0.520 Thread 0x000002c0c05a1ee0 Thread added: 0x000002c0d73ec9d0
+Event: 0.520 Thread 0x000002c0c05a1ee0 Thread added: 0x000002c0d73ed5e0
+Event: 0.520 Thread 0x000002c0c05a1ee0 Thread added: 0x000002c0d73ee370
+Event: 0.520 Thread 0x000002c0c05a1ee0 Thread added: 0x000002c0d73effd0
+Event: 1.540 Thread 0x000002c0c05a1ee0 Thread added: 0x000002c0d7776260
+Event: 1.563 Loaded shared library C:\Users\shahe\.jdks\jbr-21.0.11\bin\net.dll
+Event: 1.567 Loaded shared library C:\Users\shahe\.jdks\jbr-21.0.11\bin\nio.dll
+Event: 1.576 Loaded shared library C:\Users\shahe\.jdks\jbr-21.0.11\bin\zip.dll
+Event: 2.394 Loaded shared library C:\Users\shahe\.jdks\jbr-21.0.11\bin\jimage.dll
+
+
+Dynamic libraries:
+0x00007ff61fa00000 - 0x00007ff61fa0a000 	C:\Users\shahe\.jdks\jbr-21.0.11\bin\java.exe
+0x00007ff8b3dd0000 - 0x00007ff8b3fe7000 	C:\Windows\SYSTEM32\ntdll.dll
+0x00007ff8b33a0000 - 0x00007ff8b3464000 	C:\Windows\System32\KERNEL32.DLL
+0x00007ff8b1120000 - 0x00007ff8b14f2000 	C:\Windows\System32\KERNELBASE.dll
+0x00007ff8b18e0000 - 0x00007ff8b19f1000 	C:\Windows\System32\ucrtbase.dll
+0x00007ff89b750000 - 0x00007ff89b768000 	C:\Users\shahe\.jdks\jbr-21.0.11\bin\jli.dll
+0x00007ff8b2160000 - 0x00007ff8b2311000 	C:\Windows\System32\USER32.dll
+0x00007ff8b18b0000 - 0x00007ff8b18d6000 	C:\Windows\System32\win32u.dll
+0x00007ff8b1be0000 - 0x00007ff8b1c09000 	C:\Windows\System32\GDI32.dll
+0x00007ff8b1790000 - 0x00007ff8b18ab000 	C:\Windows\System32\gdi32full.dll
+0x00007ff8b16f0000 - 0x00007ff8b178a000 	C:\Windows\System32\msvcp_win.dll
+0x00007ff89b770000 - 0x00007ff89b78e000 	C:\Users\shahe\.jdks\jbr-21.0.11\bin\VCRUNTIME140.dll
+0x00007ff8b00e0000 - 0x00007ff8b0378000 	C:\Windows\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.22621.4950_none_2711e8477383c17f\COMCTL32.dll
+0x00007ff8b3aa0000 - 0x00007ff8b3b47000 	C:\Windows\System32\msvcrt.dll
+0x00007ff8b20b0000 - 0x00007ff8b20e1000 	C:\Windows\System32\IMM32.DLL
+0x00007ff89c310000 - 0x00007ff89c31c000 	C:\Users\shahe\.jdks\jbr-21.0.11\bin\vcruntime140_1.dll
+0x00007ff8886b0000 - 0x00007ff888739000 	C:\Users\shahe\.jdks\jbr-21.0.11\bin\msvcp140.dll
+0x00007ff837a40000 - 0x00007ff83880e000 	C:\Users\shahe\.jdks\jbr-21.0.11\bin\server\jvm.dll
+0x00007ff8b2600000 - 0x00007ff8b26b1000 	C:\Windows\System32\ADVAPI32.dll
+0x00007ff8b39f0000 - 0x00007ff8b3a97000 	C:\Windows\System32\sechost.dll
+0x00007ff8b1500000 - 0x00007ff8b1528000 	C:\Windows\System32\bcrypt.dll
+0x00007ff8b2320000 - 0x00007ff8b2434000 	C:\Windows\System32\RPCRT4.dll
+0x00007ff8b1a80000 - 0x00007ff8b1af1000 	C:\Windows\System32\WS2_32.dll
+0x00007ff8ad690000 - 0x00007ff8ad6c4000 	C:\Windows\SYSTEM32\WINMM.dll
+0x00007ff8aaac0000 - 0x00007ff8aaaca000 	C:\Windows\SYSTEM32\VERSION.dll
+0x00007ff8b0dc0000 - 0x00007ff8b0e0d000 	C:\Windows\SYSTEM32\POWRPROF.dll
+0x00007ff8b0da0000 - 0x00007ff8b0db3000 	C:\Windows\SYSTEM32\UMPDC.dll
+0x00007ff8af650000 - 0x00007ff8af668000 	C:\Windows\SYSTEM32\kernel.appcore.dll
+0x00007ff89bca0000 - 0x00007ff89bcaa000 	C:\Users\shahe\.jdks\jbr-21.0.11\bin\jimage.dll
+0x00007ff8b0760000 - 0x00007ff8b0992000 	C:\Windows\SYSTEM32\DBGHELP.DLL
+0x00007ff8b1c60000 - 0x00007ff8b1ff1000 	C:\Windows\System32\combase.dll
+0x00007ff8b1b00000 - 0x00007ff8b1bd7000 	C:\Windows\System32\OLEAUT32.dll
+0x00007ff8b0650000 - 0x00007ff8b0682000 	C:\Windows\SYSTEM32\dbgcore.DLL
+0x00007ff8b1a00000 - 0x00007ff8b1a7b000 	C:\Windows\System32\bcryptPrimitives.dll
+0x00007ff89b720000 - 0x00007ff89b741000 	C:\Users\shahe\.jdks\jbr-21.0.11\bin\java.dll
+0x00007ff8b27d0000 - 0x00007ff8b305a000 	C:\Windows\System32\SHELL32.dll
+0x00007ff8b15b0000 - 0x00007ff8b16ef000 	C:\Windows\System32\wintypes.dll
+0x00007ff8ae590000 - 0x00007ff8aee9f000 	C:\Windows\SYSTEM32\windows.storage.dll
+0x00007ff8b3060000 - 0x00007ff8b316a000 	C:\Windows\System32\SHCORE.dll
+0x00007ff8b3d20000 - 0x00007ff8b3d83000 	C:\Windows\System32\shlwapi.dll
+0x00007ff8b0e20000 - 0x00007ff8b0e4b000 	C:\Windows\SYSTEM32\profapi.dll
+0x00007ff87baf0000 - 0x00007ff87bbc7000 	C:\Users\shahe\.jdks\jbr-21.0.11\bin\jsvml.dll
+0x00007ff89b100000 - 0x00007ff89b111000 	C:\Users\shahe\.jdks\jbr-21.0.11\bin\net.dll
+0x00007ff8ac1c0000 - 0x00007ff8ac2ec000 	C:\Windows\SYSTEM32\WINHTTP.dll
+0x00007ff8afa90000 - 0x00007ff8afafa000 	C:\Windows\system32\mswsock.dll
+0x00007ff89b0e0000 - 0x00007ff89b0f6000 	C:\Users\shahe\.jdks\jbr-21.0.11\bin\nio.dll
+0x00007ff891960000 - 0x00007ff891978000 	C:\Users\shahe\.jdks\jbr-21.0.11\bin\zip.dll
+
+JVMTI agents: none
+
+dbghelp: loaded successfully - version: 4.0.5 - missing functions: none
+symbol engine: initialized successfully - sym options: 0x614 - pdb path: .;C:\Users\shahe\.jdks\jbr-21.0.11\bin;C:\Windows\SYSTEM32;C:\Windows\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.22621.4950_none_2711e8477383c17f;C:\Users\shahe\.jdks\jbr-21.0.11\bin\server
+
+VM Arguments:
+jvm_args: -Djava.awt.headless=true -Djava.library.path=C:\Users\shahe\.jdks\jbr-21.0.11\bin;C:\Windows\Sun\Java\bin;C:\Windows\system32;C:\Windows;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Program Files\nodejs\;C:\Users\shahe\miniconda3;C:\Users\shahe\miniconda3\Library\mingw-w64\bin;C:\Users\shahe\miniconda3\Library\usr\bin;C:\Users\shahe\miniconda3\Library\bin;C:\Users\shahe\miniconda3\Scripts;C:\Users\shahe\AppData\Local\Microsoft\WindowsApps;C:\Users\shahe\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-7.0.2-full_build\bin;C:\Users\shahe\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\shahe\AppData\Roaming\npm;.;D:\Android Projects\cpl\core\data\src\testDebug\jniLibs;D:\Android Projects\cpl\core\data\src\test\jniLibs -Dorg.gradle.internal.worker.tmpdir=D:\Android Projects\cpl\core\data\build\tmp\testDebugUnitTest\work --add-opens=java.base/java.io=ALL-UNNAMED -Xmx512m -Dfile.encoding=UTF-8 -Duser.country=US -Duser.language=en -Duser.variant -ea 
+java_command: worker.org.gradle.process.internal.worker.GradleWorkerMain 'Gradle Test Executor 60'
+java_class_path (initial): C:\Users\shahe\.gradle\caches\9.5.0\workerMain\gradle-worker.jar;D:\Android Projects\cpl\core\data\build\intermediates\unit_test_config_directory\debugUnitTest\generateDebugUnitTestConfig\out;D:\Android Projects\cpl\core\data\build\intermediates\classes\debugUnitTest\transformDebugUnitTestClassesWithAsm\jars\0.jar;D:\Android Projects\cpl\core\data\build\intermediates\classes\debugUnitTest\transformDebugUnitTestClassesWithAsm\dirs;D:\Android Projects\cpl\core\data\build\intermediates\java_res\debugUnitTest\processDebugUnitTestJavaRes\out;D:\Android Projects\cpl\core\data\build\intermediates\runtime_library_classes_jar\debug\bundleLibRuntimeToJarDebug\classes.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.google.truth\truth\1.4.5\176753805c1c7d8ec439dd61c48bd688cdc48436\truth-1.4.5.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\junit\junit\4.13.2\8ac9e16d933b6fb43bc7f576336b8f4d7eb5ba12\junit-4.13.2.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\app.cash.turbine\turbine-jvm\1.2.1\80767e0dc7df24e2ef980ae47a565d7726290fa3\Turbine-jvm.jar;D:\Android Projects\cpl\core\firebase\build\intermediates\runtime_library_classes_jar\debug\bundleLibRuntimeToJarDebug\classes.jar;D:\Android Projects\cpl\core\datastore\build\intermediates\runtime_library_classes_jar\debug\bundleLibRuntimeToJarDebug\classes.jar;D:\Android Projects\cpl\core\analytics\build\intermediates\runtime_library_classes_jar\debug\bundleLibRuntimeToJarDebug\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\7c17415202d71d4e6e52ce7e8b5b9672\transformed\firebase-auth-24.2.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\ce773f4f8a1487985b9f6b8b8cb39cd0\transformed\recaptcha-18.6.1-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\32543fa07ee4f8df5ca116ea06d87dba\transformed\hilt-android-2.60.1-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\7cdbbc6a256d8ba2f00034c1b9cfab66\transformed\firebase-perf-22.0.6-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\ce0c814376f419bcc414433d2036f53b\transformed\appcompat-resources-1.7.1-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\345833ee66735aa06fd6d489ad29ad01\transformed\appcompat-1.7.1-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\42ae838cf7b5eba3a1f8b1bf8aa2aa1c\transformed\firebase-appcheck-debug-19.4.1-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\45b28027d7bfdc414da2b93ac8ba7438\transformed\firebase-appcheck-playintegrity-19.4.1-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\dcc59395e068dd122328f9b66458a64d\transformed\firebase-firestore-26.6.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\9e0c21e09038e68ce6c3dcfef7adaa2f\transformed\firebase-functions-22.1.1-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\fd775c90dfbdbb66d6faa5b6485a097c\transformed\firebase-messaging-25.1.3-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\822426898ff4fc91d95d935b860d69ef\transformed\firebase-storage-22.0.2-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\290083aab03a02c16bb9e3f2fd4c521a\transformed\firebase-appcheck-19.4.1-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\5f0a099f2cd2cf4bd11642f0cf892132\transformed\credentials-1.2.0-rc01-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\07bfa61753f0423a58bd5a9b17b9cc29\transformed\credentials-play-services-auth-1.2.0-rc01-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\a8e9318e3f24449ff7816e64648ddb23\transformed\play-services-auth-20.7.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\85bc94894b6356efe07ffa639faa7c5d\transformed\play-services-auth-api-phone-18.0.2-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\782ba82c4490ca2aa126091c4a0abf9b\transformed\firebase-database-collection-18.0.1-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\82f0062341c6a6a9eb7657cfbf5abafe\transformed\firebase-appcheck-interop-17.1.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\f6842cf76d76512d46798cbb0aae31a2\transformed\firebase-iid-21.1.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\6332bbfdff294ef5a7e68c4279ab574b\transformed\play-services-cloud-messaging-17.4.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\df640e671f2917be402449f367b6a454\transformed\firebase-analytics-23.2.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\644849e6181ed4217ce9ad48ecdb7628\transformed\play-services-measurement-23.2.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\a13ccc76fdfe89c1defe97020992564e\transformed\play-services-measurement-sdk-23.2.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\516fa2108a38b8af260c1ab24f07a364\transformed\play-services-measurement-impl-23.2.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\dc1d20f0f36e068a08fa8a03896ea42c\transformed\play-services-fido-20.1.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\4dfe5ed17bd4d17879dd6ebfa8a3ece2\transformed\play-services-auth-base-18.0.4-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\8e3c4f13f924a00a2d8d66b1f27571ea\transformed\play-services-base-18.9.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\f6ff374a69dbbb1c8410fa448db2d3c2\transformed\play-services-measurement-api-23.2.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\2accfac889f03a7ef6f8221d3790e6c5\transformed\firebase-config-23.1.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\4dd739b69d347cc4d1385b7b77393447\transformed\firebase-crashlytics-20.1.1-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\f2e57548aef10c2558e5553956fc0a41\transformed\firebase-auth-interop-20.0.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\97670f0a3efb817f729c0876738f4c62\transformed\firebase-sessions-3.0.8-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\69acbb958684e576453902f874009894\transformed\firebase-installations-19.1.2-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\25329d5ff4ff36decddb682c064dc85e\transformed\firebase-common-22.2.1-runtime.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlinx\kotlinx-coroutines-play-services\1.11.0\1669ebaddbc4df1c7cfff7ae983cd14d73579c11\kotlinx-coroutines-play-services-1.11.0.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\e697c63d188eb74310fabcbd678b8ccc\transformed\integrity-1.4.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\49640df8c4bcfbd3a42a2b7dcd297885\transformed\firebase-iid-interop-17.1.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\b7b47ed7368fa51c0b16e7c06fcc0896\transformed\firebase-installations-interop-17.3.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\024ac56e3656edd17cf12af990e9daa5\transformed\play-services-tasks-18.4.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\d2540e41bb8d76671fa38ec8c058ea0c\transformed\firebase-abt-21.1.1-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\b14bbf75ea4992a1025da0689210e346\transformed\firebase-measurement-connector-20.0.1-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\f013007477659b1fea5f525bc6609ff0\transformed\play-services-stats-17.0.2-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\ec78331b08e857d623537f22129b91d1\transformed\play-services-ads-identifier-18.0.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\ddb789a8eaa589c2e8f325e54c58d839\transformed\play-services-measurement-sdk-api-23.2.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\97c0f1945cb65d80f8001af6c4d107ef\transformed\play-services-measurement-base-23.2.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\3848656726ad084eff5b7be9408804b3\transformed\play-services-basement-18.9.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\c4d87d1167b8d866753e3dbab17b77f2\transformed\fragment-1.5.4-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\e1a0685c72092a4d10c19fcdc8cf6b01\transformed\activity-1.8.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\6e47bb9d1b62d4f1e1b8dfafae07b21f\transformed\legacy-support-core-utils-1.0.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\c20f596f9002ca2fff5dc13b852891cc\transformed\loader-1.0.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\e4d9efd5b0dad4bfd4b71cb872bf3ea3\transformed\browser-1.4.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\02adb78c50ccd90f9f0561ea4b85459d\transformed\ads-adservices-java-1.1.0-beta11-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\947ac5791fe4cbb9073de7c30c74e543\transformed\ads-adservices-1.1.0-beta11-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\10ba451f0ec14cd4da978b79a5d03212\transformed\emoji2-views-helper-1.3.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\ca53d5ce1fb1db862659007274e752b4\transformed\emoji2-1.3.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\1c23526f3acf13781439b890e735f7bb\transformed\lifecycle-viewmodel-2.6.2-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\36ab364e33ff0d8c86845453d4cd5a07\transformed\lifecycle-process-2.6.2-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\304d0982822a4bd8d8a2bbf5a1ddb40c\transformed\lifecycle-livedata-core-2.6.2-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\c41a91bd569adbeae25c57d121673bb8\transformed\lifecycle-livedata-2.6.2-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\4105a463be3e945ca2a0195279f7a2d4\transformed\lifecycle-viewmodel-savedstate-2.6.2-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\3d89b7f906535040fb177ef8b06e45ad\transformed\core-ktx-1.13.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\77afac0ddfe0c9dd19a2d36b93583a60\transformed\drawerlayout-1.0.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\7852be240db331666a91977632484a35\transformed\viewpager-1.0.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\4e995b8ab1be63588538d04e7e20a467\transformed\vectordrawable-animated-1.1.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\c1081a474eea424c326346dafbcb125e\transformed\vectordrawable-1.1.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\3e25aae734482e676f53a9267bdfd8d2\transformed\customview-1.0.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\fe85d9972520364a01971f20a020a719\transformed\core-1.13.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\1ae1f3e1c42dae6d9c6a6de08755e65c\transformed\lifecycle-runtime-2.6.2-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\dd72c17f70675314a92022da80c6d7d2\transformed\savedstate-1.2.1-runtime.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\androidx.lifecycle\lifecycle-common\2.6.2\10f354fdb64868baecd67128560c5a0d6312c495\lifecycle-common-2.6.2.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlinx\kotlinx-coroutines-android\1.11.0\51ffb50a6478872fbbac6cbd48f09553bf4e9e7d\kotlinx-coroutines-android-1.11.0.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlinx\kotlinx-coroutines-test-jvm\1.11.0\1dfe8ce2b805d913922f283b386895bd0979dfcb\kotlinx-coroutines-test-jvm-1.11.0.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\io.mockk\mockk-jvm\1.14.11\fbe5737bad60ed64774cb6865ce3aaae923d7588\mockk-jvm-1.14.11.jar;D:\Android Projects\cpl\core\model\build\libs\model.jar;D:\Android Projects\cpl\core\common\build\libs\common.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\androidx.datastore\datastore-preferences-external-protobuf\1.2.1\200a891fd29602b4bcff8e197d243a372fb026d5\datastore-preferences-external-protobuf-1.2.1.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\androidx.datastore\datastore-core-okio-jvm\1.2.1\16e01a0603ce8cf206b21a304ff1ded7a9bff1da\datastore-core-okio-jvm-1.2.1.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\d3d671d35a42f813fdedf75730923b5c\transformed\datastore-core-runtime.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\androidx.datastore\datastore-preferences-proto\1.2.1\5d062b556fb45141138c3d86284bbdcbe07cc770\datastore-preferences-proto-1.2.1.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\b93427b7a882ebfcbcd56cc3d679343b\transformed\datastore-preferences-core-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\c283777fc295bee039d7d6a3d636c960\transformed\datastore-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\a9acfc5e0dbe5cd24075c66215b61703\transformed\datastore-preferences-runtime.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\io.mockk\mockk-dsl-jvm\1.14.11\c8ce749d4a56913062655bb9058adb8d1f772068\mockk-dsl-jvm-1.14.11.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlinx\kotlinx-coroutines-core-jvm\1.11.0\3d57dc678bd8d72a60e7adf0eca5c54e3f4f4b79\kotlinx-coroutines-core-jvm-1.11.0.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.robolectric\robolectric\4.17\31a19773cc1daf1be0f77769497371ddf18a518f\robolectric-4.17.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlinx\kotlinx-serialization-core-jvm\1.11.0\c1905c9bf7452b045d5af9248835abe64ddad6bf\kotlinx-serialization-core-jvm-1.11.0.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlinx\kotlinx-serialization-json-jvm\1.11.0\e7e045e99e56f07599bb9ccb708c2190e2af0606\kotlinx-serialization-json-jvm-1.11.0.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\io.mockk\mockk-agent-jvm\1.14.11\e1e1acc201dc6ec3bfb9d2d8f10e5960eda3c9f0\mockk-agent-jvm-1.14.11.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\io.mockk\mockk-core-jvm\1.14.11\79bd4a6018f7cf10b6b5cc539048804f1225cc21\mockk-core-jvm-1.14.11.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-reflect\2.2.21\17bc47f5dfe27c2351538e711f0afe377b0de6b2\kotlin-reflect-2.2.21.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\io.mockk\mockk-agent-api-jvm\1.14.11\a823c7aebc0396b4201c0d397ac352fad30c76d8\mockk-agent-api-jvm-1.14.11.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\3c0cbca75111770761b6984b7a82d8b1\transformed\googleid-1.1.0-runtime.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.squareup.okhttp3\okhttp\4.12.0\2f4525d4a200e97e1b87449c2cd9bd2e25b7e8cd\okhttp-4.12.0.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\78747e3a2d9698fd47df8328b3171c61\transformed\firebase-config-interop-16.0.1-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\edd73ce0709d18142ff914da8b986fb6\transformed\firebase-datatransport-19.0.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\eb9d1e621b15ce7ae4a516dbe98f36f4\transformed\transport-backend-cct-3.3.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\ee11fc74d941bd4361825fb889d65558\transformed\firebase-encoders-json-18.0.1-runtime.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-stdlib-jdk8\1.8.22\b25c86d47d6b962b9cf0f8c3f320c8a10eea3dd1\kotlin-stdlib-jdk8-1.8.22.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\437a118d3830f7765e65cef669d26e11\transformed\annotation-experimental-1.4.0-runtime.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-stdlib-jdk7\1.8.22\4dabb8248310d833bb6a8b516024a91fd3d275c\kotlin-stdlib-jdk7-1.8.22.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\a3aef326f64d577310192ae859a1e6a3\transformed\versionedparcelable-1.1.1-runtime.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\androidx.collection\collection\1.1.0\1f27220b47669781457de0d600849a5de0e89909\collection-1.1.0.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\97f3ac4e9717821b5f9070c25ae63620\transformed\firebase-components-19.0.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\f85c7202a4c0596313845112a7e0c1ca\transformed\localbroadcastmanager-1.0.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\17d4de04d76bc7907375ec1128749705\transformed\transport-runtime-3.3.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\407015186d835f64c3f4278b64c8f5cd\transformed\transport-api-3.2.0-runtime.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.google.firebase\firebase-encoders-proto\16.0.0\a42d5fd83b96ae7b73a8617d29c94703e18c9992\firebase-encoders-proto-16.0.0.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.google.firebase\firebase-encoders\17.0.0\26f52dc549c42575b155f8c720e84059ee600a85\firebase-encoders-17.0.0.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\83346164f512cf51d28a3855cb839a67\transformed\profileinstaller-1.3.1-runtime.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\androidx.concurrent\concurrent-futures\1.1.0\50b7fb98350d5f42a4e49704b03278542293ba48\concurrent-futures-1.1.0.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\a6731d4825578c085e0fdaab09b9a5a9\transformed\interpolator-1.0.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\9c709f122e91d15b546f54186274364d\transformed\cursoradapter-1.0.0-runtime.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\androidx.resourceinspection\resourceinspection-annotation\1.0.1\8c21f8ff5d96d5d52c948707f7e4d6ca6773feef\resourceinspection-annotation-1.0.1.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\c4833bb35c8b55d09fd9bf3d796f1bde\transformed\documentfile-1.0.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\60fc916c27ac19e3ec30366451b4192d\transformed\print-1.0.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\67b228d784c0574db2cc9de9dacd8898\transformed\startup-runtime-1.1.1-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\7450595148c6d06b951a82557e87b648\transformed\tracing-1.0.0-runtime.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\074bc1e02246fc4ed702c8aab3a17d21\transformed\core-runtime-2.2.0-runtime.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\androidx.arch.core\core-common\2.2.0\5e1b8b81dfd5f52c56a8d53b18ca759c19a301f3\core-common-2.2.0.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\androidx.annotation\annotation-jvm\1.9.1\b17951747e38bf3986a24431b9ba0d039958aa5f\annotation-jvm-1.9.1.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-okhttp\1.62.2\2d8b802e7fe17c1577527195fd53a2e7355b3541\grpc-okhttp-1.62.2.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.squareup.okio\okio-jvm\3.9.1\79696e3f4ff05d41ba2b3dc68adb5808a2e5dc53\okio-jvm-3.9.1.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-stdlib\2.3.21\a2ee2c4e220fee522f0451b723bab2a43f3481a7\kotlin-stdlib-2.3.21.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.hamcrest\hamcrest-core\1.3\42a25dc3219429f0e5d060061f71acb49bf010a0\hamcrest-core-1.3.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.robolectric\junit\4.17\8f22554166230ec5d98562308ce7728888fd57c\junit-4.17.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.robolectric\shadows-framework\4.17\689988e7f55462d21c6e0a863604563eae2630c6\shadows-framework-4.17.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.robolectric\resources\4.17\f0cac0ac2bf1484e7ce7877f8fdd110d77500ac0\resources-4.17.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.robolectric\sandbox\4.17\b8ff57adf93a294b82ca7bac6b99eb5320cadcb7\sandbox-4.17.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.robolectric\utils-reflector\4.17\f91dc2674aad0847e655e4d4856f7f5e1960fa6e\utils-reflector-4.17.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.robolectric\plugins-maven-dependency-resolver\4.17\bf7b223b462453b7d6a66b96a848ecff323053d0\plugins-maven-dependency-resolver-4.17.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.robolectric\nativeruntime\4.17\52d38706eddfe5babb92d1665276ad6076f6efe0\nativeruntime-4.17.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.robolectric\shadowapi\4.17\dd829fc12fcf9e471aa31364aafa4181726df42a\shadowapi-4.17.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.robolectric\utils\4.17\7ed6eb8c6464ebddc15427eb7b2f3bb3883840aa\utils-4.17.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.robolectric\pluginapi\4.17\5e58d90330f4d18f8c4c534541470d63b176f33a\pluginapi-4.17.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\206cde78a646ec54bce37932fef5a452\transformed\grpc-android-1.62.2-runtime.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-protobuf-lite\1.62.2\9d807d2a0e34bd7284a5336186f57cf241090920\grpc-protobuf-lite-1.62.2.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-stub\1.62.2\fc1e85697502d96d6c912e8dd2a56f46f1aba050\grpc-stub-1.62.2.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-util\1.62.2\98c4138f09fb57c3ad6cbeffb31ed73e302038f7\grpc-util-1.62.2.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-core\1.62.2\5808049a5e33eba6f248a68d58e75399a68f2784\grpc-core-1.62.2.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-context\1.62.2\69e86c35140b3b1718d65635bb54ccecc4c12f14\grpc-context-1.62.2.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-api\1.62.2\a93b6ee3761d48edd9a9279f20a58be1a245ad01\grpc-api-1.62.2.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.google.guava\guava\33.6.0-jre\374ff93f90751e8fc6c7cb5046bab9b14ff69c92\guava-33.6.0-android.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.robolectric\annotations\4.17\a1bb2dba3abeb1f1602d525d15c9eb7355b7fbb5\annotations-4.17.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.google.dagger\hilt-core\2.60.1\cf425401ef4214c1d1f9ed298dcd2bcbf8a0dd36\hilt-core-2.60.1.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.google.dagger\dagger\2.60.1\440df415f28bf80fc0d1f98bcf8765c32e769d68\dagger-2.60.1.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.jspecify\jspecify\1.0.0\7425a601c1c7ec76645a78d22b8c6a627edee507\jspecify-1.0.0.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.google.auto.value\auto-value-annotations\1.11.1\3493561c5809b92f9e5f54f48ecfe9682ba6cbbe\auto-value-annotations-1.11.1.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.google.errorprone\error_prone_annotations\2.47.0\e64e70c8e2b5a30ce7f1b6c9e3eb7016881e0411\error_prone_annotations-2.47.0.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.ow2.asm\asm-commons\9.10.1\4229e4c55fd8e01c23f9fe9884075cc628aacc50\asm-commons-9.10.1.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.ow2.asm\asm-tree\9.10.1\e244332a17564c1d1572449399a842de35881be2\asm-tree-9.10.1.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.ow2.asm\asm\9.10.1\ada2141c0cc52ee8f5c48cd5fa4ce0e794f22236\asm-9.10.1.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.conscrypt\conscrypt-openjdk-uber\2.6.2\65c5977595ee9cc12e6017b9d43b1d2e3d1bab63\conscrypt-openjdk-uber-2.6.2.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.yaml\snakeyaml\2.6\2bc14918a2f8d5414749ab12d0c590cd3198b8c1\snakeyaml-2.6.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\c470c387f020856e0eb02f1800d2c866\transformed\espresso-idling-resource-3.7.0-runtime.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.google.testparameterinjector\test-parameter-injector\1.22\a9e9eff422bcda62502e0b9bd31b4a3bc839700d\test-parameter-injector-1.22.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.google.firebase\firebase-annotations\17.0.0\fd04a6accd970e0fcf9baf2424abe2926e00d0e2\firebase-annotations-17.0.0.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\javax.inject\javax.inject\1\6975da39a7040257bd51d21a231b76c915872d38\javax.inject-1.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\javax.annotation\javax.annotation-api\1.3.2\934c04d3cfef185a8008e7bf34331b79730a9d43\javax.annotation-api-1.3.2.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.bouncycastle\bcprov-jdk18on\1.85\2320b854dffe134687f7266bb22021b779e576d3\bcprov-jdk18on-1.85.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\df1a6a42e1fc5d255a9158319377b87c\transformed\monitor-1.8.0-runtime.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.jetbrains\annotations\23.0.0\8cc20c07506ec18e0834947b84a864bfc094484e\annotations-23.0.0.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\339268edc941e30b4089812419c707d5\transformed\dagger-lint-aar-2.60.1-runtime.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.google.code.findbugs\jsr305\3.0.2\25ea2e8b0c338a877313bd4672d3fe056ea78f0d\jsr305-3.0.2.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.google.guava\failureaccess\1.0.3\aeaffd00d57023a2c947393ed251f0354f0985fc\failureaccess-1.0.3.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.google.guava\listenablefuture\9999.0-empty-to-avoid-conflict-with-guava\b421526c5f297295adef1c886e5246c39d4ac629\listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.google.j2objc\j2objc-annotations\3.1\a892ca9507839bbdb900d64310ac98256cab992f\j2objc-annotations-3.1.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.almworks.sqlite4java\sqlite4java\1.0.392\d6234e08ff4e1607ff5321da2579571f05ff778d\sqlite4java-1.0.392.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.ibm.icu\icu4j\78.3\6a851a53bb1f25689fc418dcc8935b0d93580adf\icu4j-78.3.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\jakarta.inject\jakarta.inject-api\2.0.1\4c28afe1991a941d7702fe1362c365f0a8641d1e\jakarta.inject-api-2.0.1.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.robolectric\nativeruntime-dist-compat\1.0.19\1f6befcda5c961e02c19419b61ea94260e896615\nativeruntime-dist-compat-1.0.19.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\94b34b252800ade59573cfb7812b898d\transformed\protolite-well-known-types-18.0.1-runtime.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.google.re2j\re2j\1.6\a13e879fd7971738d06020fefeb108cc14e14169\re2j-1.6.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.reactivestreams\reactive-streams\1.0.4\3864a1320d97d7b045f729a326e1e077661f31b7\reactive-streams-1.0.4.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.google.protobuf\protobuf-javalite\3.25.5\272641fe157ed7c4a22f8d4c347bcd7f6eac8887\protobuf-javalite-3.25.5.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.objenesis\objenesis\3.4\675cbe121a68019235d27f6c34b4f0ac30e07418\objenesis-3.4.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\net.bytebuddy\byte-buddy\1.18.2\7ac991b4bd502e2567efcdecc0d2e9b3f7dd3859\byte-buddy-1.18.2.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\net.bytebuddy\byte-buddy-agent\1.18.2\62f38a6faf7f069d661b79a07d566f504b0b20c4\byte-buddy-agent-1.18.2.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\9e37f74861d3785bee42126b8e76cba5\transformed\core-common-2.0.4-runtime.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\io.perfmark\perfmark-api\0.26.0\ef65452adaf20bf7d12ef55913aba24037b82738\perfmark-api-0.26.0.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.google.code.gson\gson\2.10.1\b3add478d4382b78ea20b1671390a858002feb6c\gson-2.10.1.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\com.google.android\annotations\4.1.1.4\a1678ba907bf92691d879fef34e1a187038f9259\annotations-4.1.1.4.jar;C:\Users\shahe\.gradle\caches\modules-2\files-2.1\org.codehaus.mojo\animal-sniffer-annotations\1.23\3c0daebd5f0e1ce72cc50c818321ac957aeb5d70\animal-sniffer-annotations-1.23.jar;D:\Android Projects\cpl\core\data\build\intermediates\java_res\debug\processDebugJavaRes\out;D:\Android Projects\cpl\core\firebase\build\intermediates\java_res\debug\processDebugJavaRes\out;D:\Android Projects\cpl\core\datastore\build\intermediates\java_res\debug\processDebugJavaRes\out;D:\Android Projects\cpl\core\analytics\build\intermediates\java_res\debug\processDebugJavaRes\out;C:\Users\shahe\.gradle\caches\9.5.0\transforms\98edc22f3d77ba64ac5d77497cf8de70\transformed\firebase-auth-24.2.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\1a79d1cc23af29d329a9cdd4788fa63b\transformed\recaptcha-18.6.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\ea6e91e25d23513b12074d2280c5fa8b\transformed\hilt-android-2.60.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\e5073fbe7be93d75f1efc3441ab3dd43\transformed\firebase-perf-22.0.6\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\414704d8b8a377acd429dd2112262704\transformed\appcompat-resources-1.7.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\3253bfcaafe59a22a6b46a51aeb9fef8\transformed\appcompat-1.7.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\bc9d63e8eb1a00a59599c8e22e10ce04\transformed\firebase-appcheck-debug-19.4.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\6da6e6f758f9d8ea51275c13300df210\transformed\firebase-appcheck-playintegrity-19.4.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\feaad1bce022735f9cb609ea7604337f\transformed\firebase-firestore-26.6.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\708f161fa5c21dd2c9efdbcca10ff941\transformed\firebase-functions-22.1.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\d7bbadc89ad4395e8200b7cf651c8137\transformed\firebase-messaging-25.1.3\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\f56a6cb46e0fb6b7d7381b391afdd689\transformed\firebase-storage-22.0.2\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\80dee1500dd04f5865dffff4b3a1425b\transformed\firebase-appcheck-19.4.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\8668e15666ef01ac96269d0cd3f4925d\transformed\credentials-1.2.0-rc01\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\fd1939321139dd001e09603936e57118\transformed\credentials-play-services-auth-1.2.0-rc01\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\9a3ab6e8b1da8cb22d200fb1c6ab3591\transformed\play-services-auth-20.7.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\b61d8ab45fdcdc86361c39a6a889e583\transformed\play-services-auth-api-phone-18.0.2\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\05b3de4eb629673078ac78bd551fd4ab\transformed\firebase-database-collection-18.0.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\e3ad859cbd183bcf94cb2a4ac782421d\transformed\firebase-appcheck-interop-17.1.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\f9cfaa9a5c4ac152a752a05ee930dbbf\transformed\firebase-iid-21.1.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\ba8a7403092c862a04ffb777836fc2b5\transformed\play-services-cloud-messaging-17.4.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\22061bc036e8af2338aa0b9fbc993f9d\transformed\firebase-analytics-23.2.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\b0d963f19912c64b59a54b3703d5307e\transformed\play-services-measurement-23.2.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\9991b0d6e6b403ac3cc73012433cea04\transformed\play-services-measurement-sdk-23.2.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\5e3311c73c182de3ffe5d3ba2ff903c6\transformed\play-services-measurement-impl-23.2.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\5e4ccabd0938e6c11e71089c79bc0c76\transformed\play-services-fido-20.1.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\c786b3072f4a540d57180e55a3455a27\transformed\play-services-auth-base-18.0.4\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\ef45f9d6769a4082df5f6f62890591c1\transformed\play-services-base-18.9.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\f20dd6eaf3e2c8885a96bacfc0537323\transformed\play-services-measurement-api-23.2.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\a9f1a3a130a66f2ca32dd09e846dd7d5\transformed\firebase-config-23.1.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\0507e4f0d45b11ceddf1c9817ab1c1d7\transformed\firebase-crashlytics-20.1.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\d089358c5df921ebbbec70b26f087ff0\transformed\firebase-auth-interop-20.0.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\63f24858cc2157cc0a8237625c5c348f\transformed\firebase-sessions-3.0.8\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\b5da237d80cd0e9e45ee36faf868d02b\transformed\firebase-installations-19.1.2\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\11383e0416fa74e41d0d5497ea83007c\transformed\firebase-common-22.2.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\890a28bacc26740d2ef6fe1d08a15e82\transformed\integrity-1.4.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\9778c0f3613e8c5695089379cfaa0887\transformed\firebase-iid-interop-17.1.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\12b62a6262cc101b07826c16f89efad7\transformed\firebase-installations-interop-17.3.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\4d9f717b3a1c47366a65495a78bee518\transformed\play-services-tasks-18.4.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\ba74d3e211744a58b736adfa1d7de292\transformed\firebase-abt-21.1.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\5207fd078b1bbd2912ca4cb79f31e60d\transformed\firebase-measurement-connector-20.0.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\dffd59b9e633b07dca638f8209cd90d7\transformed\play-services-stats-17.0.2\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\5426fe803da3e470091c2ac662430ced\transformed\play-services-ads-identifier-18.0.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\00e07f94f3ff6804a26364156be5f010\transformed\play-services-measurement-sdk-api-23.2.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\d3c042d37de2949f1eccafbf0a592c92\transformed\play-services-measurement-base-23.2.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\41657be83901fd16ae29fd966978bbd2\transformed\play-services-basement-18.9.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\d450a2edd0b35ac2e6608ca160ac5946\transformed\fragment-1.5.4\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\ebb1cf7f2ae387fa08e0e52665518c40\transformed\activity-1.8.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\50b725819b9de3bbcd16bea14f89f187\transformed\legacy-support-core-utils-1.0.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\5f51801aecb762ac9b40a9832a857624\transformed\loader-1.0.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\f37680d77eb080b0a55ab14e03de98b7\transformed\browser-1.4.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\011e6337bf7a5aefa1416fe56840ab4b\transformed\ads-adservices-java-1.1.0-beta11\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\d0765c481e04c7926fa7b626afa3cd13\transformed\ads-adservices-1.1.0-beta11\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\c256cce5ae0950d7979a2fb0df4ca8eb\transformed\emoji2-views-helper-1.3.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\67766dc49cab2b0cbd516c2bf4e7331b\transformed\emoji2-1.3.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\67766dc49cab2b0cbd516c2bf4e7331b\transformed\emoji2-1.3.0\jars\libs\repackaged.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\e8c647487f09bd8361802797a49f8fed\transformed\lifecycle-viewmodel-2.6.2\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\daef18b1ea0defc4bfd3925816904c72\transformed\lifecycle-process-2.6.2\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\9082dff838ff3df17b84589fb5a6e319\transformed\lifecycle-livedata-core-2.6.2\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\72321aabe412d9455526c423dd8efa8c\transformed\lifecycle-livedata-2.6.2\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\d2e7c9e653f89abcb60476ab5ab53945\transformed\lifecycle-viewmodel-savedstate-2.6.2\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\7f64359f525108b0767738912bfb9111\transformed\core-ktx-1.13.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\357ba234760b2f6add0b2aa7c2f222b6\transformed\drawerlayout-1.0.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\7625ecb70460cf50d9c3bcdc7f4bba9c\transformed\viewpager-1.0.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\798708aa0d97c9bf5fa6573fca07b5c2\transformed\vectordrawable-animated-1.1.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\4b8487ba20eb40c12baa06e63a0a8c93\transformed\vectordrawable-1.1.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\25456b03490e0a9c6c83f30d86a4da25\transformed\customview-1.0.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\2dde3a2ae3427d23c109c2befce6460a\transformed\core-1.13.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\b0abf1ca71f83a1f40484e036156431b\transformed\lifecycle-runtime-2.6.2\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\2f25b450d2cd8b65af83186d7da57d44\transformed\savedstate-1.2.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\80de24a177904f8c6b4536dc9ef4ab64\transformed\datastore-core\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\1b443c120e0963dd667bc5b713cbfe8a\transformed\datastore-preferences-core\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\7f97d5a7ef8178e07e5c8c1efb0a7e05\transformed\datastore\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\21e31a42f697d580eb444e30f0bef71d\transformed\datastore-preferences\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\615205c355def20201cf13bf9a6c9f21\transformed\googleid-1.1.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\d4f44e6cc6605c5aeac0bf0c5aa1cbe2\transformed\firebase-config-interop-16.0.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\e517a2ef7ef35b8e2e6f9df5f204dcef\transformed\firebase-datatransport-19.0.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\f07ca4022e4792dbb37cfcbdf9b4d0a6\transformed\transport-backend-cct-3.3.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\4aa84344625e4ac61127a56e106c74ef\transformed\firebase-encoders-json-18.0.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\1d1d9cb5f48325f378d5bb7f0c0ac54d\transformed\annotation-experimental-1.4.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\7c5a2dbd21674d668b6b829ccefd3e14\transformed\versionedparcelable-1.1.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\aebdbe20cbec3d4f011c8973f79fb2bc\transformed\firebase-components-19.0.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\a2c9c50a31251c682a19988cbf6a16d7\transformed\localbroadcastmanager-1.0.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\76a7dc141f5eed9689aa558909996a67\transformed\transport-runtime-3.3.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\465cd142109341cceea0aa538f4e245e\transformed\transport-api-3.2.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\95974424c1c33ca718cf712bde371b43\transformed\profileinstaller-1.3.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\6dd482e8beedafe020bfc10fae933aca\transformed\interpolator-1.0.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\e584a9245c4162b6b04c7b6e729795c4\transformed\cursoradapter-1.0.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\f582a11208aa260f4a181f221ea91be9\transformed\documentfile-1.0.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\fb8fea883b62dba34e0097226a59b7d5\transformed\print-1.0.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\88cea4f2339408d5f161711c20a50a6a\transformed\startup-runtime-1.1.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\34f2fbbc5dcced85215ca8e3c97ea3f2\transformed\tracing-1.0.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\1a03903b9cce2999acd47035f8444c46\transformed\core-runtime-2.2.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\51be1a1b192dc02cb3c063d6edf2c07d\transformed\grpc-android-1.62.2\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\03c9598cf95580794aae7f3b891a0a9e\transformed\espresso-idling-resource-3.7.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\d70c68d01066beed58d35d0d89f7113b\transformed\monitor-1.8.0\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\8c8d3a9fe9281ba99c8f52b1070a8d56\transformed\dagger-lint-aar-2.60.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\8ab3068b8a95041c147f563e0cd0724c\transformed\protolite-well-known-types-18.0.1\jars\classes.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\0e090987fbd21e4603ae34505efb1460\transformed\core-common-2.0.4\jars\classes.jar;D:\Android Projects\cpl\core\data\build\intermediates\compile_and_runtime_r_class_jar\debugUnitTest\processDebugUnitTestResources\R.jar;C:\Users\shahe\.gradle\caches\9.5.0\transforms\38d1f0918522664523566f37e6626a1d\transformed\android.jar
+Launcher Type: SUN_STANDARD
+
+[Global flags]
+     intx CICompilerCount                          = 12                                        {product} {ergonomic}
+     uint ConcGCThreads                            = 3                                         {product} {ergonomic}
+     uint G1ConcRefinementThreads                  = 13                                        {product} {ergonomic}
+   size_t G1HeapRegionSize                         = 1048576                                   {product} {ergonomic}
+    uintx GCDrainStackTargetSize                   = 64                                        {product} {ergonomic}
+   size_t InitialHeapSize                          = 125829120                                 {product} {ergonomic}
+   size_t MarkStackSize                            = 4194304                                   {product} {ergonomic}
+   size_t MaxHeapSize                              = 536870912                                 {product} {command line}
+   size_t MaxNewSize                               = 321912832                                 {product} {ergonomic}
+   size_t MinHeapDeltaBytes                        = 1048576                                   {product} {ergonomic}
+   size_t MinHeapSize                              = 8388608                                   {product} {ergonomic}
+    uintx NonNMethodCodeHeapSize                   = 7602480                                {pd product} {ergonomic}
+    uintx NonProfiledCodeHeapSize                  = 122027880                              {pd product} {ergonomic}
+    uintx ProfiledCodeHeapSize                     = 122027880                              {pd product} {ergonomic}
+    uintx ReservedCodeCacheSize                    = 251658240                              {pd product} {ergonomic}
+     bool SegmentedCodeCache                       = true                                      {product} {ergonomic}
+   size_t SoftMaxHeapSize                          = 536870912                              {manageable} {ergonomic}
+     bool UseCompressedOops                        = true                           {product lp64_product} {ergonomic}
+     bool UseG1GC                                  = true                                      {product} {ergonomic}
+     bool UseLargePagesIndividualAllocation        = false                                  {pd product} {ergonomic}
+
+Logging:
+Log output configuration:
+ #0: stdout all=warning uptime,level,tags foldmultilines=false
+ #1: stderr all=off uptime,level,tags foldmultilines=false
+
+Release file:
+JAVA_VERSION="21.0.11" 
+MODULES="java.base java.compiler java.datatransfer java.xml java.prefs java.desktop java.instrument java.logging java.management java.security.sasl java.naming java.rmi java.management.rmi java.net.http java.scripting java.security.jgss java.transaction.xa java.sql java.sql.rowset java.xml.crypto java.se java.smartcardio jdk.accessibility jdk.internal.jvmstat jdk.attach jdk.charsets jdk.internal.opt jdk.zipfs jdk.compiler jdk.crypto.ec jdk.crypto.cryptoki jdk.crypto.mscapi jdk.dynalink jdk.internal.ed jdk.editpad jdk.hotspot.agent jdk.httpserver jdk.incubator.vector jdk.internal.le jdk.internal.vm.ci jdk.internal.vm.compiler jdk.internal.vm.compiler.management jdk.jartool jdk.javadoc jdk.jcmd jdk.management jdk.management.agent jdk.jconsole jdk.jdeps jdk.jdwp.agent jdk.jdi jdk.jfr jdk.jlink jdk.jpackage jdk.jshell jdk.jsobject jdk.jstatd jdk.localedata jdk.management.jfr jdk.naming.dns jdk.naming.rmi jdk.net jdk.nio.mapmode jdk.random jdk.sctp jdk.security.auth jdk.security.jgss jdk.unsupported jdk.unsupported.desktop jdk.xml.dom" 
+IMPLEMENTOR="JetBrains s.r.o." 
+IMPLEMENTOR_VERSION="JBRSDK-21.0.11+1-1163.116-nomod" 
+JAVA_RUNTIME_VERSION="21.0.11+1-b1163.116" 
+LIBC="default" 
+OS_ARCH="x86_64" 
+OS_NAME="Windows" 
+SOURCE=".:git:cf1f197170a0+" 
+
+Environment Variables:
+JAVA_HOME=C:/Users/shahe/.jdks/jbr-21.0.11
+PATH=C:\Users\shahe\.jdks\jbr-21.0.11\bin;C:\Users\shahe\miniconda3;C:\Users\shahe\miniconda3\Library\mingw-w64\bin;C:\Users\shahe\miniconda3\Library\usr\bin;C:\Users\shahe\miniconda3\Library\bin;C:\Users\shahe\miniconda3\Scripts;C:\Users\shahe\miniconda3\bin;C:\Users\shahe\miniconda3\condabin;C:\Users\shahe\bin;C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\local\bin;C:\Program Files\Git\usr\bin;C:\Program Files\Git\usr\bin;C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\bin;C:\Users\shahe\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0;C:\Windows\System32\OpenSSH;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0;C:\Windows\System32\OpenSSH;C:\Program Files\Git\cmd;C:\Program Files\nodejs;C:\Users\shahe\miniconda3;C:\Users\shahe\miniconda3\Library\mingw-w64\bin;C:\Users\shahe\miniconda3\Library\usr\bin;C:\Users\shahe\miniconda3\Library\bin;C:\Users\shahe\miniconda3\Scripts;C:\Users\shahe\AppData\Local\Microsoft\WindowsApps;C:\Users\shahe\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-7.0.2-full_build\bin;C:\Users\shahe\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\shahe\AppData\Roaming\npm;C:\Program Files\nodejs;C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\bin\vendor_perl;C:\Program Files\Git\usr\bin\core_perl;C:\Users\shahe\AppData\Roaming\Claude\local-agent-mode-sessions\skills-plugin\f1887f4f-daf6-471c-983a-cab0005b1e26\2e648cc1-1b10-4e28-9e07-0d0e1d7fe8a7\bin
+USERNAME=shahe
+SHELL=C:\Program Files\Git\usr\bin\bash.exe
+TERM=xterm-256color
+OS=Windows_NT
+PROCESSOR_IDENTIFIER=AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD
+TMP=C:\Users\shahe\AppData\Local\Temp
+TEMP=C:\Users\shahe\AppData\Local\Temp
+
+
+
+
+Periodic native trim disabled
+
+JNI global refs:
+JNI global refs: 19, weak refs: 0
+
+JNI global refs memory usage: 835, weak refs: 833
+
+Process memory usage:
+Resident Set Size: 65440K (0% of 7765196K total physical memory with 40424K free physical memory)
+
+OOME stack traces (most recent first):
+Classloader memory used:
+Loader bootstrap                                                                       : 733K
+Loader java.net.URLClassLoader                                                         : 463K
+Loader jdk.internal.loader.ClassLoaders$AppClassLoader                                 : 85072B
+
+---------------  S Y S T E M  ---------------
+
+OS:
+ Windows 11 , 64 bit Build 22621 (10.0.22621.4945)
+OS uptime: 0 days 7:14 hours
+Hyper-V role detected
+
+CPU: total 16 (initial active 16) (16 cores per cpu, 2 threads per core) family 25 model 80 stepping 0 microcode 0x0, cx8, cmov, fxsr, ht, mmx, 3dnowpref, sse, sse2, sse3, ssse3, sse4a, sse4.1, sse4.2, popcnt, lzcnt, tsc, tscinvbit, avx, avx2, aes, erms, clmul, bmi1, bmi2, adx, sha, fma, vzeroupper, clflush, clflushopt, hv, rdtscp, rdpid, fsrm, f16c, cet_ss
+Processor Information for the first 16 processors :
+  Max Mhz: 3201, Current Mhz: 3201, Mhz Limit: 3201
+
+Memory: 4k page, system-wide physical 7583M (39M free)
+TotalPageFile size 31135M (AvailPageFile size 0M)
+current process WorkingSet (physical memory assigned to process): 63M, peak: 63M
+current process commit charge ("private bytes"): 231M, peak: 233M
+
+vm_info: OpenJDK 64-Bit Server VM (21.0.11+1-b1163.116) for windows-amd64 JRE (21.0.11+1-b1163.116), built on 2026-04-30 by "builduser" with MS VC++ 17.14 (VS2022)
+
+END.

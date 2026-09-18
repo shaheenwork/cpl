@@ -79,10 +79,11 @@ Terminal 2:
 npm --prefix firebase/tests test
 ```
 
-**Current: 55 passing**, covering section 7.3 rows A (partner cannot read or list
+**Current: 60 passing**, covering section 7.3 rows A (partner cannot read or list
 preferences), B (partner cannot read or list boundaries), C (no client-written `coupleId`),
 H (no client-written couple ceiling), L (not even an active member can read the couple's
-filters),
+filters), R (no client-created match; a member may only mark a match seen for themselves;
+the reveal queue is unreadable),
 I (no client-granted entitlement), K (non-member cannot read a couple), L (engineFilters
 unreadable by any client), M (no third member) and Q (reports not client-writable); the
 shape of a private answer (four fields only, known values, `secret` only with `CURIOUS`,
@@ -116,6 +117,11 @@ npm --prefix functions run test:e2e
 - **unit**: pure logic (code format, verification symbols). No emulator.
 - **int**: the real transactions against the Firestore emulator, including the races — two
   people using one code, a double approval, a partner pairing elsewhere mid-request.
+- **int** runs in its own emulator project, `afterhours-int-test`, where no trigger fires
+  (D-037). **e2e** stays on `afterhours-dev-emulator` because it wants the triggers — and the
+  callables suite clears that project, so any data seeded for manual checks goes with it.
+- **unit** also covers matching and reveal timing (`match.unit.test.ts`); **int** the queue
+  (`reveals.int.test.ts`); **e2e** reveals through the real triggers (`reveals.e2e.test.ts`).
 - **unit** also covers the boundary intersection (`filters.unit.test.ts`): either partner's
   NEVER wins, fail-closed parsing, determinism.
 - **int** also drives the transactional filter recompute (`couple.int.test.ts`).
