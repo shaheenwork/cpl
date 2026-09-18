@@ -157,6 +157,20 @@ reset; this closes the matching gaps on Firebase's side. Sign-up still reveals a
 address — see DECISIONS.md D-012 for why, and for the email-link fix recommended before
 launch.
 
+### ⬜ 2.7 A domain for App Links (recommended before launch)
+
+Invite links currently use `afterhours://`, which many messengers show as plain text
+(DECISIONS.md D-017). With a domain serving `/.well-known/assetlinks.json` for the app's
+signing certificate, links become `https://` and open the app directly. Firebase Hosting on
+the same project is the simplest host.
+
+### ⬜ 2.8 Functions region, and the Blaze plan
+
+Cloud Functions need the **Blaze** plan. Deploy them in the **same region as Firestore** —
+the Firestore location is chosen once, at project creation, and cannot be changed. The code
+uses the default `us-central1`; if Firestore lives elsewhere, set the region in
+`functions/src/index.ts` to match before the first deploy.
+
 ---
 
 ## 3. Google Play — needed from Phase 19

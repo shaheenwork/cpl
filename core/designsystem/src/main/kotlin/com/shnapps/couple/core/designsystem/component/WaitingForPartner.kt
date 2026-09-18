@@ -83,7 +83,7 @@ fun WaitingForPartner(
                     scaleY = pulse
                     alpha = pulse
                 }
-                .glow(colors.glowSecondary, radiusScale = 1.4f),
+                .glow(colors.glowSecondary, spread = 24.dp, cornerRadius = 36.dp),
             contentAlignment = Alignment.Center,
         ) {
             Surface(

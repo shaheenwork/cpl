@@ -38,6 +38,10 @@ The `dev` flavor talks to the local Emulator Suite and needs no Firebase project
 firebase emulators:start --only auth,firestore,storage --project afterhours-dev-emulator
 ```
 
+Add `functions` to `--only` when testing callables; build first with
+`npm --prefix functions run build`. Server tests: `npm --prefix functions run
+test:unit|test:int|test:e2e` and `npm --prefix firebase/tests test` (see TESTING.md).
+
 Ports (mirrored in `firebase.json` and `FirebaseEnvironment`): auth 9099, firestore 8080,
 storage 9199, functions 5001, UI 4000. From inside an Android emulator the host is
 `10.0.2.2`, which is what `FirebaseEnvironment.ANDROID_EMULATOR_LOOPBACK` resolves to.
@@ -158,6 +162,10 @@ for three phases (D-015). Prove a gate by watching it fail on a *normal* build.
 
 **Screens render inside `AfterhoursSurface`** — in the app and in every screenshot test.
 Drawing a screen bare shows the default window colour through it.
+
+**Anything that can race runs in a Cloud Function transaction,** with its core logic
+taking `(db, uid, nowMs)` so it is tested directly against the emulator. Callables stay
+thin: auth from the token, delegate, map errors. Never trust a uid or coupleId in a payload.
 
 **Kotlin/KSP versions are paired.** Kotlin 2.2.10 ↔ KSP `2.2.10-2.0.2`. KSP changed to
 standalone versioning at 2.3.0; do not mix the schemes.

@@ -4,9 +4,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -29,6 +35,8 @@ import com.shnapps.couple.feature.onboarding.AgeGateScreen
 import com.shnapps.couple.feature.onboarding.SplashScreen
 import com.shnapps.couple.feature.onboarding.StartDestination
 import com.shnapps.couple.feature.onboarding.WelcomeScreen
+import com.shnapps.couple.feature.pairing.PairingScreen
+import com.shnapps.couple.feature.pairing.UnpairViewModel
 
 /**
  * The app's navigation graph.
@@ -116,18 +124,21 @@ fun CplNavHost(
         // that have no permanent home until Settings (Phase 20), so Phase 3's features are
         // reachable on a device rather than only in tests.
         composable<Route.CoupleSetup> {
-            ComingSoon(
-                title = "Pair with your partner",
-                detail = "Phase 4 builds invite codes, deep links and QR pairing.",
-                navController = navController,
+            PairingScreen(
+                onPaired = {
+                    navController.navigate(Route.Home) {
+                        popUpTo(Route.CoupleSetup) { inclusive = true }
+                    }
+                },
             )
         }
 
         composable<Route.Home> {
             ComingSoon(
                 title = "Tonight could get interesting.",
-                detail = "Phase 13 builds the home surface.",
+                detail = "You're paired. Phase 5 builds preference discovery; Phase 13 the home surface.",
                 navController = navController,
+                showUnpair = true,
             )
         }
 
@@ -153,8 +164,12 @@ private fun ComingSoon(
     detail: String,
     navController: NavHostController,
     modifier: Modifier = Modifier,
+    showUnpair: Boolean = false,
     signOutViewModel: SignOutViewModel = hiltViewModel(),
+    unpairViewModel: UnpairViewModel = hiltViewModel(),
 ) {
+    var confirmingUnpair by remember { mutableStateOf(false) }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -183,6 +198,13 @@ private fun ComingSoon(
             onClick = { navController.navigate(Route.DesignGallery) },
             style = GlowButtonStyle.Quiet,
         )
+        if (showUnpair) {
+            GlowButton(
+                text = "Unpair",
+                onClick = { confirmingUnpair = true },
+                style = GlowButtonStyle.Quiet,
+            )
+        }
         GlowButton(
             text = "Sign out",
             onClick = {
@@ -193,6 +215,33 @@ private fun ComingSoon(
                 }
             },
             style = GlowButtonStyle.Quiet,
+        )
+    }
+
+    // Unpairing ends the couple for both partners at once, so it gets one clear
+    // confirmation. Unlike STOP in a session (section 3.1), this is not time-critical and
+    // is not trivially undone.
+    if (confirmingUnpair) {
+        AlertDialog(
+            onDismissRequest = { confirmingUnpair = false },
+            title = { Text("Unpair?") },
+            text = {
+                Text(
+                    "This ends your shared space for both of you. You'll each keep your own " +
+                        "account, and can pair again later.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmingUnpair = false
+                    unpairViewModel.unpair {
+                        navController.navigate(Route.CoupleSetup) { popUpTo(0) { inclusive = true } }
+                    }
+                }) { Text("Unpair") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingUnpair = false }) { Text("Keep us paired") }
+            },
         )
     }
 }

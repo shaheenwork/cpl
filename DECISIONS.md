@@ -249,3 +249,65 @@ tree comes back from cache.
 **General lesson, now in TESTING.md:** a test that inspects files Gradle does not know
 about must declare them, or it silently stops running. Prove a gate by watching it fail
 on an ordinary build, not only with `--rerun`.
+
+---
+
+## D-016 — Pairing is a handshake: entering a code creates a request, not a couple
+**Phase 4.** §8 asks for a six-digit code and requires "prevent unauthorized joining".
+Those pull against each other: a million values with only a few live at any moment means
+rate limiting slows guessing but cannot stop someone with many free accounts from
+eventually landing on a stranger's live code. If entering a code paired immediately, that
+stranger would be joined to an unknown person — in an app built around private intimacy.
+
+**Decision:** three steps.
+1. Creator makes a code (`createPairingCode`).
+2. Joiner enters it (`requestPairing`) — this only creates a **request**, and both phones
+   now show the same three verification symbols.
+3. Creator checks the symbols with their partner and approves (`respondToPairing`).
+
+A guessed code produces a request whose symbols nobody on the other end can vouch for.
+Declining cancels the code outright, so the guess is worthless afterwards.
+
+Supporting choices:
+- "Not found", "expired", "cancelled" and "used" return the **same** error, so a guesser
+  learns nothing about which codes exist. Tested on server and client.
+- Guessing is rate-limited per account (10 attempts / 10 min), counted *before* the lookup.
+- Symbols are drawn only from Emoji 5.0 or earlier: minSdk 26 cannot render newer ones, and
+  a symbol that shows as a box on one phone defeats the comparison.
+- Who unpaired is deliberately not stored.
+
+---
+
+## D-017 — Invite links use a custom scheme until an App Links domain exists
+**Phase 4.** `afterhours://pair?code=123456` works today with no domain, and is what the QR
+encodes. Two honest limitations:
+- Many messengers (WhatsApp among them) do not linkify custom schemes, so the shared link
+  may arrive as plain text. The six digits in the same message always work.
+- Phone cameras handle custom-scheme QR codes inconsistently.
+
+Both disappear with verified `https://` App Links, which need a domain serving
+`assetlinks.json` (HUMAN_SETUP.md §2.7). A link never navigates on its own: the user may be
+signed out or not past the age gate, so the code waits in `PendingInvite` until the pairing
+screen is reached normally.
+
+---
+
+## D-018 — The glow is a shape-following halo, not a clipped radial gradient
+**Phase 4.** Pairing screenshots showed the Phase 2 glow was visible **only in the four
+corners** of a glowing card: a radial gradient clipped to the element's rectangular bounds,
+with an opaque rounded card painted over the middle. It read as a faint rectangle, not a
+glow — and it had been in every "glowing" golden since Phase 2 without being noticed.
+
+**Decision:** concentric rounded rectangles in one translucent colour, drawn past the
+element's edge. They accumulate near the edge and thin out beyond it — an approximate blur
+that works on every API level (`Modifier.blur` needs 31). Callers pass their shape's corner
+radius so the halo hugs it. All goldens re-recorded and reviewed.
+
+---
+
+## D-019 — The profile listener is shared app-wide
+**Phase 4.** `AuthRepository.currentProfile` was a cold flow, so every collector opened its
+own Firestore listener — pairing state and couple membership alone would have been two
+listeners on one document. Now `shareIn(appScope, WhileSubscribed(5s), replay = 1)`.
+`@ApplicationScope` moved to `:core:common` (a plain `javax.inject` qualifier, still pure
+JVM) so repositories can use it. §75 cost control, applied before it compounds.

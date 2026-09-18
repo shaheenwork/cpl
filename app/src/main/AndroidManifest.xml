@@ -17,11 +17,27 @@
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.Cpl"
-            android:windowSoftInputMode="adjustResize">
+            android:windowSoftInputMode="adjustResize"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+              Invite links: afterhours://pair?code=123456 (BUILD_PROMPT.md section 8).
+              A custom scheme until an App Links domain exists; see DECISIONS.md D-016.
+              singleTask so a link opened from a chat app lands in the existing instance
+              rather than stacking a second copy of the app.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="afterhours" android:host="pair" />
             </intent-filter>
         </activity>
     </application>

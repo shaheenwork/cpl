@@ -10,6 +10,9 @@ import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.model.AgeAttestation
 import com.shnapps.couple.core.model.AppLockMode
 import com.shnapps.couple.core.model.Intensity
+import com.shnapps.couple.core.model.PairingRole
+import com.shnapps.couple.core.model.PairingState
+import com.shnapps.couple.core.model.PairingStatus
 import com.shnapps.couple.core.model.PrivacySettings
 import com.shnapps.couple.core.model.UserProfile
 import kotlinx.coroutines.CancellationException
@@ -159,5 +162,24 @@ private fun DocumentSnapshot.toUserProfile(uid: String): UserProfile {
             hideNotificationPreviews = privacy?.get("hideNotificationPreviews") as? Boolean ?: true,
             analyticsOptOut = privacy?.get("analyticsOptOut") as? Boolean ?: false,
         ),
+        pairing = (get("pairing") as? Map<*, *>)?.toPairingState(),
+    )
+}
+
+/**
+ * Tolerant parse: an unrecognised role or status yields null rather than a crash, so a
+ * newer server state never takes down an older client.
+ */
+private fun Map<*, *>.toPairingState(): PairingState? {
+    val role = (this["role"] as? String)?.let { runCatching { PairingRole.valueOf(it) }.getOrNull() }
+    val status = (this["status"] as? String)?.let { runCatching { PairingStatus.valueOf(it) }.getOrNull() }
+    val code = this["code"] as? String
+    if (role == null || status == null || code == null) return null
+    return PairingState(
+        role = role,
+        status = status,
+        code = code,
+        verification = (this["verification"] as? List<*>)?.filterIsInstance<String>().orEmpty(),
+        expiresAtEpochMillis = (this["expiresAtMs"] as? Number)?.toLong(),
     )
 }

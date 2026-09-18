@@ -19,7 +19,9 @@ import {
   assertSucceeds,
   initializeTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { Timestamp, doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import {
+  Timestamp, collection, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc,
+} from 'firebase/firestore';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -145,6 +147,68 @@ describe('users/{uid}.ageAttestation', () => {
     const hank = testEnv.authenticatedContext('uid_hank').firestore();
     await assertFails(setDoc(doc(hank, 'users', 'uid_hank'), { contentLevel: 6 }));
     await assertFails(setDoc(doc(hank, 'users', 'uid_hank'), { contentLevel: 0 }));
+  });
+});
+
+// Section 8 and 7.3 rows K and M. Couples are created and joined only by Cloud Functions,
+// inside transactions; clients can read their own couple and nothing else.
+describe('couples/{coupleId}', () => {
+  const seed = async (status = 'ACTIVE') => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'couples', 'c1'), { status, memberUids: [ALICE, BOB], contentLevelEffective: 2 });
+      await setDoc(doc(db, 'couples', 'c1', 'members', ALICE), { role: 'CREATOR', status: 'ACTIVE' });
+      await setDoc(doc(db, 'couples', 'c1', 'members', BOB), { role: 'PARTNER', status: 'ACTIVE' });
+    });
+  };
+  const mallory = () => testEnv.authenticatedContext('uid_mallory').firestore();
+
+  it('lets both members read their couple', async () => {
+    await seed();
+    await assertSucceeds(getDoc(doc(alice(), 'couples', 'c1')));
+    await assertSucceeds(getDoc(doc(bob(), 'couples', 'c1')));
+  });
+
+  it('denies a third party reading a couple (7.3 test K)', async () => {
+    await seed();
+    await assertFails(getDoc(doc(mallory(), 'couples', 'c1')));
+    await assertFails(getDoc(doc(mallory(), 'couples', 'c1', 'members', ALICE)));
+  });
+
+  it('denies listing couples at all', async () => {
+    await seed();
+    await assertFails(getDocs(collection(alice(), 'couples')));
+  });
+
+  it('denies a client creating a couple', async () => {
+    await assertFails(setDoc(doc(mallory(), 'couples', 'forged'), {
+      status: 'ACTIVE', memberUids: ['uid_mallory', ALICE],
+    }));
+  });
+
+  it('denies adding a third member (7.3 test M)', async () => {
+    await seed();
+    await assertFails(setDoc(doc(mallory(), 'couples', 'c1', 'members', 'uid_mallory'), { status: 'ACTIVE' }));
+    // Not even a genuine member can add one.
+    await assertFails(setDoc(doc(alice(), 'couples', 'c1', 'members', 'uid_mallory'), { status: 'ACTIVE' }));
+  });
+
+  it('denies a member rewriting the member list', async () => {
+    await seed();
+    await assertFails(updateDoc(doc(alice(), 'couples', 'c1'), { memberUids: [ALICE, 'uid_mallory'] }));
+  });
+
+  it('shuts both partners out once unpaired', async () => {
+    await seed('UNPAIRED');
+    await assertFails(getDoc(doc(alice(), 'couples', 'c1')));
+    await assertFails(getDoc(doc(bob(), 'couples', 'c1', 'members', ALICE)));
+  });
+
+  it('denies a client forging its own pairing state', async () => {
+    // Otherwise a user could mark a request approved, or plant verification symbols.
+    await assertFails(setDoc(doc(alice(), 'users', ALICE), {
+      pairing: { role: 'CREATOR', status: 'REQUESTED', code: '123456', verification: ['x', 'y', 'z'] },
+    }, { merge: true }));
   });
 });
 

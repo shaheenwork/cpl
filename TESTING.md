@@ -80,6 +80,32 @@ Rows are added by the phase that introduces the collection they cover.
 
 ---
 
+## 2b. Cloud Functions — needs the emulator suite with functions
+
+```bash
+firebase emulators:start --only auth,firestore,storage,functions --project afterhours-dev-emulator
+```
+
+```bash
+npm --prefix functions run test:unit
+```
+
+```bash
+npm --prefix functions run test:int
+```
+
+```bash
+npm --prefix functions run test:e2e
+```
+
+- **unit**: pure logic (code format, verification symbols). No emulator.
+- **int**: the real transactions against the Firestore emulator, including the races — two
+  people using one code, a double approval, a partner pairing elsewhere mid-request.
+- **e2e**: the callables over HTTP exactly as the app calls them — unauthenticated calls
+  refused, identity taken from the token and never the payload, errors mapped to codes.
+
+---
+
 ## 3. Instrumented tests — needs an Android emulator **and** the Firebase emulator
 
 ```bash

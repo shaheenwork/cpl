@@ -81,7 +81,7 @@ fun RevealCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .glow(colors.glow, radiusScale = 1.25f, alpha = bloom),
+            .glow(colors.glow, alpha = bloom, spread = 32.dp),
     ) {
         CinematicCard(
             glowing = false,

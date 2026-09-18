@@ -1,0 +1,24 @@
+{
+  "name": "afterhours-functions",
+  "private": true,
+  "description": "Trusted server operations for Afterhours. Anything with a race condition, or that decides who may see what, runs here rather than on a client (BUILD_PROMPT.md section 8).",
+  "main": "lib/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test:unit": "npm run build && node --test lib/test/*.unit.test.js",
+    "test:int": "npm run build && node --test --test-concurrency=1 lib/test/*.int.test.js",
+    "test": "npm run test:unit && npm run test:int",
+    "test:e2e": "npm run build && node --test --test-concurrency=1 lib/test/*.e2e.test.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.4.0",
+    "firebase-functions": "^7.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "~5.9.3"
+  }
+}

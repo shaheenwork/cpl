@@ -1,6 +1,7 @@
 package com.shnapps.couple.core.data.auth
 
 import com.shnapps.couple.core.common.AppError
+import com.shnapps.couple.core.common.ApplicationScope
 import com.shnapps.couple.core.common.Clock
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.datastore.AppPreferencesStore
@@ -8,10 +9,13 @@ import com.shnapps.couple.core.firebase.auth.AuthDataSource
 import com.shnapps.couple.core.firebase.user.UserProfileDataSource
 import com.shnapps.couple.core.model.AuthUser
 import com.shnapps.couple.core.model.UserProfile
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.shareIn
 import java.util.TimeZone
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -26,13 +30,19 @@ class DefaultAuthRepository @Inject constructor(
     private val userProfileDataSource: UserProfileDataSource,
     private val appPreferences: AppPreferencesStore,
     private val clock: Clock,
+    @ApplicationScope appScope: CoroutineScope,
 ) : AuthRepository {
     override val authState: Flow<AuthUser?> = authDataSource.authState
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    override val currentProfile: Flow<UserProfile?> = authState.flatMapLatest { user ->
-        if (user == null) flowOf(null) else userProfileDataSource.observeProfile(user.uid)
-    }
+    override val currentProfile: Flow<UserProfile?> = authState
+        .flatMapLatest { user ->
+            if (user == null) flowOf(null) else userProfileDataSource.observeProfile(user.uid)
+        }
+        // Shared: splash routing, pairing state and couple membership all read this, and a
+        // cold flow would open one Firestore listener per collector (BUILD_PROMPT.md section
+        // 75). WhileSubscribed lets the listener close when no screen needs it.
+        .shareIn(appScope, SharingStarted.WhileSubscribed(PROFILE_STOP_TIMEOUT_MS), replay = 1)
 
     override suspend fun signIn(email: String, password: String): Outcome<AuthUser> {
         val result = authDataSource.signIn(email, password)
@@ -98,5 +108,9 @@ class DefaultAuthRepository @Inject constructor(
             timezone = TimeZone.getDefault().id,
             nowMillis = clock.nowMillis(),
         )
+    }
+
+    private companion object {
+        const val PROFILE_STOP_TIMEOUT_MS = 5_000L
     }
 }

@@ -1,6 +1,7 @@
 package com.shnapps.couple.di
 
 import com.shnapps.couple.BuildConfig
+import com.shnapps.couple.core.common.ApplicationScope
 import com.shnapps.couple.core.common.Clock
 import com.shnapps.couple.core.common.DefaultDispatcherProvider
 import com.shnapps.couple.core.common.DispatcherProvider
@@ -12,7 +13,6 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import javax.inject.Qualifier
 import javax.inject.Singleton
 
 /**
@@ -49,7 +49,3 @@ object AppModule {
     fun provideApplicationScope(dispatchers: DispatcherProvider): CoroutineScope =
         CoroutineScope(SupervisorJob() + dispatchers.default)
 }
-
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class ApplicationScope

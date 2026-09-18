@@ -113,6 +113,7 @@ dependencies {
     implementation(project(":feature:onboarding"))
     implementation(project(":feature:auth"))
     implementation(project(":feature:applock"))
+    implementation(project(":feature:pairing"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

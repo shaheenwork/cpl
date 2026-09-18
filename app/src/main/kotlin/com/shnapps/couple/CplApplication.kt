@@ -1,9 +1,9 @@
 package com.shnapps.couple
 
 import android.app.Application
+import com.shnapps.couple.core.common.ApplicationScope
 import com.shnapps.couple.core.firebase.FirebaseInitializer
 import com.shnapps.couple.core.firebase.config.RemoteConfigSource
-import com.shnapps.couple.di.ApplicationScope
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch

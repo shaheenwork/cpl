@@ -3,7 +3,7 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 3 complete. Next action: **Phase 4 — Couple pairing.**
+**Current position:** Phase 4 complete. Next action: **Phase 5 — Taxonomy and preference discovery.**
 
 ---
 
@@ -15,8 +15,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 | 1 | Firebase wiring + emulators | ✅ **Complete** |
 | 2 | Design system | ✅ **Complete** |
 | 3 | Auth + age gate + app lock | ✅ **Complete** |
-| 4 | Couple pairing | ⬜ Next |
-| 5 | Taxonomy + preference discovery | ⬜ |
+| 4 | Couple pairing | ✅ **Complete** |
+| 5 | Taxonomy + preference discovery | ⬜ Next |
 | 6 | Boundaries + engine filters | ⬜ |
 | 7 | Mutual discovery + batched reveals | ⬜ |
 | 8 | Content system + ≥600 seed items | ⬜ |
@@ -320,3 +320,57 @@ none is proven end-to-end.
 - **Google Sign-In** — optional per §7; needs SHA fingerprints in Firebase (HUMAN_SETUP).
 - **Settings as the home for lock setup and sign-out** — Phase 20. Until then they live
   on the placeholder screens so they're reachable on a device.
+
+
+---
+
+## Phase 4 — Couple pairing ✅
+
+### Shipped
+- **Cloud Functions project** (`functions/`, TypeScript, firebase-functions v7, Node 22).
+  Five callables: `createPairingCode`, `requestPairing`, `respondToPairing`,
+  `cancelPairing`, `unpairCouple`. App Check enforced outside the emulator; identity always
+  from the verified token, never the payload.
+- **Pairing handshake** (D-016): a code only creates a request; the creator approves after
+  both phones show the same three symbols. Stops strangers pairing via guessed codes.
+- **Transactions** for every state change: one couple per person, exactly two members,
+  single-use codes, no self-pairing, only the creator can approve.
+- **Rules**: couples readable only by their two ACTIVE members; no client writes to couples,
+  members, or the `pairing` field.
+- **`:feature:pairing`**: choose / invite (code + QR + share) / confirm symbols / enter code
+  / waiting / declined. Server state drives the step, so both phones converge and a
+  mid-handshake process death resumes in place.
+- **Invite links** `afterhours://pair?code=` (D-017), held in `PendingInvite` until the user
+  reaches pairing through the normal flow. Unpair with confirmation on the Home placeholder.
+
+### Verified
+```
+./gradlew check assembleDevDebug            BUILD SUCCESSFUL
+npm --prefix firebase/tests test            34/34   (7.3 rows K, M, N, plus C)
+npm --prefix functions run test:unit        6/6
+npm --prefix functions run test:int         27/27   (real transactions, incl. races)
+npm --prefix functions run test:e2e         5/5     (callables over HTTP)
+PairingViewModelTest 14, PendingInviteTest 2, 5 pairing goldens reviewed
+```
+
+**Races tested against the real emulator:** two people entering one code at once (exactly
+one request); approving twice at once (one couple); the joiner pairing elsewhere before
+approval (no second couple). **Mutation-tested:** removing the `busy` guard and the
+already-paired re-check each failed exactly their race test.
+
+### Found and fixed
+- **The glow never glowed** (D-018). Visible only in card corners since Phase 2.
+- **One Firestore listener per collector** on the profile document (D-019).
+- A dead duplicate of the code-rejection logic with *different* semantics from the real
+  transaction (it named reasons; the transaction deliberately doesn't) — removed.
+
+### NOT verified on a device (hypervisor, HUMAN_SETUP.md §1.3)
+Two real phones pairing; the share sheet; the deep link opening the app; a phone camera
+scanning the QR. The server side is proven end to end over HTTP; the client is proven by
+unit and screenshot tests.
+
+### Deferred
+- **App Links** (`https://`) — needs a domain (HUMAN_SETUP.md §2.7).
+- **Storage couple-membership rules** — still deny-all until Phase 15 introduces media,
+  where they can be tested against real paths rather than guessed at now.
+- **What happens to shared memories on unpair** — decided with account deletion, Phase 20.

@@ -29,7 +29,10 @@ service cloud.firestore {
     function noServerFields(keys) {
       return !keys.hasAny([
         'entitlement', 'coupleId', 'contentLevelEffective',
-        'revealedAt', 'state', 'reveal'
+        'revealedAt', 'state', 'reveal',
+        // The pairing handshake. If this were client-writable, a user could forge an
+        // approval or show their partner fake verification symbols.
+        'pairing'
       ]);
     }
 
@@ -111,6 +114,31 @@ service cloud.firestore {
 
     match /reports/{reportId} {
       allow read, write: if false; // Written via callable; reporter identity never exposed.
+    }
+
+    // ---- couples ---------------------------------------------------------
+    // Readable only by its two ACTIVE members. After unpairing, neither partner can read
+    // it any more (every couple-scoped path hangs off this check).
+    //
+    // No client writes at all yet: couples are created, joined and ended only by Cloud
+    // Functions, inside transactions (BUILD_PROMPT.md section 8). That is what makes
+    // "exactly two members" and "one couple per person" hold (section 7.3, test M).
+
+    function isActiveMember(coupleId) {
+      let couple = get(/databases/$(database)/documents/couples/$(coupleId));
+      return isSignedIn()
+          && couple.data.status == 'ACTIVE'
+          && request.auth.uid in couple.data.memberUids;
+    }
+
+    match /couples/{coupleId} {
+      allow get: if isActiveMember(coupleId);
+      allow list, write: if false;
+
+      match /members/{memberUid} {
+        allow read: if isActiveMember(coupleId);
+        allow write: if false;
+      }
     }
 
     // The combined boundary intersection must never reach a device: a user could diff

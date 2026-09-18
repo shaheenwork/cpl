@@ -1,5 +1,6 @@
 package com.shnapps.couple
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -10,6 +11,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
+import com.shnapps.couple.core.data.couple.PendingInvite
 import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.navigation.Route
@@ -36,9 +38,13 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var biometricAuthenticator: BiometricAuthenticator
 
+    @Inject
+    lateinit var pendingInvite: PendingInvite
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        acceptInviteLink(intent)
 
         setContent {
             AfterhoursTheme {
@@ -75,6 +81,23 @@ class MainActivity : FragmentActivity() {
             if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
                 appLockManager.onForegrounded()
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        acceptInviteLink(intent)
+    }
+
+    /**
+     * An invite link never navigates on its own: the user may be signed out, or not past
+     * the age gate. The code waits in [PendingInvite] until the pairing screen is reached
+     * through the normal flow.
+     */
+    private fun acceptInviteLink(intent: Intent?) {
+        val data = intent?.data ?: return
+        if (data.scheme == "afterhours" && data.host == "pair") {
+            pendingInvite.offer(data.getQueryParameter("code"))
         }
     }
 

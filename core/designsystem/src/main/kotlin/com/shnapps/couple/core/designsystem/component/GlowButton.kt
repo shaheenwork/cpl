@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.shnapps.couple.core.designsystem.theme.AfterhoursEasing
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.decorativeTween
@@ -66,7 +67,7 @@ fun GlowButton(
     }
 
     val buttonModifier = modifier
-        .glow(glowColor, radiusScale = 0.75f, alpha = glowAlpha)
+        .glow(glowColor, alpha = glowAlpha, spread = 12.dp, cornerRadius = 16.dp)
         .defaultMinSize(minHeight = spacing.touchTarget)
 
     val label: @Composable () -> Unit = {

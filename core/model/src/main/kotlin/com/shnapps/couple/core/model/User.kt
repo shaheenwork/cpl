@@ -28,6 +28,8 @@ data class UserProfile(
     val contentLevel: Intensity = Intensity.FLIRTY,
     val coupleId: String? = null,
     val privacySettings: PrivacySettings = PrivacySettings(),
+    /** Present only while a pairing handshake is in progress. Server-written. */
+    val pairing: PairingState? = null,
 ) {
     /** No adult content path is reachable until this is true (§3.1). */
     val hasConfirmedAge: Boolean get() = ageAttestation?.confirmed == true
