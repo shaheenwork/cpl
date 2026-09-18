@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "718142514485",
+    "project_id": "cplg-d4b26",
+    "storage_bucket": "cplg-d4b26.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:718142514485:android:c2fe510a409888f773d87c",
+        "android_client_info": {
+          "package_name": "com.shnapps.couple"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAVqxrHnGSwWRDyaetRt9T0r1kIqNZFmjg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
