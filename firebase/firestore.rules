@@ -70,6 +70,22 @@ service cloud.firestore {
           || request.resource.data.ageAttestation.at == request.time;
     }
 
+    // A private answer (§6.1, Phase 5). Exactly these four fields, so nothing can ride along
+    // in the most sensitive documents in the database. `secret` only with CURIOUS: that pair
+    // is what "secretly curious" means, and no other combination is. The time is the
+    // server's. The id rule matches the taxonomy's, so a stray path cannot be written either.
+    function validPreference(preferenceId, data) {
+      return preferenceId.matches('^[a-z0-9_]{1,64}$')
+          && data.keys().hasAll(['value', 'secret', 'updatedAt', 'taxonomyVersion'])
+          && data.keys().hasOnly(['value', 'secret', 'updatedAt', 'taxonomyVersion'])
+          && data.value in ['YES', 'CURIOUS', 'MAYBE', 'NOT_FOR_ME', 'NEVER']
+          && data.secret is bool
+          && (!data.secret || data.value == 'CURIOUS')
+          && data.updatedAt == request.time
+          && data.taxonomyVersion is int
+          && data.taxonomyVersion >= 1;
+    }
+
     // ---- users -----------------------------------------------------------
     // A user document is readable and writable only by its owner. `coupleId` and
     // `entitlement` are written exclusively by Cloud Functions (§7.2).
@@ -92,7 +108,10 @@ service cloud.firestore {
       // server-side and only positives are materialised (§5.2).
 
       match /preferences/{preferenceId} {
-        allow read, write: if isSelf(uid);
+        allow read: if isSelf(uid);
+        allow create, update: if isSelf(uid) && validPreference(preferenceId, request.resource.data);
+        // Forgetting an answer deletes it: an unanswered item has no document.
+        allow delete: if isSelf(uid);
       }
 
       match /boundaries/{themeId} {

@@ -102,6 +102,11 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
 - New component → add it to `gallery/ComponentGallery.kt` and to `GallerySnapshotTest`,
   then `recordRoborazziDebug`.
 - Any screen showing private content calls `SecureScreen()` from `:core:ui`.
+- The taxonomy is authored in `content/taxonomy.json` and copied into the APK by
+  `:core:data`'s bundle task. Edit the JSON, never a copy; `TaxonomyFileTest` holds it to
+  the strict standard (DECISIONS.md D-020).
+- Private answers (`PreferenceAnswer`) never reach analytics, logs or a partner-readable
+  path. `secret` only ever accompanies `CURIOUS` (D-021).
 - Feature screenshot tests use `@Config(sdk = [35])` and wrap content in
   `AfterhoursTheme { AfterhoursSurface { ... } }`; `verifyRoborazziDebug` runs in `check`.
 - ViewModels depend on interfaces (`AuthRepository`, `AppPreferencesStore`); tests use the
@@ -166,6 +171,11 @@ Drawing a screen bare shows the default window colour through it.
 **Anything that can race runs in a Cloud Function transaction,** with its core logic
 taking `(db, uid, nowMs)` so it is tested directly against the emulator. Callables stay
 thin: auth from the token, delegate, map errors. Never trust a uid or coupleId in a payload.
+
+**Robolectric's default screen is 320×470dp.** A screenshot test without explicit
+qualifiers renders narrow and silently clips anything taller — the gallery did both for
+three phases (D-024). Feature tests pass `qualifiers = "w392dp-h840dp-xhdpi"`; the design
+system sets its size in `robolectric.properties`.
 
 **Kotlin/KSP versions are paired.** Kotlin 2.2.10 ↔ KSP `2.2.10-2.0.2`. KSP changed to
 standalone versioning at 2.3.0; do not mix the schemes.

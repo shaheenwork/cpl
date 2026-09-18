@@ -3,7 +3,7 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 4 complete. Next action: **Phase 5 — Taxonomy and preference discovery.**
+**Current position:** Phase 5 complete. Next action: **Phase 6 — Boundaries, content level and engine filters.**
 
 ---
 
@@ -16,8 +16,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 | 2 | Design system | ✅ **Complete** |
 | 3 | Auth + age gate + app lock | ✅ **Complete** |
 | 4 | Couple pairing | ✅ **Complete** |
-| 5 | Taxonomy + preference discovery | ⬜ Next |
-| 6 | Boundaries + engine filters | ⬜ |
+| 5 | Taxonomy + preference discovery | ✅ **Complete** |
+| 6 | Boundaries + engine filters | ⬜ Next |
 | 7 | Mutual discovery + batched reveals | ⬜ |
 | 8 | Content system + ≥600 seed items | ⬜ |
 | 9 | Experience engine | ⬜ |
@@ -374,3 +374,67 @@ unit and screenshot tests.
 - **Storage couple-membership rules** — still deny-all until Phase 15 introduces media,
   where they can be tested against real paths rather than guessed at now.
 - **What happens to shared memories on unpair** — decided with account deletion, Phase 20.
+
+
+---
+
+## Phase 5 — Taxonomy + private preference discovery ✅
+
+### Shipped
+- **`content/taxonomy.json` v1** — 7 categories, 27 themes, 51 items. By intensity floor:
+  14 at level 1, 20 at 2, 13 at 3, 4 at 4 (so 14 / 34 / 47 / 51 cards at levels 1 to 4+).
+  Broad, consensual and non-graphic: a map of curiosities, not a catalogue of acts (§9.5).
+  An item's theme is its boundary theme (D-020).
+- **Shipped in the APK** by a `:core:data` build task, byte-identical to the source file.
+  Tolerant parser for remote updates; strict `TaxonomyFileTest` for the file we ship.
+- **Private answers** at `users/{uid}/preferences/{itemId}`: `value`, `secret`,
+  `updatedAt` (server time), `taxonomyVersion`. One shared, owner-only listener. Written
+  per deliberate answer, unchanged answers skipped (D-022); removable.
+- **Rules**: exactly those four fields, a known value, `secret` only with `CURIOUS`, server
+  time, a taxonomy-shaped id. Owner-only read, write and delete.
+- **"Secretly curious"** is an answer of its own, with an explicit promise that binds Phase 7
+  (D-021).
+- **`PreferenceSwipeCard`** reworked: description, six answers in a fixed grid, and an
+  earlier answer marked when the user comes back to a card.
+- **`:feature:preferences`** — intro (privacy promise + the user's own content level),
+  one-card deck (gentlest first, left-swipe skips, right-swipe goes back, never answers —
+  D-023), done, review by category, edit or remove an answer. `SecureScreen`. Analytics
+  gets counts only.
+- **Navigation**: pairing now continues into discovery (§14.1); Home gets an entry point.
+
+### Verified
+```
+./gradlew check assembleDevDebug            BUILD SUCCESSFUL
+npm --prefix firebase/tests test            46/46   (7.3 rows A and B, preference shape)
+TaxonomyFileTest 9, TaxonomyParserTest 6, BundledTaxonomyRepositoryTest 1, PreferenceAnswerTest 3
+PreferenceDiscoveryViewModelTest 22, DiscoveryDeckTest 5 (swipes by injected touch)
+7 discovery goldens, 10 re-recorded gallery goldens, pairing-waiting — all reviewed
+APK assets/content/taxonomy.json == content/taxonomy.json (byte for byte)
+```
+
+**Mutation-tested rules:** dropping the secret-only-with-CURIOUS clause, the field allowlist,
+the server-time check, or owner-only read each failed exactly its own test.
+
+**The tripwire works:** the first draft's roleplay subtitle ("Being someone else for an
+evening") hit the third-party term list; the copy was reworded rather than the check relaxed.
+
+### Found and fixed
+- **Gallery goldens were 320dp wide and clipped at 470dp** since Phase 2 (D-024).
+- **The waiting indicator's halo** rendered as a grey square (D-024).
+- **A refused listener could crash the app** during sign-out (D-025).
+- Firestore errors were classified by message text; now by status code.
+
+### NOT verified on a device (hypervisor, HUMAN_SETUP.md §1.3)
+Swipe feel under a real finger; TalkBack through the deck; `FLAG_SECURE` on the screen;
+answering offline against a real Firestore cache; the Android client's writes against the
+deployed rules (the rules tests use the JS SDK with the same field shapes).
+
+### Deferred
+- **`contentLevelEffective` recompute** when a member changes their own level — Phase 6
+  (`onCoupleMemberChange`). Until then a couple keeps the value set at pairing; nothing
+  reads it before the engine (Phase 9).
+- **Remote taxonomy updates** — Phase 8's content pipeline (D-020).
+- **Free vs full preference library** (§19) — Phase 19.
+- **Boundary shape validation** — Phase 6, with the boundaries UI.
+- **For Phase 7:** secret answers match only secret answers (D-021); changing an answer to a
+  negative, or removing it, must withdraw a match that has not been revealed yet.

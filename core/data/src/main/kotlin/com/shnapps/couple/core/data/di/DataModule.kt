@@ -4,6 +4,10 @@ import com.shnapps.couple.core.data.auth.AuthRepository
 import com.shnapps.couple.core.data.auth.DefaultAuthRepository
 import com.shnapps.couple.core.data.couple.CoupleRepository
 import com.shnapps.couple.core.data.couple.DefaultCoupleRepository
+import com.shnapps.couple.core.data.preferences.DefaultPreferenceRepository
+import com.shnapps.couple.core.data.preferences.PreferenceRepository
+import com.shnapps.couple.core.data.taxonomy.BundledTaxonomyRepository
+import com.shnapps.couple.core.data.taxonomy.TaxonomyRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -21,4 +25,12 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindCoupleRepository(impl: DefaultCoupleRepository): CoupleRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindTaxonomyRepository(impl: BundledTaxonomyRepository): TaxonomyRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPreferenceRepository(impl: DefaultPreferenceRepository): PreferenceRepository
 }

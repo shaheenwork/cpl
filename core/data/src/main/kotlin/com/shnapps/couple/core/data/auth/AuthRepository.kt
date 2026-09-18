@@ -2,6 +2,7 @@ package com.shnapps.couple.core.data.auth
 
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.model.AuthUser
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.UserProfile
 import kotlinx.coroutines.flow.Flow
 
@@ -26,6 +27,13 @@ interface AuthRepository {
 
     /** Signs out and wipes device-local state belonging to the departing account. */
     suspend fun signOut()
+
+    /**
+     * Sets the user's own content level (BUILD_PROMPT.md Appendix A) — how far they are
+     * willing to go. Only ever their own: the couple's ceiling is the lower of the two
+     * partners' levels, computed by the server, so nobody can raise it alone.
+     */
+    suspend fun setContentLevel(level: Intensity): Outcome<Unit>
 
     /** Records the 18+ attestation (BUILD_PROMPT.md §3.1). The server record is the truth. */
     suspend fun confirmAge(): Outcome<Unit>

@@ -47,6 +47,14 @@ system plus every `:feature:*` module. Look at a new golden before committing it
 recorded image is not the same as a correct one (Phase 3's first feature goldens were
 cream-on-white, which is how the launch-flash bug was found).
 
+### The shipped taxonomy
+
+`TaxonomyFileTest` (in `:core:data`) reads `content/taxonomy.json` strictly: unknown or
+misspelt fields, anything the app's tolerant parser would drop, duplicate or malformed ids,
+missing categories, overlong copy and §3.3 prohibited terms all fail the build. The file is a
+declared input of the test task, so editing it re-runs the tests.
+`BundledTaxonomyRepositoryTest` proves the build really puts it in the assets.
+
 ### Contrast
 
 `ContrastTest` computes WCAG 2.1 ratios for all 20 foreground/background pairs the theme
@@ -71,10 +79,14 @@ Terminal 2:
 npm --prefix firebase/tests test
 ```
 
-**Current: 19 passing**, covering section 7.3 rows A (partner cannot read preferences),
-B (partner cannot read boundaries), K (non-member cannot read a couple), L (engineFilters
-unreadable by any client) and Q (reports not client-writable), plus server-only ownership
-of `coupleId` and `entitlement`, unauthenticated denial, and the default-deny catch-all.
+**Current: 46 passing**, covering section 7.3 rows A (partner cannot read or list
+preferences), B (partner cannot read boundaries), C (no client-written `coupleId`),
+I (no client-granted entitlement), K (non-member cannot read a couple), L (engineFilters
+unreadable by any client), M (no third member) and Q (reports not client-writable); the
+shape of a private answer (four fields only, known values, `secret` only with `CURIOUS`,
+server time, taxonomy-shaped ids); the age attestation; forged pairing state;
+unauthenticated denial; and the default-deny catch-all. Row N (a reused pairing code) is
+proved by the functions integration tests, because codes are server-only.
 
 Rows are added by the phase that introduces the collection they cover.
 

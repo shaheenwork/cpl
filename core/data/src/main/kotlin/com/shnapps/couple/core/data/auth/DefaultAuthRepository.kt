@@ -8,10 +8,12 @@ import com.shnapps.couple.core.datastore.AppPreferencesStore
 import com.shnapps.couple.core.firebase.auth.AuthDataSource
 import com.shnapps.couple.core.firebase.user.UserProfileDataSource
 import com.shnapps.couple.core.model.AuthUser
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.UserProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -37,7 +39,14 @@ class DefaultAuthRepository @Inject constructor(
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override val currentProfile: Flow<UserProfile?> = authState
         .flatMapLatest { user ->
-            if (user == null) flowOf(null) else userProfileDataSource.observeProfile(user.uid)
+            if (user == null) {
+                flowOf(null)
+            } else {
+                // A listener can be refused mid-flight, most often during sign-out. That ends
+                // this stream quietly and the auth change that follows starts the next one;
+                // uncaught, it would crash the app from the shared scope below.
+                userProfileDataSource.observeProfile(user.uid).catch { }
+            }
         }
         // Shared: splash routing, pairing state and couple membership all read this, and a
         // cold flow would open one Firestore listener per collector (BUILD_PROMPT.md section
@@ -69,6 +78,12 @@ class DefaultAuthRepository @Inject constructor(
     override suspend fun signOut() {
         authDataSource.signOut()
         appPreferences.clear()
+    }
+
+    override suspend fun setContentLevel(level: Intensity): Outcome<Unit> {
+        val uid = authDataSource.currentUser?.uid
+            ?: return Outcome.Failure(AppError.Unauthenticated())
+        return userProfileDataSource.updateContentLevel(uid, level)
     }
 
     /**

@@ -311,3 +311,90 @@ own Firestore listener — pairing state and couple membership alone would have 
 listeners on one document. Now `shareIn(appScope, WhileSubscribed(5s), replay = 1)`.
 `@ApplicationScope` moved to `:core:common` (a plain `javax.inject` qualifier, still pure
 JVM) so repositories can use it. §75 cost control, applied before it compounds.
+
+---
+
+## D-020 — The taxonomy: an item's theme is its boundary, and the file ships in the APK
+**Phase 5.** §9.5 asks for `category → theme → item`, each item carrying "the boundary theme
+it maps to". A separate `boundaryTheme` field could disagree with where the item is filed.
+
+**Decision:** the theme an item is filed under *is* its boundary theme. Sensitive items get
+a theme of their own (blindfolds, warm and cool, negotiated power play, power-dynamic
+scenarios, strangers), so a boundary on them is precise; gentle items share broad themes.
+
+- Ids match `^[a-z0-9_]{1,64}$`, the same pattern the rules enforce on preference ids.
+- An item is only asked about at a content level at or above its `intensityFloor`. The
+  level is the user's own, chosen on the discovery intro.
+- `content/taxonomy.json` is the source of truth. A per-variant task in `:core:data` copies
+  exactly that file into the assets; the APK's copy is byte-identical to it.
+- **Two standards.** The app's parser is tolerant — unknown fields ignored, items it cannot
+  represent dropped — because §9.5 makes the taxonomy remotely updatable and a newer file
+  must never break an older app. The shipped file is read strictly by `TaxonomyFileTest`:
+  unknown or misspelt fields fail, anything the parser would drop fails, all seven
+  categories in order, unique ids, copy lengths, and a §3.3 prohibited-term tripwire. The
+  file is a declared input of the test task (D-015).
+- Remote updates ride on Phase 8's content pipeline. `TaxonomyRepository` is a `Flow`, so a
+  newer version can replace the bundled one without touching callers.
+- Answers store `taxonomyVersion`, so if an item is ever materially reworded its old answers
+  can be recognised rather than silently reinterpreted.
+
+---
+
+## D-021 — "Secretly curious" is an answer, and never reveals more than an open one
+**Phase 5.** The Phase 2 card put a secret toggle beside all five answers, which allowed
+"secretly never" and left the meaning open.
+
+**Decision:** `PreferenceAnswer(value, secret)`, with `secret` only alongside `CURIOUS` —
+enforced by the model, the parser and the rules (removing the rule clause fails exactly
+its test). The intro makes the promise explicit: *"Secretly curious stays hidden unless they
+secretly pick it too."*
+
+That binds Phase 7: a secret curiosity matches **only another secret curiosity**, and is
+left out of ordinary matching. Choosing "secretly" must never reveal more than answering
+openly would — the conservative reading of §14.7's "if only one picks, it stays private
+forever". The both-secret match is the reveal §14.7 asks to give the best animation.
+
+---
+
+## D-022 — Answers are written once per deliberate answer, not debounced
+**Phase 5.** §18 says "debounce preference writes". In a one-card-at-a-time flow every answer
+is a deliberate tap that moves the deck on, so there is no burst to coalesce — and a
+time-debounced write waits in memory, where leaving the screen or a process death loses it.
+Silently losing a private answer is worse than an extra write.
+
+**Decision:** write when the user answers; skip the write when the answer is unchanged (it
+would also move `updatedAt`); let Firestore's offline cache queue writes while offline. A
+full deck is about fifty single-document writes per person, once. Changing one's mind costs
+one more.
+
+---
+
+## D-023 — Swipes skip and go back; they never answer
+**Phase 5.** The "swipe flow" of the Phase 5 exit criterion: swipe left to skip for now, right
+for the previous card. Neither records an answer. An accidental swipe is easy, and an
+accidental "yes" on this data could become a match; answering stays a deliberate tap on a
+button, which is also the non-gesture path §20 requires.
+
+A session deals a snapshot of the unanswered cards, gentlest first, so answering never
+reshuffles what is left; skipped cards come back next session. The gestures are tested with
+injected touch under Robolectric (`DiscoveryDeckTest`), not yet with a real finger.
+
+---
+
+## D-024 — Gallery goldens render at phone size
+**Phase 5.** The design-system goldens were rendered on Robolectric's default 320×470dp
+screen: `PHONE_WIDTH = 392` never took effect, and any specimen taller than 470dp was cut
+off — the private-answers golden had never shown the `BoundarySlider` at all.
+`robolectric.properties` now sets `w392dp-h1600dp-mdpi`; all ten goldens were re-recorded
+and reviewed. Doing so exposed the waiting indicator's halo, drawn inside its scaled
+`graphicsLayer` and cut to a grey square; it now sits outside the layer and breathes by alpha.
+
+---
+
+## D-025 — A refused Firestore listener ends quietly instead of crashing the app
+**Phase 5.** The shared listeners (profile, preferences) run in the application scope via
+`shareIn`. When Firestore refuses a listener — typically during sign-out, when the rules see
+the old listener without credentials — the error was thrown into that scope, which has no
+handler: an app crash. The per-user inner flow now catches it and ends; the auth change that
+follows starts the next listener. Firestore failures are also classified by
+`FirebaseFirestoreException.Code` now, rather than by matching message text.

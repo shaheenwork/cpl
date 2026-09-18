@@ -5,6 +5,7 @@ import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.auth.AuthRepository
 import com.shnapps.couple.core.model.AgeAttestation
 import com.shnapps.couple.core.model.AuthUser
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.UserProfile
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +32,7 @@ class FakeAuthRepository : AuthRepository {
     var signUpResult: Outcome<AuthUser> = Outcome.Success(DEFAULT_USER)
     var resetResult: Outcome<Unit> = Outcome.Success(Unit)
     var confirmAgeResult: Outcome<Unit> = Outcome.Success(Unit)
+    var contentLevelResult: Outcome<Unit> = Outcome.Success(Unit)
 
     var confirmAgeCalls = 0
         private set
@@ -57,6 +59,15 @@ class FakeAuthRepository : AuthRepository {
         signedOut = true
         user.value = null
         profile.value = null
+    }
+
+    override suspend fun setContentLevel(level: Intensity): Outcome<Unit> {
+        if (user.value == null) return Outcome.Failure(AppError.Unauthenticated())
+        return contentLevelResult.also {
+            if (it is Outcome.Success) {
+                profile.value = (profile.value ?: UserProfile(uid = DEFAULT_USER.uid)).copy(contentLevel = level)
+            }
+        }
     }
 
     override suspend fun confirmAge(): Outcome<Unit> {

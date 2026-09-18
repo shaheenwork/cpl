@@ -42,6 +42,7 @@ import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.BoundaryLevel
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Mood
+import com.shnapps.couple.core.model.PreferenceAnswer
 
 /**
  * Every component in the inventory, on one screen (BUILD_PROMPT.md §15.3).
@@ -190,12 +191,15 @@ internal fun NightControlsSpecimen() {
 internal fun PrivateAnswersSpecimen() {
     val spacing = AfterhoursTheme.spacing
     var boundary by remember { mutableStateOf(BoundaryLevel.CURIOUS) }
+    // Starts answered, so the specimen shows how an earlier answer is marked on return.
+    var answer by remember { mutableStateOf<PreferenceAnswer?>(PreferenceAnswer.SECRETLY_CURIOUS) }
     Column(verticalArrangement = Arrangement.spacedBy(spacing.md)) {
         PreferenceSwipeCard(
-            prompt = "Being told exactly what to do",
-            category = "Power and dynamics",
-            onAnswer = {},
-            onToggleSecret = {},
+            prompt = "Following instructions",
+            category = "Power & dynamics",
+            description = "Being told what to do next, within limits you both set.",
+            selected = answer,
+            onAnswer = { answer = it },
         )
         CinematicCard {
             Text("Our boundaries", style = MaterialTheme.typography.titleMedium)

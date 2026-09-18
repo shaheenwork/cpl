@@ -37,6 +37,7 @@ import com.shnapps.couple.feature.onboarding.StartDestination
 import com.shnapps.couple.feature.onboarding.WelcomeScreen
 import com.shnapps.couple.feature.pairing.PairingScreen
 import com.shnapps.couple.feature.pairing.UnpairViewModel
+import com.shnapps.couple.feature.preferences.PreferenceDiscoveryScreen
 
 /**
  * The app's navigation graph.
@@ -125,9 +126,25 @@ fun CplNavHost(
         // reachable on a device rather than only in tests.
         composable<Route.CoupleSetup> {
             PairingScreen(
+                // First run continues straight into private discovery (§14.1).
                 onPaired = {
-                    navController.navigate(Route.Home) {
+                    navController.navigate(Route.PreferenceDiscovery) {
                         popUpTo(Route.CoupleSetup) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        composable<Route.PreferenceDiscovery> {
+            PreferenceDiscoveryScreen(
+                onFinished = {
+                    // Reached from Home: go back to it. Reached on first run: Home is not
+                    // on the stack yet, so replace discovery with it. Mutual discovery slots
+                    // in between once Phase 7 builds it.
+                    if (!navController.popBackStack(Route.Home, inclusive = false)) {
+                        navController.navigate(Route.Home) {
+                            popUpTo(Route.PreferenceDiscovery) { inclusive = true }
+                        }
                     }
                 },
             )
@@ -136,8 +153,9 @@ fun CplNavHost(
         composable<Route.Home> {
             ComingSoon(
                 title = "Tonight could get interesting.",
-                detail = "You're paired. Phase 5 builds preference discovery; Phase 13 the home surface.",
+                detail = "You're paired. Phase 13 builds the home surface.",
                 navController = navController,
+                showDiscovery = true,
                 showUnpair = true,
             )
         }
@@ -164,6 +182,7 @@ private fun ComingSoon(
     detail: String,
     navController: NavHostController,
     modifier: Modifier = Modifier,
+    showDiscovery: Boolean = false,
     showUnpair: Boolean = false,
     signOutViewModel: SignOutViewModel = hiltViewModel(),
     unpairViewModel: UnpairViewModel = hiltViewModel(),
@@ -188,6 +207,13 @@ private fun ComingSoon(
             color = AfterhoursTheme.colors.textMuted,
             textAlign = TextAlign.Center,
         )
+        if (showDiscovery) {
+            GlowButton(
+                text = "Your private curiosities",
+                onClick = { navController.navigate(Route.PreferenceDiscovery) },
+                leadingEmoji = "👀",
+            )
+        }
         GlowButton(
             text = "Set up app lock",
             onClick = { navController.navigate(Route.AppLockSetup) },

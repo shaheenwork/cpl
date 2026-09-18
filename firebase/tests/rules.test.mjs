@@ -20,7 +20,7 @@ import {
   initializeTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import {
-  Timestamp, collection, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc,
+  Timestamp, collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc,
 } from 'firebase/firestore';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -43,6 +43,14 @@ before(async () => {
 
 after(async () => {
   await testEnv?.cleanup();
+});
+
+/** A well-formed private answer, stamped the way the app stamps it. */
+const answer = (value, secret = false) => ({
+  value,
+  secret,
+  updatedAt: serverTimestamp(),
+  taxonomyVersion: 1,
 });
 
 const alice = () => testEnv.authenticatedContext(ALICE).firestore();
@@ -218,16 +226,28 @@ describe('couples/{coupleId}', () => {
 describe('private, owner-only for life', () => {
   it('lets the owner write and read their own preferences', async () => {
     await assertSucceeds(
-      setDoc(doc(alice(), 'users', ALICE, 'preferences', 'teasing_verbal'), {
-        value: 'CURIOUS',
-        secret: true,
-      }),
+      setDoc(doc(alice(), 'users', ALICE, 'preferences', 'teasing_verbal'), answer('CURIOUS', true)),
     );
     await assertSucceeds(getDoc(doc(alice(), 'users', ALICE, 'preferences', 'teasing_verbal')));
+    await assertSucceeds(getDocs(collection(alice(), 'users', ALICE, 'preferences')));
   });
 
   it('denies a partner reading private preferences (7.3 test A)', async () => {
     await assertFails(getDoc(doc(bob(), 'users', ALICE, 'preferences', 'teasing_verbal')));
+  });
+
+  it('denies a partner listing private preferences (7.3 test A)', async () => {
+    await assertFails(getDocs(collection(bob(), 'users', ALICE, 'preferences')));
+  });
+
+  it('denies a partner writing or deleting private preferences', async () => {
+    const path = ['users', ALICE, 'preferences', 'teasing_verbal'];
+    await assertFails(setDoc(doc(bob(), ...path), answer('NEVER')));
+    await assertFails(deleteDoc(doc(bob(), ...path)));
+  });
+
+  it('denies an unauthenticated read of private preferences', async () => {
+    await assertFails(getDocs(collection(anon(), 'users', ALICE, 'preferences')));
   });
 
   it('denies a partner reading private boundaries (7.3 test B)', async () => {
@@ -243,6 +263,62 @@ describe('private, owner-only for life', () => {
 
   it('denies a client writing its own affinity scores', async () => {
     await assertFails(setDoc(doc(alice(), 'users', ALICE, 'affinity', 'teasing'), { score: 99 }));
+  });
+});
+
+// Section 6.1. The shape of a private answer: exactly four fields, a known value, secret only
+// with CURIOUS, and the server's time. Nothing may ride along in these documents.
+describe('users/{uid}/preferences shape', () => {
+  const pref = (id = 'mood_romantic') => doc(alice(), 'users', ALICE, 'preferences', id);
+
+  it('accepts every answer the app can give', async () => {
+    for (const value of ['YES', 'CURIOUS', 'MAYBE', 'NOT_FOR_ME', 'NEVER']) {
+      await assertSucceeds(setDoc(pref(), answer(value)));
+    }
+    await assertSucceeds(setDoc(pref(), answer('CURIOUS', true)));
+  });
+
+  it('rejects secret on anything but CURIOUS', async () => {
+    for (const value of ['YES', 'MAYBE', 'NOT_FOR_ME', 'NEVER']) {
+      await assertFails(setDoc(pref(), answer(value, true)));
+    }
+  });
+
+  it('rejects an unknown value', async () => {
+    await assertFails(setDoc(pref(), answer('ABSOLUTELY')));
+    await assertFails(setDoc(pref(), { ...answer('YES'), value: 1 }));
+  });
+
+  it('rejects extra fields riding along', async () => {
+    await assertFails(setDoc(pref(), { ...answer('YES'), partnerUid: BOB }));
+    await assertFails(setDoc(pref(), { ...answer('YES'), note: 'anything at all' }));
+  });
+
+  it('rejects a missing field', async () => {
+    const { taxonomyVersion, ...withoutVersion } = answer('YES');
+    await assertFails(setDoc(pref(), withoutVersion));
+    const { secret, ...withoutSecret } = answer('YES');
+    await assertFails(setDoc(pref(), withoutSecret));
+  });
+
+  it('rejects a client-chosen time', async () => {
+    await assertFails(setDoc(pref(), { ...answer('YES'), updatedAt: Timestamp.fromMillis(Date.now()) }));
+  });
+
+  it('rejects a bad taxonomy version', async () => {
+    await assertFails(setDoc(pref(), { ...answer('YES'), taxonomyVersion: 0 }));
+    await assertFails(setDoc(pref(), { ...answer('YES'), taxonomyVersion: '1' }));
+  });
+
+  it('rejects an id the taxonomy could never produce', async () => {
+    await assertFails(setDoc(pref('Mood-Romantic'), answer('YES')));
+    await assertFails(setDoc(pref('a'.repeat(65)), answer('YES')));
+  });
+
+  it('lets the owner change an answer and forget it', async () => {
+    await assertSucceeds(setDoc(pref(), answer('MAYBE')));
+    await assertSucceeds(setDoc(pref(), answer('CURIOUS', true)));
+    await assertSucceeds(deleteDoc(pref()));
   });
 });
 

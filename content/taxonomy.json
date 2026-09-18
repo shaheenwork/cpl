@@ -1,0 +1,267 @@
+{
+  "version": 1,
+  "categories": [
+    {
+      "id": "mood",
+      "title": "Mood",
+      "subtitle": "The feeling you want in the room.",
+      "themes": [
+        {
+          "id": "mood_gentle",
+          "title": "Gentle",
+          "items": [
+            { "id": "mood_romantic", "prompt": "Romantic nights", "description": "Candlelight energy. Slow, warm, all about each other.", "intensityFloor": 1, "modes": ["TOGETHER", "APART"] },
+            { "id": "mood_playful", "prompt": "Playful", "description": "Laughing halfway through. Not taking it too seriously.", "intensityFloor": 1, "modes": ["TOGETHER", "APART"] },
+            { "id": "mood_slow", "prompt": "Slow and unhurried", "description": "Nowhere to be. Taking the long way round.", "intensityFloor": 1, "modes": ["TOGETHER", "APART"] }
+          ]
+        },
+        {
+          "id": "mood_charged",
+          "title": "Charged",
+          "items": [
+            { "id": "mood_flirty", "prompt": "Flirty", "description": "The look across the room. Knowing exactly what it means.", "intensityFloor": 2, "modes": ["TOGETHER", "APART"] },
+            { "id": "mood_naughty", "prompt": "Naughty", "description": "A little bad. On purpose.", "intensityFloor": 3, "modes": ["TOGETHER", "APART"] },
+            { "id": "mood_intense", "prompt": "Intense", "description": "All eyes on each other. No distractions, no half measures.", "intensityFloor": 4, "modes": ["TOGETHER", "APART"] }
+          ]
+        },
+        {
+          "id": "mood_unpredictable",
+          "title": "Unpredictable",
+          "items": [
+            { "id": "mood_spontaneous", "prompt": "Spontaneous", "description": "No plan. Just a sudden idea and a yes.", "intensityFloor": 2, "modes": ["TOGETHER", "APART"] },
+            { "id": "mood_mysterious", "prompt": "Mysterious", "description": "Not knowing what comes next, and liking it.", "intensityFloor": 2, "modes": ["TOGETHER", "APART"] },
+            { "id": "mood_adventurous", "prompt": "Adventurous", "description": "Somewhere new, together.", "intensityFloor": 3, "modes": ["TOGETHER", "APART"] },
+            { "id": "mood_experimental", "prompt": "Experimental", "description": "Trying things you've never tried, to find out what you like.", "intensityFloor": 4, "modes": ["TOGETHER", "APART"] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "power",
+      "title": "Power & dynamics",
+      "subtitle": "Who leads, who follows, and trading places. Always by agreement.",
+      "themes": [
+        {
+          "id": "power_leading",
+          "title": "Leading",
+          "items": [
+            { "id": "power_take_the_lead", "prompt": "Taking the lead", "description": "Setting the pace and deciding what happens next.", "intensityFloor": 2, "modes": ["TOGETHER", "APART"] },
+            { "id": "power_direct_the_evening", "prompt": "Directing the evening", "description": "Planning every beat of the night for them to discover.", "intensityFloor": 2, "modes": ["TOGETHER", "APART"] }
+          ]
+        },
+        {
+          "id": "power_yielding",
+          "title": "Letting go",
+          "items": [
+            { "id": "power_partner_decides", "prompt": "Letting them decide", "description": "Handing over the choices, and enjoying not knowing.", "intensityFloor": 2, "modes": ["TOGETHER", "APART"] },
+            { "id": "power_follow_instructions", "prompt": "Following instructions", "description": "Being told what to do next, within limits you both set.", "intensityFloor": 3, "modes": ["TOGETHER", "APART"] },
+            { "id": "power_give_up_control", "prompt": "Giving up control", "description": "Trusting them with the whole evening. You can take it back any time.", "intensityFloor": 3, "modes": ["TOGETHER", "APART"] }
+          ]
+        },
+        {
+          "id": "power_switching",
+          "title": "Switching",
+          "items": [
+            { "id": "power_switch_roles", "prompt": "Switching roles", "description": "Leading one night, following the next. Or halfway through.", "intensityFloor": 3, "modes": ["TOGETHER", "APART"] }
+          ]
+        },
+        {
+          "id": "power_negotiated",
+          "title": "Negotiated power play",
+          "items": [
+            { "id": "power_negotiated_play", "prompt": "Negotiated power play", "description": "Agreed rules, clear limits, and a word that stops everything.", "intensityFloor": 4, "modes": ["TOGETHER", "APART"] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "teasing",
+      "title": "Teasing",
+      "subtitle": "Making them wait. Making it worth it.",
+      "themes": [
+        {
+          "id": "teasing_words",
+          "title": "Words",
+          "items": [
+            { "id": "teasing_verbal", "prompt": "Verbal teasing", "description": "Saying exactly the right thing at exactly the wrong moment.", "intensityFloor": 2, "modes": ["TOGETHER", "APART"] }
+          ]
+        },
+        {
+          "id": "teasing_anticipation",
+          "title": "Anticipation",
+          "items": [
+            { "id": "teasing_anticipation", "prompt": "Anticipation", "description": "Knowing something's coming, and not yet what.", "intensityFloor": 1, "modes": ["TOGETHER", "APART"] },
+            { "id": "teasing_delayed_reveal", "prompt": "Delayed reveals", "description": "A hint now. The rest later.", "intensityFloor": 2, "modes": ["TOGETHER", "APART"] },
+            { "id": "teasing_countdown", "prompt": "Countdowns", "description": "Counting the hours until something you've planned.", "intensityFloor": 1, "modes": ["TOGETHER", "APART"] }
+          ]
+        },
+        {
+          "id": "teasing_instructions",
+          "title": "Secret instructions",
+          "items": [
+            { "id": "teasing_secret_instructions", "prompt": "Secret instructions", "description": "A private note only one of you gets to read.", "intensityFloor": 3, "modes": ["TOGETHER", "APART"] }
+          ]
+        },
+        {
+          "id": "teasing_games",
+          "title": "Games",
+          "items": [
+            { "id": "teasing_playful_challenges", "prompt": "Playful challenges", "description": "Small dares. Easy to say yes to.", "intensityFloor": 2, "modes": ["TOGETHER", "APART"] },
+            { "id": "teasing_surprise_choices", "prompt": "Surprise choices", "description": "Picking between two options before you know what either is.", "intensityFloor": 2, "modes": ["TOGETHER", "APART"] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sensory",
+      "title": "Senses",
+      "subtitle": "Sound, light, scent and touch. Setting the scene.",
+      "themes": [
+        {
+          "id": "sensory_atmosphere",
+          "title": "Atmosphere",
+          "items": [
+            { "id": "sensory_music", "prompt": "Music", "description": "The right song changes the whole room.", "intensityFloor": 1, "modes": ["TOGETHER", "APART"] },
+            { "id": "sensory_lighting", "prompt": "Lighting", "description": "Low light, candles, the glow of something warm.", "intensityFloor": 1, "modes": ["TOGETHER", "APART"] },
+            { "id": "sensory_scent", "prompt": "Scent", "description": "Something you'll remember the night by.", "intensityFloor": 1, "modes": ["TOGETHER", "APART"] }
+          ]
+        },
+        {
+          "id": "sensory_touch",
+          "title": "Touch",
+          "items": [
+            { "id": "sensory_massage", "prompt": "Massage", "description": "Slow hands and nowhere else to be.", "intensityFloor": 2, "modes": ["TOGETHER"] },
+            { "id": "sensory_texture", "prompt": "Texture", "description": "Silk, fur, feathers. Feeling things differently.", "intensityFloor": 2, "modes": ["TOGETHER"] }
+          ]
+        },
+        {
+          "id": "sensory_blindfold",
+          "title": "Blindfolds",
+          "items": [
+            { "id": "sensory_blindfold", "prompt": "Blindfolded", "description": "Taking away sight, so everything else is sharper.", "intensityFloor": 3, "modes": ["TOGETHER"] }
+          ]
+        },
+        {
+          "id": "sensory_temperature",
+          "title": "Warm and cool",
+          "items": [
+            { "id": "sensory_temperature", "prompt": "Warm and cool", "description": "Warm hands, cool air, and the contrast between them.", "intensityFloor": 3, "modes": ["TOGETHER"] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "roleplay",
+      "title": "Roleplay",
+      "subtitle": "Playing a part for an evening. Or letting them play one.",
+      "themes": [
+        {
+          "id": "roleplay_strangers",
+          "title": "Strangers",
+          "items": [
+            { "id": "roleplay_strangers", "prompt": "Meeting as strangers", "description": "Two people who've never met. One of them makes the first move.", "intensityFloor": 3, "modes": ["TOGETHER", "APART"] }
+          ]
+        },
+        {
+          "id": "roleplay_characters",
+          "title": "Characters",
+          "items": [
+            { "id": "roleplay_characters", "prompt": "Playing characters", "description": "New names, new stories, same two people.", "intensityFloor": 3, "modes": ["TOGETHER", "APART"] },
+            { "id": "roleplay_costume", "prompt": "Dressing the part", "description": "An outfit that changes who you are for the night.", "intensityFloor": 3, "modes": ["TOGETHER", "APART"] },
+            { "id": "roleplay_fantasy", "prompt": "Fantasy scenarios", "description": "A setting you'd never find in real life.", "intensityFloor": 3, "modes": ["TOGETHER", "APART"] },
+            { "id": "roleplay_adventure", "prompt": "Adventure scenarios", "description": "A mission, a mystery, a story you play out together.", "intensityFloor": 2, "modes": ["TOGETHER", "APART"] }
+          ]
+        },
+        {
+          "id": "roleplay_mystery_date",
+          "title": "Mystery dates",
+          "items": [
+            { "id": "roleplay_mystery_date", "prompt": "A mystery date", "description": "One of you plans it. The other finds out as it happens.", "intensityFloor": 2, "modes": ["TOGETHER", "APART"] }
+          ]
+        },
+        {
+          "id": "roleplay_power",
+          "title": "Power-dynamic scenarios",
+          "items": [
+            { "id": "roleplay_power_scenario", "prompt": "Power-dynamic scenarios", "description": "Roles where one of you holds the power. Scripted, agreed, and easy to stop.", "intensityFloor": 4, "modes": ["TOGETHER", "APART"] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "communication",
+      "title": "Talk",
+      "subtitle": "What you say to each other, and what you've never said.",
+      "themes": [
+        {
+          "id": "comm_flirting",
+          "title": "Flirting",
+          "items": [
+            { "id": "comm_flirty_conversation", "prompt": "Flirty conversation", "description": "Talk that goes somewhere.", "intensityFloor": 1, "modes": ["TOGETHER", "APART"] },
+            { "id": "comm_compliments", "prompt": "Compliments", "description": "Hearing exactly what they notice about you.", "intensityFloor": 1, "modes": ["TOGETHER", "APART"] },
+            { "id": "comm_tell_me_something", "prompt": "“Tell me something…”", "description": "Questions that start small and don't stay small.", "intensityFloor": 1, "modes": ["TOGETHER", "APART"] }
+          ]
+        },
+        {
+          "id": "comm_confessions",
+          "title": "Confessions",
+          "items": [
+            { "id": "comm_confessions", "prompt": "Confessions", "description": "Things you've thought and never said out loud.", "intensityFloor": 2, "modes": ["TOGETHER", "APART"] },
+            { "id": "comm_secrets", "prompt": "Trading secrets", "description": "One for one. Neither of you goes first alone.", "intensityFloor": 2, "modes": ["TOGETHER", "APART"] }
+          ]
+        },
+        {
+          "id": "comm_fantasies",
+          "title": "Fantasies",
+          "items": [
+            { "id": "comm_fantasies", "prompt": "Sharing fantasies", "description": "Saying the thing. Seeing what happens.", "intensityFloor": 3, "modes": ["TOGETHER", "APART"] },
+            { "id": "comm_storytelling", "prompt": "Storytelling", "description": "Building a story together, a line at a time.", "intensityFloor": 2, "modes": ["TOGETHER", "APART"] }
+          ]
+        },
+        {
+          "id": "comm_voice",
+          "title": "Voice",
+          "items": [
+            { "id": "comm_voice", "prompt": "Voice notes", "description": "Their voice, just for you, when you're apart.", "intensityFloor": 2, "modes": ["TOGETHER", "APART"] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "exploration",
+      "title": "Exploring",
+      "subtitle": "New things, shared curiosity, and trust.",
+      "themes": [
+        {
+          "id": "explore_novelty",
+          "title": "Novelty",
+          "items": [
+            { "id": "explore_something_new", "prompt": "Trying something new", "description": "Something neither of you has done before.", "intensityFloor": 2, "modes": ["TOGETHER", "APART"] },
+            { "id": "explore_adventure", "prompt": "Little adventures", "description": "Going somewhere, doing something, together.", "intensityFloor": 1, "modes": ["TOGETHER", "APART"] }
+          ]
+        },
+        {
+          "id": "explore_surprise",
+          "title": "Surprise",
+          "items": [
+            { "id": "explore_being_surprised", "prompt": "Being surprised", "description": "Not knowing what they've planned until it's happening.", "intensityFloor": 1, "modes": ["TOGETHER", "APART"] }
+          ]
+        },
+        {
+          "id": "explore_trust",
+          "title": "Trust",
+          "items": [
+            { "id": "explore_trust", "prompt": "Trust exercises", "description": "Small ways of proving you've got each other.", "intensityFloor": 2, "modes": ["TOGETHER", "APART"] }
+          ]
+        },
+        {
+          "id": "explore_shared_curiosity",
+          "title": "Shared curiosity",
+          "items": [
+            { "id": "explore_shared_curiosity", "prompt": "Exploring a shared curiosity", "description": "Finding out you both wondered about the same thing.", "intensityFloor": 1, "modes": ["TOGETHER", "APART"] }
+          ]
+        }
+      ]
+    }
+  ]
+}

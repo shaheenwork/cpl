@@ -5,8 +5,8 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
-import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
+import com.shnapps.couple.core.firebase.firestoreCall
 import com.shnapps.couple.core.model.AgeAttestation
 import com.shnapps.couple.core.model.AppLockMode
 import com.shnapps.couple.core.model.Intensity
@@ -15,7 +15,6 @@ import com.shnapps.couple.core.model.PairingState
 import com.shnapps.couple.core.model.PairingStatus
 import com.shnapps.couple.core.model.PrivacySettings
 import com.shnapps.couple.core.model.UserProfile
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -109,31 +108,25 @@ class UserProfileDataSource @Inject constructor(
         ).await()
     }
 
+    /**
+     * The user's own content level (BUILD_PROMPT.md Appendix A): how far *they* are willing
+     * to go. The couple's effective level is the lower of the two partners' and is computed
+     * by the server; nothing here can raise a partner's ceiling.
+     */
+    suspend fun updateContentLevel(uid: String, level: Intensity): Outcome<Unit> = call {
+        firestore.collection(USERS).document(uid)
+            .set(mapOf("contentLevel" to level.level), SetOptions.merge()).await()
+    }
+
     suspend fun updateDisplayName(uid: String, displayName: String): Outcome<Unit> = call {
         firestore.collection(USERS).document(uid)
             .set(mapOf("displayName" to displayName), SetOptions.merge()).await()
     }
 
-    // As in AuthDataSource: this is the data-layer boundary where any Firestore failure
-    // becomes a typed AppError. Narrowing it would let unknown failures escape untyped.
-    @Suppress("TooGenericExceptionCaught")
-    private inline fun <T> call(block: () -> T): Outcome<T> = try {
-        Outcome.Success(block())
-    } catch (cancellation: CancellationException) {
-        throw cancellation
-    } catch (error: Exception) {
-        Outcome.Failure(
-            if (error.message?.contains(PERMISSION_DENIED, ignoreCase = true) == true) {
-                AppError.PermissionDenied(error)
-            } else {
-                AppError.Unknown(error)
-            },
-        )
-    }
+    private inline fun <T> call(block: () -> T): Outcome<T> = firestoreCall(block)
 
     private companion object {
         const val USERS = "users"
-        const val PERMISSION_DENIED = "PERMISSION_DENIED"
     }
 }
 
