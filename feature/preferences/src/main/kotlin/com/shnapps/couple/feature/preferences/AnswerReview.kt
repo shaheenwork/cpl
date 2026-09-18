@@ -24,6 +24,8 @@ import androidx.compose.ui.semantics.contentDescription
 import com.shnapps.couple.core.designsystem.component.label
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
+import com.shnapps.couple.core.ui.BackRow
+import com.shnapps.couple.core.ui.ScreenHeading
 
 /**
  * Everything the user has answered, grouped by category, each one open to change.
@@ -46,7 +48,7 @@ internal fun ReviewStep(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(spacing.md)) {
                 BackRow(label = "Back", onBack = onBack)
-                Heading(
+                ScreenHeading(
                     eyebrow = "Only you can see this",
                     headline = "Your answers",
                     body = "Tap any of them to change it, or to take it back.",

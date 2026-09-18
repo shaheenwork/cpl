@@ -2,6 +2,8 @@ package com.shnapps.couple.core.data.di
 
 import com.shnapps.couple.core.data.auth.AuthRepository
 import com.shnapps.couple.core.data.auth.DefaultAuthRepository
+import com.shnapps.couple.core.data.boundaries.BoundaryRepository
+import com.shnapps.couple.core.data.boundaries.DefaultBoundaryRepository
 import com.shnapps.couple.core.data.couple.CoupleRepository
 import com.shnapps.couple.core.data.couple.DefaultCoupleRepository
 import com.shnapps.couple.core.data.preferences.DefaultPreferenceRepository
@@ -33,4 +35,8 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindPreferenceRepository(impl: DefaultPreferenceRepository): PreferenceRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindBoundaryRepository(impl: DefaultBoundaryRepository): BoundaryRepository
 }

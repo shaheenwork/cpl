@@ -436,3 +436,61 @@ icons on this dark-only app (D-009); it is pinned to `SystemBarStyle.dark`.
 **First device run.** Instrumented tests build a fresh Hilt `SingletonComponent` per test, but
 Firebase clients are process-wide, and settings or `useEmulator()` applied after first use
 throw. `FirebaseModule` now configures each client once per process, whichever component asks.
+
+---
+
+## D-030 — What a boundary means: the stricter partner wins, nothing lapses on its own
+**Phase 6.**
+- **Unset means unrestricted.** A theme with no boundary document is neither boosted nor
+  limited; content level and preferences still apply.
+- **Either partner's NEVER or NOT TONIGHT removes the theme for both.** ASK FIRST flags it with
+  whoever must be asked; CURIOUS is a ranking signal only, and never survives an exclusion.
+- **NOT TONIGHT never expires by itself.** An automatic lapse would bring a paused theme back
+  without anyone choosing it — a silent escalation, which §3.1 forbids. It stays until the
+  user changes it; the screen always shows it as paused.
+- **Fail closed.** The server treats a boundary level it cannot read as NEVER, and a malformed
+  content level as the lowest. The app's own parser skips an unknown level, which can only
+  under-report a boundary on screen, never weaken one on the server.
+
+---
+
+## D-031 — Answering "Never" removes that item, even though it is an answer and not a boundary
+**Phase 6.** §3.2's hard exclusion is written in terms of boundaries, which are per theme. But
+someone who answers "Never" to "Blindfolded" in discovery and then meets a blindfold chapter
+would rightly feel betrayed. So the couple's filters also carry `excludedItems`: every
+preference item either partner answered NEVER. Phase 9 removes content tied to those items
+exactly as it removes excluded themes. "Not for me" stays a ranking signal, not an exclusion.
+
+---
+
+## D-032 — `engineFilters` is a server-only cache, rebuilt in a transaction and deleted on unpair
+**Phase 6.** `couples/{cid}/engineFilters/current` holds `maxIntensity`, `excludedThemes`,
+`askFirstThemes` (theme → who to ask), `curiousThemes`, `excludedItems`, `version` and
+`computedAt`. Three triggers rebuild it from scratch — on a member's profile (content level,
+pairing, unpairing), on any boundary write, and on a preference write that adds or removes a
+NEVER — always from the current documents inside one transaction, so duplicate or reordered
+deliveries converge. Triggers retry on failure: a boundary that silently failed to apply is
+the one failure this app cannot afford. The same recompute keeps `contentLevelEffective` in
+step. When a couple unpairs, the filters are deleted rather than left behind.
+
+Because triggers are asynchronous, the stored document can trail a change by moments.
+**Phase 9 must recompute at generation time** and never build a night from the stored copy
+alone.
+
+---
+
+## D-033 — The shared ceiling can reveal a partner's lower content level; accepted
+**Phase 6.** `contentLevelEffective` is the lower of the two levels and both partners can read
+it — the intensity dial has to show the couple's ceiling. So a partner who chose 5 and sees 3
+learns the other chose 3. Content level is not one of the private answers in §5, the
+alternative (hiding the ceiling) would make intensity choices inexplicable, and the copy
+frames it honestly: "Together, you only ever go as far as the more careful of you."
+
+---
+
+## D-034 — Screen scaffolding lives in `:core:ui`
+**Phase 6.** Features cannot depend on each other, so the scrolling column, heading, back row
+and error banner that discovery and boundaries share are `ScreenColumn`, `ScreenHeading`,
+`BackRow` and `ErrorBanner` in `:core:ui`. Pairing still has its own heading; moving it would
+re-lay out five reviewed goldens for no user-visible gain, so it moves when pairing is next
+touched.

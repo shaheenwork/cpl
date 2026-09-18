@@ -79,12 +79,15 @@ Terminal 2:
 npm --prefix firebase/tests test
 ```
 
-**Current: 46 passing**, covering section 7.3 rows A (partner cannot read or list
-preferences), B (partner cannot read boundaries), C (no client-written `coupleId`),
+**Current: 55 passing**, covering section 7.3 rows A (partner cannot read or list
+preferences), B (partner cannot read or list boundaries), C (no client-written `coupleId`),
+H (no client-written couple ceiling), L (not even an active member can read the couple's
+filters),
 I (no client-granted entitlement), K (non-member cannot read a couple), L (engineFilters
 unreadable by any client), M (no third member) and Q (reports not client-writable); the
 shape of a private answer (four fields only, known values, `secret` only with `CURIOUS`,
-server time, taxonomy-shaped ids); the age attestation; forged pairing state;
+server time, taxonomy-shaped ids) and of a private boundary (known level, a short optional
+note, server time); the age attestation; forged pairing state;
 unauthenticated denial; and the default-deny catch-all. Row N (a reused pairing code) is
 proved by the functions integration tests, because codes are server-only.
 
@@ -113,6 +116,12 @@ npm --prefix functions run test:e2e
 - **unit**: pure logic (code format, verification symbols). No emulator.
 - **int**: the real transactions against the Firestore emulator, including the races — two
   people using one code, a double approval, a partner pairing elsewhere mid-request.
+- **unit** also covers the boundary intersection (`filters.unit.test.ts`): either partner's
+  NEVER wins, fail-closed parsing, determinism.
+- **int** also drives the transactional filter recompute (`couple.int.test.ts`).
+- **e2e** also proves the triggers fire (`triggers.e2e.test.ts`): a boundary written with no
+  one calling anything reaches the server-only filters. Rebuild (`npm run build`) before
+  running it; the Functions emulator picks up the new `lib/`.
 - **e2e**: the callables over HTTP exactly as the app calls them — unauthenticated calls
   refused, identity taken from the token and never the payload, errors mapped to codes.
 

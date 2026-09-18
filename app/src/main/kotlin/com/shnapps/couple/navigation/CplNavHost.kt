@@ -31,6 +31,7 @@ import com.shnapps.couple.feature.applock.AppLockScreen
 import com.shnapps.couple.feature.applock.AppLockSetupScreen
 import com.shnapps.couple.feature.auth.AuthScreen
 import com.shnapps.couple.feature.auth.SignOutViewModel
+import com.shnapps.couple.feature.boundaries.BoundariesScreen
 import com.shnapps.couple.feature.onboarding.AgeGateScreen
 import com.shnapps.couple.feature.onboarding.SplashScreen
 import com.shnapps.couple.feature.onboarding.StartDestination
@@ -150,6 +151,10 @@ fun CplNavHost(
             )
         }
 
+        composable<Route.Boundaries> {
+            BoundariesScreen(onBack = { navController.popBackStack() })
+        }
+
         composable<Route.Home> {
             ComingSoon(
                 title = "Tonight could get interesting.",
@@ -212,6 +217,11 @@ private fun ComingSoon(
                 text = "Your private curiosities",
                 onClick = { navController.navigate(Route.PreferenceDiscovery) },
                 leadingEmoji = "👀",
+            )
+            GlowButton(
+                text = "Your limits",
+                onClick = { navController.navigate(Route.Boundaries) },
+                style = GlowButtonStyle.Secondary,
             )
         }
         GlowButton(

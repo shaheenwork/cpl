@@ -21,6 +21,7 @@
  *  - Only the code's creator can approve a request against it.
  */
 import { FieldValue, Timestamp, type Firestore, type Transaction } from 'firebase-admin/firestore';
+import { contentLevelOf } from '../engine/filters';
 import { PairingError } from '../shared/errors';
 import { consumeRateLimit } from '../shared/rateLimit';
 import { CODE_TTL_MS, generateCode, isWellFormed } from './code';
@@ -30,7 +31,6 @@ import { generateVerification } from './verification';
 export const REQUEST_TTL_MS = 10 * 60 * 1000;
 
 const CODE_CANDIDATES = 5;
-const DEFAULT_CONTENT_LEVEL = 2;
 
 export const LIMITS = {
   createCode: { limit: 10, windowMs: 60 * 60 * 1000 },
@@ -249,10 +249,7 @@ export async function respondToPairing(
       createdAt: now,
       // Never escalated past the lower of the two content levels (BUILD_PROMPT.md
       // Appendix A). Recomputed whenever either partner changes theirs.
-      contentLevelEffective: Math.min(
-        creator?.contentLevel ?? DEFAULT_CONTENT_LEVEL,
-        joiner?.contentLevel ?? DEFAULT_CONTENT_LEVEL,
-      ),
+      contentLevelEffective: Math.min(contentLevelOf(creator?.contentLevel), contentLevelOf(joiner?.contentLevel)),
       currentMode: 'TOGETHER',
     });
     tx.set(coupleRef.collection('members').doc(creatorUid), { role: 'CREATOR', joinedAt: now, status: 'ACTIVE' });

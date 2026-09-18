@@ -115,6 +115,7 @@ dependencies {
     implementation(project(":feature:applock"))
     implementation(project(":feature:pairing"))
     implementation(project(":feature:preferences"))
+    implementation(project(":feature:boundaries"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

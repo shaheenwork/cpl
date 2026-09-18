@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.MaterialTheme
@@ -14,8 +15,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.model.BoundaryLevel
 
@@ -30,10 +31,13 @@ import com.shnapps.couple.core.model.BoundaryLevel
  * Each level carries its own plain-language consequence, because "Ask first" and "Not
  * tonight" are not self-explanatory and guessing wrong here is exactly what the boundary
  * engine exists to prevent.
+ *
+ * [selected] is null for a theme with no boundary yet: nothing is pre-chosen, so a boundary
+ * is only ever set by a deliberate tap.
  */
 @Composable
 fun BoundarySlider(
-    selected: BoundaryLevel,
+    selected: BoundaryLevel?,
     onSelect: (BoundaryLevel) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -57,8 +61,11 @@ fun BoundarySlider(
                         onClick = { onSelect(level) },
                     )
                     .heightIn(min = spacing.touchTarget)
-                    .semantics {
-                        contentDescription = "${level.displayName}. ${level.consequence}"
+                    .padding(vertical = spacing.xs)
+                    // One announcement per option: the full sentence, not the sentence and
+                    // then each line of text again.
+                    .clearAndSetSemantics {
+                        contentDescription = "${level.label}. ${level.consequence}"
                     },
                 horizontalArrangement = Arrangement.spacedBy(spacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
@@ -66,7 +73,7 @@ fun BoundarySlider(
                 RadioButton(selected = isSelected, onClick = null)
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = level.displayName,
+                        text = level.label,
                         style = MaterialTheme.typography.titleSmall,
                         color = if (level.isHardExclusion) {
                             MaterialTheme.colorScheme.error
@@ -85,7 +92,8 @@ fun BoundarySlider(
     }
 }
 
-private val BoundaryLevel.displayName: String
+/** How a boundary level is named on screen. */
+val BoundaryLevel.label: String
     get() = when (this) {
         BoundaryLevel.ALWAYS_OK -> "Always OK"
         BoundaryLevel.CURIOUS -> "Curious"

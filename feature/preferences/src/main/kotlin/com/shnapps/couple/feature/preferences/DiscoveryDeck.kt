@@ -8,15 +8,12 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
@@ -32,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.IntOffset
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
@@ -41,6 +37,8 @@ import com.shnapps.couple.core.designsystem.theme.AfterhoursEasing
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.decorativeTween
 import com.shnapps.couple.core.model.PreferenceAnswer
+import com.shnapps.couple.core.ui.BackRow
+import com.shnapps.couple.core.ui.ScreenColumn
 import kotlinx.coroutines.launch
 
 /** Test tag of the card the user can swipe. */
@@ -61,7 +59,7 @@ internal fun AnsweringStep(
     val motion = AfterhoursTheme.motion
     val reduceMotion = AfterhoursTheme.reduceMotion
 
-    StepColumn {
+    ScreenColumn {
         DeckHeader(position = state.position, deckSize = state.deckSize, onBack = onBack, onFinishLater = onFinishLater)
 
         // Forward slides in from the right, back from the left: the deck has a direction, and
@@ -112,7 +110,7 @@ internal fun EditingStep(
     onBack: () -> Unit,
 ) {
     val card = state.card ?: return
-    StepColumn {
+    ScreenColumn {
         BackRow(label = "Back to my answers", onBack = onBack)
         PreferenceSwipeCard(
             prompt = card.item.prompt,
@@ -163,27 +161,6 @@ private fun DeckHeader(position: Int, deckSize: Int, onBack: () -> Unit, onFinis
             trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
             drawStopIndicator = {},
         )
-    }
-}
-
-/** A labelled back control: one target, announced once. */
-@Composable
-internal fun BackRow(label: String, onBack: () -> Unit) {
-    val spacing = AfterhoursTheme.spacing
-    Row(
-        modifier = Modifier
-            .heightIn(min = spacing.touchTarget)
-            .clickable(role = Role.Button, onClick = onBack)
-            .padding(end = spacing.md),
-        horizontalArrangement = Arrangement.spacedBy(spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-            contentDescription = null,
-            tint = AfterhoursTheme.colors.textMuted,
-        )
-        Text(text = label, style = MaterialTheme.typography.labelLarge, color = AfterhoursTheme.colors.textMuted)
     }
 }
 

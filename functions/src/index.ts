@@ -10,7 +10,9 @@
  */
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/https';
+import { coupleOf, recomputeCouple } from './couple/recompute';
 import * as pairing from './pairing/pairing';
 import { toHttpsError } from './shared/errors';
 
@@ -60,4 +62,55 @@ export const unpairCouple = onCall(options, (request) =>
     if (request.data?.confirm !== true) throw new HttpsError('invalid-argument', 'confirm must be true');
     return pairing.unpairCouple(getFirestore(), callerUid(request), Date.now());
   }),
+);
+
+// ---------------------------------------------------------------------------
+// Triggers: keep each couple's server-only filters in step (section 8)
+// ---------------------------------------------------------------------------
+//
+// Every trigger recomputes from the current documents, so a duplicate or out-of-order
+// delivery still converges on the truth. Retried on failure for the same reason, and
+// because a boundary that silently failed to apply is the one failure this app cannot
+// afford.
+const triggerOptions = { retry: true, maxInstances: 10 };
+
+/**
+ * A member's own content level or couple membership changed (onCoupleMemberChange). Covers
+ * pairing, where `coupleId` appears, and unpairing, where it goes and the couple's filters
+ * are deleted with it.
+ */
+export const onUserWritten = onDocumentWritten({ ...triggerOptions, document: 'users/{uid}' }, async (event) => {
+  const before = event.data?.before.data();
+  const after = event.data?.after.data();
+  if (before?.contentLevel === after?.contentLevel && before?.coupleId === after?.coupleId) return;
+
+  const coupleIds = new Set(
+    [before?.coupleId, after?.coupleId].filter((id): id is string => typeof id === 'string' && id.length > 0),
+  );
+  for (const coupleId of coupleIds) await recomputeCouple(getFirestore(), coupleId, Date.now());
+});
+
+/** A partner changed one of their private boundaries (onBoundaryWrite). */
+export const onBoundaryWritten = onDocumentWritten(
+  { ...triggerOptions, document: 'users/{uid}/boundaries/{themeId}' },
+  async (event) => {
+    const coupleId = await coupleOf(getFirestore(), event.params.uid);
+    if (coupleId) await recomputeCouple(getFirestore(), coupleId, Date.now());
+  },
+);
+
+/**
+ * A partner changed a private answer (onPreferenceWrite). Only a NEVER, given or taken
+ * back, changes the filters; Phase 7 adds mutual matching here.
+ */
+export const onPreferenceWritten = onDocumentWritten(
+  { ...triggerOptions, document: 'users/{uid}/preferences/{itemId}' },
+  async (event) => {
+    const wasNever = event.data?.before.get('value') === 'NEVER';
+    const isNever = event.data?.after.get('value') === 'NEVER';
+    if (wasNever === isNever) return;
+
+    const coupleId = await coupleOf(getFirestore(), event.params.uid);
+    if (coupleId) await recomputeCouple(getFirestore(), coupleId, Date.now());
+  },
 );

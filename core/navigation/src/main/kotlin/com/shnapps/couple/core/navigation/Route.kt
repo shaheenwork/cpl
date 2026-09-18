@@ -45,6 +45,10 @@ object Route {
     @Serializable
     data object Home
 
+    /** The user's private boundaries and content level (§3.2, §14.9). */
+    @Serializable
+    data object Boundaries
+
     /**
      * The app lock (§3.4). Not part of the first-run chain — it can appear over anything,
      * including a cold start, because the app always starts locked.

@@ -109,6 +109,10 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   path. `secret` only ever accompanies `CURIOUS` (D-021).
 - Feature screenshot tests use `@Config(sdk = [35])` and wrap content in
   `AfterhoursTheme { AfterhoursSurface { ... } }`; `verifyRoborazziDebug` runs in `check`.
+- Screens build on `ScreenColumn`, `ScreenHeading`, `BackRow` and `ErrorBanner` from
+  `:core:ui` rather than re-declaring them (D-034).
+- Anything that decides what a couple may see is computed on the server from both partners'
+  private documents and stored only where no client can read it (`engineFilters`, D-032).
 - ViewModels depend on interfaces (`AuthRepository`, `AppPreferencesStore`); tests use the
   real fakes in `:core:testing`, never mocked suspend functions.
 

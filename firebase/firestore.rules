@@ -86,6 +86,19 @@ service cloud.firestore {
           && data.taxonomyVersion >= 1;
     }
 
+    // A private boundary (§6.1, Phase 6). Level, an optional note to self, and the server's
+    // time — nothing else. The note is the user's own and is read by no one else, not even
+    // the server's filters. Theme ids follow the taxonomy's id rule.
+    function validBoundary(themeId, data) {
+      return themeId.matches('^[a-z0-9_]{1,64}$')
+          && data.keys().hasAll(['level', 'updatedAt'])
+          && data.keys().hasOnly(['level', 'note', 'updatedAt'])
+          && data.level in ['ALWAYS_OK', 'CURIOUS', 'ASK_FIRST', 'NOT_TONIGHT', 'NEVER']
+          && (!('note' in data) || data.note == null
+                || (data.note is string && data.note.size() <= 200))
+          && data.updatedAt == request.time;
+    }
+
     // ---- users -----------------------------------------------------------
     // A user document is readable and writable only by its owner. `coupleId` and
     // `entitlement` are written exclusively by Cloud Functions (§7.2).
@@ -115,7 +128,10 @@ service cloud.firestore {
       }
 
       match /boundaries/{themeId} {
-        allow read, write: if isSelf(uid);
+        allow read: if isSelf(uid);
+        allow create, update: if isSelf(uid) && validBoundary(themeId, request.resource.data);
+        // Clearing a boundary deletes it: an unset theme has no document.
+        allow delete: if isSelf(uid);
       }
 
       match /affinity/{dimensionId} {

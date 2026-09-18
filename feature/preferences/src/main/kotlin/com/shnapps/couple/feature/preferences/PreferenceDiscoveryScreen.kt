@@ -8,24 +8,14 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.CinematicCard
@@ -33,10 +23,12 @@ import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.component.IntensityDial
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
-import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.designsystem.theme.decorativeTween
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.PreferenceAnswer
+import com.shnapps.couple.core.ui.ErrorBanner
+import com.shnapps.couple.core.ui.ScreenColumn
+import com.shnapps.couple.core.ui.ScreenHeading
 import com.shnapps.couple.core.ui.SecureScreen
 
 /**
@@ -135,8 +127,8 @@ private fun IntroStep(
     onNotNow: () -> Unit,
 ) {
     val spacing = AfterhoursTheme.spacing
-    StepColumn {
-        Heading(
+    ScreenColumn {
+        ScreenHeading(
             eyebrow = "Only you",
             headline = "Your private curiosities",
             body = "One card at a time. Your partner never sees your answers. If you both pick " +
@@ -204,8 +196,8 @@ private fun DoneStep(
     onReview: () -> Unit,
     onContinue: () -> Unit,
 ) {
-    StepColumn {
-        Heading(
+    ScreenColumn {
+        ScreenHeading(
             eyebrow = "Saved, privately",
             headline = if (state.remainingCount == 0) "That's every card for now." else "Saved. Pick up any time.",
             body = buildString {
@@ -232,69 +224,6 @@ private fun DoneStep(
                 style = GlowButtonStyle.Secondary,
                 modifier = Modifier.fillMaxWidth(),
             )
-        }
-    }
-}
-
-/** A scrolling column with the screen's gutters. */
-@Composable
-internal fun StepColumn(content: @Composable ColumnScope.() -> Unit) {
-    val spacing = AfterhoursTheme.spacing
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = spacing.gutter, vertical = spacing.xl),
-        verticalArrangement = Arrangement.spacedBy(spacing.md),
-        content = content,
-    )
-}
-
-@Composable
-internal fun Heading(eyebrow: String, headline: String, body: String? = null) {
-    Column(verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm)) {
-        Text(text = eyebrow.uppercase(), style = EyebrowTextStyle, color = AfterhoursTheme.colors.brass)
-        Text(
-            text = headline,
-            style = MaterialTheme.typography.displaySmall,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        if (body != null) {
-            Text(text = body, style = MaterialTheme.typography.bodyLarge, color = AfterhoursTheme.colors.textMuted)
-        }
-    }
-}
-
-@Composable
-private fun ErrorBanner(message: String, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
-    val spacing = AfterhoursTheme.spacing
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(spacing.md)
-            .semantics { liveRegion = LiveRegionMode.Polite },
-        color = MaterialTheme.colorScheme.errorContainer,
-        shape = MaterialTheme.shapes.medium,
-    ) {
-        Row(
-            modifier = Modifier.padding(start = spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onErrorContainer,
-                modifier = Modifier.weight(1f),
-            )
-            // Not a GlowButton: its quiet style is burgundy, which is too faint on the error
-            // container to pass contrast (section 20).
-            TextButton(onClick = onDismiss) {
-                Text(
-                    text = "OK",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                )
-            }
         }
     }
 }

@@ -3,7 +3,7 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 5 complete. Next action: **Phase 6 — Boundaries, content level and engine filters.**
+**Current position:** Phase 6 complete. Next action: **Phase 7 — Mutual discovery, batched reveals, Secretly Curious.**
 
 ---
 
@@ -17,8 +17,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 | 3 | Auth + age gate + app lock | ✅ **Complete** |
 | 4 | Couple pairing | ✅ **Complete** |
 | 5 | Taxonomy + preference discovery | ✅ **Complete** |
-| 6 | Boundaries + engine filters | ⬜ Next |
-| 7 | Mutual discovery + batched reveals | ⬜ |
+| 6 | Boundaries + engine filters | ✅ **Complete** |
+| 7 | Mutual discovery + batched reveals | ⬜ Next |
 | 8 | Content system + ≥600 seed items | ⬜ |
 | 9 | Experience engine | ⬜ |
 | 10 | Build Our Night + player | ⬜ |
@@ -486,3 +486,57 @@ found five bugs that no JVM test could, all fixed.
 - **TalkBack by ear.** TalkBack is installed on the AVD (Settings > Accessibility); the
   accessibility tree was checked, the speech was not.
 - **How the swipe feels** under a real finger.
+
+
+---
+
+## Phase 6 — Boundaries, content level and engine filters ✅
+
+### Shipped
+- **Boundaries** at `users/{uid}/boundaries/{themeId}`: `level`, optional `note` to self (200
+  characters), server-time `updatedAt`. One per taxonomy theme; unset means unrestricted
+  (D-030). Rules validate the shape; owner-only read, write and delete.
+- **`:feature:boundaries`** — the user's own content level, then every theme by category with
+  its current limit; an editor with the five levels spelled out, a private note, and clear.
+  A level saves on tap; a note on Save, on the keyboard's Done, or on leaving. `SecureScreen`.
+- **Server filters** (D-032): a pure intersection in `functions/src/engine/filters.ts`, a
+  transactional recompute, and three triggers (profile, boundary, preference NEVER). Filters
+  hold `maxIntensity`, `excludedThemes`, `askFirstThemes`, `curiousThemes`, `excludedItems`
+  (D-031). `contentLevelEffective` now follows either partner's level. Deleted on unpair.
+- Pairing reads content levels through the same fail-closed function as the filters.
+- Shared screen scaffolding moved into `:core:ui` (D-034); `BoundarySlider` accepts "nothing
+  chosen yet" and announces each option once.
+
+### Verified
+```
+./gradlew check assembleDevDebug            BUILD SUCCESSFUL
+npm --prefix firebase/tests test            55/55   (7.3 rows A, B, H, L; boundary shape)
+npm --prefix functions run test:unit        20/20   (14 on the intersection)
+npm --prefix functions run test:int         34/34   (7 on the recompute)
+npm --prefix functions run test:e2e         10/10   (5 proving the triggers fire)
+BoundariesViewModelTest 13, BoundariesSnapshotTest 4 (3 goldens reviewed + a screen-reader check)
+```
+- **Mutation-tested rules:** dropping the level list, the field allowlist, the server-time
+  check or owner-only read each failed exactly its test. Letting an *active member* read
+  `engineFilters` was caught only by the new member-level L test — the old one read a couple
+  that did not exist, so it would have passed.
+- **Mutation-tested accessibility:** reverting the slider to plain `semantics` fails the
+  "announced once" test.
+- **On the device:** a limit set in the app reached Firestore through the rules, and the
+  trigger updated the server-only filters within about half a second. The boundaries screen
+  captures as black (`FLAG_SECURE`); the note saved through the rules.
+
+### Observed, not reproduced
+One integration run (of 12) failed on its first test right after the Functions emulator
+hot-reloaded new code — a cold-start trigger contending for the same couple. 11 runs since,
+all green. Production triggers retry; Phase 9 recomputes at generation time (D-032).
+
+### Deferred
+- **Phase 7:** mutual matching joins `onPreferenceWritten`; secret answers match only secret
+  answers (D-021); withdrawing a positive must withdraw an unrevealed match.
+- **Phase 9:** recompute filters at generation time; apply `excludedItems` to content tied to
+  those items; ASK FIRST prompts go to the listed partner only.
+- **Phase 10:** the per-item "Not this one" → NOT TONIGHT / NEVER shortcut (§3.1) writes through
+  `BoundaryRepository`.
+- **Cost (Phase 22):** a boundary change costs one recompute — up to about 60 reads and 2
+  writes for a couple with every theme set.

@@ -45,6 +45,9 @@ after(async () => {
   await testEnv?.cleanup();
 });
 
+/** A well-formed private boundary, stamped the way the app stamps it. */
+const limit = (level) => ({ level, updatedAt: serverTimestamp() });
+
 /** A well-formed private answer, stamped the way the app stamps it. */
 const answer = (value, secret = false) => ({
   value,
@@ -201,6 +204,25 @@ describe('couples/{coupleId}', () => {
     await assertFails(setDoc(doc(alice(), 'couples', 'c1', 'members', 'uid_mallory'), { status: 'ACTIVE' }));
   });
 
+  it("denies even a member reading their own couple's engineFilters (7.3 test L)", async () => {
+    await seed();
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'couples', 'c1', 'engineFilters', 'current'), {
+        excludedThemes: ['sensory_blindfold'], maxIntensity: 2,
+      });
+    });
+    // Membership is exactly what would let a partner diff the combined set against their
+    // own boundaries, so it must not help.
+    await assertFails(getDoc(doc(alice(), 'couples', 'c1', 'engineFilters', 'current')));
+    await assertFails(getDocs(collection(bob(), 'couples', 'c1', 'engineFilters')));
+    await assertFails(setDoc(doc(alice(), 'couples', 'c1', 'engineFilters', 'current'), { excludedThemes: [] }));
+  });
+
+  it('denies a member setting the couple ceiling (7.3 test H)', async () => {
+    await seed();
+    await assertFails(updateDoc(doc(alice(), 'couples', 'c1'), { contentLevelEffective: 5 }));
+  });
+
   it('denies a member rewriting the member list', async () => {
     await seed();
     await assertFails(updateDoc(doc(alice(), 'couples', 'c1'), { memberUids: [ALICE, 'uid_mallory'] }));
@@ -251,14 +273,17 @@ describe('private, owner-only for life', () => {
   });
 
   it('denies a partner reading private boundaries (7.3 test B)', async () => {
-    await setDoc(doc(alice(), 'users', ALICE, 'boundaries', 'power_play'), { level: 'NEVER' });
+    await assertSucceeds(setDoc(doc(alice(), 'users', ALICE, 'boundaries', 'power_play'), limit('NEVER')));
     await assertFails(getDoc(doc(bob(), 'users', ALICE, 'boundaries', 'power_play')));
   });
 
-  it('denies a partner overwriting private boundaries', async () => {
-    await assertFails(
-      setDoc(doc(bob(), 'users', ALICE, 'boundaries', 'power_play'), { level: 'ALWAYS_OK' }),
-    );
+  it('denies a partner listing private boundaries (7.3 test B)', async () => {
+    await assertFails(getDocs(collection(bob(), 'users', ALICE, 'boundaries')));
+  });
+
+  it('denies a partner overwriting or clearing private boundaries', async () => {
+    await assertFails(setDoc(doc(bob(), 'users', ALICE, 'boundaries', 'power_play'), limit('ALWAYS_OK')));
+    await assertFails(deleteDoc(doc(bob(), 'users', ALICE, 'boundaries', 'power_play')));
   });
 
   it('denies a client writing its own affinity scores', async () => {
@@ -319,6 +344,46 @@ describe('users/{uid}/preferences shape', () => {
     await assertSucceeds(setDoc(pref(), answer('MAYBE')));
     await assertSucceeds(setDoc(pref(), answer('CURIOUS', true)));
     await assertSucceeds(deleteDoc(pref()));
+  });
+});
+
+// Section 6.1. The shape of a private boundary: a known level, an optional short note to
+// self, the server's time, and nothing else.
+describe('users/{uid}/boundaries shape', () => {
+  const theme = (id = 'sensory_blindfold') => doc(alice(), 'users', ALICE, 'boundaries', id);
+
+  it('accepts every level, with or without a note', async () => {
+    for (const level of ['ALWAYS_OK', 'CURIOUS', 'ASK_FIRST', 'NOT_TONIGHT', 'NEVER']) {
+      await assertSucceeds(setDoc(theme(), limit(level)));
+    }
+    await assertSucceeds(setDoc(theme(), { ...limit('ASK_FIRST'), note: 'Only after we have talked.' }));
+    await assertSucceeds(setDoc(theme(), { ...limit('ASK_FIRST'), note: null }));
+  });
+
+  it('rejects an unknown level', async () => {
+    await assertFails(setDoc(theme(), limit('SOMETIMES')));
+    await assertFails(setDoc(theme(), { ...limit('NEVER'), level: 5 }));
+  });
+
+  it('rejects extra fields, a missing level, and a long or non-text note', async () => {
+    await assertFails(setDoc(theme(), { ...limit('NEVER'), partnerUid: BOB }));
+    await assertFails(setDoc(theme(), { updatedAt: serverTimestamp() }));
+    await assertFails(setDoc(theme(), { ...limit('NEVER'), note: 'x'.repeat(201) }));
+    await assertFails(setDoc(theme(), { ...limit('NEVER'), note: 42 }));
+  });
+
+  it('rejects a client-chosen time', async () => {
+    await assertFails(setDoc(theme(), { level: 'NEVER', updatedAt: Timestamp.fromMillis(Date.now()) }));
+  });
+
+  it('rejects a theme id the taxonomy could never produce', async () => {
+    await assertFails(setDoc(theme('Sensory Blindfold'), limit('NEVER')));
+  });
+
+  it('lets the owner change a boundary and clear it', async () => {
+    await assertSucceeds(setDoc(theme(), limit('NOT_TONIGHT')));
+    await assertSucceeds(setDoc(theme(), limit('CURIOUS')));
+    await assertSucceeds(deleteDoc(theme()));
   });
 });
 

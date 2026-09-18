@@ -21,8 +21,13 @@ data class Taxonomy(
 
     private val itemsById: Map<String, PreferenceItem> = items.associateBy { it.id }
     private val categoriesById: Map<String, TaxonomyCategory> = categories.associateBy { it.id }
+    private val themesById: Map<String, TaxonomyTheme> =
+        categories.flatMap { it.themes }.associateBy { it.id }
 
     fun item(id: String): PreferenceItem? = itemsById[id]
+
+    /** A theme is also a boundary: see the class documentation. */
+    fun theme(id: String): TaxonomyTheme? = themesById[id]
 
     fun category(id: String): TaxonomyCategory? = categoriesById[id]
 }
