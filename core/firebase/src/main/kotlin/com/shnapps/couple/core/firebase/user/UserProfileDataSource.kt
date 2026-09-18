@@ -1,0 +1,163 @@
+package com.shnapps.couple.core.firebase.user
+
+import com.google.firebase.Timestamp
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
+import com.shnapps.couple.core.common.AppError
+import com.shnapps.couple.core.common.Outcome
+import com.shnapps.couple.core.model.AgeAttestation
+import com.shnapps.couple.core.model.AppLockMode
+import com.shnapps.couple.core.model.Intensity
+import com.shnapps.couple.core.model.PrivacySettings
+import com.shnapps.couple.core.model.UserProfile
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * The `users/{uid}` document (BUILD_PROMPT.md §6.1).
+ *
+ * Owner-only by rule rather than by convention: no partner can read this path, and the
+ * rules reject any client write to `coupleId`, `entitlement` or `contentLevelEffective`
+ * (§7.2).
+ *
+ * The private subcollections — `preferences`, `boundaries`, `affinity` — are deliberately
+ * NOT handled here. They arrive in Phases 5 and 6 with their own data sources, so the type
+ * carrying a user's most sensitive answers is never casually reachable from the type that
+ * carries their display name.
+ */
+@Singleton
+class UserProfileDataSource @Inject constructor(
+    private val firestore: FirebaseFirestore,
+) {
+    fun observeProfile(uid: String): Flow<UserProfile?> = callbackFlow {
+        val registration = firestore.collection(USERS).document(uid)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                trySend(snapshot?.takeIf { it.exists() }?.toUserProfile(uid))
+            }
+        awaitClose { registration.remove() }
+    }
+
+    suspend fun getProfile(uid: String): Outcome<UserProfile?> = call {
+        firestore.collection(USERS).document(uid).get().await()
+            .takeIf { it.exists() }
+            ?.toUserProfile(uid)
+    }
+
+    /**
+     * Creates the profile if it is missing, and leaves an existing one untouched.
+     *
+     * Merge rather than overwrite: signing in on a second device must not wipe the profile
+     * written from the first.
+     */
+    suspend fun ensureProfile(uid: String, timezone: String, nowMillis: Long): Outcome<Unit> = call {
+        val document = firestore.collection(USERS).document(uid)
+        if (document.get().await().exists()) return@call
+        document.set(
+            mapOf(
+                "createdAt" to nowMillis,
+                "lastActiveAt" to nowMillis,
+                "timezone" to timezone,
+                "contentLevel" to Intensity.FLIRTY.level,
+            ),
+            SetOptions.merge(),
+        ).await()
+    }
+
+    /**
+     * Records the 18+ self-attestation (§3.1).
+     *
+     * The time is the **server's**, via `serverTimestamp()`. The attestation is an audit
+     * record, and a device clock is neither trustworthy nor reliably correct; the security
+     * rules reject any client-chosen time for this field.
+     */
+    suspend fun confirmAge(uid: String): Outcome<Unit> = call {
+        firestore.collection(USERS).document(uid).set(
+            mapOf(
+                "ageAttestation" to mapOf(
+                    "confirmed" to true,
+                    "at" to FieldValue.serverTimestamp(),
+                ),
+            ),
+            SetOptions.merge(),
+        ).await()
+    }
+
+    suspend fun updatePrivacySettings(uid: String, settings: PrivacySettings): Outcome<Unit> = call {
+        firestore.collection(USERS).document(uid).set(
+            mapOf(
+                "privacySettings" to mapOf(
+                    "appLock" to settings.appLock.name,
+                    "hideNotificationPreviews" to settings.hideNotificationPreviews,
+                    "analyticsOptOut" to settings.analyticsOptOut,
+                ),
+            ),
+            SetOptions.merge(),
+        ).await()
+    }
+
+    suspend fun updateDisplayName(uid: String, displayName: String): Outcome<Unit> = call {
+        firestore.collection(USERS).document(uid)
+            .set(mapOf("displayName" to displayName), SetOptions.merge()).await()
+    }
+
+    // As in AuthDataSource: this is the data-layer boundary where any Firestore failure
+    // becomes a typed AppError. Narrowing it would let unknown failures escape untyped.
+    @Suppress("TooGenericExceptionCaught")
+    private inline fun <T> call(block: () -> T): Outcome<T> = try {
+        Outcome.Success(block())
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (error: Exception) {
+        Outcome.Failure(
+            if (error.message?.contains(PERMISSION_DENIED, ignoreCase = true) == true) {
+                AppError.PermissionDenied(error)
+            } else {
+                AppError.Unknown(error)
+            },
+        )
+    }
+
+    private companion object {
+        const val USERS = "users"
+        const val PERMISSION_DENIED = "PERMISSION_DENIED"
+    }
+}
+
+private fun DocumentSnapshot.toUserProfile(uid: String): UserProfile {
+    val attestation = get("ageAttestation") as? Map<*, *>
+    val privacy = get("privacySettings") as? Map<*, *>
+
+    return UserProfile(
+        uid = uid,
+        displayName = getString("displayName"),
+        timezone = getString("timezone"),
+        ageAttestation = attestation?.let {
+            AgeAttestation(
+                confirmed = it["confirmed"] as? Boolean ?: false,
+                confirmedAtEpochMillis = (it["at"] as? Timestamp)?.toDate()?.time ?: 0L,
+            )
+        },
+        contentLevel = getLong("contentLevel")?.toInt()
+            ?.let { level -> runCatching { Intensity.ofLevel(level) }.getOrNull() }
+            ?: Intensity.FLIRTY,
+        coupleId = getString("coupleId"),
+        privacySettings = PrivacySettings(
+            appLock = (privacy?.get("appLock") as? String)
+                ?.let { mode -> runCatching { AppLockMode.valueOf(mode) }.getOrNull() }
+                ?: AppLockMode.OFF,
+            hideNotificationPreviews = privacy?.get("hideNotificationPreviews") as? Boolean ?: true,
+            analyticsOptOut = privacy?.get("analyticsOptOut") as? Boolean ?: false,
+        ),
+    )
+}

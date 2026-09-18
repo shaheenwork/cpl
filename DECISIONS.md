@@ -173,3 +173,79 @@ the difference between Phase 2 being provable now and being blocked indefinitely
 `verifyRoborazziDebug` is wired into `check`, because Roborazzi captures nothing unless a
 record/verify flag is set — without that wiring a visual regression would pass a green
 build. The gate was confirmed by breaking a colour token and watching it fail.
+
+---
+
+## D-012 — Account enumeration: hidden on sign-in and reset, residual on sign-up
+**Phase 3.** For this product, learning that an email has an account here is itself
+sensitive — *"is my partner using a secret intimacy app?"* — so the auth flow must not
+confirm it.
+
+- **Sign-in:** "no such account" and "wrong password" both become the same
+  `AppError.Unauthenticated` and the same copy. Tested.
+- **Password reset:** always reports "if there's an account, a link is on its way",
+  whatever Firebase returns. Tested, including that both paths produce identical state.
+
+**Residual risk, stated plainly:** sign-up cannot fully hide it. Firebase's client SDK
+rejects a duplicate email synchronously, and the only branch that reaches the collision
+message is "that email exists". The copy is softened (*"We couldn't create that account.
+If you've been here before, try signing in"*) but it still leaks on inspection.
+
+The real fix is **email-link (passwordless) sign-in**, which answers identically for
+known and unknown addresses — and removes passwords from the threat model entirely. It
+needs a Hosting domain configured for App Links, which is a human step, and it departs
+from the spec's "email/password initially" (§7). Recommended before public launch; not
+built now. HUMAN_SETUP.md §2.6 also asks for Firebase's email-enumeration protection.
+
+---
+
+## D-013 — Fakes over mocked suspend functions, and a hard test-task timeout
+**Phase 3.** One `AppLockManagerTest` case took **3,592 seconds** and then passed. The
+cause was a `coEvery { ... }` stub inside `runTest`: mockk records suspend stubs through
+an internal `runBlocking`, which blocks the thread `runTest` needs, so `runTest`'s own
+timeout can never fire. Removing the (unnecessary) stub took the suite to 2.9 s.
+
+**Decisions:**
+1. Anything a ViewModel depends on is an **interface with a real fake** in `:core:testing`
+   (`AuthRepository` → `FakeAuthRepository`, `AppPreferencesStore` →
+   `FakeAppPreferencesStore`). Fakes keep what is written, so behaviour that depends on
+   saved state is genuinely exercised — a relaxed mock silently drops writes, which made
+   "biometrics require a PIN" untestable.
+2. Every test task has a **10-minute ceiling** in the convention plugins. A hang now fails
+   the build instead of silently consuming it.
+
+---
+
+## D-014 — The window theme is dark, and screens share the app's root surface
+**Phase 3.** Screenshot tests of the new screens came out cream-on-white. Two causes, one
+of them a real product bug:
+
+- The tests drew screens bare; `MainActivity` wraps them in a `Surface`. Fixed by
+  extracting `AfterhoursSurface`, used by **both**, so tests render exactly what ships.
+- The XML window theme was the template's `Theme.Material.Light`. **The app would have
+  flashed white on every cold start** before Compose drew — and on Android 12+ the system
+  splash would have been white too. Jarring in a dark room, and conspicuous on a shared
+  phone. Now `Theme.Material.NoActionBar` with `windowBackground` and
+  `windowSplashScreenBackground` set to Ink.
+
+`windowLightNavigationBar` is API 27 against minSdk 26 (caught by lint), so it lives only
+in the `values-v31` overlay; its default of `false` is already right below that.
+
+---
+
+## D-015 — `:architecture:test` declares every source it scans
+**Phase 3.** Proving the feature→feature rule by planting a violation showed the rule
+**never ran**: `:architecture:test` was UP-TO-DATE, because Konsist reads every Kotlin
+file in the repository at runtime and Gradle could not see that. Forced with `--rerun`,
+the same rule failed correctly.
+
+So since Phase 0, every architecture rule ran **only on builds that happened to change
+the `:architecture` module itself**. Any violation made anywhere else passed `check`.
+
+**Decision:** `:architecture:test` declares `**/src/**/*.kt` as a task input. Verified in
+both directions on a normal build — a planted violation re-runs and fails, and the clean
+tree comes back from cache.
+
+**General lesson, now in TESTING.md:** a test that inspects files Gradle does not know
+about must declare them, or it silently stops running. Prove a gate by watching it fail
+on an ordinary build, not only with `--rerun`.

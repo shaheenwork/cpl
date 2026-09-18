@@ -149,6 +149,14 @@ SHA-256 to each Firebase app registration.
 ./gradlew signingReport
 ```
 
+### ⬜ 2.6 Email-enumeration protection
+
+In each project: **Authentication → Settings → User actions → Email enumeration
+protection** → enable. The app already gives identical answers on sign-in and password
+reset; this closes the matching gaps on Firebase's side. Sign-up still reveals an existing
+address — see DECISIONS.md D-012 for why, and for the email-link fix recommended before
+launch.
+
 ---
 
 ## 3. Google Play — needed from Phase 19

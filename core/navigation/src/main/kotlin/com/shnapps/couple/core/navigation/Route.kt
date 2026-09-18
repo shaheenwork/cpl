@@ -26,6 +26,9 @@ object Route {
     data object Auth
 
     @Serializable
+    data object ForgotPassword
+
+    @Serializable
     data object Welcome
 
     @Serializable
@@ -41,6 +44,17 @@ object Route {
 
     @Serializable
     data object Home
+
+    /**
+     * The app lock (§3.4). Not part of the first-run chain — it can appear over anything,
+     * including a cold start, because the app always starts locked.
+     */
+    @Serializable
+    data object AppLock
+
+    /** Turning the app lock on. Reached from Settings once Phase 20 builds it. */
+    @Serializable
+    data object AppLockSetup
 
     // --- Development ---
 

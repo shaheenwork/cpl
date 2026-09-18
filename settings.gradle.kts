@@ -53,3 +53,6 @@ include(":architecture")
 
 // --- feature ------------------------------------------------------------
 // Feature modules are added by the phase that introduces them; see DECISIONS.md D-006.
+include(":feature:onboarding")
+include(":feature:auth")
+include(":feature:applock")

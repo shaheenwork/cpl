@@ -24,6 +24,7 @@ dependencies {
     add("implementation", catalog.findLibrary("androidx-compose-ui-graphics").get())
     add("implementation", catalog.findLibrary("androidx-compose-ui-tooling-preview").get())
     add("implementation", catalog.findLibrary("androidx-compose-material3").get())
+    add("implementation", catalog.findLibrary("androidx-compose-material-icons-extended").get())
     add("implementation", catalog.findLibrary("androidx-lifecycle-runtime-compose").get())
 
     add("debugImplementation", catalog.findLibrary("androidx-compose-ui-tooling").get())

@@ -98,6 +98,10 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
 - New component → add it to `gallery/ComponentGallery.kt` and to `GallerySnapshotTest`,
   then `recordRoborazziDebug`.
 - Any screen showing private content calls `SecureScreen()` from `:core:ui`.
+- Feature screenshot tests use `@Config(sdk = [35])` and wrap content in
+  `AfterhoursTheme { AfterhoursSurface { ... } }`; `verifyRoborazziDebug` runs in `check`.
+- ViewModels depend on interfaces (`AuthRepository`, `AppPreferencesStore`); tests use the
+  real fakes in `:core:testing`, never mocked suspend functions.
 
 ---
 
@@ -143,6 +147,17 @@ must resolve from build-logic's own classpath.
 `Color.Transparent` is RGBA(0,0,0,0), so a gradient towards it drags the hue to black as
 well as the alpha — on this dark theme that shows up as a dirty halo. Use
 `color.copy(alpha = 0f)` for the far stop. `Modifier.drawBehind` also does not clip.
+
+**Don't mock suspend functions with mockk inside `runTest`.** `coEvery` records through
+an internal `runBlocking` that blocks `runTest`'s thread, so its timeout never fires — one
+test here hung for an hour. Use the fakes in `:core:testing` (DECISIONS.md D-013).
+
+**Tests that read files Gradle can't see must declare them as inputs,** or the task goes
+UP-TO-DATE and silently stops running. That is exactly what happened to `:architecture`
+for three phases (D-015). Prove a gate by watching it fail on a *normal* build.
+
+**Screens render inside `AfterhoursSurface`** — in the app and in every screenshot test.
+Drawing a screen bare shows the default window colour through it.
 
 **Kotlin/KSP versions are paired.** Kotlin 2.2.10 ↔ KSP `2.2.10-2.0.2`. KSP changed to
 standalone versioning at 2.3.0; do not mix the schemes.

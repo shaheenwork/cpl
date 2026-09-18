@@ -27,6 +27,12 @@ sealed interface AppError {
     data class PermissionDenied(override val cause: Throwable? = null) : AppError
     data class NotFound(override val cause: Throwable? = null) : AppError
     data class Conflict(override val cause: Throwable? = null) : AppError
+
+    /**
+     * Input the user can fix. [code] is a stable identifier the UI maps to copy, so error
+     * strings live with the screen rather than in the data layer.
+     */
+    data class Validation(val code: String, override val cause: Throwable? = null) : AppError
     data class RateLimited(override val cause: Throwable? = null) : AppError
     data class Unknown(override val cause: Throwable? = null) : AppError
 }

@@ -33,15 +33,54 @@ service cloud.firestore {
       ]);
     }
 
+    // Shape of the client-writable profile fields (§6.1). Every field is optional, but
+    // whatever is present must be well-formed — a malformed attestation in particular must
+    // never be accepted as a record that someone confirmed their age (§3.1).
+    //
+    // Shape only. Time is checked separately in attestationStampedNow(), and only on the
+    // write that changes the attestation: re-checking a stored timestamp here would make
+    // every later profile edit fail once the original write was old enough.
+    function validProfile(data) {
+      return (!('ageAttestation' in data) || (
+                data.ageAttestation is map
+                && data.ageAttestation.keys().hasOnly(['confirmed', 'at'])
+                && data.ageAttestation.confirmed is bool
+                && data.ageAttestation.at is timestamp))
+          && (!('displayName' in data) || (
+                data.displayName is string && data.displayName.size() <= 60))
+          && (!('timezone' in data) || (
+                data.timezone is string && data.timezone.size() <= 64))
+          && (!('contentLevel' in data) || (
+                data.contentLevel is int && data.contentLevel >= 1 && data.contentLevel <= 5))
+          && (!('privacySettings' in data) || (
+                data.privacySettings is map
+                && data.privacySettings.keys().hasOnly(
+                     ['appLock', 'hideNotificationPreviews', 'analyticsOptOut'])));
+    }
+
+    // The attestation is an audit record, so its time is the server's, not the device's
+    // (§3.1, §7.1). The client writes serverTimestamp(); a client-chosen time — back-dated,
+    // future-dated or just skewed — is rejected. Only enforced on the write that sets or
+    // changes the attestation.
+    function attestationStampedNow(changedKeys) {
+      return !changedKeys.hasAny(['ageAttestation'])
+          || request.resource.data.ageAttestation.at == request.time;
+    }
+
     // ---- users -----------------------------------------------------------
     // A user document is readable and writable only by its owner. `coupleId` and
     // `entitlement` are written exclusively by Cloud Functions (§7.2).
 
     match /users/{uid} {
       allow get, list: if isSelf(uid);
-      allow create: if isSelf(uid) && noServerFields(request.resource.data.keys());
+      allow create: if isSelf(uid)
+                    && noServerFields(request.resource.data.keys())
+                    && validProfile(request.resource.data)
+                    && attestationStampedNow(request.resource.data.keys());
       allow update: if isSelf(uid)
-                    && noServerFields(request.resource.data.diff(resource.data).affectedKeys());
+                    && noServerFields(request.resource.data.diff(resource.data).affectedKeys())
+                    && validProfile(request.resource.data)
+                    && attestationStampedNow(request.resource.data.diff(resource.data).affectedKeys());
       allow delete: if false; // Account deletion goes through a Cloud Function (§72).
 
       // ---- private, owner-only for life (§5.1) ---------------------------

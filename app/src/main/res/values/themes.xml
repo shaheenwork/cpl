@@ -1,5 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--
+      The window theme, which is what shows BEFORE Compose draws its first frame.
 
-    <style name="Theme.Cpl" parent="android:Theme.Material.Light.NoActionBar" />
+      Dark, with the window painted in the design system's Ink. The Android Studio template
+      used Theme.Material.Light, which flashed white on every cold start: jarring in a dark
+      room, and conspicuous on a phone that may be shared (BUILD_PROMPT.md §15.1, D-014).
+    -->
+    <style name="Theme.Cpl" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/ink</item>
+        <item name="android:colorBackground">@color/ink</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <!--
+          windowLightNavigationBar is API 27+, one above minSdk, so it is set only in the
+          values-v31 overlay. Its default is already false (light icons), which is what a
+          dark window wants on API 26-30 too.
+        -->
+    </style>
 </resources>

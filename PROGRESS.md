@@ -3,7 +3,7 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 2 complete. Next action: **Phase 3 — Auth, age gate and app lock.**
+**Current position:** Phase 3 complete. Next action: **Phase 4 — Couple pairing.**
 
 ---
 
@@ -14,8 +14,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 | 0 | Repo & tooling | ✅ **Complete** |
 | 1 | Firebase wiring + emulators | ✅ **Complete** |
 | 2 | Design system | ✅ **Complete** |
-| 3 | Auth + age gate + app lock | ⬜ Next |
-| 4 | Couple pairing | ⬜ |
+| 3 | Auth + age gate + app lock | ✅ **Complete** |
+| 4 | Couple pairing | ⬜ Next |
 | 5 | Taxonomy + preference discovery | ⬜ |
 | 6 | Boundaries + engine filters | ⬜ |
 | 7 | Mutual discovery + batched reveals | ⬜ |
@@ -250,3 +250,73 @@ unless a record/verify flag is set and would otherwise pass silently.
   a Phase 22 size optimisation.
 - **Dynamic-type screenshots at 200%** — the tokens are all `sp` and scale, but a
   large-font golden set is worth adding when real screens exist to test.
+
+
+---
+
+## Phase 3 — Auth, age gate and app lock ✅
+
+### Shipped
+- **Three feature modules**: `:feature:onboarding` (splash routing, age gate, welcome),
+  `:feature:auth` (sign in/up, reset, sign out), `:feature:applock` (lock + lock setup).
+- **Auth**: email/password via `AuthDataSource` → `AuthRepository`. Profiles at
+  `users/{uid}` created on first sign-in, merged rather than overwritten.
+- **18+ gate** (§3.1): explicit attestation, stored with the **server's** timestamp.
+  Splash routing trusts the server record only; the local hint can never open the gate.
+- **App lock** (§3.4, §57): PIN (salted PBKDF2, 120k iterations, constant-time compare)
+  with biometrics layered on top. The app **starts locked**; re-lock is time-based so a
+  glance at a notification doesn't demand a fingerprint. Biometrics require a PIN to fall
+  back on; a lockout routes to the PIN rather than offering a retry that can't work.
+- **Lock setup** flow: PIN entered twice, a mismatch restarts from the first entry, and
+  setting the lock never locks the user out of the screen they set it from.
+- **`SecureScreen()`** on every new screen (FLAG_SECURE).
+- `Clock` injected everywhere time matters; `AuthRepository` and `AppPreferencesStore` are
+  interfaces with real fakes in `:core:testing`.
+
+### Verified
+```
+./gradlew check assembleDevDebug        BUILD SUCCESSFUL
+JVM unit tests                          all passing (see counts below)
+npm --prefix firebase/tests test        26/26
+Feature screenshot goldens              10, all reviewed by eye
+```
+
+| Suite | Tests |
+|---|---|
+| AppLockManagerTest | 16 |
+| PinHasherTest | 10 |
+| AppLockViewModelTest | 9 |
+| AppLockSetupViewModelTest | 8 |
+| AuthViewModelTest | 10 |
+| SplashViewModelTest | 8 |
+| AgeGateViewModelTest | 6 |
+
+**Mutation-tested**: trusting the local age hint, and advancing the gate on a failed
+write, were each planted and each caught.
+
+### Found and fixed — the important ones
+- **The architecture rules have never run on an ordinary build** (D-015). Konsist reads
+  the whole repo at runtime; Gradle couldn't see that and marked the task UP-TO-DATE.
+  Fixed by declaring the sources as inputs, and verified on a normal build.
+- **The app would have flashed white on every cold start** (D-014). Template light window
+  theme. Now Ink, including the Android 12+ system splash.
+- **A test hung for an hour and then passed** (D-013). mockk `coEvery` inside `runTest`.
+  Replaced suspend mocks with real fakes; added a 10-minute ceiling on every test task.
+- **Sign-up copy confirmed that an email had an account** (D-012). Softened; residual
+  risk documented, with email-link sign-in recommended before launch.
+- **An attestation-timestamp rule would have blocked every profile edit after 24 hours.**
+  Caught while writing it; the rule now checks only the write that changes the
+  attestation, and a regression test guards it.
+- Welcome page dots failed WCAG 1.4.11 non-text contrast; now `outline` (4.07:1).
+
+### NOT verified — still blocked on the hypervisor (HUMAN_SETUP.md §1.3)
+Nothing has run on a device. In particular, **these need a real device**: the biometric
+prompt itself, `FLAG_SECURE` actually blocking screenshots, the lock re-engaging after
+backgrounding, and the absence of a launch flash. Every one is covered by logic tests;
+none is proven end-to-end.
+
+### Deferred
+- **Email-link sign-in** — recommended before launch (D-012).
+- **Google Sign-In** — optional per §7; needs SHA fingerprints in Firebase (HUMAN_SETUP).
+- **Settings as the home for lock setup and sign-out** — Phase 20. Until then they live
+  on the placeholder screens so they're reachable on a device.

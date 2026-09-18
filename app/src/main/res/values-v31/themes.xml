@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Android 12+ draws a system splash screen from these attributes before the app runs.
+      Without them it inherits a light default. The icon is left as the launcher icon;
+      nothing on the splash names or describes the app (BUILD_PROMPT.md §3.4).
+    -->
+    <style name="Theme.Cpl" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/ink</item>
+        <item name="android:colorBackground">@color/ink</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowSplashScreenBackground">@color/ink</item>
+    </style>
+</resources>

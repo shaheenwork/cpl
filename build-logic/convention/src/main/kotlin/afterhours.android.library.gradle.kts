@@ -1,5 +1,7 @@
 // Base Android library convention. AGP 9 supplies Kotlin support built in, so the
 // Kotlin Android plugin is deliberately NOT applied here (see DECISIONS.md D-002).
+import java.time.Duration
+
 plugins {
     id("com.android.library")
     id("afterhours.detekt")
@@ -52,8 +54,13 @@ tasks.withType<Test>().configureEach {
     // source dir exists but contains nothing, which would block `check` on every module
     // ahead of the phase that fills it in.
     failOnNoDiscoveredTests = false
+    // A hung test must fail the build, not silently consume it. One AppLockManagerTest
+    // case once blocked for ~60 minutes before completing (DECISIONS.md D-013).
+    timeout.set(Duration.ofMinutes(TEST_TASK_TIMEOUT_MINUTES))
     testLogging {
         events("failed")
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
 }
+
+private val TEST_TASK_TIMEOUT_MINUTES = 10L

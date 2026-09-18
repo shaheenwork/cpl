@@ -1,8 +1,10 @@
 package com.shnapps.couple.di
 
 import com.shnapps.couple.BuildConfig
+import com.shnapps.couple.core.common.Clock
 import com.shnapps.couple.core.common.DefaultDispatcherProvider
 import com.shnapps.couple.core.common.DispatcherProvider
+import com.shnapps.couple.core.common.SystemClock
 import com.shnapps.couple.core.firebase.FirebaseEnvironment
 import dagger.Module
 import dagger.Provides
@@ -32,6 +34,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDispatcherProvider(): DispatcherProvider = DefaultDispatcherProvider()
+
+    @Provides
+    @Singleton
+    fun provideClock(): Clock = SystemClock
 
     /**
      * Application-lifetime scope for work that must outlive any screen, such as the

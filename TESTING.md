@@ -42,7 +42,10 @@ After an **intentional** visual change, re-record the goldens and review the dif
 ./gradlew :core:designsystem:recordRoborazziDebug
 ```
 
-Goldens live in `core/designsystem/src/test/screenshots/` and are committed.
+Goldens live in each module's `src/test/screenshots/` and are committed — the design
+system plus every `:feature:*` module. Look at a new golden before committing it: a
+recorded image is not the same as a correct one (Phase 3's first feature goldens were
+cream-on-white, which is how the launch-flash bug was found).
 
 ### Contrast
 
@@ -102,6 +105,11 @@ clients at once.
 | `check` | Logic bugs, style drift, and layering violations — feature-to-feature deps, Firebase leaking out of `:core:firebase`, Firestore inside a `@Composable`, analytics outside the typed allowlist |
 | Rules tests | Privacy regressions. A rule that stops enforcing is otherwise invisible |
 | Instrumented | That the app really reaches the backend, and that real two-device flows work |
+
+A test Gradle doesn't re-run also passes. `:architecture:test` was UP-TO-DATE on every
+build that didn't touch the `:architecture` module — for three phases — because Konsist
+reads sources Gradle couldn't see. It now declares them. **Prove a gate by watching it
+fail on an ordinary build**, not only with `--rerun`.
 
 A rule that matches nothing also passes. When adding a Konsist or rules test, confirm it
 **fails** against a deliberate violation before trusting it — the Konsist path rules

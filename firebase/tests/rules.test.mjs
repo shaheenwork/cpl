@@ -19,7 +19,7 @@ import {
   assertSucceeds,
   initializeTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { Timestamp, doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -80,6 +80,71 @@ describe('users/{uid}', () => {
 
   it('still allows ordinary profile edits', async () => {
     await assertSucceeds(updateDoc(doc(alice(), 'users', ALICE), { displayName: 'Alice II' }));
+  });
+});
+
+// Section 3.1. The 18+ attestation is an audit record: well-formed, and stamped with the
+// server's time rather than the device's.
+describe('users/{uid}.ageAttestation', () => {
+  const CAROL = 'uid_carol';
+  const carol = () => testEnv.authenticatedContext(CAROL).firestore();
+
+  it('accepts an attestation stamped with the server time', async () => {
+    await assertSucceeds(
+      setDoc(doc(carol(), 'users', CAROL), {
+        ageAttestation: { confirmed: true, at: serverTimestamp() },
+      }),
+    );
+  });
+
+  it('rejects an attestation with a client-chosen time', async () => {
+    // Back-dated, future-dated, or simply skewed — none can be trusted for an audit record.
+    await assertFails(
+      setDoc(doc(carol(), 'users', `${CAROL}_b`), {
+        ageAttestation: { confirmed: true, at: Timestamp.fromMillis(Date.now()) },
+      }),
+    );
+  });
+
+  it('rejects a malformed attestation', async () => {
+    const dave = testEnv.authenticatedContext('uid_dave').firestore();
+    await assertFails(
+      setDoc(doc(dave, 'users', 'uid_dave'), {
+        ageAttestation: { confirmed: 'yes', at: serverTimestamp() },
+      }),
+    );
+  });
+
+  it('rejects extra keys smuggled into the attestation', async () => {
+    const erin = testEnv.authenticatedContext('uid_erin').firestore();
+    await assertFails(
+      setDoc(doc(erin, 'users', 'uid_erin'), {
+        ageAttestation: { confirmed: true, at: serverTimestamp(), verifiedBy: 'admin' },
+      }),
+    );
+  });
+
+  it('still allows ordinary profile edits long after attesting', async () => {
+    // Regression: an earlier draft of the rules re-validated the stored attestation time on
+    // every update, which would have blocked all profile edits once it was a day old.
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', 'uid_frank'), {
+        ageAttestation: { confirmed: true, at: Timestamp.fromMillis(Date.UTC(2020, 0, 1)) },
+      });
+    });
+    const frank = testEnv.authenticatedContext('uid_frank').firestore();
+    await assertSucceeds(updateDoc(doc(frank, 'users', 'uid_frank'), { displayName: 'Frank' }));
+  });
+
+  it('rejects an overlong display name', async () => {
+    const gina = testEnv.authenticatedContext('uid_gina').firestore();
+    await assertFails(setDoc(doc(gina, 'users', 'uid_gina'), { displayName: 'x'.repeat(61) }));
+  });
+
+  it('rejects a content level outside 1..5', async () => {
+    const hank = testEnv.authenticatedContext('uid_hank').firestore();
+    await assertFails(setDoc(doc(hank, 'users', 'uid_hank'), { contentLevel: 6 }));
+    await assertFails(setDoc(doc(hank, 'users', 'uid_hank'), { contentLevel: 0 }));
   });
 });
 

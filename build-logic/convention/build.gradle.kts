@@ -28,4 +28,5 @@ dependencies {
     implementation(libs.ksp.gradlePlugin)
     implementation(libs.hilt.gradlePlugin)
     implementation(libs.detekt.gradlePlugin)
+    implementation(libs.roborazzi.gradlePlugin)
 }

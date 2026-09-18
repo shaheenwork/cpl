@@ -5,7 +5,7 @@ package com.shnapps.couple.core.analytics
  * Phase 1 and lives in :core:firebase; direct use of FirebaseAnalytics anywhere else is
  * a build failure (BUILD_PROMPT.md §17.1, enforced by :architecture).
  */
-interface AnalyticsLogger {
+fun interface AnalyticsLogger {
     fun log(event: AnalyticsEvent)
 }
 

@@ -110,6 +110,9 @@ dependencies {
     implementation(project(":core:security"))
     implementation(project(":core:data"))
     implementation(project(":core:firebase"))
+    implementation(project(":feature:onboarding"))
+    implementation(project(":feature:auth"))
+    implementation(project(":feature:applock"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
@@ -122,6 +125,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.hilt.navigation.compose)
+    // MainActivity is a FragmentActivity so BiometricPrompt can attach (§3.4).
+    implementation(libs.androidx.fragment.ktx)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
