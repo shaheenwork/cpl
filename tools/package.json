@@ -1,0 +1,24 @@
+{
+  "name": "afterhours-tools",
+  "private": true,
+  "description": "Content tooling: validate the authored packs, build the bundle the app ships and downloads, publish it (BUILD_PROMPT.md sections 9.2, 9.4, 9.6).",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "validate": "npm run build && node lib/cli/validate-content.js",
+    "bundle": "npm run build && node lib/cli/build-content-bundle.js",
+    "publish-content": "npm run build && node lib/cli/publish-content.js",
+    "content-delta": "npm run build && node lib/cli/content-delta.js",
+    "import": "npm run build && node lib/cli/import-content.js",
+    "test": "npm run build && node --test lib/test/*.test.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "~5.9.3"
+  }
+}

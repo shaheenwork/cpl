@@ -27,6 +27,8 @@ import com.shnapps.couple.core.designsystem.gallery.ComponentGallery
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.navigation.Route
 import com.shnapps.couple.core.security.BiometricAuthenticator
+import com.shnapps.couple.debug.CONTENT_INSPECTOR_AVAILABLE
+import com.shnapps.couple.debug.ContentInspectorScreen
 import com.shnapps.couple.feature.applock.AppLockScreen
 import com.shnapps.couple.feature.applock.AppLockSetupScreen
 import com.shnapps.couple.feature.auth.AuthScreen
@@ -182,6 +184,10 @@ fun CplNavHost(
         composable<Route.DesignGallery> {
             ComponentGallery()
         }
+
+        composable<Route.ContentInspector> {
+            ContentInspectorScreen(onBack = { navController.popBackStack() })
+        }
     }
 }
 
@@ -253,6 +259,13 @@ private fun ComingSoon(
             onClick = { navController.navigate(Route.DesignGallery) },
             style = GlowButtonStyle.Quiet,
         )
+        if (CONTENT_INSPECTOR_AVAILABLE) {
+            GlowButton(
+                text = "Content inspector",
+                onClick = { navController.navigate(Route.ContentInspector) },
+                style = GlowButtonStyle.Quiet,
+            )
+        }
         if (showUnpair) {
             GlowButton(
                 text = "Unpair",

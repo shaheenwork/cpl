@@ -3,7 +3,7 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 7 complete. Next action: **Phase 8 — Content system and ≥600 seed items.**
+**Current position:** Phase 8 complete. Next action: **Phase 9 — The experience engine.**
 
 ---
 
@@ -19,8 +19,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 | 5 | Taxonomy + preference discovery | ✅ **Complete** |
 | 6 | Boundaries + engine filters | ✅ **Complete** |
 | 7 | Mutual discovery + batched reveals | ✅ **Complete** |
-| 8 | Content system + ≥600 seed items | ⬜ Next |
-| 9 | Experience engine | ⬜ |
+| 8 | Content system + ≥600 seed items | ✅ **Complete** |
+| 9 | Experience engine | ⬜ Next |
 | 10 | Build Our Night + player | ⬜ |
 | 11 | Game primitives + 7 core games | ⬜ |
 | 12 | Realtime sessions | ⬜ |
@@ -591,3 +591,64 @@ MutualDiscoveryViewModelTest 10, MutualDiscoverySnapshotTest 6 (5 goldens review
 - **Phase 20:** what happens to an ended couple's revealed matches.
 - **Phase 22 (cost):** every app start is one callable invocation (throttled to one per five
   minutes per process); every answer change is one small transaction.
+
+---
+
+## Phase 8 — Content system and 626 seed items ✅
+
+### Shipped
+- **626 published items in 12 packs** (§9.3), every pack over its minimum, both modes, and
+  every level it spans; written to be played, not filler — then checked for repeated
+  *concepts* across packs, which the trigram check cannot see (D-039, D-044):
+
+  | Pack | Items | 1 · 2 · 3 · 4 · 5 | Together · Apart |
+  |---|---|---|---|
+  | FLIRT | 63 | 13 · 14 · 12 · 12 · 12 | 50 · 41 |
+  | TEASE | 60 | 12 · 12 · 12 · 12 · 12 | 46 · 26 |
+  | CONFESSIONS | 52 | 11 · 10 · 10 · 10 · 11 | 45 · 43 |
+  | FANTASY_TALK | 52 | 10 · 10 · 10 · 10 · 12 | 44 · 41 |
+  | ROLEPLAY | 47 | 10 · 9 · 10 · 9 · 9 | 40 · 16 |
+  | POWER_DYNAMICS | 45 | 9 · 9 · 9 · 9 · 9 | 38 · 14 |
+  | SENSORY | 46 | 10 · 9 · 9 · 9 · 9 | 37 · 12 |
+  | SURPRISE | 41 | 9 · 8 · 8 · 8 · 8 | 29 · 16 |
+  | COUPLE_CHALLENGES | 51 | 11 · 10 · 10 · 10 · 10 | 45 · 20 |
+  | LONG_DISTANCE | 61 | 13 · 12 · 12 · 12 · 12 | 7 · 58 |
+  | AFTER_DARK | 63 | – · – · 21 · 21 · 21 | 41 · 27 |
+  | DEEP_TALK | 45 | 12 · 12 · 11 · 10 · – | 38 · 45 |
+
+  Every chapter kind has at least 19 items per mode, and there are at least three finales
+  at every intensity in both modes (the engine's minimums, §10.4).
+- **`tools/`** (TypeScript, node:test): `validate` (the §9.4 list plus boundary coverage
+  and engine readiness), `bundle`, `publish-content` (Storage, then the pointer; versions
+  immutable), `content-delta` (disable, enable, replace, list), `import` (TSV, rows land as
+  drafts). One loader and one pack-file format for all of them.
+- **The gate in `check`**: `:validateContent` (content valid, committed bundle current) and
+  `:testContentTools` (27 tests), with `npm ci` in `tools/` on first use (D-039).
+- **On the device** (D-040): `content.db` (Room 2.8.5, its own database, schema exported),
+  `ContentRepository` — shipped-bundle install on first use and after app updates, bundle
+  sync when the pointer moves, deltas laid over the bundle, fail-closed parsing — and
+  `ContentSyncWorker` (WorkManager 2.11.2 via Hilt) on every start and twice a day.
+- **The taxonomy now travels in the bundle** (§9.5): `TaxonomyRepository` reads the
+  installed bundle's copy; the separate taxonomy asset and Remote Config key are gone.
+- **Rules**: `content/{id}` readable by any signed-in app, writable by none;
+  `contentMeta/pointer`, the emulator's stand-in for Remote Config (D-041).
+- **The debug content inspector** (D-042): Home → Content inspector, debug builds only.
+- Remote Config cleanup: the unused client reveal-timing keys are gone (D-045).
+- The Phase 7 commit had picked up 13 JVM crash dumps from an out-of-memory build; they are
+  removed and `hs_err_pid*.log` / `replay_pid*.log` are now ignored.
+
+### Verified
+VERIFICATION_PLACEHOLDER
+
+### Deferred
+- **The "Plus" content** (D-043): game prompts (Phase 11), roleplay scenarios and secret
+  missions (Phases 11/14), Open When templates (Phase 14), multi-day arcs (Phase 16) — each
+  with its own format and validator rules, in the phase that defines it.
+- **Phase 9:** the engine consumes `ContentRepository.items`; the server half of the engine
+  (§10.1) needs the same content — from the published bundle in Storage.
+- **Before staging/prod:** a service account for `publish-content` (HUMAN_SETUP.md §2.9);
+  until then the shipped bundle is all any build has, which is complete.
+- **Phase 20:** exclude `content.db` from backups along with the rest (it is rebuildable).
+- **Phase 22 (cost):** a sync is one Remote Config fetch (throttled by the SDK), one
+  delta query returning only changes (≥1 read), and a Storage download only when the version
+  moves. Browsing costs no Firestore reads.

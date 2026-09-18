@@ -40,6 +40,21 @@
                 <data android:scheme="afterhours" android:host="pair" />
             </intent-filter>
         </activity>
+
+        <!--
+          WorkManager is configured by CplApplication (Hilt builds the workers), so its
+          default initializer must not run first.
+        -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
     </application>
 
 </manifest>

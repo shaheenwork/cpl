@@ -1,0 +1,46 @@
+{
+  "description": "The closed vocabulary content may use (BUILD_PROMPT.md section 9.4: unknown tags, moods and packs fail the build). moods, interactionTypes and chapterKinds are mirrored by enums in :core:model, and a test keeps them in lockstep.",
+  "moods": ["romantic", "naughty", "bold", "unpredictable", "mysterious", "roleplay", "talk", "experimental"],
+  "interactionTypes": [
+    "CONVERSATION", "CONFESSION", "CHALLENGE", "CHOICE", "PREDICTION", "REVEAL",
+    "SURPRISE", "CONTROL", "MEMORY", "ROLEPLAY", "SENSORY", "MESSAGE"
+  ],
+  "chapterKinds": [
+    "WARM_UP", "CURIOSITY", "TEASE", "CHALLENGE", "CONTROL", "CONFESSION",
+    "ROLEPLAY", "WILDCARD", "YOUR_CHOICE", "FINALE"
+  ],
+  "media": ["VOICE", "PHOTO"],
+  "statuses": ["draft", "published", "disabled", "archived"],
+  "tags": [
+    "flirting", "compliments", "eyeContact", "kissing", "touch", "massage", "whisper",
+    "teasing", "anticipation", "slowBurn", "verbal", "dare", "game", "choice", "prediction",
+    "laughter", "dancing", "music", "lighting", "scent", "taste", "texture", "blindfold",
+    "temperature", "roleplay", "strangers", "characters", "costume", "fantasy", "adventure",
+    "mysteryDate", "power", "lead", "follow", "instructions", "switch", "confession", "secrets",
+    "memories", "future", "gratitude", "vulnerability", "trust", "novelty", "surprise", "gift",
+    "date", "planning", "countdown", "ritual", "bedtime", "morning", "distance", "voice",
+    "photo", "letter", "message", "storytelling", "desire", "checkIn", "aftercare"
+  ],
+  "boundaryKeywords": [
+    { "pattern": "blindfold\\w*", "themes": ["sensory_blindfold"] },
+    { "pattern": "ice(?: cubes?)?|temperature|warm and cool", "themes": ["sensory_temperature"] },
+    { "pattern": "massag\\w*", "themes": ["sensory_touch"] },
+    { "pattern": "strangers?", "themes": ["roleplay_strangers"] },
+    { "pattern": "costumes?|in character|play a character", "themes": ["roleplay_characters"] },
+    {
+      "pattern": "instructions?|orders?|obey\\w*|commands?",
+      "themes": ["power_yielding", "teasing_instructions", "power_negotiated", "roleplay_power"]
+    },
+    {
+      "pattern": "in charge|in control|control",
+      "themes": ["power_leading", "power_yielding", "power_negotiated", "power_switching", "roleplay_power"]
+    },
+    { "pattern": "safe ?word", "themes": ["power_negotiated", "roleplay_power"] },
+    { "pattern": "voice (?:notes?|memos?|messages?)", "themes": ["comm_voice"] },
+    {
+      "pattern": "fantas(?:y|ies|ise|ize)\\w*",
+      "themes": ["comm_fantasies", "roleplay_characters", "roleplay_strangers", "roleplay_power"]
+    },
+    { "pattern": "confess\\w*", "themes": ["comm_confessions"] }
+  ]
+}

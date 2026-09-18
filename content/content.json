@@ -1,0 +1,4 @@
+{
+  "description": "The published content version. Bump it whenever packs change for release: the app refreshes its cached copy when Remote Config's content_version is higher than the one it holds (BUILD_PROMPT.md section 9.2).",
+  "contentVersion": 1
+}

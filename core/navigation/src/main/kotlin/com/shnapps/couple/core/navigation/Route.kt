@@ -68,4 +68,11 @@ object Route {
      */
     @Serializable
     data object DesignGallery
+
+    /**
+     * Every item in the content cache (§9). Debug builds only: in a product build content is
+     * only ever shown through the engine, behind the couple's boundaries (§3.2).
+     */
+    @Serializable
+    data object ContentInspector
 }

@@ -4,13 +4,17 @@ import com.shnapps.couple.core.data.auth.AuthRepository
 import com.shnapps.couple.core.data.auth.DefaultAuthRepository
 import com.shnapps.couple.core.data.boundaries.BoundaryRepository
 import com.shnapps.couple.core.data.boundaries.DefaultBoundaryRepository
+import com.shnapps.couple.core.data.content.AssetShippedContent
+import com.shnapps.couple.core.data.content.ContentRepository
+import com.shnapps.couple.core.data.content.DefaultContentRepository
+import com.shnapps.couple.core.data.content.ShippedContent
 import com.shnapps.couple.core.data.couple.CoupleRepository
 import com.shnapps.couple.core.data.couple.DefaultCoupleRepository
 import com.shnapps.couple.core.data.mutual.DefaultMutualRepository
 import com.shnapps.couple.core.data.mutual.MutualRepository
 import com.shnapps.couple.core.data.preferences.DefaultPreferenceRepository
 import com.shnapps.couple.core.data.preferences.PreferenceRepository
-import com.shnapps.couple.core.data.taxonomy.BundledTaxonomyRepository
+import com.shnapps.couple.core.data.taxonomy.ContentTaxonomyRepository
 import com.shnapps.couple.core.data.taxonomy.TaxonomyRepository
 import dagger.Binds
 import dagger.Module
@@ -32,7 +36,15 @@ abstract class DataModule {
 
     @Binds
     @Singleton
-    abstract fun bindTaxonomyRepository(impl: BundledTaxonomyRepository): TaxonomyRepository
+    abstract fun bindTaxonomyRepository(impl: ContentTaxonomyRepository): TaxonomyRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindContentRepository(impl: DefaultContentRepository): ContentRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindShippedContent(impl: AssetShippedContent): ShippedContent
 
     @Binds
     @Singleton

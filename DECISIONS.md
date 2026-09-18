@@ -538,3 +538,100 @@ triggers. (This is also the likely cause of the one-off Phase 6 flake.)
 **Phase 7.** §14.7 ends every reveal with that button, but Build Our Night is Phase 10. Until
 then it is shown disabled, with one line saying it arrives in a later update — not wired to
 a placeholder that would look like a broken promise.
+
+---
+
+## D-039 — Content is authored as JSON, gated by a Node validator, and shipped as a committed bundle
+**Phase 8.** §9.1–9.4. Packs live in `content/packs/*.json`, one item per line in a fixed key
+order so a pull request shows one line per edited item. The closed vocabulary (moods,
+interaction types, chapter kinds, tags, media, statuses, boundary keywords) is
+`content/vocabulary.json`; the §3.3 tripwire is `content/policy/prohibited-terms.json`, read
+by both the validator and the taxonomy tests, so there is one list.
+- **The tooling is TypeScript on Node** (`tools/`), like the Cloud Functions: the validator,
+  the bundle builder, publishing, deltas and a TSV importer share one loader. The app build
+  never runs Node; only `check` does, through `:validateContent` and `:testContentTools`.
+- **The bundle is committed** (`content/dist/bundle.json`) and copied into the app's assets
+  by `:core:data`. So the Android build needs no Node, what ships is byte-for-byte what the
+  validator passed, and `check` fails when the bundle is stale — it is a build artifact
+  that must never drift from its sources.
+- **Beyond the §9.4 list**, the validator enforces what the boundary engine relies on: an
+  item leaning on a preference must be excludable by that preference's boundary theme; an
+  item whose text mentions a sensitive theme (blindfolds, strangers, instructions, control,
+  voice notes, fantasies…) must list a boundary that covers it; a required preference must be
+  askable at the item's intensity; and the catalogue must cover every chapter kind, finale
+  intensity and warm-up in both modes, so the engine can always assemble a night.
+- Near-duplicates are word-trigram Jaccard ≥ 0.4 across the whole catalogue. The seed content
+  was also checked by hand for repeated *concepts* across packs, which trigrams cannot see.
+
+---
+
+## D-040 — The device keeps content in its own Room database; the taxonomy travels in the bundle
+**Phase 8.** §9.2, §9.5. `content.db` holds the installed bundle's items (each stored as the
+JSON it arrived as, so a new content field needs no migration), its header, and the admin
+deltas. It is a rebuildable cache — from the shipped asset or by downloading again — so it
+may be dropped on a schema change; data that cannot be rebuilt belongs in another database.
+- **First launch works offline**: the shipped bundle is installed on first use, and again
+  after an app update that ships a newer one. A newer downloaded bundle is never replaced
+  by an older shipped one.
+- **The taxonomy is inside the bundle**, so a content release can update it without an app
+  release. `TaxonomyRepository` now reads the installed bundle's taxonomy; the separate
+  `taxonomy_version` Remote Config key is gone.
+- **Parsing is tolerant, safety is not**: unknown fields and list entries are skipped, but
+  an item this version cannot play safely — unknown interaction type, intensity, status or
+  media, no usable mode or chapter, or missing its boundary exclusions — is dropped whole.
+  An unreadable delta hides its item. A bundle in an unknown format, or not the version it
+  was fetched as, is refused and the device keeps what it has.
+- **Deltas** (`content/{id}`) carry a status and optionally an edited item. A delta applies
+  to its item's bundled version and earlier, so a disable survives later bundles until the
+  item is edited past it. They are fetched with an inclusive `updatedAt` cursor and never
+  deleted (`enable` writes `published`).
+- `ContentSyncWorker` runs on every process start and every 12 hours with a network. It
+  attempts the bundle and the deltas independently — a global disable (§9.6) must land even
+  when a download fails — and does not retry while signed out or on an invalid bundle.
+
+---
+
+## D-041 — Against the emulators, the content pointer is a Firestore document
+**Phase 8.** Remote Config has no emulator, so in the `dev` flavor the app reads the content
+version from `contentMeta/pointer` instead (signed-in read, no client write), and
+`publish-content --emulator` writes it there. Staging and prod read Remote Config
+`content_version`, as §9.2 says. Publishing uploads the bundle first and moves the pointer
+second, only ever forwards; a published version is immutable (identical bytes are a no-op,
+different bytes are refused).
+
+---
+
+## D-042 — There is no content browser in the product; debug builds get an inspector
+**Phase 8.** The exit criterion says content "browses fully offline". A browsing screen in
+the product would put items in front of a user without the engine's boundary filter —
+exactly the bypass §3.2 forbids. So browsing is a debug-only inspector (`app/src/debug`),
+reached from Home in debug builds, listing the cache with pack/mode/intensity filters and a
+"sync now" button. Release builds compile a stub that sends anyone who lands there back.
+
+---
+
+## D-043 — The "Plus" content waits for the phases that define its formats
+**Phase 8.** §9.3 also asks for ≥300 game prompts, ≥40 roleplay scenarios, ≥30 secret
+missions, ≥25 Open When templates and ≥15 multi-day arcs. Their shapes are defined by
+Phases 11, 14 and 16 (games, Apart primitives, multi-day arcs). Writing them now would mean
+inventing formats those phases would then have to live with or rewrite. Each is authored,
+with its own validator rules, in the phase that introduces it; Phase 8 delivers the 626
+chapter items the engine (Phase 9) consumes.
+
+---
+
+## D-044 — Seed content is suggestion, never anatomy
+**Phase 8.** §3.6 and §9.3's "never crude for its own sake". Intensity rises through
+anticipation, control, confession and daring — not through explicit description. The
+prohibited-terms policy includes explicit anatomical terms as a tripwire, and bold items say
+"tasteful and entirely your choice", "inside your limits" and name the safe word where
+power is involved. Every item keeps to the couple: no third parties, no audiences, no
+substances, no one who cannot consent.
+
+---
+
+## D-045 — Reveal timing is not a client Remote Config key
+**Phase 8.** The client declared `reveal_jitter_min/max_minutes` with defaults, but reveal
+timing is decided only by the server (D-035), from its own template keys
+`reveal_min_delay_minutes` / `reveal_max_delay_minutes`. A client copy could only drift or
+mislead, so it is removed.

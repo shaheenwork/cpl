@@ -17,7 +17,8 @@ export PATH="/c/Users/shahe/.jdks/jbr-21.0.11/bin:$PATH"
 ```
 
 Covers detekt (with the ktlint rule set via `detekt-formatting`), every module's unit
-tests, and the Konsist architecture rules.
+tests, the Konsist architecture rules, and the content gate below. `check` runs `npm ci` in
+`tools/` the first time, so Node 22+ must be on PATH.
 
 The engine suite is the highest bar in the repo and runs on its own in about a second,
 because `:core:engine` is a pure JVM module:
@@ -51,9 +52,42 @@ cream-on-white, which is how the launch-flash bug was found).
 
 `TaxonomyFileTest` (in `:core:data`) reads `content/taxonomy.json` strictly: unknown or
 misspelt fields, anything the app's tolerant parser would drop, duplicate or malformed ids,
-missing categories, overlong copy and §3.3 prohibited terms all fail the build. The file is a
-declared input of the test task, so editing it re-runs the tests.
-`BundledTaxonomyRepositoryTest` proves the build really puts it in the assets.
+missing categories, overlong copy and §3.3 prohibited terms all fail the build. The
+prohibited terms come from `content/policy/prohibited-terms.json`, the same list the content
+validator uses. Both files are declared inputs of the test task, so editing them re-runs the
+tests.
+
+### Content (Phase 8)
+
+```bash
+./gradlew validateContent testContentTools      # both run in check
+npm --prefix tools run validate                 # the same gate, directly
+npm --prefix tools test                         # the tools' own tests (node:test)
+```
+
+`validateContent` fails on anything §9.4 lists, on items whose text or preferences are not
+covered by a boundary, on too little coverage for the engine, and on a committed
+`content/dist/bundle.json` that no longer matches the packs. After editing content:
+
+```bash
+npm --prefix tools run bundle
+```
+
+On the app side, `ContentBundleFileTest` reads the shipped bundle through the app's own
+parser and fails if a single item or list entry would be dropped, or if
+`content/vocabulary.json` and the app's enums differ. `AssetShippedContentTest` proves the
+bundle is in the assets; `DefaultContentRepositoryTest` runs install, update and deltas
+against a real in-memory Room database.
+
+To exercise the download path against the emulators, publish, then open the debug build's
+content inspector (Home → Content inspector → Sync now):
+
+```bash
+npm --prefix tools run publish-content -- --project afterhours-dev-emulator --emulator
+npm --prefix tools run content-delta -- disable flirt_one_look --project afterhours-dev-emulator --emulator
+```
+
+Note that the Functions end-to-end suite clears the dev project, deltas included.
 
 ### Contrast
 

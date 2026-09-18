@@ -171,6 +171,27 @@ the Firestore location is chosen once, at project creation, and cannot be change
 uses the default `us-central1`; if Firestore lives elsewhere, set the region in
 `functions/src/index.ts` to match before the first deploy.
 
+### ⬜ 2.9 Publishing content to a real project (Phase 8)
+
+The app ships its content and needs nothing from here to work. To publish a newer bundle or
+disable an item on staging or prod, the tools need an identity with Storage, Firestore and
+Remote Config admin rights on that project:
+
+1. Create a service account with the roles **Storage Object Admin**, **Cloud Datastore
+   User** and **Firebase Remote Config Admin**, and download a key. Store it outside the
+   repository; only files named `serviceAccount*.json` are gitignored.
+2. `export GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json` — or use
+   `gcloud auth application-default login` with an account that has those roles.
+3. Publish with the project id and, if it differs from `<project>.firebasestorage.app`, the
+   bucket:
+   ```bash
+   npm --prefix tools run publish-content -- --project afterhours-staging
+   ```
+   The first publish creates the Remote Config parameter `content_version`.
+
+Raise `contentVersion` in `content/content.json` for every release after the first; a
+published version can never be replaced (DECISIONS.md D-041).
+
 ---
 
 ## 3. Google Play — needed from Phase 19

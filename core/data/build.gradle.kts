@@ -13,50 +13,65 @@ dependencies {
     api(project(":core:model"))
     api(project(":core:common"))
     implementation(project(":core:firebase"))
+    implementation(project(":core:database"))
     implementation(project(":core:datastore"))
     implementation(project(":core:analytics"))
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
+
+    testImplementation(libs.androidx.work.testing)
 }
 
-// ---- The bundled taxonomy (BUILD_PROMPT.md §9.5) ---------------------------------------
-// The source of truth is content/taxonomy.json, beside the rest of the authored content.
-// This copies exactly that file into the assets, so what ships is always what the tests
-// in this module validated.
+// ---- The shipped content bundle (BUILD_PROMPT.md §9.2) ----------------------------------
+// The source of truth is content/, validated by tools/validate-content in `check`. This
+// copies the committed, validated bundle into the assets, so first launch and a device that
+// has never been online both have the full catalogue — and the taxonomy inside it (§9.5).
 
-val taxonomyFile: RegularFile = rootProject.layout.projectDirectory.file("content/taxonomy.json")
+val contentDirectory: Directory = rootProject.layout.projectDirectory.dir("content")
+val bundleFile: RegularFile = contentDirectory.file("dist/bundle.json")
 
-abstract class BundleTaxonomyTask : DefaultTask() {
+abstract class ShipContentBundleTask : DefaultTask() {
     @get:InputFile
     @get:PathSensitive(PathSensitivity.NONE)
-    abstract val taxonomy: RegularFileProperty
+    abstract val bundle: RegularFileProperty
 
     @get:OutputDirectory
     abstract val assetsDirectory: DirectoryProperty
 
     @TaskAction
-    fun bundle() {
-        val target = assetsDirectory.file("content/taxonomy.json").get().asFile
+    fun ship() {
+        val target = assetsDirectory.file("content/bundle.json").get().asFile
         target.parentFile.mkdirs()
-        taxonomy.get().asFile.copyTo(target, overwrite = true)
+        bundle.get().asFile.copyTo(target, overwrite = true)
     }
 }
 
 androidComponents {
     onVariants { variant ->
         // One task per variant: AGP wires each generated directory to its own location.
-        val bundle = tasks.register<BundleTaxonomyTask>(
-            "bundle${variant.name.replaceFirstChar { it.uppercase() }}Taxonomy",
+        val ship = tasks.register<ShipContentBundleTask>(
+            "ship${variant.name.replaceFirstChar { it.uppercase() }}ContentBundle",
         ) {
-            taxonomy.set(taxonomyFile)
+            bundle.set(bundleFile)
         }
-        variant.sources.assets?.addGeneratedSourceDirectory(bundle, BundleTaxonomyTask::assetsDirectory)
+        variant.sources.assets?.addGeneratedSourceDirectory(ship, ShipContentBundleTask::assetsDirectory)
     }
 }
 
 tasks.withType<Test>().configureEach {
-    // TaxonomyFileTest reads the real file from content/. Declared as an input so editing the
-    // taxonomy re-runs the tests instead of leaving them UP-TO-DATE (DECISIONS.md D-015).
-    inputs.file(taxonomyFile)
-        .withPathSensitivity(PathSensitivity.NONE)
-        .withPropertyName("taxonomy")
+    // The file tests read the real content: the bundle, the taxonomy, the vocabulary and the
+    // policy. Declared as inputs so editing any of them re-runs those tests instead of
+    // leaving them UP-TO-DATE (DECISIONS.md D-015).
+    inputs.files(
+        bundleFile,
+        contentDirectory.file("content.json"),
+        contentDirectory.file("taxonomy.json"),
+        contentDirectory.file("vocabulary.json"),
+        contentDirectory.file("policy/prohibited-terms.json"),
+    )
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("content")
 }

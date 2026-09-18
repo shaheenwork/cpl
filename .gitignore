@@ -46,3 +46,7 @@ node_modules/
 
 # IDE project files
 /.idea/
+
+# JVM crash dumps (a Gradle worker running out of native memory writes these into the module).
+hs_err_pid*.log
+replay_pid*.log

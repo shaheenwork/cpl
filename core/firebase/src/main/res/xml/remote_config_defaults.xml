@@ -12,12 +12,10 @@
         <key>maintenance_mode</key>
         <value>false</value>
     </entry>
+    <!-- The version of the bundle shipped in the app (content/content.json). Anything lower
+         than what is installed is ignored, so this default never downgrades content. -->
     <entry>
         <key>content_version</key>
-        <value>1</value>
-    </entry>
-    <entry>
-        <key>taxonomy_version</key>
         <value>1</value>
     </entry>
 
@@ -40,15 +38,6 @@
     <entry>
         <key>feature_subscription</key>
         <value>false</value>
-    </entry>
-
-    <entry>
-        <key>reveal_jitter_min_minutes</key>
-        <value>30</value>
-    </entry>
-    <entry>
-        <key>reveal_jitter_max_minutes</key>
-        <value>180</value>
     </entry>
 
     <entry>

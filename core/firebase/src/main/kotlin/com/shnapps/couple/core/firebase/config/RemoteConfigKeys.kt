@@ -10,8 +10,12 @@ package com.shnapps.couple.core.firebase.config
 object RemoteConfigKeys {
     const val MINIMUM_APP_VERSION = "minimum_app_version"
     const val MAINTENANCE_MODE = "maintenance_mode"
+
+    /**
+     * The content bundle clients should be on (§9.2). Moved only by tools/publish-content.
+     * The taxonomy travels inside the bundle, so it has no pointer of its own.
+     */
     const val CONTENT_VERSION = "content_version"
-    const val TAXONOMY_VERSION = "taxonomy_version"
 
     // Feature flags
     const val FEATURE_APART_MODE = "feature_apart_mode"
@@ -20,10 +24,8 @@ object RemoteConfigKeys {
     const val FEATURE_PHOTO_CHALLENGES = "feature_photo_challenges"
     const val FEATURE_SUBSCRIPTION = "feature_subscription"
 
-    // Privacy timing (§5.3): mutual matches are released in jittered batches so that
-    // reveal timing cannot be used to infer what a partner just answered.
-    const val REVEAL_JITTER_MIN_MINUTES = "reveal_jitter_min_minutes"
-    const val REVEAL_JITTER_MAX_MINUTES = "reveal_jitter_max_minutes"
+    // Reveal timing (§5.3) is not here on purpose: the server alone decides when a match is
+    // released, from its own Remote Config template (DECISIONS.md D-045).
 
     // Engine ranking weights (§10.3).
     const val WEIGHT_MUTUAL_PREFERENCE = "weight_mutual_preference"

@@ -131,10 +131,14 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     // MainActivity is a FragmentActivity so BiometricPrompt can attach (§3.4).
     implementation(libs.androidx.fragment.ktx)
+    // CplApplication hands WorkManager Hilt's worker factory (ContentSyncWorker).
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
+    testImplementation(project(":core:testing"))
     testImplementation(libs.junit)
     testImplementation(libs.truth)
     testImplementation(libs.kotlinx.coroutines.test)

@@ -201,6 +201,22 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ---- content ---------------------------------------------------------
+    // Authored content is not private; the SELECTION of it is (§9.2). Deltas are admin
+    // overrides on the shipped bundle — disable flags and edited items — written only by
+    // tools/content-delta. Any signed-in app may read them, and no client may write.
+    match /content/{itemId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // The content pointer, for the Emulator Suite only: Remote Config has no emulator, so
+    // tools/publish-content --emulator writes the version here instead (DECISIONS.md D-041).
+    match /contentMeta/pointer {
+      allow get: if isSignedIn();
+      allow list, write: if false;
+    }
+
     // ---- default deny ----------------------------------------------------
     match /{document=**} {
       allow read, write: if false;

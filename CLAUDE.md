@@ -23,12 +23,14 @@ not searched, and `firebase emulators:start` then dies with *"Could not spawn `j
 | Command | What it does |
 |---|---|
 | `./gradlew assembleDevDebug` | Build the dev variant (emulator-backed Firebase) |
-| `./gradlew check` | detekt + ktlint (via detekt-formatting) + all unit tests + architecture rules |
+| `./gradlew check` | detekt + ktlint (via detekt-formatting) + all unit tests + architecture rules + the content gate |
 | `./gradlew :core:engine:test` | The experience-engine suite — the highest bar in the repo |
 | `./gradlew :architecture:test` | Konsist layering rules |
 | `./gradlew :core:designsystem:recordRoborazziDebug` | Re-record screenshot goldens after an intentional visual change |
 | `./gradlew projects` | Verify the module graph configures |
 | `./gradlew connectedDevDebugAndroidTest` | Instrumented tests - needs an emulator **and** the Firebase emulators |
+| `npm --prefix tools run validate` | The content gate on its own (also `./gradlew validateContent`) |
+| `npm --prefix tools run bundle` | Rebuild `content/dist/bundle.json` after editing content — `check` fails until you do |
 
 ### Firebase emulators
 
@@ -62,7 +64,7 @@ Compiled bytecode targets **Java 17** regardless of the daemon JVM.
 :core:navigation      Type-safe routes + deep links
 :core:data            Repositories + use cases
 :core:firebase        Firebase data sources — the ONLY module allowed to import Firebase
-:core:database        Room
+:core:database        Room: the content cache (content.db)
 :core:datastore       DataStore settings
 :core:security        App lock, FLAG_SECURE, App Check glue
 :core:analytics       Typed, allowlisted analytics facade
@@ -87,6 +89,18 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
 - New pure-JVM module: `id("afterhours.jvm.library")`.
 - One immutable `UiState` data class per screen, exposed as `StateFlow`. No `LiveData`.
 - Repositories return `Outcome<T>`; exceptions do not cross layer boundaries.
+
+### Content
+
+- Authored in `content/packs/*.json`, one item per line; the closed vocabulary is
+  `content/vocabulary.json`, the §3.3 tripwire `content/policy/prohibited-terms.json`.
+- After any content edit: `npm --prefix tools run bundle`, and commit the bundle with it.
+- The app reads content only through `ContentRepository` (`:core:data`). No product screen
+  lists content: what a couple sees goes through the engine's boundary filter (§3.2). The
+  inspector in `app/src/debug` is the one exception, and it has no release twin.
+- A new mood, interaction type, chapter kind, media kind or status changes
+  `content/vocabulary.json` **and** the enum in `:core:model` together —
+  `ContentBundleFileTest` fails if they differ.
 
 ### Design system
 
@@ -197,6 +211,14 @@ memory allocation failed". With the emulator up, build with
 
 **The functions e2e suite wipes the dev emulator project.** Seed manual device checks again
 after running it. Integration tests use their own project and touch nothing (D-037).
+
+**`check` needs Node.** `:validateContent` and `:testContentTools` run the TypeScript tools in
+`tools/` (and `npm ci` there the first time). The app build itself (`assemble*`) does not.
+
+**The content bundle is committed and must be current.** `check` compares
+`content/dist/bundle.json` with a fresh build from the packs; a stale bundle fails it. A
+published bundle version is immutable: raise `contentVersion` in `content/content.json`
+before publishing changed content.
 
 **Kotlin/KSP versions are paired.** Kotlin 2.2.10 ↔ KSP `2.2.10-2.0.2`. KSP changed to
 standalone versioning at 2.3.0; do not mix the schemes.

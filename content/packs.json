@@ -1,0 +1,65 @@
+{
+  "description": "The content packs (BUILD_PROMPT.md section 9.3). Each pack's items live in content/packs/<file>. minItems is the spec's minimum; every intensity in range must have at least minPerIntensity items, and both modes must be represented.",
+  "packs": [
+    {
+      "id": "FLIRT", "prefix": "flirt", "file": "flirt.json", "title": "Flirt",
+      "description": "Compliments, looks and lines. The fun of wanting each other.",
+      "minItems": 60, "intensity": [1, 5], "minPerIntensity": 6
+    },
+    {
+      "id": "TEASE", "prefix": "tease", "file": "tease.json", "title": "Tease",
+      "description": "Making them wait, and making the wait worth it.",
+      "minItems": 60, "intensity": [1, 5], "minPerIntensity": 6
+    },
+    {
+      "id": "CONFESSIONS", "prefix": "confess", "file": "confessions.json", "title": "Confessions",
+      "description": "Things you have thought and never said out loud.",
+      "minItems": 50, "intensity": [1, 5], "minPerIntensity": 5
+    },
+    {
+      "id": "FANTASY_TALK", "prefix": "fantasy", "file": "fantasy-talk.json", "title": "Fantasy talk",
+      "description": "Saying the thing. Seeing what happens.",
+      "minItems": 50, "intensity": [1, 5], "minPerIntensity": 5
+    },
+    {
+      "id": "ROLEPLAY", "prefix": "roleplay", "file": "roleplay.json", "title": "Roleplay",
+      "description": "Other names, other stories, the same two people.",
+      "minItems": 45, "intensity": [1, 5], "minPerIntensity": 4
+    },
+    {
+      "id": "POWER_DYNAMICS", "prefix": "power", "file": "power-dynamics.json", "title": "Power dynamics",
+      "description": "Who leads, who follows, and trading places. Always agreed first.",
+      "minItems": 45, "intensity": [1, 5], "minPerIntensity": 4
+    },
+    {
+      "id": "SENSORY", "prefix": "sensory", "file": "sensory.json", "title": "Senses",
+      "description": "Sound, light, scent and touch, turned all the way up.",
+      "minItems": 45, "intensity": [1, 5], "minPerIntensity": 4
+    },
+    {
+      "id": "SURPRISE", "prefix": "surprise", "file": "surprise.json", "title": "Surprise",
+      "description": "Things they do not see coming, in the best way.",
+      "minItems": 40, "intensity": [1, 5], "minPerIntensity": 4
+    },
+    {
+      "id": "COUPLE_CHALLENGES", "prefix": "challenge", "file": "couple-challenges.json", "title": "Couple challenges",
+      "description": "Small dares and games, played on the same side.",
+      "minItems": 50, "intensity": [1, 5], "minPerIntensity": 5
+    },
+    {
+      "id": "LONG_DISTANCE", "prefix": "distance", "file": "long-distance.json", "title": "Long distance",
+      "description": "Making distance feel a lot less distant.",
+      "minItems": 60, "intensity": [1, 5], "minPerIntensity": 6
+    },
+    {
+      "id": "AFTER_DARK", "prefix": "afterdark", "file": "after-dark.json", "title": "After dark",
+      "description": "The boldest of it, for when you are both ready. Suggestion, never instruction.",
+      "minItems": 60, "intensity": [3, 5], "minPerIntensity": 12
+    },
+    {
+      "id": "DEEP_TALK", "prefix": "deep", "file": "deep-talk.json", "title": "Deep talk",
+      "description": "The conversations that make you closer.",
+      "minItems": 40, "intensity": [1, 4], "minPerIntensity": 5
+    }
+  ]
+}

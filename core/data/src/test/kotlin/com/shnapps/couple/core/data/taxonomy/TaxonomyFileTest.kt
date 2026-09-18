@@ -2,6 +2,7 @@ package com.shnapps.couple.core.data.taxonomy
 
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.junit.Test
 import java.io.File
@@ -106,6 +107,7 @@ class TaxonomyFileTest {
             themes.flatMap { listOf(it.id, it.title) } +
             items.flatMap { listOf(it.id, it.prompt, it.description) }
 
+        assertThat(PROHIBITED).isNotEmpty()
         copy.forEach { line ->
             PROHIBITED.forEach { pattern ->
                 assertWithMessage("prohibited term '${pattern.pattern}' in \"$line\"")
@@ -130,19 +132,21 @@ class TaxonomyFileTest {
         // Mirrors the Firestore rule on preference document ids.
         val ID_PATTERN = Regex("^[a-z0-9_]{1,64}$")
 
-        // Section 3.3. Minors, non-consent, illegal acts, harm, third parties, substances,
-        // non-consenting bystanders.
-        val PROHIBITED = listOf(
-            "minor", "minors", "teen\\w*", "underage", "child\\w*", "kids?", "school\\w*", "young",
-            "non-?consen\\w*", "coerc\\w*", "forc\\w*", "against (?:their|your|her|his) will",
-            "unconscious", "asleep", "sleeping",
-            "drunk", "intoxicat\\w*", "alcohol", "drugs?", "substances?", "high",
-            "incest\\w*", "step-?(?:brother|sister|mom|mother|dad|father|son|daughter)\\w*",
-            "animals?", "bestial\\w*", "illegal",
-            "breath ?play", "chok\\w*", "strangl\\w*", "suspension", "electr\\w*", "blood", "knife",
-            "needles?", "self-?harm", "degrad\\w*",
-            "third", "threesome", "someone else", "another person", "others", "swing\\w*", "swap\\w*",
-            "audience", "public", "in front of",
-        ).map { Regex("\\b$it\\b") }
+        // Section 3.3, from the one list every tripwire reads: tools/validate-content uses the
+        // same file, so content and taxonomy can never drift onto different rules. A declared
+        // input of the test task, like the taxonomy itself.
+        const val POLICY_PATH = "../../content/policy/prohibited-terms.json"
+
+        val PROHIBITED: List<Regex> = Json { ignoreUnknownKeys = true }
+            .decodeFromString<PolicyDto>(File(POLICY_PATH).readText())
+            .groups
+            .flatMap { it.patterns }
+            .map { Regex("\\b(?:$it)\\b") }
     }
 }
+
+@Serializable
+private data class PolicyDto(val groups: List<PolicyGroupDto>)
+
+@Serializable
+private data class PolicyGroupDto(val reason: String, val patterns: List<String>)

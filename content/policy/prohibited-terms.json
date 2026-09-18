@@ -1,0 +1,37 @@
+{
+  "description": "Terms no authored text may contain (BUILD_PROMPT.md section 3.3). A tripwire, not a censor: the policy is kept by authoring, and this catches careless edits. Each pattern is matched case-insensitively as a whole word. Read by tools/validate-content and by the taxonomy tests in :core:data, so there is exactly one list.",
+  "groups": [
+    {
+      "reason": "Anyone under 18, or any age-ambiguous framing",
+      "patterns": ["minor", "minors", "teen\\w*", "underage", "child\\w*", "kids?", "school\\w*", "young"]
+    },
+    {
+      "reason": "Non-consent, coercion, or acts on someone unable to agree",
+      "patterns": ["non-?consen\\w*", "coerc\\w*", "forc\\w*", "against (?:their|your|her|his) will", "unconscious", "asleep", "sleeping"]
+    },
+    {
+      "reason": "Intoxication, or anything requiring a substance",
+      "patterns": ["drunk", "intoxicat\\w*", "alcohol", "drugs?", "substances?", "high", "tipsy", "wine", "beer", "cocktails?", "shots?", "stoned"]
+    },
+    {
+      "reason": "Incest, bestiality, anything illegal",
+      "patterns": ["incest\\w*", "step-?(?:brother|sister|mom|mother|dad|father|son|daughter)\\w*", "animals?", "bestial\\w*", "illegal"]
+    },
+    {
+      "reason": "Harm, or anything needing safety knowledge the app cannot supply",
+      "patterns": ["breath ?play", "chok\\w*", "strangl\\w*", "suspension", "electr\\w*", "blood", "knife", "needles?", "self-?harm", "degrad\\w*", "wax"]
+    },
+    {
+      "reason": "Third parties or anyone outside the couple",
+      "patterns": ["third", "threesome", "someone else", "another person", "others", "swing\\w*", "swap\\w*", "ex", "exes"]
+    },
+    {
+      "reason": "Exposure involving non-consenting bystanders",
+      "patterns": ["audience", "public", "in front of", "strangers watching", "bystanders?"]
+    },
+    {
+      "reason": "Explicit description: the product works in suggestion, not anatomy (section 3.6)",
+      "patterns": ["nude\\w*", "naked", "genital\\w*", "orgasm\\w*", "penis", "vagina", "breasts?", "porn\\w*"]
+    }
+  ]
+}

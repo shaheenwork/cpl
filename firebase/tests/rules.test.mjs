@@ -466,6 +466,40 @@ describe('server-only collections', () => {
   });
 });
 
+describe('content deltas (§9.2, §9.6)', () => {
+  before(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, 'content', 'flirt_one_look'), { status: 'disabled', version: 1, item: null });
+      await setDoc(doc(db, 'contentMeta', 'pointer'), { version: 2 });
+    });
+  });
+
+  it('lets any signed-in app read and query the deltas', async () => {
+    await assertSucceeds(getDoc(doc(alice(), 'content', 'flirt_one_look')));
+    await assertSucceeds(getDocs(collection(bob(), 'content')));
+  });
+
+  it('denies the deltas to anyone signed out', async () => {
+    await assertFails(getDoc(doc(anon(), 'content', 'flirt_one_look')));
+  });
+
+  it('denies every client write, so only tools/ can disable or edit content', async () => {
+    await assertFails(setDoc(doc(alice(), 'content', 'flirt_one_look'), { status: 'published', version: 9 }));
+    await assertFails(updateDoc(doc(alice(), 'content', 'flirt_one_look'), { status: 'published' }));
+    await assertFails(deleteDoc(doc(alice(), 'content', 'flirt_one_look')));
+    await assertFails(setDoc(doc(alice(), 'content', 'flirt_new'), { status: 'published', version: 1 }));
+  });
+
+  it('lets a signed-in app read the emulator content pointer, and nothing else there', async () => {
+    await assertSucceeds(getDoc(doc(alice(), 'contentMeta', 'pointer')));
+    await assertFails(getDoc(doc(anon(), 'contentMeta', 'pointer')));
+    await assertFails(setDoc(doc(alice(), 'contentMeta', 'pointer'), { version: 99 }));
+    await assertFails(getDocs(collection(alice(), 'contentMeta')));
+    await assertFails(getDoc(doc(alice(), 'contentMeta', 'other')));
+  });
+});
+
 describe('default deny', () => {
   it('denies an unknown collection', async () => {
     await assertFails(getDoc(doc(alice(), 'somethingUnplanned', 'x')));

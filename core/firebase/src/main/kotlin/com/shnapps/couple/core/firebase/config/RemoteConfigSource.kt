@@ -4,6 +4,7 @@ import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings
 import com.shnapps.couple.core.firebase.FirebaseEnvironment
 import com.shnapps.couple.core.firebase.R
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -38,6 +39,21 @@ class RemoteConfigSource @Inject constructor(
         ).await()
         remoteConfig.setDefaultsAsync(R.xml.remote_config_defaults).await()
         runCatching { remoteConfig.fetchAndActivate().await() }
+    }
+
+    /**
+     * Fetches and activates, if the minimum fetch interval allows. A failure leaves the last
+     * activated values in force, which is always a usable answer.
+     */
+    @Suppress("TooGenericExceptionCaught") // Any fetch failure means "keep what we have".
+    suspend fun refresh() {
+        try {
+            remoteConfig.fetchAndActivate().await()
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Exception) {
+            // Last known good stays active.
+        }
     }
 
     fun boolean(key: String): Boolean = remoteConfig.getBoolean(key)
