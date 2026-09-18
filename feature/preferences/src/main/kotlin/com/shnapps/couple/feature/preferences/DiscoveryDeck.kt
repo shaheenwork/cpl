@@ -216,19 +216,25 @@ private fun SwipeableCard(
             }
             .pointerInput(key, onSwipeRight != null) {
                 val threshold = size.width * SWIPE_THRESHOLD_FRACTION
+                // The distance is counted here, as the events arrive, and never read back from
+                // the animation. Under load, input is batched per frame and the release can be
+                // handled before the offset's own updates have run, so a real swipe read as a
+                // short drag and sprang back.
+                var dragged = 0f
                 detectHorizontalDragGestures(
+                    onDragStart = { dragged = 0f },
                     onDragEnd = {
-                        val travelled = offset.value
                         when {
-                            travelled < -threshold -> onSwipeLeft()
-                            travelled > threshold && onSwipeRight != null -> onSwipeRight()
+                            dragged < -threshold -> onSwipeLeft()
+                            dragged > threshold && onSwipeRight != null -> onSwipeRight()
                             else -> scope.launch { offset.animateTo(0f, spring()) }
                         }
                     },
                     onDragCancel = { scope.launch { offset.animateTo(0f, spring()) } },
                     onHorizontalDrag = { change, amount ->
                         change.consume()
-                        scope.launch { offset.snapTo(offset.value + amount) }
+                        dragged += amount
+                        scope.launch { offset.snapTo(dragged) }
                     },
                 )
             },

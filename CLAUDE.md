@@ -177,6 +177,15 @@ qualifiers renders narrow and silently clips anything taller — the gallery did
 three phases (D-024). Feature tests pass `qualifiers = "w392dp-h840dp-xhdpi"`; the design
 system sets its size in `robolectric.properties`.
 
+**The dev flavor needs cleartext to the emulators** — `src/dev/res/xml/network_security_config.xml`,
+dev only (D-026). Without it every Firebase call on a device fails.
+
+**The nav host is inset at the root** (`safeDrawingPadding()`, including the keyboard). Screens
+do not add status-bar or IME padding of their own (D-028).
+
+**Never assume a flow's first value.** `collectAsStateWithLifecycle(initialValue = …)` renders
+that guess on the first frame; the lock screen once trapped every user that way (D-027).
+
 **Kotlin/KSP versions are paired.** Kotlin 2.2.10 ↔ KSP `2.2.10-2.0.2`. KSP changed to
 standalone versioning at 2.3.0; do not mix the schemes.
 

@@ -21,9 +21,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.shnapps.couple.core.designsystem.theme.AfterhoursEasing
@@ -68,7 +68,9 @@ fun WaitingForPartner(
         modifier = modifier
             .fillMaxWidth()
             .padding(spacing.lg)
-            .semantics {
+            // Cleared and set, not added to: otherwise TalkBack reads the description and then
+            // each line of text again (seen in the device accessibility tree).
+            .clearAndSetSemantics {
                 liveRegion = LiveRegionMode.Polite
                 contentDescription = listOfNotNull(message, detail).joinToString(". ")
             },

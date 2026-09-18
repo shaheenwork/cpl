@@ -2,10 +2,13 @@ package com.shnapps.couple
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -43,14 +46,23 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // Light system-bar icons always. The default follows the system theme, and on a
+        // phone in light mode that drew dark icons on this dark-only app (DECISIONS.md D-009),
+        // leaving the clock and battery all but invisible.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+        )
         acceptInviteLink(intent)
 
         setContent {
             AfterhoursTheme {
                 val navController = rememberNavController()
+                // Null until the lock state has been read. Assuming "locked" instead sent every
+                // launch to the lock screen before the real state arrived — and with no lock
+                // set, that screen had nothing to offer and never left.
                 val lockState by appLockManager.lockState
-                    .collectAsStateWithLifecycle(initialValue = LockState.Locked)
+                    .collectAsStateWithLifecycle(initialValue = null)
 
                 // The lock is a destination rather than an overlay, so the back stack
                 // underneath it survives and the user returns exactly where they were.
@@ -61,10 +73,18 @@ class MainActivity : FragmentActivity() {
                 }
 
                 AfterhoursSurface {
-                    CplNavHost(
-                        navController = navController,
-                        biometricAuthenticator = biometricAuthenticator,
-                    )
+                    // Nothing renders until the lock state is known, so a cold start can
+                    // never show a frame of the app to someone who should see the lock.
+                    if (lockState != null) {
+                        CplNavHost(
+                            navController = navController,
+                            biometricAuthenticator = biometricAuthenticator,
+                            // Edge to edge: the surface paints behind the system bars while
+                            // every screen is inset from them, and from the keyboard, so a
+                            // form's button is never left underneath it.
+                            modifier = Modifier.safeDrawingPadding(),
+                        )
+                    }
                 }
             }
         }

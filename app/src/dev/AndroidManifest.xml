@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- The Firebase Emulator Suite speaks plain HTTP, which Android refuses by default.
+         Cleartext is allowed for the emulator hosts only, and only in the dev flavor:
+         staging and prod never merge this manifest. -->
+    <application android:networkSecurityConfig="@xml/network_security_config" />
+
+</manifest>

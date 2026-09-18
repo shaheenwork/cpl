@@ -398,3 +398,41 @@ the old listener without credentials — the error was thrown into that scope, w
 handler: an app crash. The per-user inner flow now catches it and ends; the auth change that
 follows starts the next listener. Firestore failures are also classified by
 `FirebaseFirestoreException.Code` now, rather than by matching message text.
+
+---
+
+## D-026 — Dev builds allow cleartext to the emulator hosts, and nothing else
+**First device run.** The Firebase Emulator Suite speaks plain HTTP, which Android refuses by
+default: every dev build had failed on a device with *"Cleartext HTTP traffic to 10.0.2.2 not
+permitted"*. No JVM test could see it. `src/dev/AndroidManifest.xml` points at a network
+security config allowing cleartext to `10.0.2.2` (the host from an emulator) and
+`127.0.0.1`/`localhost` (a physical phone through `adb reverse`) only. Staging and prod never
+merge that manifest, so they keep HTTPS-only.
+
+---
+
+## D-027 — The lock state is unknown until read; the lock screen is never a dead end
+**First device run.** The activity collected the lock state with `initialValue = Locked`, so the
+first frame always navigated to the lock screen. With no lock set — the default — the real
+state (unlocked) arrived a moment later, but the lock screen had nothing to offer and never
+left: **every launch ended on a dead "Locked" screen.** Two fixes, each sufficient alone:
+- The activity starts from `null` ("not known yet") and renders nothing until the state is
+  read, so a cold start still can never flash the app at someone who should see the lock.
+- The lock screen leaves itself whenever the manager reports unlocked, however it got there.
+
+---
+
+## D-028 — Edge to edge: the root insets content; system-bar icons are always light
+**First device run.** `enableEdgeToEdge()` drew every screen under the status bar (the clock sat
+on the eyebrow text) and under the keyboard (the sign-up button was unreachable while
+typing). The nav host now takes `safeDrawingPadding()` — system bars, cutouts and the IME —
+so screens need no insets of their own; a screen that wants to paint under the bars later
+opts out explicitly. The default system-bar style follows the *system* theme, which put dark
+icons on this dark-only app (D-009); it is pinned to `SystemBarStyle.dark`.
+
+---
+
+## D-029 — Firebase clients are configured once per process
+**First device run.** Instrumented tests build a fresh Hilt `SingletonComponent` per test, but
+Firebase clients are process-wide, and settings or `useEmulator()` applied after first use
+throw. `FirebaseModule` now configures each client once per process, whichever component asks.

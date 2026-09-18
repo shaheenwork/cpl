@@ -53,6 +53,22 @@ class AppLockViewModelTest {
     }
 
     @Test
+    fun `a lock screen shown while the lock is off dismisses itself`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            // Found on the first device run: with no lock set, the screen had nothing to
+            // offer and never left, so every launch ended on a dead "Locked" screen.
+            preferencesFlow.value = AppPreferences(lockMode = AppLockMode.OFF)
+
+            assertThat(viewModel().uiState.value.unlocked).isTrue()
+        }
+
+    @Test
+    fun `a lock that is on keeps the screen up until the user unlocks`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            assertThat(viewModel().uiState.value.unlocked).isFalse()
+        }
+
+    @Test
     fun `pin mode starts on the pin pad`() = runTest(mainDispatcherRule.testDispatcher) {
         preferencesFlow.value = preferencesFlow.value.copy(lockMode = AppLockMode.PIN)
         assertThat(viewModel().uiState.value.showPinEntry).isTrue()

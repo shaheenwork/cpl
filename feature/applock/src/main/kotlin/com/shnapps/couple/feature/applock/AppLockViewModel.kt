@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.shnapps.couple.core.model.AppLockMode
 import com.shnapps.couple.core.security.AppLockManager
 import com.shnapps.couple.core.security.BiometricResult
+import com.shnapps.couple.core.security.LockState
 import com.shnapps.couple.core.security.PinRules
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,6 +39,13 @@ class AppLockViewModel @Inject constructor(
     val uiState: StateFlow<AppLockUiState> = _uiState.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            // Never a dead end. The lock screen can be on screen while the app is in fact
+            // unlocked — the lock was switched off, or it was shown before the lock state was
+            // known. Whenever the manager says unlocked, leave.
+            appLockManager.lockState.first { it == LockState.Unlocked }
+            _uiState.update { it.copy(unlocked = true) }
+        }
         viewModelScope.launch {
             val mode = appLockManager.lockMode.first()
             val hasPin = appLockManager.hasPinFallback()

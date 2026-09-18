@@ -126,10 +126,18 @@ firebase emulators:start --only auth,firestore,storage --project afterhours-dev-
 ./gradlew connectedDevDebugAndroidTest
 ```
 
-> **Blocked on this machine.** The x86_64 emulator needs a hypervisor driver that must be
-> installed from an elevated shell. See HUMAN_SETUP.md section 1.3 — it is a one-time,
-> two-minute fix, and everything else (SDK, system image, the `afterhours_a` AVD) is
-> already in place.
+**Current: 2 passing** on `afterhours_a` (API 36): a round trip through the emulators, and
+one user refused another's document.
+
+Manual device checks that have no automated equivalent yet, and how they were done:
+- `FLAG_SECURE`: `adb exec-out screencap -p` on a secure screen must come back solid black
+  (and the app-switcher thumbnail with it); a non-secure screen captures normally.
+- Offline: `adb shell cmd connectivity airplane-mode enable|disable` around a few answers,
+  then read the documents back from the Firestore emulator.
+- Gestures: `adb shell input swipe x1 y x2 y 250` across the card.
+
+The software-rendered emulator is slow; if a "System UI isn't responding" dialog appears,
+choose Wait.
 
 From Phase 12 a second AVD is required, because the synchronized-session test drives two
 clients at once.

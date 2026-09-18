@@ -36,7 +36,7 @@ even though `JAVA_HOME` is set.
 Done automatically. Installed: `cmdline-tools` (16111833), the
 `system-images;android-36;google_apis;x86_64` image, and an AVD named **`afterhours_a`**.
 
-### ⬜ 1.3 Install a hypervisor — **BLOCKING, NEEDS ADMIN**
+### ✅ 1.3 Install a hypervisor — **done** (WHPX, confirmed by `emulator -accel-check`)
 
 **This is the one thing blocking the app from being run and instrumented.** The emulator
 refuses to start:

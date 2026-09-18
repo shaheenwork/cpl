@@ -438,3 +438,51 @@ deployed rules (the rules tests use the JS SDK with the same field shapes).
 - **Boundary shape validation** — Phase 6, with the boundaries UI.
 - **For Phase 7:** secret answers match only secret answers (D-021); changing an answer to a
   negative, or removing it, must withdraw a match that has not been revealed yet.
+
+
+---
+
+## Device verification (after Phase 5)
+
+The hypervisor is in place (`emulator -accel-check`: WHPX installed and usable), so the app ran
+on a device for the first time: the `afterhours_a` AVD, API 36, against the emulator suite. It
+found five bugs that no JVM test could, all fixed.
+
+### Verified on the device
+- **Instrumented tests** `connectedDevDebugAndroidTest`: 2/2 — the app reads and writes
+  through the emulators, and one user cannot read another's document (Phase 1's exit
+  criterion, proved for the first time).
+- **Sign-up** against the Auth emulator; **age gate** writes its attestation with the server's
+  time through the real rules; the four welcome beats.
+- **Pairing, end to end**: the app entered a partner's code, showed the same three symbols as
+  the server, and moved into discovery by itself once the partner approved over HTTP.
+- **`FLAG_SECURE`**: the lock screen and discovery capture as solid black, and the
+  app-switcher thumbnail is a black card. The pairing screen (deliberately not secure)
+  captures normally.
+- **Answers** land in `users/{uid}/preferences` from the Android client through the deployed
+  rules, with server time and `taxonomyVersion`.
+- **Offline**: in airplane mode the deck kept moving; nothing reached the server; both
+  answers synced within 3 s of reconnecting, "secretly curious" intact. (The dev flavor uses
+  Firestore's memory cache, so this proves the queue, not survival of process death offline
+  — that is prod's persistent cache.)
+- **Swipes**: left skips and right goes back at every position tried (20+). Twice, the first
+  swipe right after the harness's first accessibility dump of a new screen was dropped; three
+  trials without the dump worked, so it is attributed to the harness (see below).
+- **Relaunch** of a paired user routes to Home; discovery reopens with the answered cards gone.
+
+### Found and fixed
+- **Cleartext to the emulators was refused**, so the dev build had never worked on a device
+  (D-026).
+- **Every launch without a lock ended on a dead lock screen** (D-027).
+- **Content under the status bar and the keyboard**; dark status-bar icons on the dark app
+  (D-028).
+- **Firebase configured twice per process** under instrumented tests (D-029).
+- **Screen-reader duplicates**: the waiting indicator and the card's privacy note announced
+  their description and then their visible text again; both now clear and set.
+- **Swipe distance** is counted as events arrive rather than read back from the animation,
+  removing a race that could turn a fast swipe into a spring-back under load.
+
+### Still needs a person
+- **TalkBack by ear.** TalkBack is installed on the AVD (Settings > Accessibility); the
+  accessibility tree was checked, the speech was not.
+- **How the swipe feels** under a real finger.

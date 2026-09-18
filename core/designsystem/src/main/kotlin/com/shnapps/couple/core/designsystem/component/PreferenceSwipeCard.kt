@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -111,7 +112,9 @@ private fun PrivacyNote() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .semantics(mergeDescendants = true) {
+            // One announcement, in the fuller wording, rather than the description and then
+            // the visible line again.
+            .clearAndSetSemantics {
                 contentDescription = "Only you can see this answer. " +
                     "Your partner is told only if you both choose it."
             },
