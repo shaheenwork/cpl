@@ -3,6 +3,7 @@ package com.shnapps.couple.core.firebase.content
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.Source
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageException
 import com.shnapps.couple.core.common.AppError
@@ -57,7 +58,7 @@ class FirebaseContentRemoteDataSource @Inject constructor(
             // Remote Config has no emulator; publish-content --emulator writes here instead
             // (DECISIONS.md D-041). No document yet means nothing has been published.
             firestoreCall {
-                val pointer = firestore.document(EMULATOR_POINTER_DOC).get().await()
+                val pointer = firestore.document(EMULATOR_POINTER_DOC).get(Source.SERVER).await()
                 pointer.getLong(FIELD_VERSION)?.toInt() ?: 0
             }
         } else {
@@ -85,11 +86,15 @@ class FirebaseContentRemoteDataSource @Inject constructor(
         Outcome.Failure(AppError.Unknown(error))
     }
 
+    /**
+     * Server only. Offline, Firestore would otherwise answer from its cache and the sync
+     * would look successful — recording a sync time for a server it never reached.
+     */
     override suspend fun deltasSince(cursorMillis: Long): Outcome<List<ContentDelta>> = firestoreCall {
         firestore.collection(DELTA_COLLECTION)
             .whereGreaterThanOrEqualTo(FIELD_UPDATED_AT, Timestamp(Date(cursorMillis)))
             .orderBy(FIELD_UPDATED_AT, Query.Direction.ASCENDING)
-            .get()
+            .get(Source.SERVER)
             .await()
             .documents
             .mapNotNull { document ->

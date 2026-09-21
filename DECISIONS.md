@@ -585,9 +585,14 @@ may be dropped on a schema change; data that cannot be rebuilt belongs in anothe
   to its item's bundled version and earlier, so a disable survives later bundles until the
   item is edited past it. They are fetched with an inclusive `updatedAt` cursor and never
   deleted (`enable` writes `published`).
-- `ContentSyncWorker` runs on every process start and every 12 hours with a network. It
+- `ContentSyncWorker` runs every 12 hours, and once whenever a signed-in session starts — at
+  launch when already signed in, and at each sign-in — always only with a network. The
+  session's request replaces any earlier attempt still waiting out its retry backoff. It
   attempts the bundle and the deltas independently — a global disable (§9.6) must land even
   when a download fails — and does not retry while signed out or on an invalid bundle.
+- The pointer and the deltas are read from the server only. Offline, Firestore would answer
+  from its cache and the sync would look successful, recording a sync that never reached
+  the server (found on the device).
 
 ---
 

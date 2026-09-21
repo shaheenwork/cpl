@@ -627,7 +627,8 @@ MutualDiscoveryViewModelTest 10, MutualDiscoverySnapshotTest 6 (5 goldens review
 - **On the device** (D-040): `content.db` (Room 2.8.5, its own database, schema exported),
   `ContentRepository` — shipped-bundle install on first use and after app updates, bundle
   sync when the pointer moves, deltas laid over the bundle, fail-closed parsing — and
-  `ContentSyncWorker` (WorkManager 2.11.2 via Hilt) on every start and twice a day.
+  `ContentSyncWorker` (WorkManager 2.11.2 via Hilt) at every signed-in session start and
+  twice a day.
 - **The taxonomy now travels in the bundle** (§9.5): `TaxonomyRepository` reads the
   installed bundle's copy; the separate taxonomy asset and Remote Config key are gone.
 - **Rules**: `content/{id}` readable by any signed-in app, writable by none;
@@ -638,7 +639,47 @@ MutualDiscoveryViewModelTest 10, MutualDiscoverySnapshotTest 6 (5 goldens review
   removed and `hs_err_pid*.log` / `replay_pid*.log` are now ignored.
 
 ### Verified
-VERIFICATION_PLACEHOLDER
+```
+./gradlew check assembleDevDebug            BUILD SUCCESSFUL (content gate included)
+npm --prefix tools test                     27/27
+npm --prefix firebase/tests test            64/64   (4 new: deltas and the content pointer)
+:core:data      ContentBundleFileTest 6, ContentBundleParserTest 5,
+                DefaultContentRepositoryTest 15 (real in-memory Room), AssetShippedContentTest 2
+:core:database  ContentDaoTest 4
+:app            ContentInspectorViewModelTest 3
+connected       ContentOnDeviceTest 1/1 — device in airplane mode, Wi-Fi off, no network at all
+```
+- **Exit criteria.** *Validator passes*: 626 published items, no problems, and `check` fails
+  on any edit that breaks it or leaves the bundle stale. *Content loads and browses fully
+  offline*: with no network at all, a fresh cache installed all 626 items from the shipped
+  bundle in 2.2 s on the emulator; in the app, the inspector browsed and filtered with
+  airplane mode on (After dark · apart · 5 → 10 items, as in the bundle).
+- **The download path, on the device**: `publish-content --emulator`, then a test bundle v3
+  behind the pointer — "Sync now" installed v3 (the retitled item showed); `content-delta
+  disable` → 625 items (Flirt 62); `enable` → 626.
+- **Mutation-checked gates**: the validator tests break one thing each (a prohibited term,
+  an uncovered sensitive theme, an unexcludable preference, a mode mismatch, an unreachable
+  requirement, unknown vocabulary, a near-duplicate, a duplicate id, a thin pack) and assert
+  exactly that is reported. And through Gradle: a one-word edit to a pack, without a
+  rebuilt bundle, failed `./gradlew validateContent` ("stale, it no longer matches the
+  packs"); reverting it passed again.
+
+### Found and fixed on the device
+- **"Sync now" offline reported success**: Firestore answered the delta query from its cache,
+  and the sync time moved. Pointer and deltas are now read from the server only; offline it
+  says `failed: Network` and the time stays.
+- **The first sync ran before sign-in** (the rules refuse signed-out reads) and nothing tried
+  again. A sync now runs whenever a signed-in session starts.
+- **A session's sync waited out an old retry**: an offline attempt sat in a 5-minute backoff
+  and `KEEP` ignored the new request. Session requests now `REPLACE` it.
+
+### Observed, not changed
+- An offline cold start in the dev build shows the age gate: the attestation is checked
+  against the server and fails closed, and the dev build keeps Firestore's cache in memory
+  only. Staging and prod persist the cache. Offline launch is a Phase 22 topic.
+- One ANR ("No response to onStartJob") right after `adb install`: the main thread was
+  rendering, and system_server and SystemUI dropped frames at the same moment — emulator
+  load, not app code. Not seen again.
 
 ### Deferred
 - **The "Plus" content** (D-043): game prompts (Phase 11), roleplay scenarios and secret

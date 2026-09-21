@@ -209,6 +209,11 @@ the Firebase emulators and a 4 GB Gradle daemon together can fail a build with "
 memory allocation failed". With the emulator up, build with
 `--max-workers=2 "-Dorg.gradle.jvmargs=-Xmx2560m -XX:MaxMetaspaceSize=768m"`.
 
+**After an airplane-mode toggle, wait for the network before a cold start.** The emulator's
+Wi-Fi returns in stages; until `adb shell ping -c 1 10.0.2.2` answers, the app cannot reach
+the server, fails closed on the age check and shows the age gate, and WorkManager stops any
+running sync. Neither is a bug.
+
 **The functions e2e suite wipes the dev emulator project.** Seed manual device checks again
 after running it. Integration tests use their own project and touch nothing (D-037).
 

@@ -175,8 +175,19 @@ firebase emulators:start --only auth,firestore,storage --project afterhours-dev-
 ./gradlew connectedDevDebugAndroidTest
 ```
 
-**Current: 2 passing** on `afterhours_a` (API 36): a round trip through the emulators, and
-one user refused another's document.
+**Current: 3 passing** on `afterhours_a` (API 36): a round trip through the emulators, one
+user refused another's document, and the content catalogue installing from the shipped
+bundle with no network (Phase 8).
+
+`ContentOnDeviceTest` needs no emulators. Run it with the device offline to prove the point:
+
+```bash
+adb shell cmd connectivity airplane-mode enable
+adb shell svc wifi disable
+./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.shnapps.couple.ContentOnDeviceTest
+adb shell cmd connectivity airplane-mode disable
+adb shell svc wifi enable
+```
 
 Manual device checks that have no automated equivalent yet, and how they were done:
 - `FLAG_SECURE`: `adb exec-out screencap -p` on a secure screen must come back solid black
@@ -187,6 +198,11 @@ Manual device checks that have no automated equivalent yet, and how they were do
 
 The software-rendered emulator is slow; if a "System UI isn't responding" dialog appears,
 choose Wait.
+
+After toggling airplane mode, wait until `adb shell ping -c 1 10.0.2.2` answers before
+launching the app. Wi-Fi comes back in stages; a cold start in that window finds the server
+unreachable and, failing closed, shows the age gate (the attestation is checked against the
+server, and the dev build keeps no persistent Firestore cache).
 
 From Phase 12 a second AVD is required, because the synchronized-session test drives two
 clients at once.

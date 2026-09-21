@@ -50,16 +50,16 @@ class ContentSyncWorker @AssistedInject constructor(
     }
 }
 
-/** Schedules [ContentSyncWorker]: once now, and then twice a day, whenever there is a network. */
+/** Schedules [ContentSyncWorker], always for when there is a network. */
 @Singleton
 class ContentSyncScheduler @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    fun schedule() {
-        val workManager = WorkManager.getInstance(context)
-        val online = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+    private val online = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
 
-        workManager.enqueueUniquePeriodicWork(
+    /** Twice a day, for as long as the app is installed. */
+    fun schedulePeriodic() {
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             PERIODIC_WORK,
             ExistingPeriodicWorkPolicy.KEEP,
             PeriodicWorkRequestBuilder<ContentSyncWorker>(PERIOD_HOURS, TimeUnit.HOURS)
@@ -67,11 +67,17 @@ class ContentSyncScheduler @Inject constructor(
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, BACKOFF_MINUTES, TimeUnit.MINUTES)
                 .build(),
         )
-        // On every process start too, so a disable reaches an app that is opened long
-        // before its next periodic run. KEEP: a run already queued is not duplicated.
-        workManager.enqueueUniqueWork(
-            ON_START_WORK,
-            ExistingWorkPolicy.KEEP,
+    }
+
+    /**
+     * Once, as soon as possible — so a disable reaches an app that is opened long before its
+     * next periodic run. REPLACE, not KEEP: an earlier attempt that failed offline sits in
+     * retry backoff, and keeping it would make a new session wait that out (seen on a device).
+     */
+    fun requestSync() {
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            ON_DEMAND_WORK,
+            ExistingWorkPolicy.REPLACE,
             OneTimeWorkRequestBuilder<ContentSyncWorker>()
                 .setConstraints(online)
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, BACKOFF_MINUTES, TimeUnit.MINUTES)
@@ -81,7 +87,7 @@ class ContentSyncScheduler @Inject constructor(
 
     private companion object {
         const val PERIODIC_WORK = "content-sync"
-        const val ON_START_WORK = "content-sync-on-start"
+        const val ON_DEMAND_WORK = "content-sync-now"
         const val PERIOD_HOURS = 12L
         const val BACKOFF_MINUTES = 5L
     }
