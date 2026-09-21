@@ -60,6 +60,11 @@ that fail the build if a feature imports another feature, if Firebase leaks outs
 `:core:firebase`, if a `@Composable` touches Firestore, or if anything logs analytics
 outside the typed allowlist.
 
+The experience engine is one algorithm, [engine/SPEC.md](engine/SPEC.md), implemented twice:
+the server filters by both partners' boundaries, scores and samples; the device assembles
+and remixes, only ever within what the server released. Shared test vectors hold the two
+implementations to the same nights, seed for seed.
+
 See [CLAUDE.md](CLAUDE.md) for the module map and conventions.
 
 ---
@@ -72,6 +77,8 @@ See [CLAUDE.md](CLAUDE.md) for the module map and conventions.
 | [PROGRESS.md](PROGRESS.md) | Live phase status — start here |
 | [CLAUDE.md](CLAUDE.md) | Build commands, module map, conventions, gotchas |
 | [DECISIONS.md](DECISIONS.md) | Every non-obvious call, and why |
+| [TESTING.md](TESTING.md) | How to run every test tier |
+| [engine/SPEC.md](engine/SPEC.md) | The experience engine's algorithm, exactly |
 | [HUMAN_SETUP.md](HUMAN_SETUP.md) | Firebase, Play Console and toolchain steps only a human can do |
 
 ---

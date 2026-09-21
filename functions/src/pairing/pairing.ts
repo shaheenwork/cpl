@@ -22,7 +22,7 @@
  */
 import { FieldValue, Timestamp, type Firestore, type Transaction } from 'firebase-admin/firestore';
 import { contentLevelOf } from '../engine/filters';
-import { PairingError } from '../shared/errors';
+import { ServiceError } from '../shared/errors';
 import { consumeRateLimit } from '../shared/rateLimit';
 import { CODE_TTL_MS, generateCode, isWellFormed } from './code';
 import { generateVerification } from './verification';
@@ -94,7 +94,7 @@ export async function createPairingCode(
   return db.runTransaction(async (tx) => {
     const userRef = users(db).doc(uid);
     const user = (await tx.get(userRef)).data() as UserDoc | undefined;
-    if (isPaired(user)) throw new PairingError('failed-precondition', 'already-paired');
+    if (isPaired(user)) throw new ServiceError('failed-precondition', 'already-paired');
 
     // One live code per creator: a new one retires the old.
     const previousCode = user?.pairing?.role === 'CREATOR' ? user.pairing.code : undefined;
@@ -102,7 +102,7 @@ export async function createPairingCode(
 
     const candidateSnaps = await Promise.all(candidates.map((c) => tx.get(codes(db).doc(c))));
     const index = candidateSnaps.findIndex((snap) => !isLive(snap.data() as CodeDoc | undefined, nowMs));
-    if (index < 0) throw new PairingError('resource-exhausted', 'no-code-available');
+    if (index < 0) throw new ServiceError('resource-exhausted', 'no-code-available');
     const code = candidates[index];
 
     if (previousSnap?.exists && isLive(previousSnap.data() as CodeDoc, nowMs)) {
@@ -147,7 +147,7 @@ export async function requestPairing(
   rawCode: unknown,
   nowMs: number,
 ): Promise<{ verification: string[] }> {
-  if (!isWellFormed(rawCode)) throw new PairingError('invalid-argument', 'malformed-code');
+  if (!isWellFormed(rawCode)) throw new ServiceError('invalid-argument', 'malformed-code');
   const code = rawCode;
 
   // Counted before the lookup, so failed guesses are exactly what gets limited.
@@ -163,11 +163,11 @@ export async function requestPairing(
     // "Not found", "expired" and "cancelled" are deliberately indistinguishable to the
     // caller: telling a guesser *why* a code failed tells them which codes exist.
     if (!codeDoc || codeDoc.status === 'CANCELLED' || codeDoc.expiresAt.toMillis() <= nowMs) {
-      throw new PairingError('not-found', 'invalid-code');
+      throw new ServiceError('not-found', 'invalid-code');
     }
-    if (codeDoc.status === 'CONSUMED') throw new PairingError('not-found', 'invalid-code');
-    if (codeDoc.creatorUid === joinerUid) throw new PairingError('failed-precondition', 'own-code');
-    if (codeDoc.status === 'PENDING') throw new PairingError('failed-precondition', 'busy');
+    if (codeDoc.status === 'CONSUMED') throw new ServiceError('not-found', 'invalid-code');
+    if (codeDoc.creatorUid === joinerUid) throw new ServiceError('failed-precondition', 'own-code');
+    if (codeDoc.status === 'PENDING') throw new ServiceError('failed-precondition', 'busy');
 
     const joinerRef = users(db).doc(joinerUid);
     const creatorRef = users(db).doc(codeDoc.creatorUid);
@@ -175,10 +175,10 @@ export async function requestPairing(
     const joiner = joinerSnap.data() as UserDoc | undefined;
     const creator = creatorSnap.data() as UserDoc | undefined;
 
-    if (isPaired(joiner)) throw new PairingError('failed-precondition', 'already-paired');
-    if (isPaired(creator)) throw new PairingError('not-found', 'invalid-code');
+    if (isPaired(joiner)) throw new ServiceError('failed-precondition', 'already-paired');
+    if (isPaired(creator)) throw new ServiceError('not-found', 'invalid-code');
     if (joiner?.pairing?.role === 'JOINER' && joiner.pairing.status === 'WAITING') {
-      throw new PairingError('failed-precondition', 'already-requesting');
+      throw new ServiceError('failed-precondition', 'already-requesting');
     }
 
     const verification = generateVerification();
@@ -214,13 +214,13 @@ export async function respondToPairing(
     const creator = (await tx.get(creatorRef)).data() as UserDoc | undefined;
     const pairing = creator?.pairing;
     if (pairing?.role !== 'CREATOR' || pairing.status !== 'REQUESTED') {
-      throw new PairingError('failed-precondition', 'nothing-to-respond-to');
+      throw new ServiceError('failed-precondition', 'nothing-to-respond-to');
     }
 
     const codeRef = codes(db).doc(pairing.code);
     const codeDoc = (await tx.get(codeRef)).data() as CodeDoc | undefined;
     if (!codeDoc || codeDoc.status !== 'PENDING' || codeDoc.creatorUid !== creatorUid || !codeDoc.joinerUid) {
-      throw new PairingError('failed-precondition', 'nothing-to-respond-to');
+      throw new ServiceError('failed-precondition', 'nothing-to-respond-to');
     }
 
     const joinerRef = users(db).doc(codeDoc.joinerUid);
@@ -233,10 +233,10 @@ export async function respondToPairing(
       return { coupleId: null };
     }
 
-    if (codeDoc.expiresAt.toMillis() <= nowMs) throw new PairingError('failed-precondition', 'expired');
+    if (codeDoc.expiresAt.toMillis() <= nowMs) throw new ServiceError('failed-precondition', 'expired');
     // Either side may have paired elsewhere since the request was made.
     if (isPaired(creator) || isPaired(joiner)) {
-      throw new PairingError('failed-precondition', 'already-paired');
+      throw new ServiceError('failed-precondition', 'already-paired');
     }
 
     const coupleRef = couples(db).doc();
@@ -323,12 +323,12 @@ export async function unpairCouple(db: Firestore, uid: string, nowMs: number): P
   await db.runTransaction(async (tx) => {
     const userRef = users(db).doc(uid);
     const coupleId = ((await tx.get(userRef)).data() as UserDoc | undefined)?.coupleId;
-    if (!coupleId) throw new PairingError('failed-precondition', 'not-paired');
+    if (!coupleId) throw new ServiceError('failed-precondition', 'not-paired');
 
     const coupleRef = couples(db).doc(coupleId);
     const couple = (await tx.get(coupleRef)).data() as { status: string; memberUids: string[] } | undefined;
     if (!couple || couple.status !== 'ACTIVE' || !couple.memberUids.includes(uid)) {
-      throw new PairingError('failed-precondition', 'not-paired');
+      throw new ServiceError('failed-precondition', 'not-paired');
     }
 
     tx.update(coupleRef, { status: 'UNPAIRED', unpairedAt: Timestamp.fromMillis(nowMs) });

@@ -1,5 +1,5 @@
 import type { Firestore } from 'firebase-admin/firestore';
-import { PairingError } from './errors';
+import { ServiceError } from './errors';
 
 /**
  * Fixed-window rate limiting, one counter document per user and action, stored in the
@@ -27,7 +27,7 @@ export async function consumeRateLimit(
       return;
     }
     if (data.count >= limit) {
-      throw new PairingError('resource-exhausted', 'rate-limited');
+      throw new ServiceError('resource-exhausted', 'rate-limited');
     }
     tx.update(ref, { count: data.count + 1 });
   });

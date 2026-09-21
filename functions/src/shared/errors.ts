@@ -5,7 +5,7 @@ import { HttpsError } from 'firebase-functions/v2/https';
  * HttpsErrors; the core logic stays free of the functions SDK so it can be tested directly
  * against the emulator.
  */
-export class PairingError extends Error {
+export class ServiceError extends Error {
   constructor(
     readonly code:
       | 'invalid-argument'
@@ -21,8 +21,8 @@ export class PairingError extends Error {
 
 export function toHttpsError(error: unknown): HttpsError {
   if (error instanceof HttpsError) return error;
-  if (error instanceof PairingError) return new HttpsError(error.code, error.reason);
+  if (error instanceof ServiceError) return new HttpsError(error.code, error.reason);
   // Never leak internals to a client.
-  console.error('Unexpected pairing failure', error);
+  console.error('Unexpected failure', error);
   return new HttpsError('internal', 'Something went wrong.');
 }

@@ -598,11 +598,15 @@ may be dropped on a schema change; data that cannot be rebuilt belongs in anothe
 
 ## D-041 — Against the emulators, the content pointer is a Firestore document
 **Phase 8.** Remote Config has no emulator, so in the `dev` flavor the app reads the content
-version from `contentMeta/pointer` instead (signed-in read, no client write), and
-`publish-content --emulator` writes it there. Staging and prod read Remote Config
-`content_version`, as §9.2 says. Publishing uploads the bundle first and moves the pointer
-second, only ever forwards; a published version is immutable (identical bytes are a no-op,
-different bytes are refused).
+version from `contentMeta/pointer` instead (signed-in read, no client write). Staging and
+prod apps read Remote Config `content_version`, as §9.2 says. Publishing uploads the bundle
+first and moves the pointer second, only ever forwards; a published version is immutable
+(identical bytes are a no-op, different bytes are refused).
+
+*Amended in Phase 9:* the server's engine needs the content version too, and reads the
+Firestore document in every environment (D-054). So `publish-content` now writes
+`contentMeta/pointer` everywhere, in a forward-only transaction, and on a real project
+raises Remote Config after it.
 
 ---
 
@@ -640,3 +644,150 @@ substances, no one who cannot consent.
 timing is decided only by the server (D-035), from its own template keys
 `reveal_min_delay_minutes` / `reveal_max_delay_minutes`. A client copy could only drift or
 mislead, so it is removed.
+
+---
+
+## D-046 — The engine is specified once and implemented twice, held together by shared vectors
+**Phase 9.** §10.1 splits the engine: the server filters, scores and samples; the device
+assembles, varies and remixes. Two implementations of one algorithm drift unless something
+holds them together. `engine/SPEC.md` is the algorithm, down to the last tie-break, and
+`engine/engine-fixtures.json` holds the shared vectors: a 96-item synthetic catalogue, the
+random sequence, 23 plans, 37 assemblies, 13 hand-made validation cases, 35 assembled nights
+re-validated, 55 chokepoint cases and 5 full generations. The TypeScript suite asserts the
+committed file is exactly what it computes; `:core:engine`'s `SharedVectorsTest` asserts
+Kotlin reproduces every plan, assembly and verdict. The server generates the file
+(`npm --prefix functions run engine:fixtures`); a deliberate change to output regenerates it
+and raises `ENGINE_VERSION` (§10.6).
+
+---
+
+## D-047 — Determinism: mulberry32, and only the arithmetic both runtimes agree on
+**Phase 9.** "Same inputs + seed → same night" (§10.6) has to hold across the JVM and V8.
+mulberry32 is 32-bit integer arithmetic only (`Math.imul` and Kotlin `Int` both wrap), so
+its sequence is identical bit for bit. Scores and fits use only `+ − × /`, comparisons and
+`floor` — no `pow`, `log` or `sqrt`, whose last bit is not guaranteed to agree. Every sort
+is stable with ties broken by id, compared by UTF-16 code unit as both languages do, and
+every random draw happens in the order the spec lists. Retry `a` uses
+`seed + a·0x9E3779B9 mod 2³²`, so one stored seed reproduces the whole generation.
+
+---
+
+## D-048 — The server decides what a couple may see; the device only rearranges what it was given
+**Phase 9.** The combined boundaries (`engineFilters`, D-032), both partners' affinity and
+the "curious" themes never leave the server, so the hard filter and the full score can only
+run there (§3.2, §5.4). The device gets a night and a bounded pool of alternates and
+assembles or remixes only within them. `PermittedPool` has an internal constructor; its one
+public way in, `fromServer`, builds it from a server night and drops, as defence in depth,
+anything of another mode, above the ceiling or unpublished. The device's score is the
+server's formula with every private term held neutral (`PublicScore`).
+
+Both sides are gated. Konsist fails the build if the pool's constructor, `Planner` or
+`Assembler` becomes public, or if anything outside an allowlist reads the content catalogue
+(`ContentChokepointTest`). The TypeScript architecture test keeps the catalogue and the
+pipeline to `experience/generate.ts`, and holds `pipeline.ts` to the order filter → score →
+sample → assemble → filter again (§10.3). Each gate was seen to fail on a deliberate
+violation before it was trusted.
+
+---
+
+## D-049 — The alternates are sampled, never the permitted set
+**Phase 9.** §5.5: a client must never be able to infer the couple's boundaries. Returning
+everything that passed the filter would do exactly that — its complement is what someone
+excluded. The pool is the best candidate for each slot plus two weighted random picks, about
+three items per chapter, resampled with every seed; if it ever covered the whole permitted
+set, one is dropped. Sampling ranks by score plus `2 × fit(duration)`, so a pool of perfect
+but long items cannot make a short night. Residual risk: many generations could together
+approximate the permitted set. The rate limit (30 an hour per user) bounds that, and it goes
+into SECURITY.md's residual risks (Phase 21).
+
+---
+
+## D-050 — Assembly is a bounded depth-first search, not a greedy pass
+**Phase 9.** A greedy fill dead-ended against the slot rules: the escalation limit looks at
+both neighbours, the finale must be the peak, and no three chapters in a row may share a
+type. Fill is a depth-first search in ranked order — a finale not at E last, then lengths
+that would leave the ±20% window unreachable, then value, then id — capped at 2,000 steps,
+keeping the first complete night as a fallback. The cap bounds what a pathological pool can
+cost a callable. The variety and duration passes then polish that night.
+
+---
+
+## D-051 — A night whose finale reaches the requested level beats the first valid night
+**Phase 9.** Early runs gave WILD requests valid nights that peaked at 2 — rule-abiding, but
+not what was asked. The pipeline keeps the first valid night as a fallback and spends its
+remaining retries (five attempts, each with a derived seed) looking for one whose finale is
+at E, returning that at once. On the real catalogue the finale reaches E in at least 95% of
+nights (asserted in the suite); in a 2,880-request sweep, 86% of nights came from the first
+attempt.
+
+---
+
+## D-052 — The server picks the seed, and a payload with fields it does not know is refused
+**Phase 9.** A client that chose seeds could hold the randomness still and vary one
+parameter at a time, reading the filter from the differences. The seed comes from
+`crypto.randomInt` on the server and is returned with the night, which is all
+reproducibility needs. `parseRequest` refuses any field besides mode, durationMin, moods,
+intensity, leadership, novelty and media instead of ignoring it: a payload carrying a seed,
+a uid or a coupleId is a client trying to decide something only the server decides, and
+failing loudly makes that bug visible in development.
+
+---
+
+## D-053 — Ask-first flags are private to each partner; the play history is server-only
+**Phase 9.** §3.2: an ASK_FIRST theme keeps its items but asks first, and only the partner
+who set it may know it was set. The flags are written per partner to
+`couples/{cid}/experiences/{id}/askFirst/{uid}`, readable by that uid alone (no list, no
+write), and the callable returns only the caller's. The experience document holds nothing
+private. The cooldown history, `couples/{cid}/engineState/history`, is closed to clients
+entirely: none needs it, and one that could write it could lift the cooldowns. Phase 9 reads
+it; the player writes it as chapters are played (Phase 10).
+
+---
+
+## D-054 — The server's engine reads the content the phones read
+**Phase 9.** The server must never pick an item a phone cannot show, and a disable must reach
+the engine as fast as it reaches the app. `loadCatalogue` takes the bundle deployed with the
+functions (copied from `content/dist` at build time) as the floor, loads a newer published
+bundle from Storage when `contentMeta/pointer` names one (once per instance), and lays the
+admin deltas over it by the app's own rule, re-read at most once a minute. So
+`publish-content` writes the pointer document in every environment (D-041, amended).
+
+---
+
+## D-055 — Ranking weights come from the server's Remote Config template, clamped
+**Phase 9.** §10.3 keeps w1–w7 in Remote Config so ranking can be tuned without a release.
+They are used on the server, so they are read from the server template (`getServerTemplate`)
+under the keys the app's template already declares, and cached for ten minutes. A missing,
+negative, non-numeric or absurd (above 20) value falls back to its default: a typo in the
+console must never turn ranking upside down. Under the emulators the defaults apply.
+
+---
+
+## D-056 — `PairingError` is now `ServiceError`
+**Phase 9.** The error that maps to callable error codes was named after the first callable
+that used it. The engine's callable needs the same mapping, so it was renamed; no behaviour
+changed.
+
+---
+
+## D-057 — Remixes re-plan inside the pool, and "more intense" never raises the ceiling
+**Phase 9.** "Make it more…" (§14.6) and "Not this one" (§3.1) run on the device, instantly
+and offline, so only within the `PermittedPool`. A modifier adjusts the request — a mood, the
+novelty, one standard length shorter, or where the climb starts — then re-plans and
+re-assembles over the pool. The result must validate and must differ from the night it
+replaces, or the answer is null and the app asks the server for a fresh night. The ceiling
+is always the night's: "more intense" starts one level below E instead of two, climbing
+sooner and never higher, because raising E would need the server's filter. "Not this one"
+swaps one chapter for the best released item that keeps every rule, at the same level or
+lower — except a finale, which may rise to the night's ceiling.
+
+---
+
+## D-058 — A few very short, very intense nights find nothing, and the server says so
+**Phase 9.** Three chapters in 15 minutes (±20%), climbing to 5 no more than one level at a
+time, ending on a finale at 5, with the roleplay mood pulling the middle towards roleplay.
+In a 2,880-request sweep over the real catalogue the only two failures were such Together
+requests; for that exact combination about 7% of seeds find no night. Rather than relax a
+rule, the callable answers `failed-precondition: not-enough-content`. The plan for Phase
+10's builder: retry once, since a fresh server seed almost always succeeds, then suggest a
+longer night. The lasting fix is content — more short, intense roleplay and finale items.

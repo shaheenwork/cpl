@@ -15,6 +15,7 @@ import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { coupleOf, recomputeCouple } from './couple/recompute';
 import * as reveals from './discovery/reveals';
+import * as experience from './experience/generate';
 import { revealTiming } from './discovery/timing';
 import * as pairing from './pairing/pairing';
 import { consumeRateLimit } from './shared/rateLimit';
@@ -170,3 +171,16 @@ export const releaseRevealsNow = onCall(options, (request) =>
 
 const RELEASE_ON_OPEN_LIMIT = 30;
 const RELEASE_ON_OPEN_WINDOW_MS = 60 * 60 * 1000;
+
+// ---------------------------------------------------------------------------
+// The experience engine (section 10)
+// ---------------------------------------------------------------------------
+
+/**
+ * A night for the caller's couple, built server-side behind the chokepoint (sections 3.2,
+ * 10.3). Returns the chapters, a bounded pool of alternates (section 5.5) and the caller's own
+ * ask-first chapters; nothing about either partner's boundaries. Rate-limited in the core.
+ */
+export const generateExperience = onCall(options, (request) =>
+  guarded(() => experience.generateExperience(getFirestore(), callerUid(request), request.data, Date.now())),
+);

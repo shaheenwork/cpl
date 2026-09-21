@@ -187,6 +187,27 @@ service cloud.firestore {
                       && request.resource.data.seenBy[request.auth.uid] == true;
         allow create, delete: if false;
       }
+
+      // Nights the engine built for the couple (§6.1, §10). Written only by the server
+      // (generateExperience); both members read them. They hold content ids, never anything
+      // about either partner's answers or limits.
+      match /experiences/{experienceId} {
+        allow get, list: if isActiveMember(coupleId);
+        allow write: if false;
+
+        // Each partner's ask-first chapters (§3.2), readable by that partner alone: the other
+        // must not learn that a limit exists, or where.
+        match /askFirst/{askUid} {
+          allow get: if isSelf(askUid) && isActiveMember(coupleId);
+          allow list, write: if false;
+        }
+      }
+    }
+
+    // What the engine remembers between nights (play history for cooldowns). Server-only:
+    // it is the engine's input, and nothing a client needs to read or may shape.
+    match /couples/{coupleId}/engineState/{document=**} {
+      allow read, write: if false;
     }
 
     // Matches waiting for their random release time (§5.3). If a client could see this, it
@@ -210,8 +231,9 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // The content pointer, for the Emulator Suite only: Remote Config has no emulator, so
-    // tools/publish-content --emulator writes the version here instead (DECISIONS.md D-041).
+    // The content pointer, written by tools/publish-content. The server's engine reads it in
+    // every environment; the dev app reads it in place of Remote Config, which has no
+    // emulator (DECISIONS.md D-041).
     match /contentMeta/pointer {
       allow get: if isSignedIn();
       allow list, write: if false;

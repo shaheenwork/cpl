@@ -466,6 +466,55 @@ describe('server-only collections', () => {
   });
 });
 
+describe('couples/{coupleId}/experiences (§6.1, §10)', () => {
+  const MALLORY = 'uid_mallory';
+  const mallory = () => testEnv.authenticatedContext(MALLORY).firestore();
+  const night = { status: 'READY', chapters: [{ index: 0, kind: 'WARM_UP', contentIds: ['flirt_one_look'], intensity: 1 }] };
+
+  before(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'couples', 'e1'), { status: 'ACTIVE', memberUids: [ALICE, BOB] });
+      await setDoc(doc(db, 'couples', 'e1', 'experiences', 'x1'), night);
+      await setDoc(doc(db, 'couples', 'e1', 'experiences', 'x1', 'askFirst', BOB), { chapters: [0] });
+      await setDoc(doc(db, 'couples', 'e1', 'engineState', 'history'), { lastPlayed: { flirt_one_look: 1 } });
+      await setDoc(doc(db, 'couples', 'gone'), { status: 'UNPAIRED', memberUids: [ALICE, BOB] });
+      await setDoc(doc(db, 'couples', 'gone', 'experiences', 'x2'), night);
+    });
+  });
+
+  it('lets both members read and list their nights', async () => {
+    await assertSucceeds(getDoc(doc(alice(), 'couples', 'e1', 'experiences', 'x1')));
+    await assertSucceeds(getDoc(doc(bob(), 'couples', 'e1', 'experiences', 'x1')));
+    await assertSucceeds(getDocs(collection(alice(), 'couples', 'e1', 'experiences')));
+  });
+
+  it('denies anyone outside the couple, and everyone once unpaired', async () => {
+    await assertFails(getDoc(doc(mallory(), 'couples', 'e1', 'experiences', 'x1')));
+    await assertFails(getDoc(doc(alice(), 'couples', 'gone', 'experiences', 'x2')));
+  });
+
+  it('denies every client write: nights are the server’s', async () => {
+    await assertFails(setDoc(doc(alice(), 'couples', 'e1', 'experiences', 'forged'), night));
+    await assertFails(updateDoc(doc(alice(), 'couples', 'e1', 'experiences', 'x1'), { status: 'COMPLETED' }));
+    await assertFails(deleteDoc(doc(bob(), 'couples', 'e1', 'experiences', 'x1')));
+  });
+
+  it('shows ask-first chapters to their owner alone (§3.2)', async () => {
+    await assertSucceeds(getDoc(doc(bob(), 'couples', 'e1', 'experiences', 'x1', 'askFirst', BOB)));
+    // The partner must not learn a limit exists: not by reading, not by listing.
+    await assertFails(getDoc(doc(alice(), 'couples', 'e1', 'experiences', 'x1', 'askFirst', BOB)));
+    await assertFails(getDocs(collection(alice(), 'couples', 'e1', 'experiences', 'x1', 'askFirst')));
+    await assertFails(getDocs(collection(bob(), 'couples', 'e1', 'experiences', 'x1', 'askFirst')));
+    await assertFails(setDoc(doc(bob(), 'couples', 'e1', 'experiences', 'x1', 'askFirst', BOB), { chapters: [] }));
+  });
+
+  it('keeps the engine state server-only, members included', async () => {
+    await assertFails(getDoc(doc(alice(), 'couples', 'e1', 'engineState', 'history')));
+    await assertFails(setDoc(doc(alice(), 'couples', 'e1', 'engineState', 'history'), { lastPlayed: {} }));
+  });
+});
+
 describe('content deltas (§9.2, §9.6)', () => {
   before(async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {

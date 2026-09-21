@@ -23,7 +23,7 @@ import {
   respondToPairing,
   unpairCouple,
 } from '../pairing/pairing';
-import { PairingError } from '../shared/errors';
+import { ServiceError } from '../shared/errors';
 
 // Its own project, so the triggers running in the Functions emulator (which serve
 // afterhours-dev-emulator) never touch this data mid-test.
@@ -39,9 +39,9 @@ async function clearEmulator(): Promise<void> {
   assert.ok(res.ok, `emulator clear failed: ${res.status}`);
 }
 
-async function rejectsWith(promise: Promise<unknown>, code: PairingError['code'], reason?: string) {
+async function rejectsWith(promise: Promise<unknown>, code: ServiceError['code'], reason?: string) {
   await assert.rejects(promise, (error: unknown) => {
-    assert.ok(error instanceof PairingError, `expected PairingError, got ${String(error)}`);
+    assert.ok(error instanceof ServiceError, `expected ServiceError, got ${String(error)}`);
     assert.equal(error.code, code);
     if (reason) assert.equal(error.reason, reason);
     return true;
@@ -128,7 +128,7 @@ describe('pairing', () => {
     it('answers missing, expired and used codes identically, so guesses learn nothing', async () => {
       const reasons: string[] = [];
       const capture = async (p: Promise<unknown>) =>
-        p.catch((e: PairingError) => reasons.push(`${e.code}/${e.reason}`));
+        p.catch((e: ServiceError) => reasons.push(`${e.code}/${e.reason}`));
 
       await capture(requestPairing(db, 'bob', '000000', NOW)); // never existed
       const expired = await createPairingCode(db, 'alice', NOW);
@@ -164,7 +164,7 @@ describe('pairing', () => {
 
       assert.equal(results.filter((r) => r.status === 'fulfilled').length, 1);
       const rejected = results.find((r) => r.status === 'rejected') as PromiseRejectedResult;
-      assert.equal((rejected.reason as PairingError).reason, 'busy');
+      assert.equal((rejected.reason as ServiceError).reason, 'busy');
       const joiner = (await code(c))?.joinerUid;
       assert.ok(joiner === 'bob' || joiner === 'carol');
     });

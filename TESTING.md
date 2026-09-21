@@ -20,11 +20,34 @@ Covers detekt (with the ktlint rule set via `detekt-formatting`), every module's
 tests, the Konsist architecture rules, and the content gate below. `check` runs `npm ci` in
 `tools/` the first time, so Node 22+ must be on PATH.
 
-The engine suite is the highest bar in the repo and runs on its own in about a second,
-because `:core:engine` is a pure JVM module:
+The engine suite is the highest bar in the repo and runs on its own in seconds, because
+`:core:engine` is a pure JVM module:
 
 ```bash
 ./gradlew :core:engine:test
+```
+
+### The experience engine (Phase 9)
+
+The engine is implemented twice — the server's TypeScript in `functions/src/engine/`, the
+device's Kotlin in `:core:engine` — to one spec, `engine/SPEC.md` (DECISIONS.md D-046).
+`engine/engine-fixtures.json` holds the vectors both suites check: the random sequence,
+plans, assemblies, validation verdicts, chokepoint cases and whole generations.
+
+- `SharedVectorsTest` (Kotlin) reproduces every vector; the server's `engine.unit.test.ts`
+  asserts the committed file is exactly what the TypeScript computes. A difference on either
+  side is a bug in one implementation or in the spec.
+- `ClientAssemblyTest` builds nights over the real catalogue; `RemixerTest` holds every
+  remix and swap to the pool, the ceiling and the rules.
+- `:core:engine`'s test task declares the vectors and `content/dist/bundle.json` as inputs,
+  so a change to either re-runs it (DECISIONS.md D-015).
+
+After a **deliberate** change to the algorithm, regenerate the vectors from the server,
+raise `ENGINE_VERSION` (TypeScript) and `Engine.VERSION` (Kotlin) together, and update the
+spec:
+
+```bash
+npm --prefix functions run engine:fixtures
 ```
 
 ```bash
@@ -84,7 +107,7 @@ content inspector (Home → Content inspector → Sync now):
 
 ```bash
 npm --prefix tools run publish-content -- --project afterhours-dev-emulator --emulator
-npm --prefix tools run content-delta -- disable flirt_one_look --project afterhours-dev-emulator --emulator
+npm --prefix tools run content-delta -- disable flirt_across_the_room --project afterhours-dev-emulator --emulator
 ```
 
 Note that the Functions end-to-end suite clears the dev project, deltas included.
@@ -164,6 +187,19 @@ npm --prefix functions run test:e2e
   running it; the Functions emulator picks up the new `lib/`.
 - **e2e**: the callables over HTTP exactly as the app calls them — unauthenticated calls
   refused, identity taken from the token and never the payload, errors mapped to codes.
+- **unit** also holds the engine (`engine.unit.test.ts`): the shared vectors, adversarial
+  sweeps proving no parameter, mood, seed or history brings back an excluded item, ask-first,
+  determinism, the bounded alternates, and 200 requests over the real catalogue. And its
+  architecture (`engine.architecture.unit.test.ts`): only `experience/generate.ts` reads the
+  catalogue, and the pipeline runs filter → score → sample → assemble → filter again.
+- **int** also drives `generateExperience` against Firestore (`experience.int.test.ts`):
+  either partner's NEVER, the more careful partner's level, ask-first told only to the
+  partner who set it, admin disables, cooldowns, determinism, missing filters computed first,
+  refused payload fields, unpaired callers, the rate limit, and a couple that has excluded
+  too much for any night.
+- **e2e** also calls `generateExperience` over HTTP (`experience.e2e.test.ts`): signed-out
+  callers refused, a night inside the couple's ceiling, payloads naming a couple, uid or seed
+  refused, and an unpaired caller told so as a precondition.
 
 ---
 
@@ -215,6 +251,7 @@ clients at once.
 |---|---|
 | `check` | Logic bugs, style drift, and layering violations — feature-to-feature deps, Firebase leaking out of `:core:firebase`, Firestore inside a `@Composable`, analytics outside the typed allowlist |
 | Rules tests | Privacy regressions. A rule that stops enforcing is otherwise invisible |
+| Engine vectors | The server's and the device's engines drifting apart — the same seed giving two different nights |
 | Instrumented | That the app really reaches the backend, and that real two-device flows work |
 
 A test Gradle doesn't re-run also passes. `:architecture:test` was UP-TO-DATE on every

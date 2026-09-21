@@ -31,6 +31,7 @@ not searched, and `firebase emulators:start` then dies with *"Could not spawn `j
 | `./gradlew connectedDevDebugAndroidTest` | Instrumented tests - needs an emulator **and** the Firebase emulators |
 | `npm --prefix tools run validate` | The content gate on its own (also `./gradlew validateContent`) |
 | `npm --prefix tools run bundle` | Rebuild `content/dist/bundle.json` after editing content — `check` fails until you do |
+| `npm --prefix functions run engine:fixtures` | Regenerate `engine/engine-fixtures.json` after a deliberate engine change |
 
 ### Firebase emulators
 
@@ -101,6 +102,20 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
 - A new mood, interaction type, chapter kind, media kind or status changes
   `content/vocabulary.json` **and** the enum in `:core:model` together —
   `ContentBundleFileTest` fails if they differ.
+
+### Experience engine
+
+- One algorithm, `engine/SPEC.md`, implemented twice: the server's TypeScript
+  (`functions/src/engine/`) filters, scores and samples; `:core:engine` (Kotlin) assembles
+  and remixes. Change the spec, both implementations and the shared vectors together, and
+  raise `ENGINE_VERSION` and `Engine.VERSION` when output changes for the same inputs (D-046).
+- Determinism is a rule of the code, not a hope: only `+ - * /`, comparisons and `floor`;
+  stable sorts with ties broken by id; random draws only where the spec lists them (D-047).
+- The device never runs the boundary filter and never assembles from a list of its own
+  choosing — only from `PermittedPool.fromServer` (D-048). Konsist enforces it.
+- On the server only `experience/generate.ts` loads the catalogue or runs the pipeline, and
+  the pipeline filters before anything else (§10.3); the TypeScript architecture test
+  enforces it.
 
 ### Design system
 
@@ -227,6 +242,10 @@ before publishing changed content.
 
 **Kotlin/KSP versions are paired.** Kotlin 2.2.10 ↔ KSP `2.2.10-2.0.2`. KSP changed to
 standalone versioning at 2.3.0; do not mix the schemes.
+
+**The server's engine has its own copy of the content.** `npm --prefix functions run build`
+copies `content/dist/bundle.json` into `functions/lib/`. After a content edit, rebuild the
+functions too, or the emulator's engine keeps choosing from the old bundle.
 
 ---
 

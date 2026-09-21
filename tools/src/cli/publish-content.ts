@@ -1,7 +1,7 @@
 /**
  * `npm --prefix tools run publish-content -- --project <id> [--emulator] [--bucket <name>]`
  *
- * Uploads the committed bundle for content.json's contentVersion, then moves the pointer
+ * Uploads the committed bundle for content.json's contentVersion, then moves the pointers
  * (BUILD_PROMPT.md section 9.2). See publish.ts for the rules it keeps.
  */
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
@@ -9,7 +9,7 @@ import { getRemoteConfig } from 'firebase-admin/remote-config';
 import { getStorage } from 'firebase-admin/storage';
 import { DEFAULT_CONTENT_ROOT, loadContent } from '../content';
 import { connect, describe, parseTarget } from '../firebase';
-import { bundleObjectPath, EMULATOR_POINTER_DOC, POINTER_PARAMETER, publishableBundle } from '../publish';
+import { bundleObjectPath, POINTER_DOC, POINTER_PARAMETER, publishableBundle } from '../publish';
 
 async function main(): Promise<void> {
   const { target } = parseTarget(process.argv.slice(2));
@@ -37,18 +37,19 @@ async function main(): Promise<void> {
     console.log(`  bundle: uploaded ${bundleObjectPath(version)} (${text.length} bytes)`);
   }
 
-  // 2. The pointer, only ever forwards.
-  if (target.emulator) {
-    const pointer = getFirestore(app).doc(EMULATOR_POINTER_DOC);
-    const moved = await getFirestore(app).runTransaction(async (tx) => {
-      const current = (await tx.get(pointer)).get('version');
-      if (typeof current === 'number' && current >= version) return false;
-      tx.set(pointer, { version, updatedAt: FieldValue.serverTimestamp() });
-      return true;
-    });
-    console.log(`  pointer: ${EMULATOR_POINTER_DOC} ${moved ? `now v${version}` : 'already at or past this version'}`);
-    return;
-  }
+  // 2. The pointers, only ever forwards. The Firestore one is what the server's engine reads
+  // (functions/src/engine/catalogue.ts) — and, under the emulator, what the dev app reads,
+  // since Remote Config has no emulator. Remote Config is what the app reads in staging and
+  // prod (BUILD_PROMPT.md section 9.2).
+  const pointer = getFirestore(app).doc(POINTER_DOC);
+  const moved = await getFirestore(app).runTransaction(async (tx) => {
+    const current = (await tx.get(pointer)).get('version');
+    if (typeof current === 'number' && current >= version) return false;
+    tx.set(pointer, { version, updatedAt: FieldValue.serverTimestamp() });
+    return true;
+  });
+  console.log(`  pointer: ${POINTER_DOC} ${moved ? `now v${version}` : 'already at or past this version'}`);
+  if (target.emulator) return;
 
   const remoteConfig = getRemoteConfig(app);
   const template = await remoteConfig.getTemplate();

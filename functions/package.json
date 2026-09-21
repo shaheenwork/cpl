@@ -7,11 +7,12 @@
     "node": "22"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/copy-content.js",
     "test:unit": "npm run build && node --test lib/test/*.unit.test.js",
     "test:int": "npm run build && node --test --test-concurrency=1 lib/test/*.int.test.js",
     "test": "npm run test:unit && npm run test:int",
-    "test:e2e": "npm run build && node --test --test-concurrency=1 lib/test/*.e2e.test.js"
+    "test:e2e": "npm run build && node --test --test-concurrency=1 lib/test/*.e2e.test.js",
+    "engine:fixtures": "npm run build && node lib/test/fixtures/writeEngineFixtures.js"
   },
   "dependencies": {
     "firebase-admin": "^14.4.0",

@@ -1,6 +1,7 @@
 /**
  * Publishing content (BUILD_PROMPT.md section 9.2): the bundle goes to Storage at
- * `content/bundles/v{n}/bundle.json`, then Remote Config's `content_version` moves to n.
+ * `content/bundles/v{n}/bundle.json`, then the pointers move to n — the Firestore document the
+ * server's engine reads, and Remote Config's `content_version`, which the apps read.
  *
  * In that order, so no phone is ever pointed at a bundle that is not there yet. A published
  * version is immutable: republishing identical bytes is a no-op, different bytes under the
@@ -17,10 +18,10 @@ import { validateContent } from './validate';
 export const POINTER_PARAMETER = 'content_version';
 
 /**
- * Remote Config has no emulator. Against the Emulator Suite the pointer is this Firestore
- * document instead, which the dev build reads in its place (DECISIONS.md D-041).
+ * The pointer as a Firestore document. The server's engine always reads this one; the dev app
+ * reads it too, because Remote Config has no emulator (DECISIONS.md D-041).
  */
-export const EMULATOR_POINTER_DOC = 'contentMeta/pointer';
+export const POINTER_DOC = 'contentMeta/pointer';
 
 /** Firestore collection of admin deltas: disable flags and edited items (section 9.2). */
 export const DELTA_COLLECTION = 'content';

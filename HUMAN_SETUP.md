@@ -187,7 +187,8 @@ Remote Config admin rights on that project:
    ```bash
    npm --prefix tools run publish-content -- --project afterhours-staging
    ```
-   The first publish creates the Remote Config parameter `content_version`.
+   The first publish creates the Remote Config parameter `content_version` and the Firestore
+   document `contentMeta/pointer`, which the server's engine reads.
 
 Raise `contentVersion` in `content/content.json` for every release after the first; a
 published version can never be replaced (DECISIONS.md D-041).
