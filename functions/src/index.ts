@@ -21,6 +21,8 @@ import * as feedback from './feedback/affinity';
 import { revealTiming } from './discovery/timing';
 import * as pairing from './pairing/pairing';
 import * as session from './session/session';
+import { expireStale } from './session/expiry';
+import { applySubmission } from './session/submissions';
 import { consumeRateLimit } from './shared/rateLimit';
 import { toHttpsError } from './shared/errors';
 
@@ -210,9 +212,39 @@ export const advanceSession = onCall(options, (request) =>
   guarded(() => session.advanceSession(getFirestore(), callerUid(request), request.data, Date.now())),
 );
 
+/** "I've seen the reveal": each partner's own, from their own phone (section 12.1). */
+export const markSeen = onCall(options, (request) =>
+  guarded(() => session.markSeen(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
 /** PAUSE, RESUME, STOP and DECLINE, from either partner's phone (section 3.1). */
 export const endSession = onCall(options, (request) =>
   guarded(() => session.endSession(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+/**
+ * An answer written by one phone completes the chapter's reveal for both (section 12.2): the
+ * only thing that ever reads a submission, and it returns one reveal rather than either answer.
+ */
+export const onSubmissionCreated = onDocumentCreated(
+  { ...triggerOptions, document: 'couples/{coupleId}/sessions/{sessionId}/submissions/{submissionId}' },
+  async (event) => {
+    await applySubmission(
+      getFirestore(),
+      event.params.coupleId,
+      event.params.sessionId,
+      event.params.submissionId,
+      Date.now(),
+    );
+  },
+);
+
+/** Sessions neither phone has been in for ten minutes end themselves (section 12.3). */
+export const expireStaleSessions = onSchedule(
+  { schedule: 'every 5 minutes', retryCount: 3, maxInstances: 1 },
+  async () => {
+    await expireStale(getFirestore(), Date.now());
+  },
 );
 
 /** A partner's reaction to a chapter moves their own affinity (onFeedbackWrite, section 8). */

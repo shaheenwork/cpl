@@ -35,6 +35,7 @@ import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.NightSettings
 import com.shnapps.couple.core.model.Novelty
 import com.shnapps.couple.core.model.PlannedNight
+import com.shnapps.couple.core.model.SessionKind
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -353,7 +354,7 @@ class DefaultNightRepository @Inject constructor(
     }
 }
 
-internal fun SessionDoc.toSession(uid: String?): NightSession = NightSession(
+internal fun SessionDoc.toSession(uid: String?, partnerLastSeenMillis: Long? = null): NightSession = NightSession(
     id = id,
     experienceId = experienceId,
     state = state,
@@ -366,6 +367,12 @@ internal fun SessionDoc.toSession(uid: String?): NightSession = NightSession(
     isHost = hostUid == uid,
     endReason = endReason,
     experienceType = ExperienceType.entries.firstOrNull { it.name == experienceType } ?: ExperienceType.NIGHT,
+    kind = SessionKind.entries.firstOrNull { it.name == kind } ?: SessionKind.ONE_DEVICE,
+    submitted = uid != null && uid in submittedUids,
+    partnerSubmitted = submittedUids.any { it != uid },
+    seen = uid != null && uid in seenUids,
+    partnerSeen = seenUids.any { it != uid },
+    partnerLastSeenMillis = partnerLastSeenMillis,
 )
 
 private fun ChapterPayload.toChapter(): Chapter = Chapter(

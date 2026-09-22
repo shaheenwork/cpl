@@ -515,6 +515,104 @@ describe('couples/{coupleId}/experiences (§6.1, §10)', () => {
   });
 });
 
+describe('couples/{coupleId}/sessions/{id}/submissions, rounds and presence (§7.3 D–G, §12)', () => {
+  const MALLORY = 'uid_mallory';
+  const mallory = () => testEnv.authenticatedContext(MALLORY).firestore();
+  const live = (db) => doc(db, 'couples', 'rt1', 'sessions', 'live');
+  const submission = (db, id) => doc(db, 'couples', 'rt1', 'sessions', 'live', 'submissions', id);
+  const answerFor = (uid, chapter = 1, overrides = {}) => ({
+    chapter,
+    byUid: uid,
+    answer: 'a slow dance in the kitchen',
+    at: serverTimestamp(),
+    ...overrides,
+  });
+
+  before(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'couples', 'rt1'), { status: 'ACTIVE', memberUids: [ALICE, BOB], activeSessionId: 'live' });
+      await setDoc(live(db), {
+        experienceId: 'game1',
+        experienceType: 'GAME',
+        kind: 'TWO_DEVICE',
+        hostUid: ALICE,
+        state: 'CHAPTER_ACTIVE',
+        currentChapter: 1,
+        chapterCount: 4,
+        consentAcks: {},
+        submittedBy: {},
+        seenBy: {},
+      });
+      // What the server writes once both have answered, and what Bob wrote to get there.
+      await setDoc(doc(db, 'couples', 'rt1', 'sessions', 'live', 'rounds', '0'), {
+        chapter: 0,
+        answers: { [ALICE]: 'stay in', [BOB]: 'go out' },
+        at: Timestamp.now(),
+      });
+      await setDoc(doc(db, 'couples', 'rt1', 'sessions', 'live', 'submissions', `0_${BOB}`), {
+        chapter: 0, byUid: BOB, answer: 'go out', at: Timestamp.now(),
+      });
+      await deleteDoc(doc(db, 'couples', 'rt1', 'sessions', 'live', 'submissions', `1_${ALICE}`));
+    });
+  });
+
+  it('takes a partner\'s own answer for the chapter they are on', async () => {
+    await assertSucceeds(setDoc(submission(alice(), `1_${ALICE}`), answerFor(ALICE)));
+  });
+
+  it('D: denies writing the other partner\'s submission', async () => {
+    await assertFails(setDoc(submission(alice(), `1_${BOB}`), answerFor(BOB)));
+    await assertFails(setDoc(submission(alice(), `1_${BOB}`), answerFor(ALICE)));
+    await assertFails(setDoc(submission(mallory(), `1_${MALLORY}`), answerFor(MALLORY)));
+  });
+
+  it('E and F: denies reading a submission — the other\'s or their own, before or after the reveal', async () => {
+    await assertFails(getDoc(submission(alice(), `0_${BOB}`)));
+    await assertFails(getDoc(submission(bob(), `0_${BOB}`)));
+    await assertFails(getDocs(collection(alice(), 'couples', 'rt1', 'sessions', 'live', 'submissions')));
+  });
+
+  it('G: denies setting the reveal, or any other state, from a client', async () => {
+    await assertFails(setDoc(doc(alice(), 'couples', 'rt1', 'sessions', 'live', 'rounds', '1'), {
+      chapter: 1, answers: { [ALICE]: 'mine', [BOB]: 'theirs' }, at: serverTimestamp(),
+    }));
+    await assertFails(updateDoc(live(alice()), { state: 'REVEAL' }));
+    await assertFails(updateDoc(live(alice()), { [`submittedBy.${BOB}`]: serverTimestamp() }));
+    await assertFails(updateDoc(live(alice()), { [`seenBy.${ALICE}`]: serverTimestamp() }));
+  });
+
+  it('lets both partners read a reveal the server wrote, and no one else', async () => {
+    await assertSucceeds(getDoc(doc(alice(), 'couples', 'rt1', 'sessions', 'live', 'rounds', '0')));
+    await assertSucceeds(getDoc(doc(bob(), 'couples', 'rt1', 'sessions', 'live', 'rounds', '0')));
+    await assertFails(getDoc(doc(mallory(), 'couples', 'rt1', 'sessions', 'live', 'rounds', '0')));
+  });
+
+  it('refuses an answer to another chapter, a malformed one, or a second one', async () => {
+    await assertFails(setDoc(submission(bob(), `2_${BOB}`), answerFor(BOB, 2)));
+    await assertFails(setDoc(submission(bob(), `1_${BOB}`), answerFor(BOB, 1, { chapter: 2 })));
+    await assertFails(setDoc(submission(bob(), `1_${BOB}`), answerFor(BOB, 1, { byUid: ALICE })));
+    await assertFails(setDoc(submission(bob(), `1_${BOB}`), answerFor(BOB, 1, { at: Timestamp.now() })));
+    await assertFails(setDoc(submission(bob(), `1_${BOB}`), answerFor(BOB, 1, { extra: true })));
+    await assertFails(setDoc(submission(bob(), `1_${BOB}`), answerFor(BOB, 1, { answer: 'x'.repeat(281) })));
+    // Written once: the answer already given cannot be rewritten after seeing anything.
+    await assertSucceeds(setDoc(submission(bob(), `1_${BOB}`), answerFor(BOB)));
+    await assertFails(setDoc(submission(bob(), `1_${BOB}`), answerFor(BOB, 1, { answer: 'changed' })));
+  });
+
+  it('lets each phone say it is still there, and read the other, but not speak for it', async () => {
+    await assertSucceeds(setDoc(doc(alice(), 'couples', 'rt1', 'sessions', 'live', 'presence', ALICE), { at: serverTimestamp() }));
+    await assertSucceeds(getDoc(doc(bob(), 'couples', 'rt1', 'sessions', 'live', 'presence', ALICE)));
+    await assertFails(setDoc(doc(alice(), 'couples', 'rt1', 'sessions', 'live', 'presence', BOB), { at: serverTimestamp() }));
+    await assertFails(setDoc(doc(alice(), 'couples', 'rt1', 'sessions', 'live', 'presence', ALICE), { at: Timestamp.now() }));
+    await assertFails(setDoc(doc(alice(), 'couples', 'rt1', 'sessions', 'live', 'presence', ALICE), {
+      at: serverTimestamp(), state: 'REVEAL',
+    }));
+    await assertFails(getDoc(doc(mallory(), 'couples', 'rt1', 'sessions', 'live', 'presence', ALICE)));
+    await assertFails(deleteDoc(doc(alice(), 'couples', 'rt1', 'sessions', 'live', 'presence', ALICE)));
+  });
+});
+
 describe('couples/{coupleId}/sessions and feedback (§3.1, §6.1, §12)', () => {
   const MALLORY = 'uid_mallory';
   const mallory = () => testEnv.authenticatedContext(MALLORY).firestore();

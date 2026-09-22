@@ -10,6 +10,7 @@ import com.shnapps.couple.core.firebase.night.CoupleNightState
 import com.shnapps.couple.core.firebase.night.ExperienceDoc
 import com.shnapps.couple.core.firebase.night.FeedbackPayload
 import com.shnapps.couple.core.firebase.night.NightRemoteDataSource
+import com.shnapps.couple.core.firebase.night.RevealDoc
 import com.shnapps.couple.core.firebase.night.ServerNightPayload
 import com.shnapps.couple.core.firebase.night.SessionAction
 import com.shnapps.couple.core.firebase.night.SessionDoc
@@ -182,6 +183,12 @@ class DefaultGameRepositoryTest {
     /** The session callables, as a game uses them. A game never builds a night. */
     private class FakeSessions : NightRemoteDataSource {
         val advances = mutableListOf<Triple<String, Int, String?>>()
+        val submissions = mutableListOf<Triple<String, Int, String?>>()
+        val seen = mutableListOf<Int>()
+        val presenceSent = mutableListOf<String>()
+        val reveal = MutableStateFlow<RevealDoc?>(null)
+        val presence = MutableStateFlow<Map<String, Long>>(emptyMap())
+
         val ended = mutableListOf<SessionAction>()
         var blocked: List<String> = emptyList()
         val session = MutableStateFlow<SessionDoc?>(null)
@@ -191,7 +198,8 @@ class DefaultGameRepositoryTest {
         override suspend fun generate(settings: NightSettings): Outcome<ServerNightPayload> =
             error("a game builds no night")
 
-        override suspend fun createSession(experienceId: String) = Outcome.Success(payload(SessionState.READY))
+        override suspend fun createSession(experienceId: String, twoPhones: Boolean) =
+            Outcome.Success(payload(SessionState.READY))
 
         override suspend fun markReady(sessionId: String) = Outcome.Success(payload(SessionState.READY))
 
@@ -208,6 +216,31 @@ class DefaultGameRepositoryTest {
             ended += action
             return Outcome.Success(payload(SessionState.PAUSED))
         }
+
+        override suspend fun submitAnswer(
+            coupleId: String,
+            sessionId: String,
+            uid: String,
+            chapter: Int,
+            answer: String?,
+        ): Outcome<Unit> {
+            submissions += Triple(uid, chapter, answer)
+            return Outcome.Success(Unit)
+        }
+
+        override suspend fun markSeen(sessionId: String, chapter: Int): Outcome<SessionPayload> {
+            seen += chapter
+            return Outcome.Success(payload(SessionState.CHAPTER_COMPLETE))
+        }
+
+        override fun observeReveal(coupleId: String, sessionId: String, chapter: Int): Flow<RevealDoc?> = reveal
+
+        override suspend fun sendPresence(coupleId: String, sessionId: String, uid: String): Outcome<Unit> {
+            presenceSent += uid
+            return Outcome.Success(Unit)
+        }
+
+        override fun observePresence(coupleId: String, sessionId: String): Flow<Map<String, Long>> = presence
 
         override fun observeCouple(coupleId: String): Flow<CoupleNightState> =
             MutableStateFlow(CoupleNightState(null, null))

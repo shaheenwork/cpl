@@ -140,6 +140,73 @@ describe('PAUSE and STOP are always there (section 3.1)', () => {
   });
 });
 
+describe('two phones: each partner answers their own (section 12.1)', () => {
+  const active = session({ state: 'CHAPTER_ACTIVE', currentChapter: 1 });
+
+  it('waits for the second answer, then has both', () => {
+    const first = changed(step(active, { type: 'SUBMIT', uid: 'uid_a', chapter: 1 }));
+    assert.equal(first.state, 'AWAITING_SUBMISSIONS');
+    assert.equal(first.submit, 'uid_a');
+
+    const waiting = { ...active, state: 'AWAITING_SUBMISSIONS' as SessionState, submitted: ['uid_a'] };
+    const both = changed(step(waiting, { type: 'SUBMIT', uid: 'uid_b', chapter: 1 }));
+    assert.equal(both.state, 'BOTH_SUBMITTED');
+    assert.equal(both.submit, 'uid_b');
+  });
+
+  it('takes an answer once, for the chapter on screen, from a member, while it is live', () => {
+    const waiting = { ...active, state: 'AWAITING_SUBMISSIONS' as SessionState, submitted: ['uid_a'] };
+    assert.equal(step(waiting, { type: 'SUBMIT', uid: 'uid_a', chapter: 1 }).status, 'unchanged');
+    assert.equal(step(active, { type: 'SUBMIT', uid: 'stranger', chapter: 1 }).status, 'illegal');
+    assert.equal(step(active, { type: 'SUBMIT', uid: 'uid_a', chapter: 2 }).status, 'illegal');
+    assert.equal(step(active, { type: 'SUBMIT', uid: 'uid_a', chapter: 0 }).status, 'illegal');
+    for (const state of ['PAUSED', 'REVEAL', 'CHAPTER_COMPLETE', 'COMPLETED', 'ABANDONED'] as SessionState[]) {
+      const at = { ...active, state, pausedFrom: state === 'PAUSED' ? ('CHAPTER_ACTIVE' as SessionState) : null };
+      assert.equal(step(at, { type: 'SUBMIT', uid: 'uid_a', chapter: 1 }).status, 'illegal', state);
+    }
+  });
+
+  it('reveals only once both have answered, and only once', () => {
+    const both = { ...active, state: 'BOTH_SUBMITTED' as SessionState, submitted: MEMBERS };
+    assert.equal(changed(step(both, { type: 'REVEAL_READY', chapter: 1 })).state, 'REVEAL');
+    assert.equal(step({ ...both, state: 'REVEAL' }, { type: 'REVEAL_READY', chapter: 1 }).status, 'unchanged');
+    assert.equal(step(active, { type: 'REVEAL_READY', chapter: 1 }).status, 'illegal');
+    assert.equal(step(both, { type: 'REVEAL_READY', chapter: 0 }).status, 'illegal');
+  });
+
+  it('is over when both have seen it, and then either partner moves it on', () => {
+    const reveal = { ...active, state: 'REVEAL' as SessionState, submitted: MEMBERS };
+    const first = changed(step(reveal, { type: 'SEEN', uid: 'uid_a', chapter: 1 }));
+    assert.equal(first.state, 'REVEAL');
+    assert.equal(first.seen, 'uid_a');
+    const complete = changed(step({ ...reveal, seen: ['uid_a'] }, { type: 'SEEN', uid: 'uid_b', chapter: 1 }));
+    assert.equal(complete.state, 'CHAPTER_COMPLETE');
+
+    const next = changed(step({ ...active, state: 'CHAPTER_COMPLETE', seen: MEMBERS }, { type: 'ADVANCE', fromChapter: 1 }));
+    assert.equal(next.state, 'CHAPTER_ACTIVE');
+    assert.equal(next.currentChapter, 2);
+    assert.deepEqual(next.played, [1]);
+    assert.equal(next.clears, true, 'the next chapter starts with nobody having answered or seen');
+  });
+
+  it('a chapter that ends mid-answer still counts as played', () => {
+    for (const state of ['AWAITING_SUBMISSIONS', 'BOTH_SUBMITTED', 'REVEAL', 'CHAPTER_COMPLETE'] as SessionState[]) {
+      const stopped = changed(step({ ...active, state }, { type: 'STOP' }));
+      assert.equal(stopped.state, 'ABANDONED');
+      assert.deepEqual(stopped.played, [1], state);
+    }
+  });
+
+  it('pauses and resumes wherever the chapter had got to', () => {
+    for (const state of ['AWAITING_SUBMISSIONS', 'REVEAL', 'CHAPTER_COMPLETE'] as SessionState[]) {
+      const paused = changed(step({ ...active, state }, { type: 'PAUSE' }));
+      assert.equal(paused.state, 'PAUSED');
+      assert.equal(paused.pausedFrom, state);
+      assert.equal(changed(step({ ...active, state: 'PAUSED', pausedFrom: state }, { type: 'RESUME' })).state, state);
+    }
+  });
+});
+
 describe('an ended night stays ended', () => {
   it('refuses to pause, resume or restart once completed or abandoned', () => {
     for (const state of ['COMPLETED', 'ABANDONED'] as SessionState[]) {
@@ -154,6 +221,9 @@ describe('an ended night stays ended', () => {
     const events: SessionEvent[] = [
       { type: 'ACK', uid: 'uid_a' },
       { type: 'START' },
+      { type: 'SUBMIT', uid: 'uid_a', chapter: 0 },
+      { type: 'REVEAL_READY', chapter: 0 },
+      { type: 'SEEN', uid: 'uid_a', chapter: 0 },
       { type: 'ADVANCE', fromChapter: 0 },
       { type: 'PAUSE' },
       { type: 'RESUME' },
@@ -163,7 +233,7 @@ describe('an ended night stays ended', () => {
     ];
     for (const state of SESSION_STATES) {
       for (const event of events) {
-        const result = step(session({ state, pausedFrom: state === 'PAUSED' ? 'READY' : null }), event);
+        const result = step(session({ state, currentChapter: 0, pausedFrom: state === 'PAUSED' ? 'READY' : null }), event);
         assert.ok(['changed', 'unchanged', 'illegal'].includes(result.status));
         if (result.status === 'changed') assert.ok(SESSION_STATES.includes(result.to.state));
       }

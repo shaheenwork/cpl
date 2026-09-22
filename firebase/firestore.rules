@@ -205,6 +205,28 @@ service cloud.firestore {
         allow create, delete: if false;
       }
 
+      // An answer for the chapter a session is on (§12.2): exactly these fields, the caller's
+      // own uid, the chapter the id names, and a live session of this couple currently on that
+      // chapter. The answer itself is one short string, or nothing at all — a partner who is
+      // simply done with a chapter submits null.
+      function validSubmission(coupleId, sessionId, submissionId, data) {
+        return data.keys().hasOnly(['chapter', 'byUid', 'answer', 'at'])
+            && data.byUid == request.auth.uid
+            && data.chapter is int
+            && submissionId == string(data.chapter) + '_' + request.auth.uid
+            && (data.answer == null || (data.answer is string && data.answer.size() <= 280))
+            && data.at == request.time
+            && liveChapter(coupleId, sessionId, data.chapter);
+      }
+
+      // The session is under way, on this chapter, and this phone is playing it.
+      function liveChapter(coupleId, sessionId, chapter) {
+        let session = get(/databases/$(database)/documents/couples/$(coupleId)/sessions/$(sessionId)).data;
+        return session.currentChapter == chapter
+            && session.kind == 'TWO_DEVICE'
+            && session.state in ['CHAPTER_ACTIVE', 'AWAITING_SUBMISSIONS'];
+      }
+
       // Nights the engine built for the couple (§6.1, §10). Written only by the server
       // (generateExperience); both members read them. They hold content ids, never anything
       // about either partner's answers or limits.
@@ -228,6 +250,41 @@ service cloud.firestore {
       match /sessions/{sessionId} {
         allow get: if isActiveMember(coupleId);
         allow list, write: if false;
+
+        // What one partner answered for the chapter they are on, from their own phone (§12.2).
+        // Write-only, and only your own: no client ever reads a submission — not the other
+        // partner's, not even their own, and not after the reveal (§7.3 rows D, E, F). What both
+        // may see is the reveal below, which the server writes from the pair.
+        //
+        // The id says which chapter and whose answer it is, so the rules can check both without
+        // reading anything: `{chapter}_{uid}`.
+        match /submissions/{submissionId} {
+          allow read: if false;
+          allow create: if isActiveMember(coupleId)
+                        && submissionId.matches('^[0-9]+_' + request.auth.uid + '$')
+                        && validSubmission(coupleId, sessionId, submissionId, request.resource.data);
+          allow update, delete: if false;
+        }
+
+        // The reveal for a chapter: both partners' answers, side by side, written by the server
+        // only once both have answered (onSubmissionCreated). A client cannot write one, so it
+        // cannot reveal early, or at all (§7.3 row G).
+        match /rounds/{chapterIndex} {
+          allow get, list: if isActiveMember(coupleId);
+          allow write: if false;
+        }
+
+        // "I'm still here" (§12.3), every twenty seconds while a session is on screen. Each
+        // phone writes its own and reads the other's: it is how a partner dropping out shows,
+        // and how a session nobody is in expires. It carries nothing but the time.
+        match /presence/{presenceUid} {
+          allow get, list: if isActiveMember(coupleId);
+          allow create, update: if isSelf(presenceUid)
+                                && isActiveMember(coupleId)
+                                && request.resource.data.keys().hasOnly(['at'])
+                                && request.resource.data.at == request.time;
+          allow delete: if false;
+        }
       }
 
       // What a partner thought of a chapter (§6.1), which the server turns into their own

@@ -59,7 +59,7 @@ function docId(value: unknown, name: string): string {
   return value;
 }
 
-function snapshotOf(session: DocumentData, members: readonly string[]): SessionSnapshot {
+export function snapshotOf(session: DocumentData, members: readonly string[]): SessionSnapshot {
   return {
     state: session.state,
     pausedFrom: session.pausedFrom ?? null,
@@ -68,6 +68,8 @@ function snapshotOf(session: DocumentData, members: readonly string[]): SessionS
     consentRequired: session.consentRequired === true,
     acked: Object.keys(session.consentAcks ?? {}),
     members,
+    submitted: Object.keys(session.submittedBy ?? {}),
+    seen: Object.keys(session.seenBy ?? {}),
   };
 }
 
@@ -80,6 +82,10 @@ function viewOf(sessionId: string, session: DocumentData): SessionView {
     consentRequired: session.consentRequired === true,
   };
 }
+
+/** Both phones, each answering for itself (section 12), or one passed between them (D-059). */
+export const SESSION_KINDS = ['ONE_DEVICE', 'TWO_DEVICE'] as const;
+type SessionKind = (typeof SESSION_KINDS)[number];
 
 interface Loaded {
   coupleRef: DocumentReference;
@@ -132,6 +138,13 @@ function applyTransition(
     sessionUpdate[`consentAcks.${to.ack}`] = now;
     sessionUpdate[`participants.${to.ack}.ready`] = true;
   }
+  // Who has answered this chapter, and who has seen its reveal: cleared as each chapter starts.
+  if (to.clears) {
+    sessionUpdate.submittedBy = {};
+    sessionUpdate.seenBy = {};
+  }
+  if (to.submit) sessionUpdate[`submittedBy.${to.submit}`] = now;
+  if (to.seen) sessionUpdate[`seenBy.${to.seen}`] = now;
   if (session.startedAt == null && to.state === 'CHAPTER_ACTIVE') sessionUpdate.startedAt = now;
   if (isTerminal(to.state)) {
     sessionUpdate.endedAt = now;
@@ -189,7 +202,10 @@ function rejectIllegal(): never {
  * returns its session.
  */
 export async function createSession(db: Firestore, uid: string, input: unknown, nowMs: number): Promise<SessionView> {
-  const experienceId = docId(payload(input, ['experienceId']).experienceId, 'experienceId');
+  const raw = payload(input, ['experienceId', 'kind']);
+  const experienceId = docId(raw.experienceId, 'experienceId');
+  if (raw.kind !== undefined && !SESSION_KINDS.includes(raw.kind as SessionKind)) invalid('kind');
+  const kind: SessionKind = (raw.kind as SessionKind) ?? 'ONE_DEVICE';
   const { coupleId } = await activeCoupleOf(db, uid);
 
   return db.runTransaction(async (tx) => {
@@ -237,7 +253,7 @@ export async function createSession(db: Firestore, uid: string, input: unknown, 
       experienceId,
       /** What is played, so either phone opens the right player for it. */
       experienceType: experience.type === 'GAME' ? 'GAME' : 'NIGHT',
-      kind: 'ONE_DEVICE',
+      kind,
       hostUid: uid,
       state,
       pausedFrom: null,
@@ -245,6 +261,8 @@ export async function createSession(db: Firestore, uid: string, input: unknown, 
       chapterCount: chapters.length,
       consentRequired,
       consentAcks: {},
+      submittedBy: {},
+      seenBy: {},
       participants: Object.fromEntries((members as string[]).map((member) => [member, { ready: false }])),
       createdAt: now,
       startedAt: null,
@@ -302,8 +320,11 @@ export async function advanceSession(
 
   const { view, experience, hostUid } = await db.runTransaction(async (tx) => {
     const loaded = await loadSession(db, tx, coupleId, uid, sessionId);
-    // One phone plays the night; the other can pause or stop it, never move it (D-059).
-    if (loaded.session.hostUid !== uid) throw new ServiceError('permission-denied', 'not-host');
+    // On one phone only its host moves the night on (D-059). On two, either partner may: the
+    // chapter is over for both, and whoever taps first moves it (D-074).
+    if (loaded.session.kind !== 'TWO_DEVICE' && loaded.session.hostUid !== uid) {
+      throw new ServiceError('permission-denied', 'not-host');
+    }
     const experienceRef = loaded.coupleRef.collection('experiences').doc(loaded.session.experienceId);
     const experience = (await tx.get(experienceRef)).data()!;
     const event: SessionEvent = fromChapter === -1 ? { type: 'START' } : { type: 'ADVANCE', fromChapter: fromChapter as number };
@@ -346,6 +367,49 @@ export async function advanceSession(
       : [];
   const blocked = await blockedNow(db, coupleId, hostUid, experience, ahead, nowMs, deps);
   return { ...view, blocked };
+}
+
+/**
+ * "I've seen the reveal" (section 12.1): each partner's own, from their own phone. The chapter
+ * is complete when both have, and then either of them can move it on.
+ */
+export async function markSeen(db: Firestore, uid: string, input: unknown, nowMs: number): Promise<SessionView> {
+  const raw = payload(input, ['sessionId', 'chapter']);
+  const sessionId = docId(raw.sessionId, 'sessionId');
+  if (!Number.isInteger(raw.chapter) || (raw.chapter as number) < 0) invalid('chapter');
+  const { coupleId } = await activeCoupleOf(db, uid);
+  return db.runTransaction(async (tx) => {
+    const loaded = await loadSession(db, tx, coupleId, uid, sessionId);
+    const experienceRef = loaded.coupleRef.collection('experiences').doc(loaded.session.experienceId);
+    const experience = (await tx.get(experienceRef)).data() ?? { chapters: [] };
+    const result = step(snapshotOf(loaded.session, loaded.members), { type: 'SEEN', uid, chapter: raw.chapter as number });
+    if (result.status === 'illegal') rejectIllegal();
+    if (result.status === 'unchanged') return viewOf(sessionId, loaded.session);
+    updateCouple(tx, loaded.coupleRef, applyTransition(tx, loaded, experienceRef, experience, result.to, nowMs));
+    return viewOf(sessionId, { ...loaded.session, ...result.to });
+  });
+}
+
+/**
+ * Ends [sessionId] as EXPIRED (section 12.3), if it is still live. Returns whether it did, and
+ * is safe to call twice: a session already over is left exactly as it is.
+ */
+export async function expireSession(db: Firestore, coupleId: string, sessionId: string, nowMs: number): Promise<boolean> {
+  return db.runTransaction(async (tx) => {
+    const coupleRef = db.doc(`couples/${coupleId}`);
+    const sessionRef = coupleRef.collection('sessions').doc(sessionId);
+    const [couple, session] = await Promise.all([tx.get(coupleRef), tx.get(sessionRef)]);
+    const members: unknown = couple.get('memberUids');
+    if (!session.exists || !Array.isArray(members)) return false;
+    const data = session.data()!;
+    const experienceRef = coupleRef.collection('experiences').doc(data.experienceId);
+    const experience = (await tx.get(experienceRef)).data() ?? { chapters: [] };
+    const result = step(snapshotOf(data, members as string[]), { type: 'EXPIRE' });
+    if (result.status !== 'changed') return false;
+    const loaded = { coupleRef, sessionRef, session: data };
+    updateCouple(tx, coupleRef, applyTransition(tx, loaded, experienceRef, experience, result.to, nowMs));
+    return true;
+  });
 }
 
 const END_ACTIONS = ['PAUSE', 'RESUME', 'STOP', 'DECLINE'] as const;

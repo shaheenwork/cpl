@@ -62,17 +62,38 @@ data class PlannedNight(
     val needsBothConsents: Boolean get() = chapters.any { it.intensity.requiresBothPartyConsent }
 }
 
-/** Where a night being played stands (§12.1). The server's state is always the truth. */
+/** Where a night or a game being played stands (§12.1). The server's state is always the truth. */
 enum class SessionState {
     WAITING_FOR_PARTNER,
     READY,
     CHAPTER_ACTIVE,
+
+    /** One partner has answered on their own phone; the chapter waits for the other (§12.1). */
+    AWAITING_SUBMISSIONS,
+    BOTH_SUBMITTED,
+
+    /** Both answers are in, and the reveal both may see is written. */
+    REVEAL,
+
+    /** Both have seen the reveal: the chapter is over, and either phone moves it on. */
+    CHAPTER_COMPLETE,
     PAUSED,
     COMPLETED,
     ABANDONED,
     ;
 
     val isOver: Boolean get() = this == COMPLETED || this == ABANDONED
+
+    /** The states a chapter is under way in. */
+    val inChapter: Boolean
+        get() = this == CHAPTER_ACTIVE || this == AWAITING_SUBMISSIONS || this == BOTH_SUBMITTED ||
+            this == REVEAL || this == CHAPTER_COMPLETE
+}
+
+/** Whether a session is played on one phone, passed between the partners, or on both (§12). */
+enum class SessionKind {
+    ONE_DEVICE,
+    TWO_DEVICE,
 }
 
 /** Why a night ended. Never who ended it: STOP is nobody's failure (§3.1, D-059). */
@@ -103,7 +124,20 @@ data class NightSession(
     val endReason: SessionEndReason?,
     /** What is being played: a night, or a game through the same session (§11). */
     val experienceType: ExperienceType = ExperienceType.NIGHT,
-)
+    /** One phone passed between the partners, or a phone each (§12). */
+    val kind: SessionKind = SessionKind.ONE_DEVICE,
+    /** Whether this phone's user has answered the chapter they are on. */
+    val submitted: Boolean = false,
+    val partnerSubmitted: Boolean = false,
+    /** Whether they have seen its reveal. */
+    val seen: Boolean = false,
+    val partnerSeen: Boolean = false,
+    /** When the partner's phone was last in the session, or null if it never has been. */
+    val partnerLastSeenMillis: Long? = null,
+) {
+    /** On two phones, either partner moves a finished chapter on; on one, only its host (D-074). */
+    val canAdvance: Boolean get() = kind == SessionKind.TWO_DEVICE || isHost
+}
 
 /** What a session plays. Either phone opens the player that fits. */
 enum class ExperienceType {

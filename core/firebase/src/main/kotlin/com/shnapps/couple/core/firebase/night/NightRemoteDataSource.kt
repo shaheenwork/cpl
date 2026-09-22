@@ -29,10 +29,14 @@ import javax.inject.Singleton
  * thing a phone writes itself is its own reaction to a chapter it played, which the rules
  * hold to exactly that (DECISIONS.md D-063).
  */
+// One session, one data source: building a night, every move of its session, and the two
+// documents each phone writes for itself (its answer and its heartbeat).
+@Suppress("TooManyFunctions")
 interface NightRemoteDataSource {
     suspend fun generate(settings: NightSettings): Outcome<ServerNightPayload>
 
-    suspend fun createSession(experienceId: String): Outcome<SessionPayload>
+    /** [twoPhones]: each partner answers on their own, rather than one phone passed over (§12). */
+    suspend fun createSession(experienceId: String, twoPhones: Boolean = false): Outcome<SessionPayload>
 
     /** "I'm in" — the signed-in user's own, and nobody else's (§3.1). */
     suspend fun markReady(sessionId: String): Outcome<SessionPayload>
@@ -41,6 +45,30 @@ interface NightRemoteDataSource {
     suspend fun advance(sessionId: String, fromChapter: Int, playedItemId: String?): Outcome<AdvancePayload>
 
     suspend fun endSession(sessionId: String, action: SessionAction): Outcome<SessionPayload>
+
+    /**
+     * This phone's own answer for the chapter it is on (§12.2). The only session document a
+     * client writes; the server turns the pair into the reveal both partners read.
+     */
+    suspend fun submitAnswer(
+        coupleId: String,
+        sessionId: String,
+        uid: String,
+        chapter: Int,
+        answer: String?,
+    ): Outcome<Unit>
+
+    /** "I've seen the reveal", this phone's own. */
+    suspend fun markSeen(sessionId: String, chapter: Int): Outcome<SessionPayload>
+
+    /** The reveal for [chapter] once the server has written it: both partners' answers. */
+    fun observeReveal(coupleId: String, sessionId: String, chapter: Int): Flow<RevealDoc?>
+
+    /** "I'm still here", every twenty seconds while a session is on screen (§12.3). */
+    suspend fun sendPresence(coupleId: String, sessionId: String, uid: String): Outcome<Unit>
+
+    /** When each phone was last in the session. */
+    fun observePresence(coupleId: String, sessionId: String): Flow<Map<String, Long>>
 
     fun observeCouple(coupleId: String): Flow<CoupleNightState>
 
@@ -67,6 +95,9 @@ data class ServerNightPayload(
     val askFirstItems: List<String>,
     val focusIncluded: Boolean,
 )
+
+/** What both partners answered for one chapter, written by the server (§12.2). */
+data class RevealDoc(val chapter: Int, val answers: Map<String, String?>)
 
 data class SessionPayload(
     val sessionId: String,
@@ -105,6 +136,11 @@ data class SessionDoc(
     val endReason: SessionEndReason?,
     /** NIGHT or GAME: which player the session plays. Sessions from before games are nights. */
     val experienceType: String = "NIGHT",
+    /** ONE_DEVICE or TWO_DEVICE (§12). */
+    val kind: String = "ONE_DEVICE",
+    /** Who has answered the chapter under way, and who has seen its reveal. */
+    val submittedUids: Set<String> = emptySet(),
+    val seenUids: Set<String> = emptySet(),
 )
 
 /** `couples/{cid}/experiences/{id}`: the night as the server stored it. */
@@ -164,8 +200,10 @@ class FirebaseNightRemoteDataSource @Inject constructor(
         }
     }
 
-    override suspend fun createSession(experienceId: String): Outcome<SessionPayload> =
-        functions.callFunction("createSession", mapOf("experienceId" to experienceId)) { it.toSession() }
+    override suspend fun createSession(experienceId: String, twoPhones: Boolean): Outcome<SessionPayload> {
+        val payload = mapOf("experienceId" to experienceId, "kind" to if (twoPhones) "TWO_DEVICE" else "ONE_DEVICE")
+        return functions.callFunction("createSession", payload) { it.toSession() }
+    }
 
     override suspend fun markReady(sessionId: String): Outcome<SessionPayload> =
         functions.callFunction("markReady", mapOf("sessionId" to sessionId)) { it.toSession() }
@@ -184,6 +222,66 @@ class FirebaseNightRemoteDataSource @Inject constructor(
     override suspend fun endSession(sessionId: String, action: SessionAction): Outcome<SessionPayload> {
         val payload = mapOf("sessionId" to sessionId, "action" to action.name)
         return functions.callFunction("endSession", payload) { it.toSession() }
+    }
+
+    override suspend fun submitAnswer(
+        coupleId: String,
+        sessionId: String,
+        uid: String,
+        chapter: Int,
+        answer: String?,
+    ): Outcome<Unit> = firestoreCall {
+        // The id says which chapter and whose answer it is: the rules check both (§7.3 D–F).
+        firestore.collection(COUPLES).document(coupleId).collection(SESSIONS).document(sessionId)
+            .collection(SUBMISSIONS).document("${chapter}_$uid")
+            .set(
+                mapOf(
+                    "chapter" to chapter,
+                    "byUid" to uid,
+                    "answer" to answer,
+                    "at" to FieldValue.serverTimestamp(),
+                ),
+            ).await()
+    }
+
+    override suspend fun markSeen(sessionId: String, chapter: Int): Outcome<SessionPayload> =
+        functions.callFunction("markSeen", mapOf("sessionId" to sessionId, "chapter" to chapter)) { it.toSession() }
+
+    override fun observeReveal(coupleId: String, sessionId: String, chapter: Int): Flow<RevealDoc?> = callbackFlow {
+        val registration = firestore.collection(COUPLES).document(coupleId)
+            .collection(SESSIONS).document(sessionId)
+            .collection(ROUNDS).document(chapter.toString())
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                trySend(snapshot?.takeIf { it.exists() }?.toReveal(chapter))
+            }
+        awaitClose { registration.remove() }
+    }
+
+    override suspend fun sendPresence(coupleId: String, sessionId: String, uid: String): Outcome<Unit> = firestoreCall {
+        firestore.collection(COUPLES).document(coupleId).collection(SESSIONS).document(sessionId)
+            .collection(PRESENCE).document(uid)
+            .set(mapOf("at" to FieldValue.serverTimestamp())).await()
+    }
+
+    override fun observePresence(coupleId: String, sessionId: String): Flow<Map<String, Long>> = callbackFlow {
+        val registration = firestore.collection(COUPLES).document(coupleId)
+            .collection(SESSIONS).document(sessionId).collection(PRESENCE)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                trySend(
+                    snapshot?.documents.orEmpty()
+                        .mapNotNull { doc -> doc.getTimestamp("at")?.let { doc.id to it.toDate().time } }
+                        .toMap(),
+                )
+            }
+        awaitClose { registration.remove() }
     }
 
     override fun observeCouple(coupleId: String): Flow<CoupleNightState> = callbackFlow {
@@ -259,6 +357,9 @@ private const val SESSIONS = "sessions"
 private const val EXPERIENCES = "experiences"
 private const val ASK_FIRST = "askFirst"
 private const val FEEDBACK = "feedback"
+private const val SUBMISSIONS = "submissions"
+private const val ROUNDS = "rounds"
+private const val PRESENCE = "presence"
 
 private fun Map<*, *>.toChapter(idKey: String): ChapterPayload {
     // The callable names a chapter's content `contentId`; the stored night keeps `contentIds`.
@@ -298,7 +399,18 @@ private fun DocumentSnapshot.toSessionDoc(): SessionDoc? {
         consentedUids = (get("consentAcks") as? Map<*, *>).orEmpty().keys.filterIsInstance<String>().toSet(),
         endReason = SessionEndReason.entries.firstOrNull { it.name == getString("endReason") },
         experienceType = getString("experienceType") ?: "NIGHT",
+        kind = getString("kind") ?: "ONE_DEVICE",
+        submittedUids = (get("submittedBy") as? Map<*, *>).orEmpty().keys.filterIsInstance<String>().toSet(),
+        seenUids = (get("seenBy") as? Map<*, *>).orEmpty().keys.filterIsInstance<String>().toSet(),
     )
+}
+
+/** The reveal as the server wrote it: what each partner answered for the chapter. */
+private fun DocumentSnapshot.toReveal(chapter: Int): RevealDoc {
+    val answers = (get("answers") as? Map<*, *>).orEmpty()
+        .mapNotNull { (uid, answer) -> (uid as? String)?.let { it to answer as? String } }
+        .toMap()
+    return RevealDoc(chapter = (getLong("chapter") ?: chapter).toInt(), answers = answers)
 }
 
 @Suppress("ReturnCount") // One early return per required field: fail closed on each.
