@@ -13,6 +13,8 @@ dependencies {
     api(project(":core:model"))
     api(project(":core:common"))
     implementation(project(":core:firebase"))
+    // The client half of the engine: swaps and remixes within what the server released.
+    implementation(project(":core:engine"))
     implementation(project(":core:database"))
     implementation(project(":core:datastore"))
     implementation(project(":core:analytics"))
@@ -23,6 +25,7 @@ dependencies {
     ksp(libs.androidx.hilt.compiler)
 
     testImplementation(libs.androidx.work.testing)
+    testImplementation(project(":core:testing"))
 }
 
 // ---- The shipped content bundle (BUILD_PROMPT.md §9.2) ----------------------------------

@@ -22,6 +22,8 @@ import {
   LEADERSHIPS,
   MOODS,
   NOVELTIES,
+  W_FOCUS,
+  isFocusItem,
   type CoupleContext,
   type EngineItem,
   type EngineRequest,
@@ -313,5 +315,60 @@ describe('the real catalogue', () => {
     const chapters = assemble({ pool, scores, plan: shape as never, durationMin: 45, effective: 3, repetitionWeight: 3 });
     const inPool = new Set(pool.map((item) => item.id));
     for (const chapter of chapters ?? []) assert.ok(inPool.has(chapter.itemId));
+  });
+});
+
+describe('a night built around a match (section 14.7)', () => {
+  const catalogue = fixtureCatalogue();
+
+  it('pulls items about the focus up by exactly W_FOCUS, and nothing else', () => {
+    const context = openContext({ mutual: { pref_a: 'BOTH_YES' } });
+    const plain = scoreAll(catalogue, request(), context);
+    const focused = scoreAll(catalogue, request({ focus: 'pref_a' }), context);
+    for (const item of catalogue) {
+      const lift = focused.get(item.id)! - plain.get(item.id)!;
+      assert.ok(Math.abs(lift - (isFocusItem(item, 'pref_a') ? W_FOCUS : 0)) < 1e-9, item.id);
+    }
+  });
+
+  it('holds an item about the focus whenever one is permitted, and says whether it did', () => {
+    let held = 0;
+    let total = 0;
+    for (const mode of ['TOGETHER', 'APART'] as const) {
+      for (const focus of ['pref_a', 'pref_b', 'pref_c']) {
+        for (let seed = 1; seed <= 8; seed++) {
+          const context = openContext({ mutual: { [focus]: 'BOTH_YES' } });
+          const req = request({ mode, focus, seed, durationMin: 30 + (seed % 3) * 15, intensity: 1 + (seed % 5) });
+          const result = generate(catalogue, req, context);
+          if (!isNight(result)) continue;
+          total++;
+          const about = result.chapters.some((chapter) => isFocusItem(catalogue.find((item) => item.id === chapter.itemId)!, focus));
+          assert.equal(result.focusIncluded, about, JSON.stringify(req));
+          if (about) held++;
+        }
+      }
+    }
+    assert.ok(total > 0);
+    assert.ok(held / total >= 0.95, `the focus held in only ${held} of ${total} nights`);
+  });
+
+  it('is only ever a preference: a focus cannot bring back anything the filter removed', () => {
+    const focus = 'pref_b';
+    const context = openContext({
+      mutual: { [focus]: 'BOTH_YES' },
+      filters: { maxIntensity: 5, excludedThemes: ['theme_a', 'theme_b', 'theme_c'], askFirstThemes: {}, curiousThemes: [], excludedItems: [] },
+    });
+    for (let seed = 1; seed <= 10; seed++) {
+      const req = request({ focus, seed });
+      for (const id of released(generate(catalogue, req, context))) {
+        assert.equal(permits(catalogue.find((item) => item.id === id)!, req, context), undefined, id);
+      }
+    }
+  });
+
+  it('changes nothing for a night that asks for none', () => {
+    const night = generate(catalogue, request({ seed: 77 }), openContext());
+    assert.ok(isNight(night));
+    assert.equal(night.focusIncluded, false);
   });
 });

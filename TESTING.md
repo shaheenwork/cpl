@@ -112,6 +112,21 @@ npm --prefix tools run content-delta -- disable flirt_across_the_room --project 
 
 Note that the Functions end-to-end suite clears the dev project, deltas included.
 
+### Build Our Night and the player (Phase 10)
+
+`:feature:night`'s tests drive whole nights against `FakeNightRepository`, which moves sessions
+the way the server does: consent from each phone, chapters, pause and stop from either phone,
+"Not this one". `NightRulesTest` holds the pure rules — who leads each chapter, when the host
+checks in (always before an own ask-first item, and at decoy moments so a check-in never gives a
+limit away), and which stage each phone shows for every session state. `NightSnapshotTest`
+records every screen, and checks the promises on screen: a sealed chapter has nothing readable in
+the tree, the partner's phone never shows a chapter, STOP is one tap with no confirmation, and a
+pause takes the night off the screen but never its controls.
+
+In `:core:data`, `HeldNightTest` and `DefaultNightRepositoryTest` run the phone's side of a night
+over the real shipped catalogue: swaps only from what the server released, reported when played,
+limits set mid-night applied before a chapter is shown, a night restored after a restart.
+
 ### Contrast
 
 `ContrastTest` computes WCAG 2.1 ratios for all 20 foreground/background pairs the theme
@@ -136,7 +151,7 @@ Terminal 2:
 npm --prefix firebase/tests test
 ```
 
-**Current: 60 passing**, covering section 7.3 rows A (partner cannot read or list
+**Current: 76 passing**, covering section 7.3 rows A (partner cannot read or list
 preferences), B (partner cannot read or list boundaries), C (no client-written `coupleId`),
 H (no client-written couple ceiling), L (not even an active member can read the couple's
 filters), R (no client-created match; a member may only mark a match seen for themselves;
@@ -145,9 +160,11 @@ I (no client-granted entitlement), K (non-member cannot read a couple), L (engin
 unreadable by any client), M (no third member) and Q (reports not client-writable); the
 shape of a private answer (four fields only, known values, `secret` only with `CURIOUS`,
 server time, taxonomy-shaped ids) and of a private boundary (known level, a short optional
-note, server time); the age attestation; forged pairing state;
-unauthenticated denial; and the default-deny catch-all. Row N (a reused pairing code) is
-proved by the functions integration tests, because codes are server-only.
+note, server time); the age attestation; forged pairing state; nights and their private
+ask-first documents; a night's session (both members read it, no client can write it — no
+forged "I'm in", state or stop); feedback (private to its author, one per chapter actually
+played, never edited); unauthenticated denial; and the default-deny catch-all. Row N (a reused
+pairing code) is proved by the functions integration tests, because codes are server-only.
 
 Rows are added by the phase that introduces the collection they cover.
 
@@ -200,6 +217,35 @@ npm --prefix functions run test:e2e
 - **e2e** also calls `generateExperience` over HTTP (`experience.e2e.test.ts`): signed-out
   callers refused, a night inside the couple's ceiling, payloads naming a couple, uid or seed
   refused, and an unpaired caller told so as a precondition.
+- **unit** also holds the session transition table (`session.unit.test.ts`) — every legal move,
+  every retry a no-op, everything else refused — and how feedback moves affinity
+  (`feedback.unit.test.ts`).
+- **int** also plays nights against Firestore (`session.int.test.ts`): start to finish with the
+  history it leaves, each partner's own "I'm in", pause and stop from either phone, doubled and
+  retried advances, host-only moves, swaps that must be released items, a limit set mid-night,
+  one night at a time and expiry — and feedback counted once however often the trigger fires
+  (`feedback.int.test.ts`).
+- **e2e** also plays a night over HTTP (`session.e2e.test.ts`), consent from both tokens, STOP
+  from the other phone, and a reaction written through the security rules reaching the author's
+  affinity by the real trigger.
+
+### A couple for manual checks
+
+With the emulators running and the functions built, this creates `alex@example.com` (sign in
+with it on the device) and `sam@example.com`, attested at level 5 and paired — and then plays
+Sam's phone:
+
+```bash
+node functions/scripts/dev-couple.js seed
+```
+
+```bash
+node functions/scripts/dev-couple.js ready
+```
+
+`ready` is Sam's "I'm in" to the night under way; `pause`, `resume` and `stop` are Sam's
+controls; `state` prints the couple's sessions, nights, history, feedback and Alex's affinity.
+Run `seed` again after the e2e suite, which clears the dev project.
 
 ---
 
@@ -252,6 +298,7 @@ clients at once.
 | `check` | Logic bugs, style drift, and layering violations — feature-to-feature deps, Firebase leaking out of `:core:firebase`, Firestore inside a `@Composable`, analytics outside the typed allowlist |
 | Rules tests | Privacy regressions. A rule that stops enforcing is otherwise invisible |
 | Engine vectors | The server's and the device's engines drifting apart — the same seed giving two different nights |
+| Session table | A night that can be double-advanced, restarted after STOP, or started without both partners' consent |
 | Instrumented | That the app really reaches the backend, and that real two-device flows work |
 
 A test Gradle doesn't re-run also passes. `:architecture:test` was UP-TO-DATE on every

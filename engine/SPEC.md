@@ -28,8 +28,11 @@ runtimes. Sorting is stable; ties are always broken by item id, compared by UTF-
 
 **Request** — `mode` (TOGETHER | APART), `durationMin` (10–240), `moods` (a set of the eight
 mood ids), `intensity` 1–5, `leadership` (ME | YOU | SWITCH | RANDOM), `novelty` (FAMILIAR |
-MIXED | SURPRISE_ME), `seed` (unsigned 32-bit integer), and `media` — whether this device can
-record VOICE and take a PHOTO (both default true).
+MIXED | SURPRISE_ME), `seed` (unsigned 32-bit integer), `media` — whether this device can
+record VOICE and take a PHOTO (both default true) — and optionally `focus`: a revealed mutual
+match (taxonomy item id) to build the night around. The server checks it is one of the
+couple's revealed matches before it gets here. An item is **about the focus** when `focus` is
+in its `boostedByPreferences` or its `requiredMutualPreferences`.
 
 **Couple context** — server only, never sent to a client (§5.4):
 - `filters`: the couple's `engineFilters` — `maxIntensity`, `excludedThemes`,
@@ -105,10 +108,13 @@ N  = FAMILIAR    0.5 * (1 - noveltyWeight) + 0.5 * (fresh ? 0 : 1)
 I  = 1 - (E - intensity) / 4
 R  = fresh ? 0 : max(0, 1 - d / 90)
 
-score = w1*M + w2*A + w3*Md + w4*N + w5*I - w6*R
+F  = 1 if the item is about the focus, else 0 (always 0 without a focus)
+
+score = w1*M + w2*A + w3*Md + w4*N + w5*I - w6*R + W_FOCUS*F       W_FOCUS = 4.0
 ```
 
-Evaluated left to right in exactly that order. The repetition penalty (w7) depends on the
+Evaluated left to right in exactly that order. Without a focus the last term adds zero, so
+every night without one is exactly what it was before focus existed. The repetition penalty (w7) depends on the
 night being built, so it is applied during assembly (§7).
 
 ---
@@ -239,14 +245,18 @@ An assembled night is rejected with every rule it breaks:
 The server also re-runs the hard filter (§3) over the night and the alternates.
 
 **Retries.** Attempts 0–4 each plan, sample, assemble and validate with their own seed (§2).
-A night that passes and whose finale is at E is returned at once. The first night that passes
-with a lower finale is kept while the remaining attempts look for one at E; after five it is
-returned. With no passing night at all, `generateExperience` fails with `not-enough-content`.
+A night *holds the focus* when a chapter is about it, or when nothing permitted is about it
+(or there is no focus). A night that passes, holds the focus and has its finale at E is
+returned at once. Otherwise the best night that passed is kept while the remaining attempts
+look: the first to pass, replaced only by a later one that holds the focus when the kept one
+does not. After five attempts it is returned. With no passing night at all,
+`generateExperience` fails with `not-enough-content`.
 
 ---
 
 ## 9. Output
 
 `chapters` (index, kind, content id, intensity), `alternates` (the pool minus the night, by
-score then id), `effectiveIntensity`, `seed`, `engineVersion`. The client resolves ids against
+score then id), `effectiveIntensity`, `seed`, `engineVersion`, and `focusIncluded` — whether a
+chapter is about the focus. The client resolves ids against
 its content cache; nothing here depends on a device.

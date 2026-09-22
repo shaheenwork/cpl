@@ -48,8 +48,8 @@ import kotlinx.coroutines.delay
  * Mutual discovery (BUILD_PROMPT.md §14.7). A `SecureScreen`: what a couple both chose is
  * as private as what each of them answered (§3.4).
  *
- * [onBuildNight] is null until Build Our Night exists (Phase 10); the button then says so
- * rather than pretending.
+ * [onBuildNight] opens Build Our Night around the match. Where there is nowhere to build a
+ * night it may be null, and the button then says so rather than pretending (DECISIONS.md D-038).
  */
 @Composable
 fun MutualDiscoveryScreen(

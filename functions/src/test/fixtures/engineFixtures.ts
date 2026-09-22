@@ -457,6 +457,11 @@ function serverCases(catalogue: EngineItem[]) {
         affinity: { 'category:sensory': 0.8, 'interaction:CHALLENGE': -0.5 },
       }),
     },
+    {
+      name: 'built around a revealed match',
+      request: request({ durationMin: 45, intensity: 4, focus: 'pref_b', seed: 10 }),
+      context: openContext({ mutual: { pref_b: 'BOTH_CURIOUS' } }),
+    },
     { name: 'everything excluded', request: request({ durationMin: 30, seed: 9 }), context: withFilters({ excludedThemes: [...THEMES] }) },
   ].map((entry) => ({ ...entry, expected: generate(catalogue, entry.request, entry.context) }));
 

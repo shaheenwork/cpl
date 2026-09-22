@@ -3,8 +3,13 @@
  *
  * Everything private stays here. The couple's combined boundaries, both partners' affinity,
  * and the ask-first flags are read, used and never returned: the caller gets a night and a
- * bounded pool of alternates (section 5.5), and only their own ask-first chapters. The seed
- * is the server's own, so a client cannot probe the pool by choosing seeds.
+ * bounded pool of alternates (section 5.5), and only their own ask-first items. The seed is
+ * the server's own, so a client cannot probe the pool by choosing seeds.
+ *
+ * A night is played on the phone of the partner who built it, in front of both (DECISIONS.md
+ * D-059). So a partner's ASK_FIRST themes are left out of it — they cannot be asked on that
+ * phone without telling the other that a limit exists — and only the host's own are flagged,
+ * to be asked on the host's phone (D-060).
  *
  * Core logic, tested directly against the emulator; the callable in index.ts only
  * authenticates and delegates.
@@ -13,8 +18,10 @@ import { randomInt } from 'node:crypto';
 import { Timestamp, type DocumentData, type Firestore } from 'firebase-admin/firestore';
 import { filtersRef, recomputeCouple } from '../couple/recompute';
 import { loadCatalogue, type Catalogue } from '../engine/catalogue';
+import { askFirstUids, permits } from '../engine/chokepoint';
 import { generate } from '../engine/pipeline';
 import {
+  DEFAULT_WEIGHTS,
   LEADERSHIPS,
   MATCH_LEVELS,
   MODES,
@@ -33,6 +40,8 @@ import { consumeRateLimit } from '../shared/rateLimit';
 export const GENERATE_LIMIT = 30;
 export const GENERATE_WINDOW_MS = 60 * 60 * 1000;
 const MAX_AFFINITY_DOCS = 200;
+/** The taxonomy's id rule (content/taxonomy.json), for the focus a night is built around. */
+const TAXONOMY_ID = /^[a-z0-9_]{1,64}$/;
 
 export interface GenerateDeps {
   catalogue(db: Firestore, nowMs: number): Promise<Catalogue>;
@@ -55,11 +64,13 @@ export interface GeneratedExperience {
   seed: number;
   engineVersion: number;
   contentVersion: number;
-  /** Chapter indexes the caller is asked about before they appear. Only the caller's own. */
-  askFirst: number[];
+  /** Released items (chapters or alternates) the caller asked to be asked about first. */
+  askFirstItems: string[];
+  /** Whether a night asked to be built around a match holds an item about it. */
+  focusIncluded: boolean;
 }
 
-const REQUEST_KEYS = new Set(['mode', 'durationMin', 'moods', 'intensity', 'leadership', 'novelty', 'media']);
+const REQUEST_KEYS = new Set(['mode', 'durationMin', 'moods', 'intensity', 'leadership', 'novelty', 'media', 'focus']);
 
 function invalid(reason: string): never {
   throw new ServiceError('invalid-argument', reason);
@@ -75,13 +86,14 @@ export function parseRequest(input: unknown, seed: number): EngineRequest {
   const raw = input as Record<string, unknown>;
   for (const key of Object.keys(raw)) if (!REQUEST_KEYS.has(key)) invalid(`unknown field ${key}`);
 
-  const { mode, durationMin, moods, intensity, leadership, novelty, media } = raw;
+  const { mode, durationMin, moods, intensity, leadership, novelty, media, focus } = raw;
   if (!MODES.includes(mode as never)) invalid('mode');
   if (!Number.isInteger(durationMin) || (durationMin as number) < 10 || (durationMin as number) > 240) invalid('durationMin');
   if (!Array.isArray(moods) || moods.some((mood) => !MOODS.includes(mood)) || new Set(moods).size !== moods.length) invalid('moods');
   if (!Number.isInteger(intensity) || (intensity as number) < 1 || (intensity as number) > 5) invalid('intensity');
   if (!LEADERSHIPS.includes(leadership as never)) invalid('leadership');
   if (!NOVELTIES.includes(novelty as never)) invalid('novelty');
+  if (focus !== undefined && focus !== null && (typeof focus !== 'string' || !TAXONOMY_ID.test(focus))) invalid('focus');
 
   let capture = { VOICE: true, PHOTO: true };
   if (media !== undefined) {
@@ -101,6 +113,7 @@ export function parseRequest(input: unknown, seed: number): EngineRequest {
     novelty: novelty as EngineRequest['novelty'],
     seed,
     media: capture,
+    ...(typeof focus === 'string' ? { focus } : {}),
   };
 }
 
@@ -122,6 +135,61 @@ function filtersFrom(data: DocumentData): FiltersInput {
   };
 }
 
+/**
+ * The filters for a night played on [hostUid]'s phone (DECISIONS.md D-060). A theme someone
+ * other than the host asked to be asked about first is left out: asking on the host's phone
+ * would tell the host that limit exists. The host's own stay, as flags. An entry naming no one
+ * is malformed, and is left out too (fail closed).
+ */
+export function forHost(filters: FiltersInput, hostUid: string): FiltersInput {
+  const excluded = new Set(filters.excludedThemes);
+  const askFirstThemes: Record<string, string[]> = {};
+  for (const [theme, uids] of Object.entries(filters.askFirstThemes)) {
+    if (uids.length === 0 || uids.some((uid) => uid !== hostUid)) excluded.add(theme);
+    else askFirstThemes[theme] = uids;
+  }
+  return { ...filters, excludedThemes: [...excluded].sort(), askFirstThemes };
+}
+
+interface ActiveCouple {
+  coupleId: string;
+  members: string[];
+}
+
+/** The caller's couple, from the server's records — never from a payload (section 8). */
+export async function activeCoupleOf(db: Firestore, uid: string): Promise<ActiveCouple> {
+  const coupleId = (await db.doc(`users/${uid}`).get()).get('coupleId');
+  if (typeof coupleId !== 'string' || coupleId.length === 0) throw new ServiceError('failed-precondition', 'not-paired');
+  const couple = await db.doc(`couples/${coupleId}`).get();
+  const members: unknown = couple.get('memberUids');
+  if (couple.get('status') !== 'ACTIVE' || !Array.isArray(members) || !members.includes(uid)) {
+    throw new ServiceError('failed-precondition', 'not-paired');
+  }
+  return { coupleId, members: members as string[] };
+}
+
+/** The couple's current filters, computed first if they never were. */
+async function currentFilters(db: Firestore, coupleId: string, nowMs: number): Promise<FiltersInput> {
+  let filters = await filtersRef(db, coupleId).get();
+  if (!filters.exists) {
+    // A couple whose filters were never computed gets them now, rather than a night built
+    // with none.
+    await recomputeCouple(db, coupleId, nowMs);
+    filters = await filtersRef(db, coupleId).get();
+    if (!filters.exists) throw new ServiceError('failed-precondition', 'not-paired');
+  }
+  return filtersFrom(filters.data()!);
+}
+
+async function revealedMatches(db: Firestore, coupleId: string): Promise<Record<string, MatchLevel>> {
+  const mutual: Record<string, MatchLevel> = {};
+  for (const doc of (await db.collection(`couples/${coupleId}/mutualPreferences`).get()).docs) {
+    const level = doc.get('matchLevel');
+    if (MATCH_LEVELS.includes(level)) mutual[doc.id] = level;
+  }
+  return mutual;
+}
+
 export async function generateExperience(
   db: Firestore,
   uid: string,
@@ -131,39 +199,19 @@ export async function generateExperience(
 ): Promise<GeneratedExperience> {
   const seed = deps.seed() >>> 0;
   const request = parseRequest(input, seed);
-
-  // The couple comes from the server's records, never from the payload (section 8).
-  const coupleId = (await db.doc(`users/${uid}`).get()).get('coupleId');
-  if (typeof coupleId !== 'string' || coupleId.length === 0) throw new ServiceError('failed-precondition', 'not-paired');
-  const couple = await db.doc(`couples/${coupleId}`).get();
-  const members: unknown = couple.get('memberUids');
-  if (couple.get('status') !== 'ACTIVE' || !Array.isArray(members) || !members.includes(uid)) {
-    throw new ServiceError('failed-precondition', 'not-paired');
-  }
+  const { coupleId, members } = await activeCoupleOf(db, uid);
   await consumeRateLimit(db, uid, 'generateExperience', GENERATE_LIMIT, GENERATE_WINDOW_MS, nowMs);
 
-  let filters = await filtersRef(db, coupleId).get();
-  if (!filters.exists) {
-    // A couple whose filters were never computed gets them now, rather than a night built
-    // with none.
-    await recomputeCouple(db, coupleId, nowMs);
-    filters = await filtersRef(db, coupleId).get();
-    if (!filters.exists) throw new ServiceError('failed-precondition', 'not-paired');
-  }
-
   const couplePath = `couples/${coupleId}`;
-  const [mutualDocs, history, weights, catalogue] = await Promise.all([
-    db.collection(`${couplePath}/mutualPreferences`).get(),
+  const [filters, mutual, history, weights, catalogue] = await Promise.all([
+    currentFilters(db, coupleId, nowMs),
+    revealedMatches(db, coupleId),
     db.doc(`${couplePath}/engineState/history`).get(),
     deps.weights(nowMs),
     deps.catalogue(db, nowMs),
   ]);
-
-  const mutual: Record<string, MatchLevel> = {};
-  for (const doc of mutualDocs.docs) {
-    const level = doc.get('matchLevel');
-    if (MATCH_LEVELS.includes(level)) mutual[doc.id] = level;
-  }
+  // Only a match both partners have been shown can steer a night (section 14.7).
+  if (request.focus !== undefined && mutual[request.focus] === undefined) invalid('focus');
 
   const lastPlayed: Record<string, number> = {};
   const rawHistory = history.get('lastPlayed');
@@ -173,7 +221,7 @@ export async function generateExperience(
 
   // Both partners' affinity, averaged per dimension. Read here, used here, never returned.
   const sums = new Map<string, { total: number; count: number }>();
-  for (const member of members as string[]) {
+  for (const member of members) {
     const docs = await db.collection(`users/${member}/affinity`).limit(MAX_AFFINITY_DOCS).get();
     for (const doc of docs.docs) {
       const score = doc.get('score');
@@ -184,9 +232,13 @@ export async function generateExperience(
   }
   const affinity = Object.fromEntries([...sums].map(([dimension, { total, count }]) => [dimension, total / count]));
 
-  const context: CoupleContext = { filters: filtersFrom(filters.data()!), mutual, lastPlayed, nowMs, affinity, weights };
+  const context: CoupleContext = { filters: forHost(filters, uid), mutual, lastPlayed, nowMs, affinity, weights };
   const result = generate(catalogue.items, request, context);
   if (typeof result === 'string') throw new ServiceError('failed-precondition', 'not-enough-content');
+
+  const catalogueById = new Map(catalogue.items.map((item) => [item.id, item]));
+  const released = [...result.chapters.map((chapter) => chapter.itemId), ...result.alternates];
+  const askFirstItems = released.filter((id) => askFirstUids(catalogueById.get(id)!, context).includes(uid));
 
   const chapters = result.chapters.map((chapter) => ({
     index: chapter.index,
@@ -205,21 +257,24 @@ export async function generateExperience(
     effectiveIntensity: result.effectiveIntensity,
     leadership: request.leadership,
     novelty: request.novelty,
+    focus: request.focus ?? null,
+    focusIncluded: result.focusIncluded,
     chapters: chapters.map(({ index, kind, contentId, intensity }) => ({ index, kind, contentIds: [contentId], intensity, state: 'LOCKED' })),
     alternates: result.alternates,
     createdBy: uid,
     plannedBy: null,
     scheduledFor: null,
     status: 'READY',
+    /** How many chapters have been played, in order. Server-written as the night goes on. */
+    playedThrough: 0,
     seed: result.seed,
     engineVersion: result.engineVersion,
     contentVersion: catalogue.contentVersion,
     createdAt,
   });
-  // Each partner's ask-first chapters go where only they can read them (section 3.2).
-  for (const [askUid, indexes] of Object.entries(result.askFirst)) {
-    batch.set(ref.collection('askFirst').doc(askUid), { chapters: indexes, createdAt });
-  }
+  // The caller's own ask-first items, where only they can read them (section 3.2), so a
+  // restarted player can still ask before each one.
+  if (askFirstItems.length > 0) batch.set(ref.collection('askFirst').doc(uid), { items: askFirstItems, createdAt });
   await batch.commit();
 
   return {
@@ -230,6 +285,54 @@ export async function generateExperience(
     seed: result.seed,
     engineVersion: result.engineVersion,
     contentVersion: catalogue.contentVersion,
-    askFirst: result.askFirst[uid] ?? [],
+    askFirstItems,
+    focusIncluded: result.focusIncluded,
   };
+}
+
+/**
+ * The chokepoint again, mid-night (BUILD_PROMPT.md section 3.2; DECISIONS.md D-062): of [ids]
+ * — a night's still-to-come chapters and its alternates — those the couple's boundaries,
+ * levels and content no longer permit. A limit set during a night applies to the rest of it.
+ * Cooldowns are not re-applied: the night itself is what set them. An id the catalogue no
+ * longer knows is blocked.
+ */
+export async function blockedNow(
+  db: Firestore,
+  coupleId: string,
+  hostUid: string,
+  experience: DocumentData,
+  ids: readonly string[],
+  nowMs: number,
+  deps: Pick<GenerateDeps, 'catalogue'> = defaultDeps,
+): Promise<string[]> {
+  if (ids.length === 0) return [];
+  const [filters, mutual, catalogue] = await Promise.all([
+    currentFilters(db, coupleId, nowMs),
+    revealedMatches(db, coupleId),
+    deps.catalogue(db, nowMs),
+  ]);
+  const request: EngineRequest = {
+    mode: experience.mode,
+    durationMin: experience.durationMin,
+    moods: experience.mood ?? [],
+    intensity: experience.intensity,
+    leadership: experience.leadership,
+    novelty: experience.novelty,
+    seed: experience.seed,
+    media: { VOICE: true, PHOTO: true },
+  };
+  const context: CoupleContext = {
+    filters: forHost(filters, hostUid),
+    mutual,
+    lastPlayed: {},
+    nowMs,
+    affinity: {},
+    weights: DEFAULT_WEIGHTS,
+  };
+  const byId = new Map(catalogue.items.map((item) => [item.id, item]));
+  return ids.filter((id) => {
+    const item = byId.get(id);
+    return item === undefined || permits(item, request, context) !== undefined;
+  });
 }

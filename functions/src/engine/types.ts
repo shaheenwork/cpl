@@ -64,6 +64,11 @@ export interface EngineRequest {
   seed: number;
   /** What this device can capture. Both default to true. */
   media: { VOICE: boolean; PHOTO: boolean };
+  /**
+   * A revealed mutual match to build the night around ("Build a night around this",
+   * section 14.7): a taxonomy item id. The caller checks it is one of the couple's matches.
+   */
+  focus?: string;
 }
 
 /** The couple's server-only filters (functions/src/engine/filters.ts, section 5.4). */
@@ -147,3 +152,14 @@ export type Violation =
 /** Assembly constants (SPEC section 7). Not tunable: they shape a night, not its taste. */
 export const W_TARGET = 1.0;
 export const W_DURATION = 2.0;
+
+/**
+ * The pull of a night's focus (SPEC section 4). Larger than any single ranking weight, so an
+ * item about the match the couple asked for outranks one that merely suits the mood.
+ */
+export const W_FOCUS = 4.0;
+
+/** Whether [item] is about the match [focus] names: it is boosted by it, or requires it. */
+export function isFocusItem(item: EngineItem, focus: string | undefined): boolean {
+  return focus !== undefined && (item.boostedByPreferences.includes(focus) || item.requiredMutualPreferences.includes(focus));
+}

@@ -10,14 +10,16 @@
  */
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { onDocumentWritten } from 'firebase-functions/v2/firestore';
+import { onDocumentCreated, onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { coupleOf, recomputeCouple } from './couple/recompute';
 import * as reveals from './discovery/reveals';
 import * as experience from './experience/generate';
+import * as feedback from './feedback/affinity';
 import { revealTiming } from './discovery/timing';
 import * as pairing from './pairing/pairing';
+import * as session from './session/session';
 import { consumeRateLimit } from './shared/rateLimit';
 import { toHttpsError } from './shared/errors';
 
@@ -179,8 +181,38 @@ const RELEASE_ON_OPEN_WINDOW_MS = 60 * 60 * 1000;
 /**
  * A night for the caller's couple, built server-side behind the chokepoint (sections 3.2,
  * 10.3). Returns the chapters, a bounded pool of alternates (section 5.5) and the caller's own
- * ask-first chapters; nothing about either partner's boundaries. Rate-limited in the core.
+ * ask-first items; nothing about either partner's boundaries. Rate-limited in the core.
  */
 export const generateExperience = onCall(options, (request) =>
   guarded(() => experience.generateExperience(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+// ---------------------------------------------------------------------------
+// Playing a night (sections 3.1, 12): every transition checked, inside a transaction
+// ---------------------------------------------------------------------------
+
+export const createSession = onCall(options, (request) =>
+  guarded(() => session.createSession(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+/** "I'm in": the caller's own consent to a BOLD or WILD night (section 3.1). */
+export const markReady = onCall(options, (request) =>
+  guarded(() => session.markReady(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+export const advanceSession = onCall(options, (request) =>
+  guarded(() => session.advanceSession(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+/** PAUSE, RESUME, STOP and DECLINE, from either partner's phone (section 3.1). */
+export const endSession = onCall(options, (request) =>
+  guarded(() => session.endSession(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+/** A partner's reaction to a chapter moves their own affinity (onFeedbackWrite, section 8). */
+export const onFeedbackCreated = onDocumentCreated(
+  { ...triggerOptions, document: 'couples/{coupleId}/feedback/{feedbackId}' },
+  async (event) => {
+    await feedback.applyFeedback(getFirestore(), event.params.coupleId, event.params.feedbackId, Date.now());
+  },
 );

@@ -183,4 +183,34 @@ class RemixerTest {
         val foreign = night.copy(chapters = night.chapters.map { it.copy(itemId = it.itemId + "_elsewhere") })
         assertThat(Remixer().swap(foreign, 0, pool)).isNull()
     }
+
+    @Test
+    fun `a pool only ever shrinks`() {
+        val removed = pool.ids.take(3).toSet()
+        val smaller = pool.without(removed + "never_released")
+        assertThat(smaller.ids).isEqualTo(pool.ids - removed)
+        assertThat(smaller.effectiveIntensity).isEqualTo(pool.effectiveIntensity)
+        assertThat(pool.without(setOf("never_released"))).isSameInstanceAs(pool)
+    }
+
+    @Test
+    fun `a swap never brings back what the pool lost`() {
+        val index = 1
+        val lost = pool.ids - night.chapters.map { it.itemId }.toSet()
+        val smaller = pool.without(lost)
+        // Only the night's own items are left, so nothing unused can stand in.
+        assertThat(Remixer().swap(night, index, smaller, setOf(night.chapters[index].itemId))).isNull()
+    }
+
+    @Test
+    fun `a night's focus lifts exactly the items about it, by W_FOCUS`() {
+        val focus = catalogue.flatMap { it.boostedByPreferences }.groupingBy { it }.eachCount().maxBy { it.value }.key
+        val focused = request.copy(focus = focus)
+        for (item in catalogue.take(120)) {
+            val lift = PublicScore.score(item, focused, ceiling, ClientContext()) -
+                PublicScore.score(item, request, ceiling, ClientContext())
+            val expected = if (PublicScore.isFocusItem(item, focus)) PublicScore.W_FOCUS else 0.0
+            assertWithMessage(item.id).that(lift).isWithin(1e-9).of(expected)
+        }
+    }
 }

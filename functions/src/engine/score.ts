@@ -3,7 +3,7 @@
  * ranking never sees excluded content (BUILD_PROMPT.md section 10.3).
  */
 import { effectiveIntensity } from './chokepoint';
-import type { CoupleContext, EngineItem, EngineRequest, MatchLevel } from './types';
+import { W_FOCUS, isFocusItem, type CoupleContext, type EngineItem, type EngineRequest, type MatchLevel } from './types';
 
 const DAY_MS = 86_400_000;
 const RECENCY_DAYS = 90;
@@ -76,7 +76,8 @@ export function score(item: EngineItem, request: EngineRequest, context: CoupleC
     w.moodMatch * moodFit(item, request) +
     w.novelty * noveltyFit(item, request, fresh) +
     w.intensityFit * intensityFit -
-    w.recencyPenalty * recency
+    w.recencyPenalty * recency +
+    W_FOCUS * (isFocusItem(item, request.focus) ? 1 : 0)
   );
 }
 

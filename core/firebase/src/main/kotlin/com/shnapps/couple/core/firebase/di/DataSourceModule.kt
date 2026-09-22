@@ -2,6 +2,8 @@ package com.shnapps.couple.core.firebase.di
 
 import com.shnapps.couple.core.firebase.content.ContentRemoteDataSource
 import com.shnapps.couple.core.firebase.content.FirebaseContentRemoteDataSource
+import com.shnapps.couple.core.firebase.night.FirebaseNightRemoteDataSource
+import com.shnapps.couple.core.firebase.night.NightRemoteDataSource
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -14,4 +16,7 @@ abstract class DataSourceModule {
 
     @Binds
     abstract fun bindContentRemoteDataSource(impl: FirebaseContentRemoteDataSource): ContentRemoteDataSource
+
+    @Binds
+    abstract fun bindNightRemoteDataSource(impl: FirebaseNightRemoteDataSource): NightRemoteDataSource
 }

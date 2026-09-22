@@ -56,11 +56,19 @@ internal object PublicScore {
         }
         val intensityFit = 1 - (effective - item.intensity.level) / LEVELS
         val recency = if (last == null) 0.0 else max(0.0, 1 - (context.nowMs - last) / DAY_MS / RECENCY_DAYS)
+        val focus = if (isFocusItem(item, request.focus)) 1.0 else 0.0
         return w.mutualPreference * mutual +
             w.affinity * NEUTRAL +
             w.moodMatch * mood +
             w.novelty * novelty +
             w.intensityFit * intensityFit -
-            w.recencyPenalty * recency
+            w.recencyPenalty * recency +
+            W_FOCUS * focus
     }
+
+    /** The pull of a night's focus (engine/SPEC.md §4). Public: the couple asked for it. */
+    const val W_FOCUS = 4.0
+
+    fun isFocusItem(item: ContentItem, focus: String?): Boolean =
+        focus != null && (focus in item.boostedByPreferences || focus in item.requiredMutualPreferences)
 }

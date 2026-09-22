@@ -32,6 +32,7 @@ not searched, and `firebase emulators:start` then dies with *"Could not spawn `j
 | `npm --prefix tools run validate` | The content gate on its own (also `./gradlew validateContent`) |
 | `npm --prefix tools run bundle` | Rebuild `content/dist/bundle.json` after editing content — `check` fails until you do |
 | `npm --prefix functions run engine:fixtures` | Regenerate `engine/engine-fixtures.json` after a deliberate engine change |
+| `node functions/scripts/dev-couple.js seed` | A paired couple in the emulators for device checks; `ready`/`stop`/`state` play the partner (TESTING.md) |
 
 ### Firebase emulators
 
@@ -113,9 +114,12 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   stable sorts with ties broken by id; random draws only where the spec lists them (D-047).
 - The device never runs the boundary filter and never assembles from a list of its own
   choosing — only from `PermittedPool.fromServer` (D-048). Konsist enforces it.
-- On the server only `experience/generate.ts` loads the catalogue or runs the pipeline, and
-  the pipeline filters before anything else (§10.3); the TypeScript architecture test
-  enforces it.
+- On the server only `experience/generate.ts` runs the pipeline, and the pipeline filters
+  before anything else (§10.3); the catalogue is loaded only there and in `feedback/affinity.ts`.
+  The TypeScript architecture test enforces it.
+- A night's session moves only through the callables and the transition table in
+  `functions/src/session/transitions.ts` (D-059). The phone follows the session document; it
+  never assumes where a night is.
 
 ### Design system
 
@@ -215,6 +219,10 @@ dev only (D-026). Without it every Firebase call on a device fails.
 
 **The nav host is inset at the root** (`safeDrawingPadding()`, including the keyboard). Screens
 do not add status-bar or IME padding of their own (D-028).
+
+**Read route arguments by property name, not with `toRoute()`,** in ViewModels:
+`savedStateHandle.get<String>(Route.Night::experienceId.name)`. `toRoute()` goes through
+Android's Bundle, which JVM unit tests stub, so it silently returns defaults there (D-067).
 
 **Never assume a flow's first value.** `collectAsStateWithLifecycle(initialValue = …)` renders
 that guess on the first frame; the lock screen once trapped every user that way (D-027).

@@ -117,6 +117,7 @@ dependencies {
     implementation(project(":feature:preferences"))
     implementation(project(":feature:boundaries"))
     implementation(project(":feature:discovery"))
+    implementation(project(":feature:night"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

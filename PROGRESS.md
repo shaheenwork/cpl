@@ -3,7 +3,7 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 9 complete. Next action: **Phase 10 — Build Our Night + the experience player.**
+**Current position:** Phase 10 complete. Next action: **Phase 11 — Game primitives and the seven core games.**
 
 ---
 
@@ -21,8 +21,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 | 7 | Mutual discovery + batched reveals | ✅ **Complete** |
 | 8 | Content system + ≥600 seed items | ✅ **Complete** |
 | 9 | Experience engine | ✅ **Complete** |
-| 10 | Build Our Night + player | ⬜ Next |
-| 11 | Game primitives + 7 core games | ⬜ |
+| 10 | Build Our Night + player | ✅ **Complete** |
+| 11 | Game primitives + 7 core games | ⬜ Next |
 | 12 | Realtime sessions | ⬜ |
 | 13 | Together home + Surprise Us | ⬜ |
 | 14 | Apart mode + async | ⬜ |
@@ -780,3 +780,110 @@ npm --prefix tools test                     27/27
   the couple's mutual matches and both partners' affinity (at most 200 each); it writes the
   experience, up to two ask-first documents and the rate limit. Deltas and weights are cached
   per instance.
+
+---
+
+## Phase 10 — Build Our Night and the experience player ✅
+
+### Shipped
+- **Build Our Night** (`:feature:night`, §14.5): time, mood, intensity (the dial reaches as
+  far as the couple's shared level and no further), who leads, novelty — then the server
+  builds the night. "Build a night around this" from a reveal opens it with a focus (D-064).
+  A night that finds nothing gets one more try with a fresh server seed before the couple is
+  asked to change anything (D-058).
+- **The player** (§14.6): the shape first ("Tonight has 5 chapters", never the contents), a
+  countdown, then one sealed chapter at a time — kind, level and who leads, "Something
+  interesting is coming…" between chapters, chapters cross-dissolving. PAUSE and STOP on every
+  live screen, one tap, no confirmation; a pause takes the night off the screen but never its
+  controls (D-068). "Not this one" swaps instantly from what the server released and offers to
+  keep the theme out, not tonight or never (§3.1). The close: "How are we doing?" (not stored,
+  D-065), then private per-chapter reactions, then "Night complete ❤️".
+- **Sessions** (§12, D-059): `createSession`, `markReady`, `advanceSession`, `endSession`, every
+  move checked against a pure transition table in a transaction and idempotent; one night at a
+  time per couple, expiring after six hours untouched; only the host moves it on; either phone
+  pauses or stops it; nothing records who stopped.
+- **Consent** (§3.1, D-061): BOLD and WILD wait for each partner's own "I'm in", from their own
+  phone. The partner's home shows the request; "Not tonight" from either phone ends it warmly.
+- **Ask-first on one phone** (D-060): a partner's ask-first themes are left out of a night
+  played on the other's phone; the host's own are asked about, hidden among decoy check-ins.
+- **Limits set mid-night** (D-062): every step re-runs the chokepoint over what is still to
+  come; the phone swaps blocked chapters before they are shown, or passes over one nothing can
+  replace. Swaps are reported when played and must be released items (D-066); the cooldown
+  history records what was actually played.
+- **Feedback into affinity** (D-063): private to its author, one per played chapter, turned into
+  the author's own affinity by `onFeedbackCreated`, counted once however often it fires.
+- **The engine**: a night's focus — a public score term and a retry preference, nights without
+  one bit-identical (D-064); `PermittedPool.without`, which can only shrink a pool.
+- **Home**: "Build tonight", and a card for the night under way on either phone.
+- `node functions/scripts/dev-couple.js` — a paired couple for device checks, and the partner's
+  phone (TESTING.md).
+
+### Verified
+```
+./gradlew check assembleDevDebug            BUILD SUCCESSFUL
+:feature:night  NightRulesTest 13, NightViewModelTest 16, BuildNightViewModelTest 5,
+                NightSnapshotTest 27 (22 screens recorded, 5 on-screen promises)
+:core:data      HeldNightTest 7, DefaultNightRepositoryTest 9 (the real shipped catalogue)
+:core:engine    22 (focus and the shrink-only pool added to RemixerTest)
+npm --prefix functions run test:unit        80/80   (session table 17, feedback 5, focus 4)
+npm --prefix functions run test:int         76/76   (sessions 11, feedback 3, generateExperience 14)
+npm --prefix functions run test:e2e         22/22   (sessions 4)
+npm --prefix firebase/tests test            77/77   (8 new: sessions and feedback)
+npm --prefix tools test                     27/27
+```
+- **Exit criterion — a full night generated and played end-to-end on one device**: on the
+  emulator (AVD `afterhours_a`, dev build, Emulator Suite), signed in as Alex: Build tonight →
+  15 minutes, Romantic → "Tonight has 3 chapters. About 15 minutes, rising to FLIRTY." → Begin →
+  the countdown → each chapter sealed ("Chapter 1. Sealed, ready to open"), opened, done, with
+  "Something interesting is coming…" between → "How are we doing?" → a reaction → "Night
+  complete ❤️". On the server: the session COMPLETED, all three chapters DONE, the history
+  holding exactly the three items played, `stats.nightsPlayed` 1, the couple's place cleared.
+  A second night's reaction reached Alex's own affinity through the trigger
+  (`category:exploration`, `interaction:CHALLENGE`, `mood:romantic`, `mood:talk` → 1.00).
+- **Consent, pause and stop on the device**: a WILD night stopped at "This one goes up to WILD";
+  after Alex's "I'm in" it waited for Sam's, given from "Sam's phone"
+  (`dev-couple.js ready`), then counted down. Sam paused it — Alex's phone showed "Paused."
+  with the chapter gone and Resume and Stop in place — and resumed it; Alex's STOP ended it with
+  "Ending here. All good." The server: ABANDONED, STOPPED, two acknowledgements, the chapter
+  under way counted as played, nobody named.
+- **"Not this one" with real content**: "Same Answer" swapped at once for "Our Best Day", with
+  the offer to keep "Games" or "Shared curiosity" out; the server recorded `deep_best_day` as
+  chapter 1, and never cooled down the item that was refused.
+- **FLAG_SECURE held**: `adb exec-out screencap` of every night screen is black; the checks
+  above read the accessibility tree instead.
+
+### Found and fixed
+- **On the device, reactions were never saved**: the app checks for its own feedback before
+  writing it (feedback cannot be written twice), and the rules refused a read of a document that
+  did not exist yet — while the save was fire-and-forget, so nothing said so. The rule now lets a
+  partner check their own feedback's id, and only theirs, so the other's still cannot even be
+  probed; a failed save keeps the couple on the reactions, told so. Found only by playing a night
+  for real.
+- **TalkBack said the wrong thing** in three places, found on the device: a sealed chapter read
+  "not available yet" although it opens with a tap, the countdown "2 Here we go remaining", and
+  the progress "Chapter 0 of 3" before the night began.
+- **A finished night could vanish from the player**: the couple's pointer to its night clears
+  in the same write that completes it, so a player following the pointer could lose the ending.
+  The player follows the session by its own id.
+- **STOP waited behind a request in flight**: a slow "Done" held STOP back. STOP and PAUSE never
+  wait (a test holds a request open and stops through it).
+- **A paused night could still be tapped**: the veil let touches and TalkBack through to "Done".
+  A pause now takes the chapter off the screen.
+- **`toRoute()` returned defaults in unit tests**, and a player test passed with the wrong night
+  (D-067).
+- **The keep-out offer sat below the fold** after a swap; it now comes first.
+
+### Deferred
+- **Phase 11:** chapters of type CHOICE, PREDICTION and REVEAL play as prompts for now; the
+  game primitives make them interactive.
+- **Phase 12:** both phones playing a night together, and a partner's ask-first asked
+  privately on their own phone (D-060); heartbeats, reconnection, and expiry by the scheduled
+  function; process-death restore from Room (a restarted player reloads from the server today).
+- **Phase 13:** "Make it more…" on the shape screen (the Remixer is ready), Surprise Us, the
+  15-minute express path, and the real Together home.
+- **Phase 14:** Apart nights — the builder is Together-only until then.
+- **Phase 18:** "Save to Our Memories" from Night complete.
+- **Phase 21:** SECURITY.md — the mid-night blocked list (D-062) and pool unions (D-049).
+- **Phase 22 (cost):** a night of n chapters is one generation, one createSession, n + 1
+  advances (each re-checking the limits: two reads of filters and matches plus the catalogue
+  cache), and at most n feedback writes and triggers.

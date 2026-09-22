@@ -33,7 +33,8 @@
         "node_modules",
         ".git",
         "src/test",
-        "lib/test"
+        "lib/test",
+        "scripts/dev-*.js"
       ],
       "predeploy": [
         "npm --prefix \"$RESOURCE_DIR\" run build"

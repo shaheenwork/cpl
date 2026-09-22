@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,6 +37,9 @@ import com.shnapps.couple.feature.auth.AuthScreen
 import com.shnapps.couple.feature.auth.SignOutViewModel
 import com.shnapps.couple.feature.boundaries.BoundariesScreen
 import com.shnapps.couple.feature.discovery.MutualDiscoveryScreen
+import com.shnapps.couple.feature.night.ActiveNightCard
+import com.shnapps.couple.feature.night.BuildNightScreen
+import com.shnapps.couple.feature.night.NightScreen
 import com.shnapps.couple.feature.onboarding.AgeGateScreen
 import com.shnapps.couple.feature.onboarding.SplashScreen
 import com.shnapps.couple.feature.onboarding.StartDestination
@@ -155,8 +160,8 @@ fun CplNavHost(
 
         composable<Route.MutualDiscovery> {
             MutualDiscoveryScreen(
-                // Build Our Night arrives in Phase 10; until then the button says so.
-                onBuildNight = null,
+                // Every reveal ends with one tap into a night built around it (§14.7).
+                onBuildNight = { itemId -> navController.navigate(Route.BuildNight(focus = itemId)) },
                 onDone = {
                     if (!navController.popBackStack(Route.Home, inclusive = false)) {
                         navController.navigate(Route.Home) {
@@ -169,6 +174,30 @@ fun CplNavHost(
 
         composable<Route.Boundaries> {
             BoundariesScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable<Route.BuildNight> {
+            BuildNightScreen(
+                // The builder has done its job once a night exists: back from the night is home.
+                onBuilt = { experienceId ->
+                    navController.navigate(Route.Night(experienceId)) {
+                        popUpTo<Route.BuildNight> { inclusive = true }
+                    }
+                },
+                onOpenNight = { experienceId -> navController.navigate(Route.Night(experienceId)) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable<Route.Night> {
+            NightScreen(
+                onHome = {
+                    if (!navController.popBackStack(Route.Home, inclusive = false)) {
+                        navController.navigate(Route.Home) { popUpTo(0) { inclusive = true } }
+                    }
+                },
+                onAdjustLimits = { navController.navigate(Route.Boundaries) },
+            )
         }
 
         composable<Route.Home> {
@@ -217,6 +246,7 @@ private fun ComingSoon(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(32.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -233,9 +263,17 @@ private fun ComingSoon(
             textAlign = TextAlign.Center,
         )
         if (showDiscovery) {
+            // A night under way, on either phone: the way in to an "I'm in", or back to it.
+            ActiveNightCard(onOpen = { experienceId -> navController.navigate(Route.Night(experienceId)) })
+            GlowButton(
+                text = "Build tonight",
+                onClick = { navController.navigate(Route.BuildNight()) },
+                leadingEmoji = "🔥",
+            )
             GlowButton(
                 text = "Your private curiosities",
                 onClick = { navController.navigate(Route.PreferenceDiscovery) },
+                style = GlowButtonStyle.Secondary,
                 leadingEmoji = "👀",
             )
             GlowButton(

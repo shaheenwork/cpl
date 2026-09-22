@@ -30,6 +30,17 @@ class PermittedPool internal constructor(
 ) {
     val ids: Set<String> = items.mapTo(LinkedHashSet()) { it.id }
 
+    /**
+     * This pool without [removed] — items the couple's limits no longer permit, mid-night
+     * (DECISIONS.md D-062), or a theme just kept out. A pool can only ever shrink: nothing
+     * outside what the server released can be added back.
+     */
+    fun without(removed: Set<String>): PermittedPool = if (removed.none { it in ids }) {
+        this
+    } else {
+        PermittedPool(items.filterNot { it.id in removed }, effectiveIntensity, mode)
+    }
+
     companion object {
         /** The pool for [night], resolving ids through [resolve]; unknown ids are left out. */
         fun fromServer(night: ServerNight, resolve: (String) -> ContentItem?): PermittedPool {

@@ -4,9 +4,10 @@
  * chokepoint").
  *
  * Runtime tests show the chokepoint works; these show nothing goes around it. They read the
- * sources: only experience/generate.ts may load the catalogue or run the pipeline, the pipeline
- * filters before it scores, samples or assembles and re-checks what it built, and the combined
- * boundaries are read in no other place.
+ * sources: only experience/generate.ts may run the pipeline, and the catalogue is loaded only
+ * there and where feedback learns what a played item was about; the pipeline filters before it
+ * scores, samples or assembles and re-checks what it built; and the combined boundaries are
+ * read in no other place.
  */
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -39,9 +40,11 @@ describe('the chokepoint cannot be bypassed', () => {
     assert.ok(files.some((file) => file.path === 'experience/generate.ts'));
   });
 
-  it('only generateExperience loads the catalogue or runs the pipeline', () => {
-    assert.deepEqual(importersOf('catalogue'), ['experience/generate.ts']);
+  it('only generateExperience runs the pipeline, and nothing else selects from the catalogue', () => {
     assert.deepEqual(importersOf('pipeline'), ['experience/generate.ts']);
+    // Feedback reads the catalogue for one item's category, type and moods — a chapter the
+    // couple already played — and selects nothing (DECISIONS.md D-063).
+    assert.deepEqual(importersOf('catalogue'), ['experience/generate.ts', 'feedback/affinity.ts']);
   });
 
   it('nothing outside the engine reaches its ranking, sampling or assembly', () => {

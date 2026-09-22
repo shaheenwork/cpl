@@ -16,6 +16,11 @@ data class NightRequest(
     val novelty: Novelty,
     /** Unsigned 32-bit. */
     val seed: Long,
+    /**
+     * A revealed mutual match the night is built around (BUILD_PROMPT.md §14.7), as a taxonomy
+     * item id; null for none. An item is about it when it is boosted by it or requires it.
+     */
+    val focus: String? = null,
 )
 
 /** One chapter of a night: which kind it is, and the content item that plays it. */

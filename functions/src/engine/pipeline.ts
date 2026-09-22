@@ -14,7 +14,7 @@ import { plan } from './plan';
 import { Rng, attemptSeed } from './rng';
 import { byScore, samplePool } from './sample';
 import { scoreAll } from './score';
-import { ENGINE_VERSION, type Chapter, type CoupleContext, type EngineItem, type EngineRequest } from './types';
+import { ENGINE_VERSION, isFocusItem, type Chapter, type CoupleContext, type EngineItem, type EngineRequest } from './types';
 import { validate } from './validate';
 
 export const MAX_ATTEMPTS = 5;
@@ -30,6 +30,8 @@ export interface GeneratedNight {
   engineVersion: number;
   /** uid → chapter indexes that need their "is this OK?" first. Private to each uid. */
   askFirst: Record<string, number[]>;
+  /** Whether a night asked to be built around a match holds an item about it. */
+  focusIncluded: boolean;
 }
 
 export type GenerationFailure = 'NOT_ENOUGH_CONTENT';
@@ -44,9 +46,12 @@ export function generate(
   const effective = effectiveIntensity(request, context);
   const available = new Set(permitted.flatMap((item) => item.chapterKinds));
   const catalogueById = new Map(catalogue.map((item) => [item.id, item]));
+  // A focus only binds when something permitted is about it; otherwise any night will do.
+  const focusIds = new Set(permitted.filter((item) => isFocusItem(item, request.focus)).map((item) => item.id));
 
-  // A night whose finale reaches the requested intensity is returned at once. Otherwise the
-  // first valid night is kept while the remaining retries look for one that does.
+  // A night that holds the focus (when there is one to hold) and whose finale reaches the
+  // requested intensity is returned at once. Otherwise the best night so far is kept while
+  // the remaining retries look: one with the focus beats one without, then the earliest.
   let fallback: GeneratedNight | undefined;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const rng = new Rng(attemptSeed(request.seed, attempt));
@@ -94,9 +99,11 @@ export function generate(
       attempt,
       engineVersion: ENGINE_VERSION,
       askFirst,
+      focusIncluded: chapters.some((chapter) => focusIds.has(chapter.itemId)),
     };
-    if (chapters[chapters.length - 1].intensity === effective) return night;
-    fallback ??= night;
+    const holdsFocus = focusIds.size === 0 || night.focusIncluded;
+    if (holdsFocus && chapters[chapters.length - 1].intensity === effective) return night;
+    if (fallback === undefined || (holdsFocus && !fallback.focusIncluded && focusIds.size > 0)) fallback = night;
   }
   return fallback ?? 'NOT_ENOUGH_CONTENT';
 }

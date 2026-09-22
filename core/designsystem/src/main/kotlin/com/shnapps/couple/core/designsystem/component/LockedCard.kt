@@ -63,7 +63,11 @@ fun LockedCard(
         label = "lockShimmer",
     )
 
-    val stateDescription = if (unlocked) "Unlocked" else "Locked, not available yet"
+    val stateDescription = when {
+        unlocked -> "Unlocked"
+        onClick != null -> "Sealed, ready to open"
+        else -> "Locked, not available yet"
+    }
 
     CinematicCard(
         modifier = modifier.semantics { contentDescription = "$title. $stateDescription" },

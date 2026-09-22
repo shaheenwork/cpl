@@ -515,6 +515,115 @@ describe('couples/{coupleId}/experiences (§6.1, §10)', () => {
   });
 });
 
+describe('couples/{coupleId}/sessions and feedback (§3.1, §6.1, §12)', () => {
+  const MALLORY = 'uid_mallory';
+  const mallory = () => testEnv.authenticatedContext(MALLORY).firestore();
+  const played = {
+    status: 'COMPLETED',
+    playedThrough: 2,
+    chapters: [
+      { index: 0, kind: 'WARM_UP', contentIds: ['flirt_one_look'], intensity: 1, state: 'DONE' },
+      { index: 1, kind: 'TEASE', contentIds: ['tease_slow'], intensity: 2, state: 'DONE' },
+      { index: 2, kind: 'FINALE', contentIds: ['finale_x'], intensity: 2, state: 'LOCKED' },
+    ],
+  };
+  // A reaction the app would write: its own uid, its own chapter, the server's time.
+  const reaction = (overrides = {}) => ({
+    experienceId: 'night1',
+    chapterIndex: 1,
+    contentId: 'tease_slow',
+    reaction: 'LOVED',
+    byUid: ALICE,
+    at: serverTimestamp(),
+    ...overrides,
+  });
+  const feedbackDoc = (db, id) => doc(db, 'couples', 's1', 'feedback', id);
+
+  before(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'couples', 's1'), { status: 'ACTIVE', memberUids: [ALICE, BOB], activeSessionId: 'live' });
+      await setDoc(doc(db, 'couples', 's1', 'sessions', 'live'), {
+        experienceId: 'night2', hostUid: ALICE, state: 'WAITING_FOR_PARTNER', currentChapter: -1, consentAcks: {},
+      });
+      await setDoc(doc(db, 'couples', 's1', 'experiences', 'night1'), played);
+      await setDoc(doc(db, 'couples', 's1', 'experiences', 'night2'), { ...played, status: 'IN_PROGRESS', playedThrough: 0 });
+      await setDoc(doc(db, 'couples', 's1', 'feedback', 'night1_0_uid_bob'), {
+        experienceId: 'night1', chapterIndex: 0, contentId: 'flirt_one_look', reaction: 'NOT_FOR_US', byUid: BOB, at: Timestamp.now(),
+      });
+      // Feedback is create-only, so a reaction a previous run left behind would turn the
+      // create below into a (refused) update.
+      await deleteDoc(doc(db, 'couples', 's1', 'feedback', `night1_1_${ALICE}`));
+    });
+  });
+
+  it('lets both members read the session, and no one else', async () => {
+    await assertSucceeds(getDoc(doc(alice(), 'couples', 's1', 'sessions', 'live')));
+    await assertSucceeds(getDoc(doc(bob(), 'couples', 's1', 'sessions', 'live')));
+    await assertFails(getDoc(doc(mallory(), 'couples', 's1', 'sessions', 'live')));
+    await assertFails(getDoc(doc(anon(), 'couples', 's1', 'sessions', 'live')));
+    await assertFails(getDocs(collection(alice(), 'couples', 's1', 'sessions')));
+  });
+
+  it('denies every client write to a session: no forged consent, state or stop (§12.2)', async () => {
+    const live = doc(bob(), 'couples', 's1', 'sessions', 'live');
+    await assertFails(updateDoc(live, { [`consentAcks.${ALICE}`]: serverTimestamp() }));
+    await assertFails(updateDoc(live, { [`consentAcks.${BOB}`]: serverTimestamp() }));
+    await assertFails(updateDoc(live, { state: 'CHAPTER_ACTIVE' }));
+    await assertFails(updateDoc(live, { state: 'ABANDONED' }));
+    await assertFails(setDoc(doc(alice(), 'couples', 's1', 'sessions', 'forged'), { state: 'READY' }));
+    await assertFails(deleteDoc(live));
+    await assertFails(updateDoc(doc(alice(), 'couples', 's1'), { activeSessionId: 'forged' }));
+  });
+
+  it('accepts a reaction to a played chapter, from the partner who gives it', async () => {
+    await assertSucceeds(setDoc(feedbackDoc(alice(), `night1_1_${ALICE}`), reaction()));
+    await assertSucceeds(getDoc(feedbackDoc(alice(), `night1_1_${ALICE}`)));
+  });
+
+  it('lets a partner check whether their own reaction is there yet, and only their own', async () => {
+    await assertSucceeds(getDoc(feedbackDoc(alice(), `night1_2_${ALICE}`)));
+    // Probing the other's id says nothing, whether or not they reacted.
+    await assertFails(getDoc(feedbackDoc(alice(), 'night1_2_uid_bob')));
+    await assertFails(getDoc(feedbackDoc(alice(), 'night1_0_uid_bob')));
+  });
+
+  it("keeps a reaction private to whoever gave it (D-063)", async () => {
+    await assertFails(getDoc(feedbackDoc(alice(), 'night1_0_uid_bob')));
+    await assertSucceeds(getDoc(feedbackDoc(bob(), 'night1_0_uid_bob')));
+    await assertFails(getDocs(collection(bob(), 'couples', 's1', 'feedback')));
+    await assertFails(getDoc(feedbackDoc(mallory(), 'night1_0_uid_bob')));
+  });
+
+  it('refuses a reaction for someone else, twice for one chapter, or edited after', async () => {
+    await assertFails(setDoc(feedbackDoc(alice(), `night1_0_${BOB}`), reaction({ chapterIndex: 0, contentId: 'flirt_one_look', byUid: BOB })));
+    await assertFails(setDoc(feedbackDoc(alice(), `night1_0_${ALICE}`), reaction({ chapterIndex: 0, contentId: 'flirt_one_look', byUid: BOB })));
+    await assertFails(setDoc(feedbackDoc(bob(), 'night1_0_uid_bob'), reaction({ chapterIndex: 0, contentId: 'flirt_one_look', byUid: BOB })));
+    await assertFails(updateDoc(feedbackDoc(bob(), 'night1_0_uid_bob'), { reaction: 'LOVED' }));
+    await assertFails(deleteDoc(feedbackDoc(bob(), 'night1_0_uid_bob')));
+  });
+
+  it('refuses a reaction to a chapter never played, or not what was played', async () => {
+    // Chapter 2 was never reached.
+    await assertFails(setDoc(feedbackDoc(alice(), `night1_2_${ALICE}`), reaction({ chapterIndex: 2, contentId: 'finale_x' })));
+    // The content must be what that chapter was.
+    await assertFails(setDoc(feedbackDoc(alice(), `night1_0_${ALICE}`), reaction({ chapterIndex: 0, contentId: 'tease_slow' })));
+    // A night still being played takes no feedback yet; one that does not exist, none at all.
+    await assertFails(setDoc(feedbackDoc(alice(), `night2_0_${ALICE}`), reaction({ experienceId: 'night2', chapterIndex: 0, contentId: 'flirt_one_look' })));
+    await assertFails(setDoc(feedbackDoc(alice(), `night9_0_${ALICE}`), reaction({ experienceId: 'night9', chapterIndex: 0, contentId: 'flirt_one_look' })));
+  });
+
+  it('refuses a malformed reaction: its id, its words, its time, anything extra', async () => {
+    const good = `night1_1_${ALICE}`;
+    await assertFails(setDoc(feedbackDoc(alice(), 'whatever'), reaction()));
+    await assertFails(setDoc(feedbackDoc(alice(), good), reaction({ reaction: 'MEH' })));
+    await assertFails(setDoc(feedbackDoc(alice(), good), reaction({ at: Timestamp.fromMillis(0) })));
+    await assertFails(setDoc(feedbackDoc(alice(), good), reaction({ note: 'loved the blindfold' })));
+    await assertFails(setDoc(feedbackDoc(alice(), good), reaction({ chapterIndex: '1' })));
+    await assertFails(setDoc(feedbackDoc(mallory(), `night1_1_${MALLORY}`), reaction({ byUid: MALLORY })));
+  });
+});
+
 describe('content deltas (§9.2, §9.6)', () => {
   before(async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {

@@ -13201,7 +13201,8 @@
      "seed": 5,
      "attempt": 0,
      "engineVersion": 1,
-     "askFirst": {}
+     "askFirst": {},
+     "focusIncluded": false
     }
    },
    {
@@ -13317,7 +13318,8 @@
        3,
        4
       ]
-     }
+     },
+     "focusIncluded": false
     }
    },
    {
@@ -13402,7 +13404,8 @@
      "seed": 7,
      "attempt": 0,
      "engineVersion": 1,
-     "askFirst": {}
+     "askFirst": {},
+     "focusIncluded": false
     }
    },
    {
@@ -13521,7 +13524,109 @@
      "seed": 8,
      "attempt": 0,
      "engineVersion": 1,
-     "askFirst": {}
+     "askFirst": {},
+     "focusIncluded": false
+    }
+   },
+   {
+    "name": "built around a revealed match",
+    "request": {
+     "mode": "TOGETHER",
+     "durationMin": 45,
+     "moods": [],
+     "intensity": 4,
+     "leadership": "ME",
+     "novelty": "MIXED",
+     "seed": 10,
+     "media": {
+      "VOICE": true,
+      "PHOTO": true
+     },
+     "focus": "pref_b"
+    },
+    "context": {
+     "filters": {
+      "maxIntensity": 5,
+      "excludedThemes": [],
+      "askFirstThemes": {},
+      "curiousThemes": [],
+      "excludedItems": []
+     },
+     "mutual": {
+      "pref_b": "BOTH_CURIOUS"
+     },
+     "lastPlayed": {},
+     "nowMs": 1790000000000,
+     "affinity": {},
+     "weights": {
+      "mutualPreference": 3,
+      "affinity": 2,
+      "moodMatch": 2,
+      "novelty": 1.5,
+      "intensityFit": 1.5,
+      "recencyPenalty": 2,
+      "repetitionPenalty": 3
+     }
+    },
+    "expected": {
+     "chapters": [
+      {
+       "index": 0,
+       "kind": "WARM_UP",
+       "itemId": "fx_011",
+       "intensity": 2
+      },
+      {
+       "index": 1,
+       "kind": "YOUR_CHOICE",
+       "itemId": "fx_065",
+       "intensity": 2
+      },
+      {
+       "index": 2,
+       "kind": "CONFESSION",
+       "itemId": "fx_066",
+       "intensity": 2
+      },
+      {
+       "index": 3,
+       "kind": "ROLEPLAY",
+       "itemId": "fx_026",
+       "intensity": 3
+      },
+      {
+       "index": 4,
+       "kind": "CHALLENGE",
+       "itemId": "fx_020",
+       "intensity": 3
+      },
+      {
+       "index": 5,
+       "kind": "FINALE",
+       "itemId": "fx_038",
+       "intensity": 4
+      }
+     ],
+     "alternates": [
+      "fx_006",
+      "fx_056",
+      "fx_089",
+      "fx_023",
+      "fx_029",
+      "fx_015",
+      "fx_018",
+      "fx_060",
+      "fx_005",
+      "fx_050",
+      "fx_053",
+      "fx_059"
+     ],
+     "effectiveIntensity": 4,
+     "seed": 10,
+     "attempt": 0,
+     "engineVersion": 1,
+     "askFirst": {},
+     "focusIncluded": true
     }
    },
    {

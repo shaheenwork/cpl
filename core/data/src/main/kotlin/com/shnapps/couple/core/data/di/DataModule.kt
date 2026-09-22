@@ -12,6 +12,8 @@ import com.shnapps.couple.core.data.couple.CoupleRepository
 import com.shnapps.couple.core.data.couple.DefaultCoupleRepository
 import com.shnapps.couple.core.data.mutual.DefaultMutualRepository
 import com.shnapps.couple.core.data.mutual.MutualRepository
+import com.shnapps.couple.core.data.night.DefaultNightRepository
+import com.shnapps.couple.core.data.night.NightRepository
 import com.shnapps.couple.core.data.preferences.DefaultPreferenceRepository
 import com.shnapps.couple.core.data.preferences.PreferenceRepository
 import com.shnapps.couple.core.data.taxonomy.ContentTaxonomyRepository
@@ -57,4 +59,8 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindMutualRepository(impl: DefaultMutualRepository): MutualRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindNightRepository(impl: DefaultNightRepository): NightRepository
 }

@@ -104,6 +104,8 @@ describe('generateExperience', () => {
       result.chapters.map((chapter) => chapter.contentId),
     );
     assert.deepEqual(stored.alternates, result.alternates);
+    assert.equal(stored.playedThrough, 0);
+    assert.equal(stored.focus, null);
     // Nothing about either partner's limits rides along.
     for (const key of Object.keys(stored)) assert.ok(!/filter|boundar|exclud|askFirst/i.test(key), `stored ${key}`);
   });
@@ -133,26 +135,79 @@ describe('generateExperience', () => {
     }
   });
 
-  it('asks only the partner who set ask-first, and tells no one else', async () => {
+  it("leaves a partner's ask-first themes out of a night played on the other's phone", async () => {
     const { a, b, coupleId } = await couple();
     const byId = await catalogueById();
-    // A theme this very night touches, so the flag certainly has something to mark.
+    // A theme this very night touches, so leaving it out certainly changes something.
     const probe = await generateExperience(db, a, request(), NOW, deps(7));
     const theme = byId.get(probe.chapters[0].contentId)!.excludedByBoundaries[0];
     await db.doc(`users/${b}/boundaries/${theme}`).set({ level: 'ASK_FIRST', updatedAt: new Date(NOW) });
     await recomputeCouple(db, coupleId, NOW);
 
+    // Asking on a's phone would tell a that b's limit exists (D-060), so the theme stays out.
+    const result = await generateExperience(db, a, request(), NOW, deps(7));
+    for (const id of [...result.chapters.map((chapter) => chapter.contentId), ...result.alternates]) {
+      assert.ok(!byId.get(id)!.excludedByBoundaries.includes(theme), `${id} carries ${theme}`);
+    }
+    assert.deepEqual(result.askFirstItems, [], 'nothing of b ever reaches a');
+    const asks = await db.collection(`couples/${coupleId}/experiences/${result.experienceId}/askFirst`).get();
+    assert.equal(asks.size, 0);
+  });
+
+  it("keeps the host's own ask-first items, flags them for the host alone, and tells no one else", async () => {
+    const { a, b, coupleId } = await couple();
+    const byId = await catalogueById();
+    const probe = await generateExperience(db, a, request(), NOW, deps(7));
+    const theme = byId.get(probe.chapters[0].contentId)!.excludedByBoundaries[0];
+    await db.doc(`users/${a}/boundaries/${theme}`).set({ level: 'ASK_FIRST', updatedAt: new Date(NOW) });
+    await recomputeCouple(db, coupleId, NOW);
+
     const result = await generateExperience(db, a, request(), NOW, deps(7));
     assert.deepEqual(result.chapters, probe.chapters, 'a flag, not a penalty: the same night');
-    assert.deepEqual(result.askFirst, [], 'the caller did not ask for anything');
-    const expected = result.chapters.filter((chapter) => byId.get(chapter.contentId)!.excludedByBoundaries.includes(theme)).map((chapter) => chapter.index);
-    assert.ok(expected.includes(0));
+    const released = [...result.chapters.map((chapter) => chapter.contentId), ...result.alternates];
+    const expected = released.filter((id) => byId.get(id)!.excludedByBoundaries.includes(theme));
+    assert.ok(expected.includes(probe.chapters[0].contentId));
+    assert.deepEqual(result.askFirstItems, expected);
     const asks = await db.collection(`couples/${coupleId}/experiences/${result.experienceId}/askFirst`).get();
-    assert.deepEqual(asks.docs.map((doc) => doc.id), [b]);
-    assert.deepEqual(asks.docs[0].get('chapters'), expected);
-    // The one who asked sees their own chapters when they generate.
+    assert.deepEqual(asks.docs.map((doc) => doc.id), [a]);
+    assert.deepEqual(asks.docs[0].get('items'), expected);
+
+    // On b's phone, a's ask-first theme is the partner's, and stays out.
     const theirs = await generateExperience(db, b, request(), NOW, deps(7));
-    assert.deepEqual(theirs.askFirst, expected);
+    assert.deepEqual(theirs.askFirstItems, []);
+    for (const id of [...theirs.chapters.map((chapter) => chapter.contentId), ...theirs.alternates]) {
+      assert.ok(!byId.get(id)!.excludedByBoundaries.includes(theme), `${id} carries ${theme}`);
+    }
+  });
+
+  it('builds a night around a revealed match when asked, and only around a revealed one', async () => {
+    const { a, coupleId } = await couple();
+    const items = (await loadCatalogue(db, NOW)).items.filter((item) => item.status === 'published' && item.modes.includes('TOGETHER'));
+    const counts = new Map<string, number>();
+    for (const item of items) {
+      for (const pref of new Set([...item.boostedByPreferences, ...item.requiredMutualPreferences])) counts.set(pref, (counts.get(pref) ?? 0) + 1);
+    }
+    const focus = [...counts].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0]))[0][0];
+
+    await rejects(generateExperience(db, a, request({ focus }), NOW, deps()), 'invalid-argument', 'focus');
+    await rejects(generateExperience(db, a, request({ focus: 'Not An Id!' }), NOW, deps()), 'invalid-argument', 'focus');
+
+    await db.doc(`couples/${coupleId}/mutualPreferences/${focus}`).set({ matchLevel: 'BOTH_YES', revealedAt: new Date(NOW), seenBy: {} });
+    const byId = await catalogueById();
+    let included = 0;
+    for (let seed = 1; seed <= 6; seed++) {
+      const result = await generateExperience(db, a, request({ focus }), NOW, deps(seed));
+      const about = result.chapters.filter((chapter) => {
+        const item = byId.get(chapter.contentId)!;
+        return item.boostedByPreferences.includes(focus) || item.requiredMutualPreferences.includes(focus);
+      });
+      assert.equal(result.focusIncluded, about.length > 0);
+      if (result.focusIncluded) included += 1;
+      const stored = (await db.doc(`couples/${coupleId}/experiences/${result.experienceId}`).get()).data()!;
+      assert.equal(stored.focus, focus);
+      assert.equal(stored.focusIncluded, result.focusIncluded);
+    }
+    assert.equal(included, 6, 'every night asked to be built around the match holds it');
   });
 
   it('never picks an item an admin disabled, from the next generation on', async () => {

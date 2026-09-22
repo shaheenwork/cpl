@@ -742,6 +742,10 @@ private. The cooldown history, `couples/{cid}/engineState/history`, is closed to
 entirely: none needs it, and one that could write it could lift the cooldowns. Phase 9 reads
 it; the player writes it as chapters are played (Phase 10).
 
+*Amended in Phase 10:* a night played on one phone leaves a partner's ask-first themes out
+altogether, and the private document holds the host's own items rather than chapter indexes
+(D-060).
+
 ---
 
 ## D-054 — The server's engine reads the content the phones read
@@ -791,3 +795,128 @@ requests; for that exact combination about 7% of seeds find no night. Rather tha
 rule, the callable answers `failed-precondition: not-enough-content`. The plan for Phase
 10's builder: retry once, since a fresh server seed almost always succeeds, then suggest a
 longer night. The lasting fix is content — more short, intense roleplay and finale items.
+
+---
+
+## D-059 — A night plays on the phone of the partner who built it; sessions start now
+**Phase 10.** The exit criterion is a night "played end-to-end on one device", and realtime
+two-phone sessions are Phase 12. So a night plays on its host's phone, in front of both
+partners, and the session document (§6.1) starts now with a subset of §12.1's states:
+WAITING_FOR_PARTNER, READY, CHAPTER_ACTIVE, PAUSED, COMPLETED, ABANDONED. Phase 12 extends the
+same table with rounds, submissions and reveals rather than replacing it.
+
+Every transition is a callable (`createSession`, `markReady`, `advanceSession`,
+`endSession`) checked against a pure transition table inside a transaction; no client
+writes the session. Every event is idempotent: a retry of something that already happened
+changes nothing, so a lost reply is safe to resend, and two taps can never double-advance a
+night. Only the host moves the night on; either partner can pause, resume or stop it from
+their own phone. One live session per couple: a second is refused (`session-in-progress`)
+unless the first has been untouched for six hours, when it expires. The session records why
+a night ended, never who ended it — `endedBy` from §6.1 is deliberately left out, so nothing
+can ever surface who stopped (§3.1).
+
+---
+
+## D-060 — On one phone, a partner's ask-first themes are left out; the host's own are asked, among decoys
+**Phase 10.** §3.2: an ASK_FIRST item needs an in-session prompt to the partner who set it —
+and only they may know it was set (D-053). On a phone both partners are looking at, asking
+the other partner would tell the host that limit exists, and where. So a night built for one
+phone leaves out every theme someone other than its host asked to be asked about first (the
+server moves them into the night's exclusions before the chokepoint runs); leaving something
+out reveals nothing, because the alternates are a sample (D-049).
+
+The host's own ask-first items stay in, flagged — returned to the host alone and stored in
+`experiences/{id}/askFirst/{hostUid}` as item ids, so a restarted player still asks. Before
+each one the player shows a neutral check-in ("Before the next one — still good?"). The same
+check-in also comes before the step up into BOLD and before about one other chapter in four,
+chosen by the night's seed, so a check-in never tells anyone watching that a limit exists.
+When both partners play on their own phones (Phase 12), each can be asked privately and a
+partner's ask-first themes can come back.
+
+---
+
+## D-061 — BOLD and WILD need each partner's "I'm in", each from their own phone
+**Phase 10.** §3.1 requires both partners' explicit "I'm in" before the first chapter of a
+level 4 or 5 night, stored on the session. Two taps on one phone would record a consent the
+host could give alone. So each acknowledgement is `markReady` from the partner's own signed-in
+phone, recorded under their uid with the server's time; the first chapter cannot start until
+every member has acknowledged (the transition table refuses it). The partner's home screen
+shows the request ("Your partner has a night ready. Are you in?"), and "Not tonight" from
+either phone ends the night as DECLINED, warmly. A session needs consent when any chapter is
+BOLD or above — the level the night actually reaches, not the one asked for.
+
+---
+
+## D-062 — A limit set during a night holds for the rest of it
+**Phase 10.** §3.2: NEVER cannot be overridden, and that includes a NEVER set halfway through
+a night, on either phone. Every `advanceSession` runs the chokepoint again over the chapters
+still to come and the alternates, against the couple's current filters, and returns what is
+no longer permitted. The phone swaps each blocked chapter for something released that still
+is — before it is ever shown — and passes over, unseen, a chapter nothing can replace. The
+host's own "Not this one → Never" applies to the rest of the night at once, on the phone,
+without waiting for the server to recompute. Cooldowns are not re-applied mid-night: the night
+itself is what set them.
+
+Residual risk, for SECURITY.md (Phase 21): a technical user inspecting traffic could see which
+released items became blocked mid-night, and so that the partner just excluded one of their
+themes. Nothing on screen shows it, and chapters are sealed until played.
+
+---
+
+## D-063 — Feedback is private to whoever gave it, and only for chapters played
+**Phase 10.** §6.1 keeps feedback under the couple and §8 turns it into affinity. A reaction
+to a chapter is close to a private answer, so the rules let only its author read it, and hold
+its creation to exactly one reaction per partner per chapter (the document id says which), for
+a chapter of this couple's night that was actually played, naming the content that chapter was,
+with the server's time — and never edited after. A partner may read only ids ending in their
+own uid, whether or not that feedback exists yet (the app checks before writing, since it cannot
+write twice), so neither can learn whether the other reacted. The `onFeedbackCreated` trigger moves the
+author's own affinity (`users/{uid}/affinity`) as a running mean over about the last twenty
+reactions, marking the feedback processed in the same transaction so a trigger delivered twice
+counts once. Reading the catalogue there — for one played item's category, type and moods — is
+the one other place allowed to load it; it selects nothing.
+
+---
+
+## D-064 — "Build a night around this" is a focus: a score term and a retry preference
+**Phase 10.** §14.7 ends every reveal with a night built around it. The request carries an
+optional `focus` — a taxonomy item the server checks is one of the couple's revealed matches —
+and an item is about the focus when it is boosted by it or requires it. The score gains
+`W_FOCUS × F` (4.0, more than any single weight), and the retries prefer a night holding a focus
+item when one is permitted; the response says whether it does. Nights without a focus are
+bit-identical to before — the regenerated vectors changed only by the new field and the new
+case — so `ENGINE_VERSION` stays 1. The device's score carries the same term, so a swap keeps
+to the focus.
+
+---
+
+## D-065 — The check-in at the close is not stored
+**Phase 10.** "How are we doing?" (§3.1) is aftercare. Its answers only decide what to say
+next — and "A bit much" offers the limits screen, one tap away. Nothing is recorded: an answer
+about how a night felt is not something either partner, or the product, needs to keep.
+
+---
+
+## D-066 — A swapped chapter is reported when it is played, and must be one the server released
+**Phase 10.** "Not this one" swaps on the phone, instantly and offline (D-057). The server
+learns the swap when the chapter is finished: `advanceSession` carries `playedItemId`, which
+must be one of the night's released items and not another chapter's, and the stored night and
+the cooldown history record what was actually played. An item swapped away was never played,
+so it is not cooled down.
+
+---
+
+## D-067 — Route arguments are read by property name, not with toRoute()
+**Phase 10.** `SavedStateHandle.toRoute()` decodes through Android's Bundle, which the plain
+JVM unit tests stub out: in a test it quietly returned defaults, and a player test passed with
+the wrong night id. ViewModels read their arguments with
+`savedStateHandle.get<String>(Route.Night::experienceId.name)` — the key type-safe navigation
+itself uses — so a renamed property still breaks the build rather than a night.
+
+---
+
+## D-068 — A pause takes the night off the screen, never its controls
+**Phase 10.** A pause is often someone at the door. While a night is paused the chapter is not
+drawn at all — out of sight, out of reach, and out of TalkBack — and PAUSE and STOP stay where
+they always are (§15.2: never animate a required control out of reach). STOP never waits for
+anything else in flight: it is sent even while a chapter is still being finished.

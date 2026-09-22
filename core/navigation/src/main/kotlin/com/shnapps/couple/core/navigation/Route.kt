@@ -50,6 +50,17 @@ object Route {
     data object Boundaries
 
     /**
+     * Build Our Night (§14.5). [focus] is a revealed mutual match to build it around, from
+     * "Build a night around this" (§14.7), or null.
+     */
+    @Serializable
+    data class BuildNight(val focus: String? = null)
+
+    /** A night being played — or waiting to be — on either partner's phone (§14.6). */
+    @Serializable
+    data class Night(val experienceId: String)
+
+    /**
      * The app lock (§3.4). Not part of the first-run chain — it can appear over anything,
      * including a cold start, because the app always starts locked.
      */

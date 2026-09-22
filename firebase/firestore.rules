@@ -159,6 +159,23 @@ service cloud.firestore {
     // Functions, inside transactions (BUILD_PROMPT.md section 8). That is what makes
     // "exactly two members" and "one couple per person" hold (section 7.3, test M).
 
+    // One reaction to one played chapter (§6.1 feedback). Exactly these fields; the time is
+    // the server's; the content must be what that chapter was when it was played.
+    function validFeedback(coupleId, feedbackId, data) {
+      let night = get(/databases/$(database)/documents/couples/$(coupleId)/experiences/$(data.experienceId)).data;
+      return data.keys().hasAll(['experienceId', 'chapterIndex', 'contentId', 'reaction', 'byUid', 'at'])
+          && data.keys().hasOnly(['experienceId', 'chapterIndex', 'contentId', 'reaction', 'byUid', 'at'])
+          && data.byUid == request.auth.uid
+          && data.experienceId is string && data.experienceId.matches('^[A-Za-z0-9]{1,64}$')
+          && data.chapterIndex is int && data.chapterIndex >= 0
+          && feedbackId == data.experienceId + '_' + string(data.chapterIndex) + '_' + request.auth.uid
+          && data.reaction in ['LOVED', 'FINE', 'NOT_FOR_US']
+          && data.at == request.time
+          && night.status in ['COMPLETED', 'ABANDONED']
+          && data.chapterIndex < night.playedThrough
+          && night.chapters[data.chapterIndex].contentIds[0] == data.contentId;
+    }
+
     function isActiveMember(coupleId) {
       let couple = get(/databases/$(database)/documents/couples/$(coupleId));
       return isSignedIn()
@@ -195,12 +212,37 @@ service cloud.firestore {
         allow get, list: if isActiveMember(coupleId);
         allow write: if false;
 
-        // Each partner's ask-first chapters (§3.2), readable by that partner alone: the other
+        // Each partner's ask-first items (§3.2), readable by that partner alone: the other
         // must not learn that a limit exists, or where.
         match /askFirst/{askUid} {
           allow get: if isSelf(askUid) && isActiveMember(coupleId);
           allow list, write: if false;
         }
+      }
+
+      // A night being played (§3.1, §12). Server-authoritative: every transition, every
+      // "I'm in", pause and stop goes through a callable that checks it against the legal
+      // transitions, inside a transaction. Both members read it — it is how the other phone
+      // knows the night is paused, waiting for consent, or over. Nothing in it says who
+      // stopped a night (DECISIONS.md D-059).
+      match /sessions/{sessionId} {
+        allow get: if isActiveMember(coupleId);
+        allow list, write: if false;
+      }
+
+      // What a partner thought of a chapter (§6.1), which the server turns into their own
+      // affinity (onFeedbackCreated). Private to whoever gave it: the other partner cannot read
+      // it (DECISIONS.md D-063). One per partner per chapter — the id says which — only for a
+      // chapter of this couple's night that was actually played, and never edited after.
+      match /feedback/{feedbackId} {
+        // Only ever an id ending in the caller's own uid — so a partner cannot even learn
+        // whether the other reacted — and then whether it exists yet: the app checks before
+        // writing, because feedback cannot be written twice.
+        allow get: if isActiveMember(coupleId)
+                   && feedbackId.matches('^[A-Za-z0-9]{1,64}_[0-9]+_' + request.auth.uid + '$')
+                   && (resource == null || resource.data.byUid == request.auth.uid);
+        allow create: if isActiveMember(coupleId) && validFeedback(coupleId, feedbackId, request.resource.data);
+        allow list, update, delete: if false;
       }
     }
 
