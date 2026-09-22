@@ -1,6 +1,7 @@
 package com.shnapps.couple.core.datastore
 
 import com.shnapps.couple.core.model.AppLockMode
+import com.shnapps.couple.core.model.GamePlayers
 
 /**
  * Device-local settings. Deliberately small.
@@ -24,6 +25,12 @@ data class AppPreferences(
      */
     val ageConfirmedHint: Boolean = false,
     val onboardingCompleteHint: Boolean = false,
+
+    /**
+     * The names the partners gave themselves for a game passed between them on this phone
+     * (§11). Only what they typed; kept here so the next game remembers them.
+     */
+    val gamePlayers: GamePlayers? = null,
 ) {
     companion object {
         const val DEFAULT_LOCK_TIMEOUT_MILLIS: Long = 60_000L

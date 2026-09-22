@@ -10,17 +10,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.CinematicCard
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
+import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionState
 
 /**
- * A night under way, on the home screen: how the other partner learns there is an "I'm in" to
- * give, and how either of them finds their way back after closing the app. Shows nothing when
- * there is no night.
+ * A night — or a game — under way, on the home screen: how the other partner learns there is
+ * an "I'm in" to give, and how either of them finds their way back after closing the app. Shows
+ * nothing when there is nothing under way.
  */
 @Composable
 fun ActiveNightCard(
-    onOpen: (experienceId: String) -> Unit,
+    onOpen: (experienceId: String, type: ExperienceType) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ActiveNightViewModel = hiltViewModel(),
 ) {
@@ -29,18 +30,27 @@ fun ActiveNightCard(
 }
 
 @Composable
-internal fun ActiveNightContent(session: NightSession, onOpen: (String) -> Unit, modifier: Modifier = Modifier) {
+internal fun ActiveNightContent(
+    session: NightSession,
+    onOpen: (String, ExperienceType) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val what = if (session.experienceType == ExperienceType.GAME) "game" else "night"
     val line = when {
-        session.state == SessionState.PAUSED -> "Tonight is paused. Either of you can pick it up."
+        session.state == SessionState.PAUSED -> "Your $what is paused. Either of you can pick it up."
         session.state == SessionState.WAITING_FOR_PARTNER && !session.consented && session.isHost ->
-            "Tonight is waiting for your \"I'm in\"."
+            "Your $what is waiting for your \"I'm in\"."
         session.state == SessionState.WAITING_FOR_PARTNER && !session.consented ->
-            "Your partner has a night ready. Are you in?"
+            "Your partner has a $what ready. Are you in?"
         session.state == SessionState.WAITING_FOR_PARTNER -> "Waiting for your partner's \"I'm in\"."
-        session.isHost -> "Tonight is waiting. Pick up where you left off."
-        else -> "A night is playing on the other phone."
+        session.isHost -> "Your $what is waiting. Pick up where you left off."
+        else -> "A $what is playing on the other phone."
     }
-    CinematicCard(modifier = modifier, onClick = { onOpen(session.experienceId) }, glowing = true) {
+    CinematicCard(
+        modifier = modifier,
+        onClick = { onOpen(session.experienceId, session.experienceType) },
+        glowing = true,
+    ) {
         Text(text = "TONIGHT", style = EyebrowTextStyle, color = AfterhoursTheme.colors.brass)
         Text(text = line, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
     }

@@ -3,6 +3,7 @@ package com.shnapps.couple.core.testing
 import com.shnapps.couple.core.datastore.AppPreferences
 import com.shnapps.couple.core.datastore.AppPreferencesStore
 import com.shnapps.couple.core.model.AppLockMode
+import com.shnapps.couple.core.model.GamePlayers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 
@@ -28,6 +29,8 @@ class FakeAppPreferencesStore(initial: AppPreferences = AppPreferences()) : AppP
 
     override suspend fun setOnboardingCompleteHint(complete: Boolean) =
         state.update { it.copy(onboardingCompleteHint = complete) }
+
+    override suspend fun setGamePlayers(players: GamePlayers) = state.update { it.copy(gamePlayers = players) }
 
     override suspend fun clear() {
         state.value = AppPreferences()

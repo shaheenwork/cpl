@@ -23,4 +23,8 @@ tasks.withType<Test>().configureEach {
     )
         .withPathSensitivity(PathSensitivity.RELATIVE)
         .withPropertyName("konsistScannedSources")
+    // The games' ids: no code may name one (GameLogicTest).
+    inputs.file(rootProject.layout.projectDirectory.file("content/games.json"))
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("shippedGames")
 }

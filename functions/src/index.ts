@@ -16,6 +16,7 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { coupleOf, recomputeCouple } from './couple/recompute';
 import * as reveals from './discovery/reveals';
 import * as experience from './experience/generate';
+import * as games from './experience/game';
 import * as feedback from './feedback/affinity';
 import { revealTiming } from './discovery/timing';
 import * as pairing from './pairing/pairing';
@@ -187,8 +188,13 @@ export const generateExperience = onCall(options, (request) =>
   guarded(() => experience.generateExperience(getFirestore(), callerUid(request), request.data, Date.now())),
 );
 
+/** A game's rounds, chosen behind both partners' boundaries like a night (section 11). */
+export const startGame = onCall(options, (request) =>
+  guarded(() => games.startGame(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
 // ---------------------------------------------------------------------------
-// Playing a night (sections 3.1, 12): every transition checked, inside a transaction
+// Playing a night or a game (sections 3.1, 12): every transition checked, inside a transaction
 // ---------------------------------------------------------------------------
 
 export const createSession = onCall(options, (request) =>

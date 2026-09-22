@@ -53,6 +53,29 @@ export interface EngineItem {
   boostedByPreferences: string[];
 }
 
+/**
+ * A game prompt as the engine sees it (BUILD_PROMPT.md section 11): an item in every field the
+ * chokepoint and the ranking read — so a prompt is permitted, or not, by exactly the rule an
+ * item is — plus the game it belongs to and its kind.
+ */
+export interface EnginePrompt extends EngineItem {
+  game: string;
+  /** TRUTH or DARE, in a game whose prompts have kinds; null otherwise. */
+  kind: string | null;
+}
+
+/** A game, as far as choosing its rounds needs it (content/games.json). */
+export interface GameDefinition {
+  id: string;
+  modes: string[];
+  rounds: number;
+  /** Each round holds one prompt of every kind listed, in this order; none listed, one prompt. */
+  promptKinds: string[];
+}
+
+/** Raised whenever a game's rounds change for identical inputs (engine/SPEC.md section 10). */
+export const GAME_ENGINE_VERSION = 1;
+
 export interface EngineRequest {
   mode: Mode;
   durationMin: number;

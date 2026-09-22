@@ -21,6 +21,19 @@ data class ContentItemEntity(
 )
 
 /**
+ * One game prompt of the installed bundle (§11), kept the way items are: as the JSON the
+ * bundle carried, with only the columns queries and the delta overlay need beside it.
+ */
+@Entity(tableName = "content_prompts", indices = [Index("game")])
+data class ContentPromptEntity(
+    @PrimaryKey val id: String,
+    val version: Int,
+    val game: String,
+    val status: String,
+    val json: String,
+)
+
+/**
  * An admin override from Firestore `content/{id}` (§9.2, §9.6): a status, and optionally an
  * edited copy of the item. It applies to bundled items of [version] and earlier, so it
  * outlives bundle updates until the edit is baked into a later item version.
@@ -44,6 +57,8 @@ data class ContentBundleEntity(
     /** The taxonomy travels in the bundle, so it updates with the content (§9.5). */
     val taxonomyJson: String,
     val packsJson: String,
+    /** The games (§11), as the bundle carried them: few, small, and always read together. */
+    val gamesJson: String,
     /** When content was last checked against the server; null if never. */
     val lastSyncMillis: Long?,
     /** Deltas updated at or after this instant have not been fetched yet. */

@@ -24,4 +24,7 @@ const bundle = buildBundle(repo);
 const target = join(root, BUNDLE_FILE);
 mkdirSync(dirname(target), { recursive: true });
 writeFileSync(target, serializeBundle(bundle), 'utf8');
-console.log(`\nwrote ${BUNDLE_FILE}: content v${bundle.contentVersion}, ${bundle.items.length} items`);
+console.log(
+  `\nwrote ${BUNDLE_FILE}: content v${bundle.contentVersion}, ${bundle.items.length} items, ` +
+    `${bundle.games.length} games, ${bundle.prompts.length} prompts`,
+);

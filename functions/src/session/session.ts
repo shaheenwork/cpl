@@ -9,7 +9,8 @@
  *
  * Phase 10 plays a night on the phone of the partner who built it (DECISIONS.md D-059). The
  * other partner's phone takes part twice: to say "I'm in" to a BOLD or WILD night before its
- * first chapter (section 3.1, D-061), and to pause or stop it at any moment.
+ * first chapter (section 3.1, D-061), and to pause or stop it at any moment. A game (section
+ * 11) is played through the very same session: its rounds are the chapters (D-070).
  *
  * Core logic takes (db, uid, input, nowMs) and is tested directly against the emulator; the
  * callables in index.ts only authenticate and delegate.
@@ -164,7 +165,7 @@ function applyTransition(
   if (!isTerminal(to.state)) return {};
   const coupleUpdate: Record<string, unknown> = { activeSessionId: FieldValue.delete() };
   if (to.state === 'COMPLETED') {
-    coupleUpdate['stats.nightsPlayed'] = FieldValue.increment(1);
+    coupleUpdate[experience.type === 'GAME' ? 'stats.gamesPlayed' : 'stats.nightsPlayed'] = FieldValue.increment(1);
     coupleUpdate['stats.lastPlayedAt'] = now;
   }
   return coupleUpdate;
@@ -234,6 +235,8 @@ export async function createSession(db: Firestore, uid: string, input: unknown, 
     const sessionRef = coupleRef.collection('sessions').doc();
     const session = {
       experienceId,
+      /** What is played, so either phone opens the right player for it. */
+      experienceType: experience.type === 'GAME' ? 'GAME' : 'NIGHT',
       kind: 'ONE_DEVICE',
       hostUid: uid,
       state,
@@ -275,10 +278,11 @@ export async function markReady(db: Firestore, uid: string, input: unknown, nowM
 
 /**
  * The host's phone moves the night on: `fromChapter` -1 starts it, otherwise it is the
- * chapter just finished. `playedItemId` says what that chapter actually was, when the phone
- * swapped it ("Not this one", or a chapter the limits no longer allowed): it must be one of
- * the items the server released for this night (section 5.5). The reply names what the
- * couple's limits no longer permit from here on.
+ * chapter just finished. `playedItemId` says what that chapter actually was, when it was not
+ * the first of the chapter's items: a swap ("Not this one", or a chapter the limits no longer
+ * allowed), or the dare of a truth-or-dare round. It must be one of the items the server
+ * released for this night or game (section 5.5), and not another chapter's. The reply names
+ * what the couple's limits no longer permit from here on.
  */
 export async function advanceSession(
   db: Firestore,
@@ -310,11 +314,17 @@ export async function advanceSession(
     let chapters = experience.chapters as DocumentData[];
     if (typeof playedItemId === 'string' && result.to.played.length > 0) {
       const index = result.to.played[0];
-      if (chapters[index].contentIds[0] !== playedItemId) {
-        const released = new Set<string>([...chapters.map((chapter) => chapter.contentIds[0]), ...(experience.alternates ?? [])]);
-        const elsewhere = chapters.some((chapter, at) => at !== index && chapter.contentIds[0] === playedItemId);
+      const held = chapters[index].contentIds as string[];
+      if (held[0] !== playedItemId) {
+        const released = new Set<string>([...chapters.flatMap((chapter) => chapter.contentIds as string[]), ...(experience.alternates ?? [])]);
+        const elsewhere = chapters.some((chapter, at) => at !== index && (chapter.contentIds as string[]).includes(playedItemId));
         if (!released.has(playedItemId) || elsewhere) invalid('playedItemId');
-        chapters = chapters.map((chapter, at) => (at === index ? { ...chapter, contentIds: [playedItemId] } : chapter));
+        // What was played leads the chapter. One of its own items (a dare over a truth) keeps
+        // the others behind it; an alternate takes the lead's place.
+        const contentIds = held.includes(playedItemId)
+          ? [playedItemId, ...held.filter((id) => id !== playedItemId)]
+          : [playedItemId, ...held.slice(1)];
+        chapters = chapters.map((chapter, at) => (at === index ? { ...chapter, contentIds } : chapter));
       }
     }
     updateCouple(tx, loaded.coupleRef, applyTransition(tx, loaded, experienceRef, experience, result.to, nowMs, chapters));
@@ -330,7 +340,7 @@ export async function advanceSession(
   const ahead =
     view.state === 'CHAPTER_ACTIVE'
       ? [
-          ...(experience.chapters as DocumentData[]).slice(view.currentChapter).map((chapter) => chapter.contentIds[0] as string),
+          ...(experience.chapters as DocumentData[]).slice(view.currentChapter).flatMap((chapter) => chapter.contentIds as string[]),
           ...((experience.alternates ?? []) as string[]),
         ]
       : [];

@@ -37,7 +37,7 @@ export function permits(item: EngineItem, request: EngineRequest, context: Coupl
 }
 
 /** Only what may be shown, in catalogue order. Nothing it removes ever reaches scoring. */
-export function hardFilter(items: readonly EngineItem[], request: EngineRequest, context: CoupleContext): EngineItem[] {
+export function hardFilter<T extends EngineItem>(items: readonly T[], request: EngineRequest, context: CoupleContext): T[] {
   return items.filter((item) => permits(item, request, context) === undefined);
 }
 

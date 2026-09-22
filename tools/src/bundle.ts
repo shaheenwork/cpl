@@ -8,7 +8,7 @@
  * diffs readably and "is it stale?" is a plain string comparison.
  */
 import { join } from 'node:path';
-import type { ContentItem, ContentRepo, Taxonomy } from './content';
+import type { ContentItem, ContentRepo, GameInfo, GamePrompt, Taxonomy } from './content';
 
 export const BUNDLE_FORMAT = 1;
 
@@ -23,7 +23,24 @@ export interface Bundle {
   /** content/taxonomy.json, verbatim. */
   taxonomy: Taxonomy;
   items: ContentItem[];
+  /** The games (section 11.2), as the app plays them: steps over primitives. */
+  games: BundledGame[];
+  /** Every published game prompt, by id. */
+  prompts: GamePrompt[];
 }
+
+/** A game as shipped: what it is and how it plays. Authoring-only fields stay behind. */
+export type BundledGame = Omit<GameInfo, 'prefix' | 'file' | 'minPrompts' | 'promptOptions'>;
+
+const GAME_KEYS: Array<keyof BundledGame> = [
+  'id', 'title', 'tagline', 'description', 'modes', 'rounds', 'turns', 'scoring', 'promptKinds', 'steps',
+];
+
+const PROMPT_KEYS: Array<keyof GamePrompt> = [
+  'id', 'version', 'game', 'kind', 'text', 'options', 'seconds', 'category', 'tags', 'intensity', 'modes', 'moods',
+  'requiredMutualPreferences', 'boostedByPreferences', 'excludedByBoundaries', 'noveltyWeight', 'repeatCooldownDays',
+  'status', 'locale', 'createdAt', 'updatedAt',
+];
 
 const ITEM_KEYS: Array<keyof ContentItem> = [
   'id', 'version', 'pack', 'category', 'title', 'subtitle', 'body', 'tags', 'intensity', 'modes',
@@ -52,6 +69,11 @@ export function buildBundle(repo: ContentRepo): Bundle {
     })),
     taxonomy: repo.taxonomy,
     items,
+    games: repo.games.map((game) => Object.fromEntries(GAME_KEYS.map((key) => [key, game[key]])) as BundledGame),
+    prompts: repo.games
+      .flatMap((game) => (repo.promptsByGame.get(game.id) ?? []) as GamePrompt[])
+      .filter((prompt) => prompt.status === 'published')
+      .sort((a, b) => a.id.localeCompare(b.id)),
   };
 }
 
@@ -68,7 +90,11 @@ export function serializeBundle(bundle: Bundle): string {
     // One line: the readable, reviewed copy is content/taxonomy.json itself.
     `  "taxonomy": ${JSON.stringify(bundle.taxonomy)},`,
     '  "items": [',
-    bundle.items.map((value) => `    ${item(value)}`).join(',\n'),
+    bundle.items.map((value) => `    ${item(value)}`).join(',\n') + '\n  ],',
+    '  "games": [',
+    bundle.games.map((game) => `    ${JSON.stringify(game)}`).join(',\n') + '\n  ],',
+    '  "prompts": [',
+    bundle.prompts.map((value) => `    ${JSON.stringify(Object.fromEntries(PROMPT_KEYS.map((key) => [key, value[key]])))}`).join(',\n'),
     '  ]',
     '}',
     '',

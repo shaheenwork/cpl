@@ -14,7 +14,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
-import { type ContentItem, DEFAULT_CONTENT_ROOT, loadContent } from '../content';
+import { type ContentItem, DEFAULT_CONTENT_ROOT, type GamePrompt, loadContent } from '../content';
 import { connect, describe, parseTarget } from '../firebase';
 import { withItem } from '../packfile';
 import { DELTA_COLLECTION } from '../publish';
@@ -29,6 +29,12 @@ async function main(): Promise<void> {
   const bundled = new Map(
     [...repo.itemsByPack.values()].flat().map((item) => [(item as ContentItem).id, item as ContentItem]),
   );
+  // A game prompt can be disabled or enabled like an item (the app and the server lay deltas
+  // over prompts by the same rule); only items can be replaced.
+  const versions = new Map<string, number>([
+    ...[...bundled.values()].map((item) => [item.id, item.version] as [string, number]),
+    ...[...repo.promptsByGame.values()].flat().map((prompt) => [(prompt as GamePrompt).id, (prompt as GamePrompt).version] as [string, number]),
+  ]);
   const db = getFirestore(connect(target));
   const deltas = db.collection(DELTA_COLLECTION);
 
@@ -37,15 +43,15 @@ async function main(): Promise<void> {
     case 'enable': {
       if (!argument) throw new Error(USAGE);
       const existing = await deltas.doc(argument).get();
-      const version = bundled.get(argument)?.version ?? existing.get('version');
-      if (typeof version !== 'number') throw new Error(`${argument}: no such item in the packs or the deltas`);
+      const version = versions.get(argument) ?? existing.get('version');
+      if (typeof version !== 'number') throw new Error(`${argument}: no such item or prompt in the content or the deltas`);
       const status = command === 'disable' ? 'disabled' : 'published';
       await deltas.doc(argument).set(
         { status, version, item: existing.get('item') ?? null, updatedAt: FieldValue.serverTimestamp() },
       );
       console.log(`${argument} v${version}: ${status} on ${describe(target)}`);
       if (command === 'disable') {
-        console.log('Also set its status to "disabled" in its pack file before the next content release.');
+        console.log('Also set its status to "disabled" in its pack or prompts file before the next content release.');
       }
       return;
     }

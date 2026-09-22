@@ -1,0 +1,330 @@
+package com.shnapps.couple.feature.games
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
+import com.shnapps.couple.core.designsystem.component.CinematicCard
+import com.shnapps.couple.core.designsystem.component.GlowButton
+import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
+import com.shnapps.couple.core.designsystem.component.WaitingForPartner
+import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
+import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
+import com.shnapps.couple.core.engine.game.GameMoment
+import com.shnapps.couple.core.model.CloseCheckIn
+import com.shnapps.couple.core.model.Intensity
+import com.shnapps.couple.core.model.Scoring
+import com.shnapps.couple.core.model.SessionEndReason
+import com.shnapps.couple.core.ui.ScreenColumn
+import com.shnapps.couple.core.ui.ScreenHeading
+
+@Composable
+internal fun LoadingStage() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+    }
+}
+
+@Composable
+internal fun MissingStage(actions: GameActions) {
+    ScreenColumn {
+        ScreenHeading(
+            eyebrow = "Games",
+            headline = "This game isn't here any more.",
+            body = "Start another whenever you like.",
+        )
+        GlowButton(text = "Back to games", onClick = actions.onGames, modifier = Modifier.fillMaxWidth())
+    }
+}
+
+/** The game's shape before it starts: how many rounds, how far, and who goes first. */
+@Composable
+internal fun IntroStage(state: GameUiState, actions: GameActions) {
+    val released = state.started?.released ?: return
+    val game = released.game
+    ScreenColumn {
+        ScreenHeading(
+            eyebrow = "${released.rounds.size} rounds · up to ${peakOf(state)}",
+            headline = game.title,
+            body = game.description,
+        )
+        Text(
+            text = "${state.players.first} goes first, then ${state.players.second}.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        GlowButton(
+            text = "Start the game",
+            onClick = actions.onOpen,
+            enabled = !state.busy,
+            leadingEmoji = "🎲",
+            modifier = Modifier.fillMaxWidth(),
+        )
+        GlowButton(text = "Back to games", onClick = actions.onGames, style = GlowButtonStyle.Quiet)
+    }
+}
+
+/** BOLD or WILD: each partner's "I'm in", on their own phone (§3.1). */
+@Composable
+internal fun ConsentStage(state: GameUiState, actions: GameActions) {
+    val session = state.session ?: return
+    val peak = peakOf(state)
+    ScreenColumn {
+        if (!session.consented) {
+            ScreenHeading(
+                eyebrow = "Before we begin",
+                headline = if (session.isHost) "This one goes up to $peak." else "Your partner has a game ready.",
+                body = if (session.isHost) {
+                    "You both need to say you're in — each of you, on your own phone. Not tonight is always an answer."
+                } else {
+                    "It goes up to $peak. Are you in? Not tonight is always an answer."
+                },
+            )
+            GlowButton(
+                text = "I'm in",
+                onClick = actions.onConsent,
+                leadingEmoji = "🔥",
+                enabled = !state.busy,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else {
+            WaitingForPartner(
+                message = "You're in.",
+                detail = "Waiting for your partner's \"I'm in\" — on their phone.",
+            )
+        }
+        GlowButton(
+            text = "Not tonight",
+            onClick = actions.onDecline,
+            style = GlowButtonStyle.Secondary,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@Composable
+internal fun ReadyStage(state: GameUiState, actions: GameActions) {
+    ScreenColumn {
+        ScreenHeading(
+            eyebrow = "Ready",
+            headline = "Here we go.",
+            body = "${state.players.first} goes first. Pass the phone when it asks — and only look when it's yours.",
+        )
+        GlowButton(
+            text = "Let's play",
+            onClick = actions.onPlay,
+            enabled = !state.busy,
+            leadingEmoji = "🎲",
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+/** The game itself: whatever the interpreter says comes next. */
+@Composable
+internal fun PlayingStage(moment: GameMoment, state: GameUiState, actions: GameActions) {
+    ScreenColumn {
+        when (moment) {
+            is GameMoment.HandOff -> {
+                val name = state.players.name(moment.seat)
+                ScreenHeading(eyebrow = "Pass the phone", headline = "Over to $name.", body = "Only $name should look.")
+                GlowButton(text = "I'm $name", onClick = actions.onProceed, modifier = Modifier.fillMaxWidth())
+            }
+            is GameMoment.Gather -> {
+                ScreenHeading(
+                    eyebrow = "Answers are in",
+                    headline = "Together now.",
+                    body = "Put the phone where you can both see it.",
+                )
+                GlowButton(text = "Show us", onClick = actions.onProceed, modifier = Modifier.fillMaxWidth())
+            }
+            is GameMoment.Turn -> {
+                PrimitiveRenderer(moment.primitive, state.players, actions.onSubmit)
+                if (moment.canSkip) {
+                    GlowButton(text = "Not this one", onClick = actions.onSkip, style = GlowButtonStyle.Quiet)
+                }
+                state.keepOut?.let { KeepOutOffer(it, actions) }
+            }
+            is GameMoment.RoundOver -> {
+                val last = moment.round >= state.roundCount - 1
+                ScreenHeading(
+                    eyebrow = "Round ${moment.round + 1} of ${state.roundCount}",
+                    headline = if (last) "That's the last one." else "Round done.",
+                    body = scoreLine(state),
+                )
+                GlowButton(
+                    text = if (last) "See how it went" else "Next round",
+                    onClick = actions.onNextRound,
+                    enabled = !state.busy,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            is GameMoment.Finished -> {
+                ScreenHeading(eyebrow = "Game over", headline = "That's the game.", body = scoreLine(state))
+            }
+        }
+    }
+}
+
+/** After "Not this one": keep what it was about out of the rest of this game (D-071). */
+@Composable
+private fun KeepOutOffer(offer: KeepOutOffer, actions: GameActions) {
+    CinematicCard(modifier = Modifier.fillMaxWidth()) {
+        Text(text = "KEEP IT OUT OF THIS GAME?", style = EyebrowTextStyle, color = AfterhoursTheme.colors.brass)
+        offer.themes.forEach { (id, title) ->
+            GlowButton(
+                text = title,
+                onClick = { actions.onKeepOut(id) },
+                style = GlowButtonStyle.Secondary,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        GlowButton(text = "No, carry on", onClick = actions.onDismissKeepOut, style = GlowButtonStyle.Quiet)
+        Text(
+            text = "For good, either of you can set it in your own limits.",
+            style = MaterialTheme.typography.bodySmall,
+            color = AfterhoursTheme.colors.textMuted,
+        )
+    }
+}
+
+/** The other phone: the game is being played on this couple's other one. */
+@Composable
+internal fun ElsewhereStage() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(
+            modifier = Modifier.padding(horizontal = AfterhoursTheme.spacing.gutter),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm),
+        ) {
+            Text(
+                text = "The game is on the other phone.",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                text = "Either of you can pause or stop it from here, any time.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = AfterhoursTheme.colors.textMuted,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
+/** Stopped, declined or run out: warm, and never who (§3.1). */
+@Composable
+internal fun EndedStage(reason: SessionEndReason, actions: GameActions) {
+    val (headline, body) = when (reason) {
+        SessionEndReason.COMPLETED -> "Game complete. ❤️" to "Nicely played, both of you."
+        SessionEndReason.STOPPED -> "Ending here. All good." to "Nothing more to do. Come back whenever you like."
+        SessionEndReason.DECLINED -> "Not tonight — and that's fine." to "There's always another time."
+        SessionEndReason.EXPIRED -> "This game timed out." to "Start another whenever you like."
+    }
+    ScreenColumn {
+        ScreenHeading(eyebrow = "Games", headline = headline, body = body)
+        GlowButton(text = "Home", onClick = actions.onHome, modifier = Modifier.fillMaxWidth())
+    }
+}
+
+/** "How are we doing?" (§3.1): the check-in at the close, before any score. */
+@Composable
+internal fun HowAreWeStage(state: GameUiState, actions: GameActions) {
+    ScreenColumn {
+        ScreenHeading(
+            eyebrow = "Game complete",
+            headline = "How are we doing?",
+            body = "Just a moment for the two of you.",
+        )
+        val answer = state.closeAnswer
+        if (answer == null) {
+            CloseCheckIn.entries.forEach { option ->
+                GlowButton(
+                    text = option.label,
+                    onClick = { actions.onAnswerClose(option) },
+                    leadingEmoji = option.emoji,
+                    style = GlowButtonStyle.Secondary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        } else {
+            Text(
+                text = answer.followUp,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            if (answer == CloseCheckIn.A_BIT_MUCH) {
+                GlowButton(
+                    text = "Adjust my limits",
+                    onClick = actions.onAdjustLimits,
+                    style = GlowButtonStyle.Secondary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            GlowButton(text = "Continue", onClick = actions.onToResults, modifier = Modifier.fillMaxWidth())
+        }
+    }
+}
+
+@Composable
+internal fun ResultsStage(state: GameUiState, actions: GameActions) {
+    ScreenColumn {
+        ScreenHeading(eyebrow = "Game complete", headline = headlineOf(state), body = scoreLine(state))
+        GlowButton(
+            text = "Another game",
+            onClick = actions.onGames,
+            leadingEmoji = "🎲",
+            modifier = Modifier.fillMaxWidth(),
+        )
+        GlowButton(
+            text = "Home",
+            onClick = actions.onHome,
+            style = GlowButtonStyle.Secondary,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+/** How far the game goes: its most intense round. */
+private fun peakOf(state: GameUiState): String =
+    state.started?.released?.rounds?.flatMap { it.prompts }?.maxOfOrNull { it.intensity.level }
+        ?.let { level -> Intensity.ofLevel(level).name } ?: Intensity.BOLD.name
+
+/** The score so far, as the game keeps it — or nothing, for a game that keeps none. */
+private fun scoreLine(state: GameUiState): String? {
+    val run = state.run ?: return null
+    val score = run.score
+    val players = state.players
+    return when (run.game.scoring) {
+        Scoring.NONE -> null
+        Scoring.MATCHES -> "You've matched on ${score.matches} of ${score.compared}."
+        Scoring.POINTS -> "${players.first} ${score.points[0]} · ${players.second} ${score.points[1]}"
+    }
+}
+
+private fun headlineOf(state: GameUiState): String {
+    val run = state.run ?: return "That's the game."
+    val score = run.score
+    return when (run.game.scoring) {
+        Scoring.NONE -> "Every round played."
+        Scoring.MATCHES -> {
+            val inSync = score.compared > 0 && score.matches * 2 >= score.compared
+            if (inSync) "In sync." else "Full of surprises."
+        }
+        Scoring.POINTS -> when {
+            score.points[0] > score.points[1] -> "${state.players.first} takes it."
+            score.points[1] > score.points[0] -> "${state.players.second} takes it."
+            else -> "A draw."
+        }
+    }
+}

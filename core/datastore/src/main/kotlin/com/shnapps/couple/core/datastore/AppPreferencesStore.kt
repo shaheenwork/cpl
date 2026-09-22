@@ -1,5 +1,6 @@
 package com.shnapps.couple.core.datastore
 
+import com.shnapps.couple.core.model.GamePlayers
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -22,6 +23,8 @@ interface AppPreferencesStore {
     suspend fun setAgeConfirmedHint(confirmed: Boolean)
 
     suspend fun setOnboardingCompleteHint(complete: Boolean)
+
+    suspend fun setGamePlayers(players: GamePlayers)
 
     /** Called on sign-out and account deletion. Leaves no trace of the previous user. */
     suspend fun clear()

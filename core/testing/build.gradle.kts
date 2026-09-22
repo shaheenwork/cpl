@@ -12,6 +12,8 @@ dependencies {
     api(project(":core:common"))
     api(project(":core:data"))
     api(project(":core:datastore"))
+    // The game fake releases games the only way there is: ReleasedGame.fromServer.
+    implementation(project(":core:engine"))
     api(libs.junit)
     api(libs.truth)
     api(libs.kotlin.test)

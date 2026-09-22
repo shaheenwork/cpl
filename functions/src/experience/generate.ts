@@ -15,7 +15,7 @@
  * authenticates and delegates.
  */
 import { randomInt } from 'node:crypto';
-import { Timestamp, type DocumentData, type Firestore } from 'firebase-admin/firestore';
+import { Timestamp, type DocumentData, type DocumentSnapshot, type Firestore } from 'firebase-admin/firestore';
 import { filtersRef, recomputeCouple } from '../couple/recompute';
 import { loadCatalogue, type Catalogue } from '../engine/catalogue';
 import { askFirstUids, permits } from '../engine/chokepoint';
@@ -151,6 +151,16 @@ export function forHost(filters: FiltersInput, hostUid: string): FiltersInput {
   return { ...filters, excludedThemes: [...excluded].sort(), askFirstThemes };
 }
 
+/**
+ * The filters for a game passed between the partners on one phone (DECISIONS.md D-069). Every
+ * ask-first theme is left out, the host's own included: on a phone both partners hold, asking
+ * anyone would show the other that a limit exists.
+ */
+export function forSharedPhone(filters: FiltersInput): FiltersInput {
+  const excluded = new Set([...filters.excludedThemes, ...Object.keys(filters.askFirstThemes)]);
+  return { ...filters, excludedThemes: [...excluded].sort(), askFirstThemes: {} };
+}
+
 interface ActiveCouple {
   coupleId: string;
   members: string[];
@@ -169,7 +179,7 @@ export async function activeCoupleOf(db: Firestore, uid: string): Promise<Active
 }
 
 /** The couple's current filters, computed first if they never were. */
-async function currentFilters(db: Firestore, coupleId: string, nowMs: number): Promise<FiltersInput> {
+export async function currentFilters(db: Firestore, coupleId: string, nowMs: number): Promise<FiltersInput> {
   let filters = await filtersRef(db, coupleId).get();
   if (!filters.exists) {
     // A couple whose filters were never computed gets them now, rather than a night built
@@ -181,13 +191,38 @@ async function currentFilters(db: Firestore, coupleId: string, nowMs: number): P
   return filtersFrom(filters.data()!);
 }
 
-async function revealedMatches(db: Firestore, coupleId: string): Promise<Record<string, MatchLevel>> {
+export async function revealedMatches(db: Firestore, coupleId: string): Promise<Record<string, MatchLevel>> {
   const mutual: Record<string, MatchLevel> = {};
   for (const doc of (await db.collection(`couples/${coupleId}/mutualPreferences`).get()).docs) {
     const level = doc.get('matchLevel');
     if (MATCH_LEVELS.includes(level)) mutual[doc.id] = level;
   }
   return mutual;
+}
+
+/** When each item and prompt was last played, from the couple's engine history. */
+export function lastPlayedOf(history: DocumentSnapshot): Record<string, number> {
+  const lastPlayed: Record<string, number> = {};
+  const raw = history.get('lastPlayed');
+  if (typeof raw === 'object' && raw !== null) {
+    for (const [itemId, at] of Object.entries(raw)) if (typeof at === 'number') lastPlayed[itemId] = at;
+  }
+  return lastPlayed;
+}
+
+/** Both partners' affinity, averaged per dimension. Read, used and never returned. */
+export async function coupleAffinity(db: Firestore, members: readonly string[]): Promise<Record<string, number>> {
+  const sums = new Map<string, { total: number; count: number }>();
+  for (const member of members) {
+    const docs = await db.collection(`users/${member}/affinity`).limit(MAX_AFFINITY_DOCS).get();
+    for (const doc of docs.docs) {
+      const score = doc.get('score');
+      if (typeof score !== 'number' || !Number.isFinite(score)) continue;
+      const entry = sums.get(doc.id) ?? { total: 0, count: 0 };
+      sums.set(doc.id, { total: entry.total + score, count: entry.count + 1 });
+    }
+  }
+  return Object.fromEntries([...sums].map(([dimension, { total, count }]) => [dimension, total / count]));
 }
 
 export async function generateExperience(
@@ -213,26 +248,14 @@ export async function generateExperience(
   // Only a match both partners have been shown can steer a night (section 14.7).
   if (request.focus !== undefined && mutual[request.focus] === undefined) invalid('focus');
 
-  const lastPlayed: Record<string, number> = {};
-  const rawHistory = history.get('lastPlayed');
-  if (typeof rawHistory === 'object' && rawHistory !== null) {
-    for (const [itemId, at] of Object.entries(rawHistory)) if (typeof at === 'number') lastPlayed[itemId] = at;
-  }
-
-  // Both partners' affinity, averaged per dimension. Read here, used here, never returned.
-  const sums = new Map<string, { total: number; count: number }>();
-  for (const member of members) {
-    const docs = await db.collection(`users/${member}/affinity`).limit(MAX_AFFINITY_DOCS).get();
-    for (const doc of docs.docs) {
-      const score = doc.get('score');
-      if (typeof score !== 'number' || !Number.isFinite(score)) continue;
-      const entry = sums.get(doc.id) ?? { total: 0, count: 0 };
-      sums.set(doc.id, { total: entry.total + score, count: entry.count + 1 });
-    }
-  }
-  const affinity = Object.fromEntries([...sums].map(([dimension, { total, count }]) => [dimension, total / count]));
-
-  const context: CoupleContext = { filters: forHost(filters, uid), mutual, lastPlayed, nowMs, affinity, weights };
+  const context: CoupleContext = {
+    filters: forHost(filters, uid),
+    mutual,
+    lastPlayed: lastPlayedOf(history),
+    nowMs,
+    affinity: await coupleAffinity(db, members),
+    weights,
+  };
   const result = generate(catalogue.items, request, context);
   if (typeof result === 'string') throw new ServiceError('failed-precondition', 'not-enough-content');
 
@@ -292,10 +315,10 @@ export async function generateExperience(
 
 /**
  * The chokepoint again, mid-night (BUILD_PROMPT.md section 3.2; DECISIONS.md D-062): of [ids]
- * — a night's still-to-come chapters and its alternates — those the couple's boundaries,
- * levels and content no longer permit. A limit set during a night applies to the rest of it.
- * Cooldowns are not re-applied: the night itself is what set them. An id the catalogue no
- * longer knows is blocked.
+ * — a night's or a game's still-to-come content and its alternates — those the couple's
+ * boundaries, levels and content no longer permit. A limit set during a night applies to the
+ * rest of it. Cooldowns are not re-applied: the night itself is what set them. An id the
+ * catalogue no longer knows is blocked.
  */
 export async function blockedNow(
   db: Firestore,
@@ -312,25 +335,27 @@ export async function blockedNow(
     revealedMatches(db, coupleId),
     deps.catalogue(db, nowMs),
   ]);
+  const game = experience.type === 'GAME';
   const request: EngineRequest = {
     mode: experience.mode,
-    durationMin: experience.durationMin,
+    durationMin: experience.durationMin ?? 0,
     moods: experience.mood ?? [],
     intensity: experience.intensity,
-    leadership: experience.leadership,
-    novelty: experience.novelty,
+    leadership: experience.leadership ?? 'RANDOM',
+    novelty: experience.novelty ?? 'MIXED',
     seed: experience.seed,
     media: { VOICE: true, PHOTO: true },
   };
   const context: CoupleContext = {
-    filters: forHost(filters, hostUid),
+    // A game is played by both partners on one phone; a night on its host's (D-060, D-069).
+    filters: game ? forSharedPhone(filters) : forHost(filters, hostUid),
     mutual,
     lastPlayed: {},
     nowMs,
     affinity: {},
     weights: DEFAULT_WEIGHTS,
   };
-  const byId = new Map(catalogue.items.map((item) => [item.id, item]));
+  const byId = new Map(game ? catalogue.prompts.map((prompt) => [prompt.id, prompt]) : catalogue.items.map((item) => [item.id, item]));
   return ids.filter((id) => {
     const item = byId.get(id);
     return item === undefined || permits(item, request, context) !== undefined;

@@ -34,6 +34,69 @@ export interface ContentItem {
   updatedAt: string;
 }
 
+/** One step of a game's round (BUILD_PROMPT.md section 11.1): a primitive, and who plays it. */
+export interface GameStep {
+  primitive: string;
+  who: string;
+  private?: boolean;
+  /** "PROMPT" for the round's prompt, or the words to show. */
+  text?: string;
+  /** "PROMPT", "STATEMENTS", or a fixed list of option ids. */
+  options?: string | string[];
+  answer?: string;
+  /** Earlier steps this one refers to: what is predicted, compared or chosen between. */
+  of?: number[];
+  outcome?: string;
+  /** "PROMPT" or a number of seconds. */
+  seconds?: string | number;
+  /** The earlier CHOICE whose answer picks the prompt's kind (truth or dare). */
+  kindFrom?: number;
+}
+
+/** A game (section 11.2): a declarative composition of primitives over its prompts. */
+export interface GameInfo {
+  id: string;
+  prefix: string;
+  file: string;
+  title: string;
+  tagline: string;
+  description: string;
+  modes: string[];
+  rounds: number;
+  turns: string;
+  scoring: string;
+  promptKinds: string[];
+  /** How many options each prompt carries: [min, max]. */
+  promptOptions: [number, number];
+  minPrompts: number;
+  steps: GameStep[];
+}
+
+/** A game prompt: what a round is about. Filtered by the same chokepoint as items (section 3.2). */
+export interface GamePrompt {
+  id: string;
+  version: number;
+  game: string;
+  kind: string | null;
+  text: string;
+  options: string[];
+  seconds: number | null;
+  category: string;
+  tags: string[];
+  intensity: number;
+  modes: string[];
+  moods: string[];
+  requiredMutualPreferences: string[];
+  boostedByPreferences: string[];
+  excludedByBoundaries: string[];
+  noveltyWeight: number;
+  repeatCooldownDays: number;
+  status: string;
+  locale: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface PackInfo {
   id: string;
   prefix: string;
@@ -53,6 +116,16 @@ export interface Vocabulary {
   statuses: string[];
   tags: string[];
   boundaryKeywords: Array<{ pattern: string; themes: string[] }>;
+  games: {
+    primitives: string[];
+    who: string[];
+    answers: string[];
+    outcomes: string[];
+    turns: string[];
+    scoring: string[];
+    voteOptions: string[];
+    promptKinds: string[];
+  };
 }
 
 export interface Policy {
@@ -77,6 +150,9 @@ export interface ContentRepo {
   packs: PackInfo[];
   /** pack id → its file's raw items (whatever shape they are in). */
   itemsByPack: Map<string, unknown[]>;
+  games: GameInfo[];
+  /** game id → its prompt file's raw prompts (whatever shape they are in). */
+  promptsByGame: Map<string, unknown[]>;
   vocabulary: Vocabulary;
   policy: Policy;
   taxonomy: Taxonomy;
@@ -93,11 +169,19 @@ export function loadContent(root: string): ContentRepo {
     const file = readJson<{ items?: unknown[] }>(join(root, 'packs', pack.file));
     itemsByPack.set(pack.id, Array.isArray(file.items) ? file.items : []);
   }
+  const games = readJson<{ games: GameInfo[] }>(join(root, 'games.json')).games;
+  const promptsByGame = new Map<string, unknown[]>();
+  for (const game of games) {
+    const file = readJson<{ items?: unknown[] }>(join(root, 'prompts', game.file));
+    promptsByGame.set(game.id, Array.isArray(file.items) ? file.items : []);
+  }
   return {
     root,
     contentVersion: readJson<{ contentVersion: number }>(join(root, 'content.json')).contentVersion,
     packs,
     itemsByPack,
+    games,
+    promptsByGame,
     vocabulary: readJson<Vocabulary>(join(root, 'vocabulary.json')),
     policy: readJson<Policy>(join(root, 'policy', 'prohibited-terms.json')),
     taxonomy: readJson<Taxonomy>(join(root, 'taxonomy.json')),

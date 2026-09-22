@@ -31,6 +31,7 @@ import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.BoundaryLevel
 import com.shnapps.couple.core.model.ChapterReaction
+import com.shnapps.couple.core.model.CloseCheckIn
 import com.shnapps.couple.core.ui.ErrorBanner
 import com.shnapps.couple.core.ui.SecureScreen
 

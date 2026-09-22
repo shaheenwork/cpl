@@ -8,6 +8,7 @@ import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.model.BoundaryLevel
 import com.shnapps.couple.core.model.ChapterReaction
+import com.shnapps.couple.core.model.CloseCheckIn
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.PlannedNight
 import com.shnapps.couple.core.model.SessionEndReason

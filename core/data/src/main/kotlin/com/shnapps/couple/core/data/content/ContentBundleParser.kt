@@ -4,6 +4,8 @@ import com.shnapps.couple.core.model.ChapterKind
 import com.shnapps.couple.core.model.ContentItem
 import com.shnapps.couple.core.model.ContentPack
 import com.shnapps.couple.core.model.ContentStatus
+import com.shnapps.couple.core.model.Game
+import com.shnapps.couple.core.model.GamePrompt
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.InteractionType
 import com.shnapps.couple.core.model.MediaKind
@@ -25,6 +27,10 @@ import kotlinx.serialization.json.decodeFromJsonElement
  * mode or chapter it can use, or missing its boundary exclusions — is dropped whole, never
  * guessed at. The shipped bundle is held to the strict standard instead: ContentBundleFileTest
  * fails the build on anything this parser would quietly skip.
+ *
+ * Games and their prompts (§11) are read by the same rules: a game this version cannot play —
+ * a primitive, audience or outcome it does not know, a step referring forward — is dropped
+ * whole, and so is a prompt without its boundary exclusions (GameParsing.kt).
  *
  * A bundle in a format this version does not understand is refused outright.
  */
@@ -50,7 +56,30 @@ object ContentBundleParser {
                 val header = decodeOrNull<ItemHeaderDto>(raw) ?: return@mapNotNull null
                 RawItem(header.id, header.version, header.pack, header.status, raw.toString())
             },
+            gamesJson = json.encodeToString(bundle.games),
+            prompts = bundle.prompts.mapNotNull { raw ->
+                val header = decodeOrNull<PromptHeaderDto>(raw) ?: return@mapNotNull null
+                RawPrompt(header.id, header.version, header.game, header.status, raw.toString())
+            },
         )
+    }
+
+    /** The games this version can play, from a bundle's `games` as stored. */
+    fun parseGames(text: String): List<Game> = try {
+        json.decodeFromString<List<JsonObject>>(text).mapNotNull { raw -> decodeOrNull<GameDto>(raw)?.toGame() }
+    } catch (_: SerializationException) {
+        emptyList()
+    } catch (_: IllegalArgumentException) {
+        emptyList()
+    }
+
+    /** A prompt as stored in the cache or carried by a delta; null if this version cannot use it. */
+    fun parsePrompt(text: String): GamePrompt? = try {
+        json.decodeFromString<GamePromptDto>(text).toGamePrompt()
+    } catch (_: SerializationException) {
+        null
+    } catch (_: IllegalArgumentException) {
+        null
     }
 
     /** An item as stored in the cache or carried by a delta; null if this version cannot use it. */
@@ -84,6 +113,18 @@ data class ParsedBundle(
     val taxonomyJson: String,
     val packsJson: String,
     val items: List<RawItem>,
+    /** The games, stored whole like the taxonomy: few, small, and read together. */
+    val gamesJson: String = "[]",
+    val prompts: List<RawPrompt> = emptyList(),
+)
+
+/** One bundled game prompt: the columns the cache indexes, and the prompt itself as JSON. */
+data class RawPrompt(
+    val id: String,
+    val version: Int,
+    val game: String,
+    val status: String,
+    val json: String,
 )
 
 /** One bundled item: the columns the cache indexes, and the item itself as JSON. */
@@ -145,6 +186,9 @@ internal data class BundleDto(
     val packs: List<PackDto>,
     val taxonomy: JsonObject,
     val items: List<JsonObject>,
+    /** Absent from bundles published before games existed. */
+    val games: List<JsonObject> = emptyList(),
+    val prompts: List<JsonObject> = emptyList(),
 )
 
 @Serializable
@@ -160,6 +204,14 @@ internal data class ItemHeaderDto(
     val id: String,
     val version: Int,
     val pack: String,
+    val status: String,
+)
+
+@Serializable
+internal data class PromptHeaderDto(
+    val id: String,
+    val version: Int,
+    val game: String,
     val status: String,
 )
 

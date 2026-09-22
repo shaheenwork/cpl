@@ -14,6 +14,28 @@
  * every intensity, in both modes (section 10.4).
  */
 import type { ContentItem, ContentRepo, TaxonomyItem } from './content';
+import { validateGames } from './validate-games';
+
+type Check = (ok: boolean, message: string) => void;
+
+/** What items and game prompts are checked against alike. */
+export interface Shared {
+  taxonomyItems: Map<string, TaxonomyItem & { themeId: string }>;
+  themeIds: Set<string>;
+  categoryIds: Set<string>;
+  /** Every item id seen so far, and its file: ids are unique across items and prompts. */
+  itemIds: Map<string, string>;
+  /**
+   * The boundary engine's rules for anything shown to a couple (section 3.2): no prohibited
+   * term; excludable by the theme of every preference it leans on; reachable at its own level;
+   * and covered by a boundary whenever its text touches a sensitive theme.
+   */
+  checkSafety(
+    check: Check,
+    text: string,
+    entry: Pick<ContentItem, 'excludedByBoundaries' | 'boostedByPreferences' | 'requiredMutualPreferences' | 'modes' | 'intensity'>,
+  ): void;
+}
 
 export interface ValidationResult {
   problems: string[];
@@ -49,10 +71,7 @@ export const COVERAGE = {
   totalPublished: 600,
 };
 
-export function validateContent(repo: ContentRepo): ValidationResult {
-  const problems: string[] = [];
-  const problem = (where: string, message: string) => problems.push(`${where}: ${message}`);
-
+function sharedChecks(repo: ContentRepo): Shared {
   const taxonomyItems = new Map<string, TaxonomyItem & { themeId: string }>();
   const themeIds = new Set<string>();
   for (const category of repo.taxonomy.categories) {
@@ -61,15 +80,63 @@ export function validateContent(repo: ContentRepo): ValidationResult {
       for (const item of theme.items) taxonomyItems.set(item.id, { ...item, themeId: theme.id });
     }
   }
-  const categoryIds = new Set(repo.taxonomy.categories.map((c) => c.id));
-  const vocab = repo.vocabulary;
   const prohibited = repo.policy.groups.flatMap((group) =>
     group.patterns.map((pattern) => ({ reason: group.reason, pattern, regex: new RegExp(`\\b(?:${pattern})\\b`, 'i') })),
   );
-  const keywords = vocab.boundaryKeywords.map((k) => ({ ...k, regex: new RegExp(`\\b(?:${k.pattern})\\b`, 'i') }));
+  const keywords = repo.vocabulary.boundaryKeywords.map((k) => ({ ...k, regex: new RegExp(`\\b(?:${k.pattern})\\b`, 'i') }));
+
+  return {
+    taxonomyItems,
+    themeIds,
+    categoryIds: new Set(repo.taxonomy.categories.map((c) => c.id)),
+    itemIds: new Map<string, string>(),
+    checkSafety(check, text, entry) {
+      for (const term of prohibited) {
+        check(!term.regex.test(text), `prohibited term /${term.pattern}/ (${term.reason})`);
+      }
+      const excluded = new Set(Array.isArray(entry.excludedByBoundaries) ? entry.excludedByBoundaries : []);
+      const leansOn = [
+        ...(Array.isArray(entry.boostedByPreferences) ? entry.boostedByPreferences : []),
+        ...(Array.isArray(entry.requiredMutualPreferences) ? entry.requiredMutualPreferences : []),
+      ];
+      for (const preference of leansOn) {
+        const pref = taxonomyItems.get(preference);
+        if (!pref) continue;
+        check(excluded.has(pref.themeId), `leans on "${preference}" but is not excluded by its theme "${pref.themeId}"`);
+        check(
+          Array.isArray(entry.modes) && entry.modes.some((mode) => pref.modes.includes(mode)),
+          `leans on "${preference}", which applies to none of this item's modes`,
+        );
+      }
+      for (const required of Array.isArray(entry.requiredMutualPreferences) ? entry.requiredMutualPreferences : []) {
+        const pref = taxonomyItems.get(required);
+        if (!pref) continue;
+        // Asked only at content levels >= its floor: requiring it below that makes the entry
+        // unreachable at its own intensity — excluded by its own requirement.
+        check(pref.intensityFloor <= entry.intensity, `requires "${required}", which is only asked at level ${pref.intensityFloor}+`);
+      }
+      for (const keyword of keywords) {
+        if (keyword.regex.test(text)) {
+          check(
+            keyword.themes.some((theme) => excluded.has(theme)),
+            `mentions /${keyword.pattern}/ but no covering boundary is listed (one of ${keyword.themes.join(', ')})`,
+          );
+        }
+      }
+    },
+  };
+}
+
+export function validateContent(repo: ContentRepo): ValidationResult {
+  const problems: string[] = [];
+  const problem = (where: string, message: string) => problems.push(`${where}: ${message}`);
+
+  const shared = sharedChecks(repo);
+  const { taxonomyItems, themeIds, categoryIds } = shared;
+  const vocab = repo.vocabulary;
 
   const all: ContentItem[] = [];
-  const seenIds = new Map<string, string>();
+  const seenIds = shared.itemIds;
 
   for (const pack of repo.packs) {
     const raw = repo.itemsByPack.get(pack.id) ?? [];
@@ -147,39 +214,7 @@ export function validateContent(repo: ContentRepo): ValidationResult {
 
       // --- safety and the boundary engine ----------------------------------------------
       const text = [item.title, item.subtitle, item.body].filter((s) => typeof s === 'string').join(' \n ');
-      for (const term of prohibited) {
-        check(!term.regex.test(text), `prohibited term /${term.pattern}/ (${term.reason})`);
-      }
-
-      const excluded = new Set(Array.isArray(item.excludedByBoundaries) ? item.excludedByBoundaries : []);
-      const leansOn = [
-        ...(Array.isArray(item.boostedByPreferences) ? item.boostedByPreferences : []),
-        ...(Array.isArray(item.requiredMutualPreferences) ? item.requiredMutualPreferences : []),
-      ];
-      for (const preference of leansOn) {
-        const pref = taxonomyItems.get(preference);
-        if (!pref) continue;
-        check(excluded.has(pref.themeId), `leans on "${preference}" but is not excluded by its theme "${pref.themeId}"`);
-        check(
-          Array.isArray(item.modes) && item.modes.some((mode) => pref.modes.includes(mode)),
-          `leans on "${preference}", which applies to none of this item's modes`,
-        );
-      }
-      for (const required of Array.isArray(item.requiredMutualPreferences) ? item.requiredMutualPreferences : []) {
-        const pref = taxonomyItems.get(required);
-        if (!pref) continue;
-        // Asked only at content levels >= its floor: requiring it below that makes the item
-        // unreachable at its own intensity — excluded by its own requirement.
-        check(pref.intensityFloor <= item.intensity, `requires "${required}", which is only asked at level ${pref.intensityFloor}+`);
-      }
-      for (const keyword of keywords) {
-        if (keyword.regex.test(text)) {
-          check(
-            keyword.themes.some((theme) => excluded.has(theme)),
-            `mentions /${keyword.pattern}/ but no covering boundary is listed (one of ${keyword.themes.join(', ')})`,
-          );
-        }
-      }
+      shared.checkSafety(check, text, item);
 
       all.push(item);
     });
@@ -254,15 +289,17 @@ export function validateContent(repo: ContentRepo): ValidationResult {
   }
   lines.push(`total published: ${published.length}`);
 
+  validateGames(repo, shared, problems, lines);
+
   return { problems, report: lines.join('\n') };
 }
 
-function checkText(check: (ok: boolean, message: string) => void, value: unknown, field: string, min: number, max: number) {
+export function checkText(check: (ok: boolean, message: string) => void, value: unknown, field: string, min: number, max: number) {
   const ok = typeof value === 'string' && value.trim().length >= min && value.length <= max && value === value.trim();
   check(ok, `${field} must be ${min}..${max} characters, with no surrounding spaces`);
 }
 
-function checkList(
+export function checkList(
   check: (ok: boolean, message: string) => void,
   value: unknown,
   field: string,

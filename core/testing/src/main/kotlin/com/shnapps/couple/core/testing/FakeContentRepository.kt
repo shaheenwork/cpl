@@ -8,6 +8,8 @@ import com.shnapps.couple.core.model.ContentItem
 import com.shnapps.couple.core.model.ContentPack
 import com.shnapps.couple.core.model.ContentState
 import com.shnapps.couple.core.model.ContentStatus
+import com.shnapps.couple.core.model.Game
+import com.shnapps.couple.core.model.GamePrompt
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.InteractionType
 import com.shnapps.couple.core.model.Mode
@@ -19,9 +21,13 @@ class FakeContentRepository(
     items: List<ContentItem> = TestContent.items,
     packs: List<ContentPack> = TestContent.packs,
     taxonomy: Taxonomy = TestTaxonomy.taxonomy,
+    games: List<Game> = TestGames.games,
+    prompts: List<GamePrompt> = TestGames.prompts,
 ) : ContentRepository {
     override val items = MutableStateFlow(items)
     override val packs = MutableStateFlow(packs)
+    override val games = MutableStateFlow(games)
+    override val prompts = MutableStateFlow(prompts)
     override val taxonomy = MutableStateFlow(taxonomy)
     override val state = MutableStateFlow(
         ContentState(contentVersion = 1, itemCount = items.size, deltaCount = 0, lastSyncMillis = null),

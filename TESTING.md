@@ -71,6 +71,14 @@ system plus every `:feature:*` module. Look at a new golden before committing it
 recorded image is not the same as a correct one (Phase 3's first feature goldens were
 cream-on-white, which is how the launch-flash bug was found).
 
+### FLAG_SECURE
+
+`SecureScreenTest` (`:core:ui`) composes the case that matters for a privacy flag held by
+screens: the handover, where the arriving private screen is already in composition when the
+leaving one is disposed. It fails against a `SecureScreen` that simply sets and clears the flag
+(D-073). On a device, the check is `adb exec-out screencap -p`: a private screen captures black
+apart from the system bars, which are not the app's window.
+
 ### The shipped taxonomy
 
 `TaxonomyFileTest` (in `:core:data`) reads `content/taxonomy.json` strictly: unknown or
@@ -126,6 +134,27 @@ pause takes the night off the screen but never its controls.
 In `:core:data`, `HeldNightTest` and `DefaultNightRepositoryTest` run the phone's side of a night
 over the real shipped catalogue: swaps only from what the server released, reported when played,
 limits set mid-night applied before a chapter is shown, a night restored after a restart.
+
+### Games (Phase 11)
+
+The games are content: `content/games.json` defines each as steps over primitives, and
+`content/prompts/*.json` holds each game's prompts. `validateContent` checks a game's steps like
+a compiler would (every reference points back, nobody predicts their own answer, a scored game
+reveals) and its prompts like items — plus a whole game at level 1 for every prompt kind, with
+one to spare. `npm --prefix tools test` breaks each rule and watches it fail
+(`validate-games.test.ts`).
+
+On the app side, `GameRunTest` (`:core:engine`) walks the interpreter through every primitive
+and every reveal — hand-offs, gatherings, scores, "Not this one", limits set mid-game — with
+small games shaped like the shipped ones, and `ContentBundleFileTest` plays every shipped game
+from its first round to its last through the same interpreter. `GameParsingTest` covers the
+tolerant parser; `DefaultGameRepositoryTest` the phone's side of a started game.
+`:feature:games` has `GameViewModelTest` (whole games against `FakeGameRepository`, consent,
+pause and stop, a limit set on the other phone) and `GameSnapshotTest` (every screen, and the
+promises on screen: a hand-off shows nothing of what comes next, the partner's phone never
+shows the game, STOP is always there). `:architecture`'s `GameLogicTest` is the "no duplicated
+game logic" gate: no code names a game, only the interpreter and the parser read a game's
+steps, one renderer per primitive, verdicts and scores made only by the interpreter.
 
 ### Contrast
 
@@ -228,6 +257,16 @@ npm --prefix functions run test:e2e
 - **e2e** also plays a night over HTTP (`session.e2e.test.ts`), consent from both tokens, STOP
   from the other phone, and a reaction written through the security rules reaching the author's
   affinity by the real trigger.
+- **unit** also chooses games (`game.unit.test.ts`) over the real shipped prompts: every game
+  filled at every level under the ceiling, a warm-up that never goes down, every theme's NEVER
+  held for every game and seed, the bounded alternates, cooldowns that give way and nothing
+  else that does, determinism.
+- **int** also starts and plays games against Firestore (`game.int.test.ts`): NEVER from
+  either partner, every ask-first theme left out (the host's own too), the more careful
+  partner's level, refused payloads, the rate limit, consent at BOLD and WILD, the dare
+  reported as played, and a limit set mid-game.
+- **e2e** also plays a game over HTTP (`game.e2e.test.ts`): started from the host's token, read
+  back through the rules by both partners and by no one else, played through the sessions.
 
 ### A couple for manual checks
 
@@ -245,6 +284,8 @@ node functions/scripts/dev-couple.js ready
 
 `ready` is Sam's "I'm in" to the night under way; `pause`, `resume` and `stop` are Sam's
 controls; `state` prints the couple's sessions, nights, history, feedback and Alex's affinity.
+A game under way is a session too (D-070): the same commands answer for it, and `state` shows
+`stats.gamesPlayed`.
 Run `seed` again after the e2e suite, which clears the dev project.
 
 ---

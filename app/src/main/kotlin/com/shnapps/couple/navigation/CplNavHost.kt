@@ -27,6 +27,7 @@ import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.gallery.ComponentGallery
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
+import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.navigation.Route
 import com.shnapps.couple.core.security.BiometricAuthenticator
 import com.shnapps.couple.debug.CONTENT_INSPECTOR_AVAILABLE
@@ -37,6 +38,8 @@ import com.shnapps.couple.feature.auth.AuthScreen
 import com.shnapps.couple.feature.auth.SignOutViewModel
 import com.shnapps.couple.feature.boundaries.BoundariesScreen
 import com.shnapps.couple.feature.discovery.MutualDiscoveryScreen
+import com.shnapps.couple.feature.games.GameScreen
+import com.shnapps.couple.feature.games.GamesScreen
 import com.shnapps.couple.feature.night.ActiveNightCard
 import com.shnapps.couple.feature.night.BuildNightScreen
 import com.shnapps.couple.feature.night.NightScreen
@@ -200,6 +203,31 @@ fun CplNavHost(
             )
         }
 
+        composable<Route.Games> {
+            GamesScreen(
+                // The setup has done its job once a game exists: back from the game is the games.
+                onStarted = { experienceId -> navController.navigate(Route.Game(experienceId)) },
+                onOpen = { experienceId, type -> navController.navigate(experienceRoute(experienceId, type)) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable<Route.Game> {
+            GameScreen(
+                onGames = {
+                    if (!navController.popBackStack(Route.Games, inclusive = false)) {
+                        navController.navigate(Route.Games) { popUpTo<Route.Game> { inclusive = true } }
+                    }
+                },
+                onHome = {
+                    if (!navController.popBackStack(Route.Home, inclusive = false)) {
+                        navController.navigate(Route.Home) { popUpTo(0) { inclusive = true } }
+                    }
+                },
+                onAdjustLimits = { navController.navigate(Route.Boundaries) },
+            )
+        }
+
         composable<Route.Home> {
             ComingSoon(
                 title = "Tonight could get interesting.",
@@ -218,6 +246,12 @@ fun CplNavHost(
             ContentInspectorScreen(onBack = { navController.popBackStack() })
         }
     }
+}
+
+/** The player for what is under way: a night's, or a game's. */
+private fun experienceRoute(experienceId: String, type: ExperienceType): Any = when (type) {
+    ExperienceType.NIGHT -> Route.Night(experienceId)
+    ExperienceType.GAME -> Route.Game(experienceId)
 }
 
 private fun StartDestination.toRoute(): Any = when (this) {
@@ -264,11 +298,19 @@ private fun ComingSoon(
         )
         if (showDiscovery) {
             // A night under way, on either phone: the way in to an "I'm in", or back to it.
-            ActiveNightCard(onOpen = { experienceId -> navController.navigate(Route.Night(experienceId)) })
+            ActiveNightCard(
+                onOpen = { experienceId, type -> navController.navigate(experienceRoute(experienceId, type)) },
+            )
             GlowButton(
                 text = "Build tonight",
                 onClick = { navController.navigate(Route.BuildNight()) },
                 leadingEmoji = "🔥",
+            )
+            GlowButton(
+                text = "Play a game",
+                onClick = { navController.navigate(Route.Games) },
+                style = GlowButtonStyle.Secondary,
+                leadingEmoji = "🎲",
             )
             GlowButton(
                 text = "Your private curiosities",

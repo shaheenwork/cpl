@@ -48,12 +48,14 @@ class ContentChokepointTest {
          * Everything that may import the content repository. The content layer's own package
          * never needs to; the taxonomy reads its taxonomy; Hilt binds it; the night repository
          * resolves only the ids a server's night released, through PermittedPool.fromServer
-         * (DECISIONS.md D-048); the debug inspector lists it on purpose (D-042); the fake stands
-         * in for it in tests.
+         * (DECISIONS.md D-048), and the game repository only a server's game's, through
+         * ReleasedGame.fromServer (D-070); the debug inspector lists it on purpose (D-042); the
+         * fake stands in for it in tests.
          */
         val CATALOGUE_READERS = listOf(
             "core/data/src/main/kotlin/com/shnapps/couple/core/data/di/DataModule.kt",
             "core/data/src/main/kotlin/com/shnapps/couple/core/data/night/NightRepository.kt",
+            "core/data/src/main/kotlin/com/shnapps/couple/core/data/game/GameRepository.kt",
             "core/data/src/main/kotlin/com/shnapps/couple/core/data/taxonomy/TaxonomyRepository.kt",
             "app/src/debug/kotlin/com/shnapps/couple/debug/ContentInspector.kt",
             "core/testing/src/main/kotlin/com/shnapps/couple/core/testing/FakeContentRepository.kt",

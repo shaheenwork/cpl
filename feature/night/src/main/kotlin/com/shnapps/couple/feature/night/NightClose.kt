@@ -17,6 +17,7 @@ import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.ChapterReaction
+import com.shnapps.couple.core.model.CloseCheckIn
 import com.shnapps.couple.core.ui.ScreenColumn
 import com.shnapps.couple.core.ui.ScreenHeading
 
@@ -45,7 +46,7 @@ internal fun HowAreWeStage(state: NightUiState, actions: NightActions) {
             }
         } else {
             Text(
-                text = answer.followUp(),
+                text = answer.followUp,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -60,15 +61,6 @@ internal fun HowAreWeStage(state: NightUiState, actions: NightActions) {
             GlowButton(text = "Continue", onClick = actions.onToFeedback, modifier = Modifier.fillMaxWidth())
         }
     }
-}
-
-private fun CloseCheckIn.followUp(): String = when (this) {
-    CloseCheckIn.GLOWING -> "Hold onto that."
-    CloseCheckIn.GOOD -> "Good. That's what tonight was for."
-    CloseCheckIn.A_BIT_MUCH ->
-        "Thank you for saying so. Check in with each other — and you can turn things down any time, in your limits."
-    CloseCheckIn.LETS_TALK ->
-        "Take your time. Some easy ways in: what felt best? Anything you'd change? What would you like more of?"
 }
 
 /** How each chapter landed — private to whoever says so, and used only to fit future nights. */

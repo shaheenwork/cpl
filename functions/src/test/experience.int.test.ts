@@ -93,7 +93,7 @@ describe('generateExperience', () => {
     assert.ok(result.alternates.length > 0 && result.alternates.length <= 3 * result.chapters.length);
     assert.equal(result.engineVersion, ENGINE_VERSION);
     assert.equal(result.seed, 12345);
-    assert.equal(result.contentVersion, 1);
+    assert.equal(result.contentVersion, (await loadCatalogue(db, NOW)).contentVersion);
 
     const stored = (await db.doc(`couples/${coupleId}/experiences/${result.experienceId}`).get()).data()!;
     assert.equal(stored.status, 'READY');

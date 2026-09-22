@@ -26,6 +26,7 @@ import com.shnapps.couple.core.model.BoundaryLevel
 import com.shnapps.couple.core.model.ChapterKind
 import com.shnapps.couple.core.model.ChapterReaction
 import com.shnapps.couple.core.model.ContentItem
+import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Leadership
 import com.shnapps.couple.core.model.Mode
@@ -352,7 +353,7 @@ class DefaultNightRepository @Inject constructor(
     }
 }
 
-private fun SessionDoc.toSession(uid: String?): NightSession = NightSession(
+internal fun SessionDoc.toSession(uid: String?): NightSession = NightSession(
     id = id,
     experienceId = experienceId,
     state = state,
@@ -364,6 +365,7 @@ private fun SessionDoc.toSession(uid: String?): NightSession = NightSession(
     partnerConsented = consentedUids.any { it != uid },
     isHost = hostUid == uid,
     endReason = endReason,
+    experienceType = ExperienceType.entries.firstOrNull { it.name == experienceType } ?: ExperienceType.NIGHT,
 )
 
 private fun ChapterPayload.toChapter(): Chapter = Chapter(

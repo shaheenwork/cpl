@@ -920,3 +920,83 @@ itself uses — so a renamed property still breaks the build rather than a night
 drawn at all — out of sight, out of reach, and out of TalkBack — and PAUSE and STOP stay where
 they always are (§15.2: never animate a required control out of reach). STOP never waits for
 anything else in flight: it is sent even while a chapter is still being finished.
+
+---
+
+## D-069 — A game is passed between the partners on one phone; answers never leave it
+**Phase 11.** Phase 12 builds two-phone sessions with submissions; until then a game is played
+on one phone, handed back and forth. Every private step — a choice, a prediction, a typed
+answer, three statements — sits behind a hand-off ("Over to Sam. Only Sam should look."), and
+private answers give way to a shared screen only behind a gathering ("Together now."). What
+either partner answers lives in the running game on that phone and nowhere else: not in
+Firestore, not in analytics, not in the session. The server learns only which prompt each round
+played, for cooldowns.
+
+Because both partners hold that phone, every ask-first theme is left out of a game — the host's
+own included (`forSharedPhone`): asking anyone on a shared phone would show the other that a
+limit exists. This is stricter than a night (D-060), where the host's own ask-first items are
+asked, among decoys, on the host's own phone.
+
+---
+
+## D-070 — A game is an experience played through the same session as a night
+**Phase 11.** `startGame` chooses a game's rounds on the server — hard filter, then the same
+ranking as a night, then a warm-up ramp from two below the couple's ceiling to it, then the
+chokepoint again (engine/SPEC.md §10) — and stores them as an experience of `type: GAME` whose
+rounds are its `chapters`. Everything a night's session does then applies unchanged: "I'm in"
+from each phone at BOLD and WILD, PAUSE and STOP from either, each round moved on by the server
+(`advanceSession`), a limit set mid-game blocking what it covers in the rounds to come. A truth
+or dare round holds both prompts; the played one is reported and leads the chapter's
+`contentIds`. The session records `experienceType`, so either phone opens the right player, and
+a completed game counts in `stats.gamesPlayed`.
+
+Selection lives only on the server: the device never chooses a prompt, and holds a game only as
+a `ReleasedGame` built by `fromServer`, whose constructor is internal (Konsist). Cooldowns keep
+games fresh but give way — never a boundary — when a game could not otherwise be filled; the
+ranking still puts what was played longest ago first.
+
+---
+
+## D-071 — In a game, "Not this one" keeps a theme out of that game only
+**Phase 11.** "Not this one" swaps the prompt for a released alternate of its kind at once and
+offers to keep what it was about out. On a night that writes the host's own boundary (D-062);
+a game's phone is in both partners' hands, and whoever tapped may not be the account holder.
+So a game never writes anyone's limits: the theme is taken out of the rest of that game, and
+the offer says that either partner can keep it out for good in their own limits.
+
+---
+
+## D-072 — Games are data; one interpreter plays them all, and the build enforces it
+**Phase 11.** `content/games.json` defines each game as steps over eight primitives — QUESTION,
+CHOICE, PREDICTION, VOTE, REVEAL, TIMER, CHALLENGE, REACTION — with who takes each (ACTIVE,
+OTHER, EACH, TOGETHER), whether it is private, what it shows and what it compares. The tools
+check a definition like a compiler would (every reference points back, nobody predicts their
+own answer, a scored game reveals), and the app's parser drops a game it cannot play in full.
+`GameRun` in `:core:engine` is the only interpreter; `:feature:games` has one renderer per
+primitive and none per game. `GameLogicTest` fails the build if code names a game, if anything
+but the interpreter and the parser reads a game's steps, if a renderer is added or missing, or
+if a verdict or score is made outside the interpreter.
+
+Prompts are content under the same rules as items: the vocabulary, the prohibited-terms
+tripwire, boundary-keyword coverage, near-duplicates within a game, and coverage per level and
+kind — including a whole game at SOFT with one to spare, so a released set is never the whole
+permitted set (§5.5). The bundle carries `games` and `prompts` beside `items`; older bundles
+without them still install. The Room cache is version 2 (a rebuildable cache, dropped and
+refilled); deltas apply to prompts by the items' rule, and an item's delta never becomes a
+prompt, nor a prompt's an item.
+
+Deferred: VoicePrompt and PhotoPrompt (Phase 15), SecretMission, PartnerControl and Scenario
+(Phases 13–14), Ranking, RandomSelection and Memory.
+
+---
+
+## D-073 — FLAG_SECURE is held by every private screen, not set and cleared by each
+**Phase 11.** `SecureScreen` set FLAG_SECURE when a screen entered composition and cleared it
+on dispose. Navigating between two private screens, the arriving screen sets the flag and the
+leaving one — disposed after the transition — clears it: the screen now on top was left
+capturable. Found on the device in Phase 11: the games hub after "Another game" screenshotted
+in full, and the night player did the same after Build Our Night handed over to it.
+
+The flag is now a hold: every `SecureScreen` in composition counts, and it is cleared only when
+the last one leaves. `SecureScreenTest` composes the handover — the next screen arrives, then
+the last one leaves — and fails against the old code.

@@ -101,7 +101,34 @@ data class NightSession(
     /** Whether this is the phone the night plays on (D-059). */
     val isHost: Boolean,
     val endReason: SessionEndReason?,
+    /** What is being played: a night, or a game through the same session (§11). */
+    val experienceType: ExperienceType = ExperienceType.NIGHT,
 )
+
+/** What a session plays. Either phone opens the player that fits. */
+enum class ExperienceType {
+    NIGHT,
+    GAME,
+}
+
+/**
+ * "How are we doing?" — the check-in at the close of a night or a game (§3.1). Aftercare, not a
+ * form: nothing it says is stored (DECISIONS.md D-065); it only decides what to say next.
+ */
+enum class CloseCheckIn(val label: String, val emoji: String, val followUp: String) {
+    GLOWING("Glowing", "✨", "Hold onto that."),
+    GOOD("Good", "❤️", "Good. That's what tonight was for."),
+    A_BIT_MUCH(
+        "A bit much",
+        "🌙",
+        "Thank you for saying so. Check in with each other — and you can turn things down any time, in your limits.",
+    ),
+    LETS_TALK(
+        "Let's talk",
+        "💬",
+        "Take your time. Some easy ways in: what felt best? Anything you'd change? What would you like more of?",
+    ),
+}
 
 /** How a chapter landed, for the partner who says so. Private to them (D-063). */
 enum class ChapterReaction(val label: String, val emoji: String) {

@@ -94,6 +94,7 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
 
 ### Content
 
+- Game prompts are authored in `content/prompts/*.json` under the same rules as items.
 - Authored in `content/packs/*.json`, one item per line; the closed vocabulary is
   `content/vocabulary.json`, the §3.3 tripwire `content/policy/prohibited-terms.json`.
 - After any content edit: `npm --prefix tools run bundle`, and commit the bundle with it.
@@ -116,7 +117,22 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   choosing — only from `PermittedPool.fromServer` (D-048). Konsist enforces it.
 - On the server only `experience/generate.ts` runs the pipeline, and the pipeline filters
   before anything else (§10.3); the catalogue is loaded only there and in `feedback/affinity.ts`.
-  The TypeScript architecture test enforces it.
+  A game's rounds are chosen only by `engine/game.ts`, called only from `experience/game.ts`,
+  filtering first too (SPEC §10). The TypeScript architecture test enforces both.
+
+### Games
+
+- A game is content, not code: steps over primitives in `content/games.json`, prompts in
+  `content/prompts/<game>.json`. A new game, or a changed one, is a content edit plus
+  `npm --prefix tools run bundle` — never a new screen or a branch. `GameLogicTest` fails the
+  build if code names a game (D-072).
+- `GameRun` (`:core:engine`) is the only interpreter. `:feature:games` renders primitives —
+  one renderer each, in `PrimitiveRenderers.kt` — and only ever sees what the interpreter hands
+  it. A new primitive changes the vocabulary, `GamePrimitive`, `RoundPrimitive` and gets exactly
+  one renderer.
+- The device plays only a `ReleasedGame` built by `fromServer` from what `startGame` released
+  (D-070). What partners answer never leaves the phone (D-069); a game never writes anyone's
+  limits (D-071).
 - A night's session moves only through the callables and the transition table in
   `functions/src/session/transitions.ts` (D-059). The phone follows the session document; it
   never assumes where a night is.

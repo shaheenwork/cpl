@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.shnapps.couple.core.model.AppLockMode
+import com.shnapps.couple.core.model.GamePlayers
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -32,6 +33,9 @@ class AppPreferencesDataSource @Inject constructor(
                 ?: AppPreferences.DEFAULT_LOCK_TIMEOUT_MILLIS,
             ageConfirmedHint = prefs[Keys.AGE_CONFIRMED_HINT] ?: false,
             onboardingCompleteHint = prefs[Keys.ONBOARDING_COMPLETE_HINT] ?: false,
+            gamePlayers = prefs[Keys.FIRST_PLAYER]?.let { first ->
+                prefs[Keys.SECOND_PLAYER]?.let { second -> GamePlayers(first, second) }
+            },
         )
     }
 
@@ -71,6 +75,13 @@ class AppPreferencesDataSource @Inject constructor(
         context.dataStore.edit { it[Keys.ONBOARDING_COMPLETE_HINT] = complete }
     }
 
+    override suspend fun setGamePlayers(players: GamePlayers) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.FIRST_PLAYER] = players.first
+            prefs[Keys.SECOND_PLAYER] = players.second
+        }
+    }
+
     override suspend fun clear() {
         context.dataStore.edit { it.clear() }
     }
@@ -82,5 +93,7 @@ class AppPreferencesDataSource @Inject constructor(
         val LOCK_TIMEOUT = longPreferencesKey("lock_timeout_millis")
         val AGE_CONFIRMED_HINT = booleanPreferencesKey("age_confirmed_hint")
         val ONBOARDING_COMPLETE_HINT = booleanPreferencesKey("onboarding_complete_hint")
+        val FIRST_PLAYER = stringPreferencesKey("game_first_player")
+        val SECOND_PLAYER = stringPreferencesKey("game_second_player")
     }
 }

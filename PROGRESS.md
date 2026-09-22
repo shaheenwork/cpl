@@ -3,7 +3,7 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 10 complete. Next action: **Phase 11 — Game primitives and the seven core games.**
+**Current position:** Phase 11 complete. Next action: **Phase 12 — Realtime sessions.**
 
 ---
 
@@ -22,8 +22,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 | 8 | Content system + ≥600 seed items | ✅ **Complete** |
 | 9 | Experience engine | ✅ **Complete** |
 | 10 | Build Our Night + player | ✅ **Complete** |
-| 11 | Game primitives + 7 core games | ⬜ Next |
-| 12 | Realtime sessions | ⬜ |
+| 11 | Game primitives + 7 core games | ✅ **Complete** |
+| 12 | Realtime sessions | ⬜ Next |
 | 13 | Together home + Surprise Us | ⬜ |
 | 14 | Apart mode + async | ⬜ |
 | 15 | Voice + photo | ⬜ |
@@ -875,7 +875,8 @@ npm --prefix tools test                     27/27
 
 ### Deferred
 - **Phase 11:** chapters of type CHOICE, PREDICTION and REVEAL play as prompts for now; the
-  game primitives make them interactive.
+  game primitives make them interactive. *(Games shipped in Phase 11; a night's chapters still
+  play as prompts.)*
 - **Phase 12:** both phones playing a night together, and a partner's ask-first asked
   privately on their own phone (D-060); heartbeats, reconnection, and expiry by the scheduled
   function; process-death restore from Room (a restarted player reloads from the server today).
@@ -887,3 +888,104 @@ npm --prefix tools test                     27/27
 - **Phase 22 (cost):** a night of n chapters is one generation, one createSession, n + 1
   advances (each re-checking the limits: two reads of filters and matches plus the catalogue
   cache), and at most n feedback writes and triggers.
+
+---
+
+## Phase 11 — Game primitives and the core games ✅
+
+### Shipped
+- **Eight games as content** (§11.2): Predict My Answer, Me or You, Would You Rather, Truth or
+  Dare, Who Knows Who, Two Truths & A Lie, Couple Battle and Deep Talk — each a definition in
+  `content/games.json` (steps over primitives: who takes each, whether it is private, what it
+  shows, what a reveal compares) and **366 prompts** in `content/prompts/`, held to the items'
+  standard: the vocabulary, the prohibited-terms tripwire, boundary-keyword coverage,
+  near-duplicates, and coverage per level and kind — a whole game at SOFT with one to spare.
+  The validator checks a game's steps like a compiler would; the bundle carries `games` and
+  `prompts` beside `items` (content v2), and older bundles still install.
+- **Server** (D-070): `startGame` chooses a game's rounds behind both partners' boundaries —
+  hard filter, the night's ranking, a warm-up from two below the ceiling to it, the chokepoint
+  again (engine/SPEC.md §10) — with every ask-first theme left out, the host's own too, because
+  both hold the phone (D-069). Rounds are stored as an experience of type GAME and played
+  through the same session as a night: consent at BOLD and WILD, PAUSE and STOP from either
+  phone, each round moved on by the server, the played prompt (a dare over a truth) reported
+  and cooled down, a limit set mid-game blocking what it covers. Cooldowns give way — never a
+  boundary — when a game could not otherwise be filled.
+- **The interpreter** (`:core:engine`, D-072): `GameRun` plays any game the definitions can
+  describe — turns alternating from whoever goes first, a hand-off before every private step,
+  a gathering before a shared one, eight primitives each with one answer contract, six kinds
+  of reveal, points or matches — plus "Not this one" (a released alternate of the same kind,
+  never more intense) and limits set mid-game. It starts only from a `ReleasedGame` built by
+  `fromServer`.
+- **`:feature:games`**: the games hub and setup (how far, up to the couple's shared level; who
+  goes first, by name, remembered on the phone), and one player for every game: one renderer
+  per primitive, "Over to Sam. Only Sam should look.", "Together now.", reveals, a timer, the
+  close ("How are we doing?", then the score). "Not this one" keeps a theme out of the rest of
+  that game only — a game never writes anyone's limits (D-071). The partner's phone gives its
+  "I'm in", and can pause or stop, but never shows the game.
+- **"No duplicated game logic"** is a build rule (`GameLogicTest`): no code names a game; only
+  the interpreter and the parser read a game's steps; exactly one renderer per primitive;
+  verdicts and scores made only by the interpreter; the interpreter starts only from what the
+  server released. Proven by planting all four violations and watching them fail.
+- Home: "Play a game", and the card for what is under way now opens a night or a game.
+
+### Verified
+```
+./gradlew check assembleDevDebug            BUILD SUCCESSFUL
+:core:engine    41   (GameRunTest 19: every primitive, every reveal, hand-offs, "Not this one",
+                      limits mid-game, only what the server released)
+:core:data      79   (ContentBundleFileTest 9 — every shipped game played to its end through the
+                      interpreter; GameParsingTest 6; DefaultGameRepositoryTest 9)
+:core:database  5    (prompts installed and replaced with the items)
+:feature:games  27   (GameViewModelTest 10, GamesViewModelTest 6, GameSnapshotTest 11: 11 screens
+                      recorded, hand-offs showing nothing of what comes next, STOP always there)
+:feature:night  61   (unchanged behaviour; the close check-in now shared from :core:model)
+:core:ui        2    (SecureScreenTest: the handover between two private screens, D-073)
+:architecture   17   (GameLogicTest 6 — four planted violations each failed the build)
+npm --prefix tools test                     42/42   (validate-games 14, bundle 5)
+npm --prefix functions run test:unit        98/98   (game choice 16, architecture 7)
+npm --prefix functions run test:int         87/87   (games 11)
+npm --prefix functions run test:e2e         25/25   (games 3)
+npm --prefix firebase/tests test            77/77
+```
+- **Exit criterion — each game playable, on the device**: on the emulator (AVD
+  `afterhours_a`, dev build, Emulator Suite), signed in as Alex, all eight games were started from
+  "Play a game" and played from the first round to the last, passed between "Alex" and "Sam":
+  a hand-off before every private step ("Over to Sam. Only Sam should look."), a gathering before
+  each reveal, typed answers and guesses, three statements and a lie, timers, dares, reactions —
+  then "How are we doing?" and the score. Would You Rather 8 rounds ("You've matched on 8 of 8");
+  Me or You 8 ("0 of 8": each named the other); Predict My Answer 8 (4–4); Truth or Dare 10;
+  Who Knows Who 8 (4–4); Two Truths & A Lie 6 (3–3); Couple Battle 8 (every battle a tie, 0–0);
+  Deep Talk 6. The scores are even because the script always takes the last option.
+- **On the server**: eight game sessions COMPLETED, `stats.gamesPlayed` 8, the couple's place
+  cleared, and 64 prompts in the cooldown history — every Truth or Dare round recorded as the
+  dare that was played, and not one truth that was only offered.
+- **FLAG_SECURE held**: every game screen reads as black to `screencap` — once the handover
+  bug below was fixed — so the run read the accessibility tree instead.
+
+### Found and fixed
+- **Every private screen was capturable after a handover** (D-073): `SecureScreen` set
+  FLAG_SECURE on enter and cleared it on dispose, so a leaving screen switched protection off
+  under the screen that had just arrived. Found on the device: the games hub screenshotted in
+  full after "Another game" — and so did the night player after Build Our Night. The flag is now
+  held by every private screen in composition and cleared only when the last leaves; the new
+  `SecureScreenTest` fails against the old code. Re-checked on the device: the hub, a game's
+  setup, a game screen, the hub again after leaving a game and the night player all capture
+  black (only the system bars, which are not the app's window), and Home still captures in full.
+- **Truth or Dare could not be filled at SOFT**: ten rounds need ten truths and ten dares at
+  level 1, and the pack had eight of each — the server's game tests found it, choosing eight
+  rounds. Six prompts added, and the validator now asks every game for a whole game at level 1
+  of every kind, with one to spare (so the released set is never the whole permitted set).
+- **A night test pinned the content version** at 1; it now reads the catalogue's own.
+- **The interpreter grew past detekt's limits**: split into the moves (`GameRun`), reading the
+  round (`RoundReading`) and one function per kind of reveal (`Reveals.kt`).
+
+### Deferred
+- **Phase 12:** each partner answering on their own phone (submissions, `AWAITING_SUBMISSIONS`
+  → `REVEAL`), which also lets a partner's ask-first be asked privately in a game; the running
+  answers restored after process death (a restarted game resumes at the server's round).
+- **Phase 13–14:** SecretMission, PartnerControl and Scenario (Tonight's Director, Apart games).
+- **Phase 15:** VoicePrompt and PhotoPrompt.
+- **Later:** Ranking, RandomSelection and Memory primitives; roleplay scenarios and secret
+  missions as content; feedback on game rounds into affinity.
+- **Phase 22 (cost):** a game of n rounds is one `startGame` (a catalogue load and the
+  couple's filters, matches, history and affinity), one createSession, n + 1 advances.

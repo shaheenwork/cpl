@@ -103,6 +103,8 @@ data class SessionDoc(
     val consentRequired: Boolean,
     val consentedUids: Set<String>,
     val endReason: SessionEndReason?,
+    /** NIGHT or GAME: which player the session plays. Sessions from before games are nights. */
+    val experienceType: String = "NIGHT",
 )
 
 /** `couples/{cid}/experiences/{id}`: the night as the server stored it. */
@@ -295,6 +297,7 @@ private fun DocumentSnapshot.toSessionDoc(): SessionDoc? {
         consentRequired = getBoolean("consentRequired") == true,
         consentedUids = (get("consentAcks") as? Map<*, *>).orEmpty().keys.filterIsInstance<String>().toSet(),
         endReason = SessionEndReason.entries.firstOrNull { it.name == getString("endReason") },
+        experienceType = getString("experienceType") ?: "NIGHT",
     )
 }
 

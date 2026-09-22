@@ -60,6 +60,14 @@ object Route {
     @Serializable
     data class Night(val experienceId: String)
 
+    /** The games, and setting one up (§11). */
+    @Serializable
+    data object Games
+
+    /** A game being played — or waiting to be — on either partner's phone (§11). */
+    @Serializable
+    data class Game(val experienceId: String)
+
     /**
      * The app lock (§3.4). Not part of the first-run chain — it can appear over anything,
      * including a cold start, because the app always starts locked.

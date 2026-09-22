@@ -11,6 +11,7 @@ import com.shnapps.couple.core.data.night.NightRepository
 import com.shnapps.couple.core.data.taxonomy.TaxonomyRepository
 import com.shnapps.couple.core.model.BoundaryLevel
 import com.shnapps.couple.core.model.ChapterReaction
+import com.shnapps.couple.core.model.CloseCheckIn
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.PlannedNight
 import com.shnapps.couple.core.model.SessionEndReason
@@ -69,14 +70,6 @@ sealed interface NightStage {
     data object Done : NightStage
 
     data object Missing : NightStage
-}
-
-/** The close of a night: aftercare, not a form (§3.1). Not stored anywhere (D-065). */
-enum class CloseCheckIn(val label: String, val emoji: String) {
-    GLOWING("Glowing", "✨"),
-    GOOD("Good", "❤️"),
-    A_BIT_MUCH("A bit much", "🌙"),
-    LETS_TALK("Let's talk", "💬"),
 }
 
 /** After "Not this one": the themes the refused item was about, to keep out if wanted. */

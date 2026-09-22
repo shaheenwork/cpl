@@ -118,6 +118,7 @@ dependencies {
     implementation(project(":feature:boundaries"))
     implementation(project(":feature:discovery"))
     implementation(project(":feature:night"))
+    implementation(project(":feature:games"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

@@ -11,8 +11,15 @@ import androidx.room.RoomDatabase
  * cannot be rebuilt belongs in a database with real migrations, not here.
  */
 @Database(
-    entities = [ContentItemEntity::class, ContentDeltaEntity::class, ContentBundleEntity::class],
-    version = 1,
+    entities = [
+        ContentItemEntity::class,
+        ContentPromptEntity::class,
+        ContentDeltaEntity::class,
+        ContentBundleEntity::class,
+    ],
+    // 2: game prompts and games (Phase 11). Dropped and reinstalled from the bundle, as any
+    // version change here is (DatabaseModule).
+    version = 2,
     exportSchema = true,
 )
 abstract class ContentDatabase : RoomDatabase() {

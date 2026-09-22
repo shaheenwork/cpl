@@ -11,11 +11,14 @@ import com.shnapps.couple.core.database.content.ContentBundleEntity
 import com.shnapps.couple.core.database.content.ContentDao
 import com.shnapps.couple.core.database.content.ContentDeltaEntity
 import com.shnapps.couple.core.database.content.ContentItemEntity
+import com.shnapps.couple.core.database.content.ContentPromptEntity
 import com.shnapps.couple.core.firebase.content.ContentRemoteDataSource
 import com.shnapps.couple.core.model.ContentItem
 import com.shnapps.couple.core.model.ContentPack
 import com.shnapps.couple.core.model.ContentState
 import com.shnapps.couple.core.model.ContentStatus
+import com.shnapps.couple.core.model.Game
+import com.shnapps.couple.core.model.GamePrompt
 import com.shnapps.couple.core.model.Taxonomy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -48,6 +51,16 @@ interface ContentRepository {
     val items: Flow<List<ContentItem>>
 
     val packs: Flow<List<ContentPack>>
+
+    /** The games this version can play (§11): definitions, safe to list — no prompt in them. */
+    val games: Flow<List<Game>>
+
+    /**
+     * Every game prompt a started game may resolve against: published, and not disabled by a
+     * delta. Like [items], an input, not a browsing API — which prompts a couple meets is the
+     * server's choice (§3.2).
+     */
+    val prompts: Flow<List<GamePrompt>>
 
     /** The taxonomy from the installed bundle (§9.5), so it updates with the content. */
     val taxonomy: Flow<Taxonomy>
@@ -100,6 +113,18 @@ class DefaultContentRepository @Inject constructor(
         .distinctUntilChanged()
         .map(ContentBundleParser::parsePacks)
         .flowOn(dispatchers.default)
+
+    override val games: Flow<List<Game>> = bundle
+        .map { it.gamesJson }
+        .distinctUntilChanged()
+        .map(ContentBundleParser::parseGames)
+        .flowOn(dispatchers.default)
+
+    override val prompts: Flow<List<GamePrompt>> =
+        combine(dao.observePrompts(), dao.observeDeltas(), ::applyPromptDeltas)
+            .onStart { ensureInstalled() }
+            .flowOn(dispatchers.default)
+            .shareIn(appScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), replay = 1)
 
     override val taxonomy: Flow<Taxonomy> = bundle
         .map { it.taxonomyJson }
@@ -205,10 +230,12 @@ class DefaultContentRepository @Inject constructor(
                 taxonomyVersion = parsed.taxonomyVersion,
                 taxonomyJson = parsed.taxonomyJson,
                 packsJson = parsed.packsJson,
+                gamesJson = parsed.gamesJson,
                 lastSyncMillis = previous?.lastSyncMillis,
                 deltaCursorMillis = previous?.deltaCursorMillis ?: 0L,
             ),
             items = parsed.items.map { ContentItemEntity(it.id, it.version, it.pack, it.status, it.json) },
+            prompts = parsed.prompts.map { ContentPromptEntity(it.id, it.version, it.game, it.status, it.json) },
         )
     }
 
@@ -225,21 +252,44 @@ class DefaultContentRepository @Inject constructor(
  * An unknown delta status hides the item: an override this version cannot read must fail
  * closed, since it may be a disable.
  */
-internal fun applyDeltas(rows: List<ContentItemEntity>, deltas: List<ContentDeltaEntity>): List<ContentItem> {
+internal fun applyDeltas(rows: List<ContentItemEntity>, deltas: List<ContentDeltaEntity>): List<ContentItem> =
+    overlay(rows.map { Row(it.id, it.version, it.json) }, deltas, ContentBundleParser::parseItem, { it.status }) {
+        it.copy(status = ContentStatus.PUBLISHED)
+    }
+
+/**
+ * Game prompts by the same rule as items. An item's delta never becomes a prompt, nor a
+ * prompt's an item: each collection reads only what parses as its own kind.
+ */
+internal fun applyPromptDeltas(rows: List<ContentPromptEntity>, deltas: List<ContentDeltaEntity>): List<GamePrompt> =
+    overlay(rows.map { Row(it.id, it.version, it.json) }, deltas, ContentBundleParser::parsePrompt, { it.status }) {
+        it.copy(status = ContentStatus.PUBLISHED)
+    }
+
+private data class Row(val id: String, val version: Int, val json: String)
+
+/** [rows] with [deltas] laid over them: only what ends up published, marked so by [published]. */
+private fun <T : Any> overlay(
+    rows: List<Row>,
+    deltas: List<ContentDeltaEntity>,
+    parse: (String) -> T?,
+    statusOf: (T) -> ContentStatus,
+    published: (T) -> T,
+): List<T> {
     val deltaById = deltas.associateBy { it.id }
     val bundled = rows.mapNotNull { row ->
         val delta = deltaById[row.id]?.takeIf { it.version >= row.version }
-        // An edit this version cannot read hides the item rather than reviving the original
+        // An edit this version cannot read hides the entry rather than reviving the original
         // the admin replaced.
-        val item = ContentBundleParser.parseItem(delta?.itemJson ?: row.json) ?: return@mapNotNull null
-        val status = if (delta != null) ContentStatus.fromId(delta.status) else item.status
-        item.takeIf { status == ContentStatus.PUBLISHED }?.copy(status = ContentStatus.PUBLISHED)
+        val entry = parse(delta?.itemJson ?: row.json) ?: return@mapNotNull null
+        val status = if (delta != null) ContentStatus.fromId(delta.status) else statusOf(entry)
+        entry.takeIf { status == ContentStatus.PUBLISHED }?.let(published)
     }
-    // Items an admin added before any bundle carried them.
+    // Entries an admin added before any bundle carried them.
     val bundledIds = rows.mapTo(HashSet()) { it.id }
     val added = deltas
         .filter { it.id !in bundledIds && ContentStatus.fromId(it.status) == ContentStatus.PUBLISHED }
-        .mapNotNull { delta -> delta.itemJson?.let(ContentBundleParser::parseItem) }
-        .map { it.copy(status = ContentStatus.PUBLISHED) }
+        .mapNotNull { delta -> delta.itemJson?.let(parse) }
+        .map(published)
     return bundled + added
 }

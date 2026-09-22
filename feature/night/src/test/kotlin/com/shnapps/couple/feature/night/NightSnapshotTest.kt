@@ -12,6 +12,7 @@ import com.google.common.truth.Truth.assertThat
 import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.model.ChapterReaction
+import com.shnapps.couple.core.model.CloseCheckIn
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Mood
 import com.shnapps.couple.core.model.NightSession
@@ -181,7 +182,9 @@ class NightSnapshotTest {
 
     @Test fun activeNightCard() {
         composeRule.setContent {
-            Themed { ActiveNightContent(session(SessionState.WAITING_FOR_PARTNER, isHost = false), onOpen = {}) }
+            Themed {
+                ActiveNightContent(session(SessionState.WAITING_FOR_PARTNER, isHost = false), onOpen = { _, _ -> })
+            }
         }
         composeRule.onRoot().captureRoboImage("src/test/screenshots/night-active-card.png")
     }

@@ -10,4 +10,8 @@ android {
 
 dependencies {
     implementation(project(":core:designsystem"))
+
+    // SecureScreenTest composes on a real Robolectric activity window.
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.androidx.junit)
 }

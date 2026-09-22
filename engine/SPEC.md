@@ -260,3 +260,47 @@ does not. After five attempts it is returned. With no passing night at all,
 score then id), `effectiveIntensity`, `seed`, `engineVersion`, and `focusIncluded` — whether a
 chapter is about the focus. The client resolves ids against
 its content cache; nothing here depends on a device.
+
+---
+
+## 10. Games (server only)
+
+A game's rounds (BUILD_PROMPT.md §11) are chosen by the server alone, from the bundle's
+`prompts` — the device plays the rounds it is given and never chooses one. `GAME_ENGINE_VERSION`
+(1) is raised when the rounds change for identical inputs; nights are unaffected by it.
+
+**A prompt as an item.** A prompt carries every field the chokepoint and the ranking read, so
+§3 and §4 apply to it unchanged. It has no pack, chapter kind or media: its game stands in for
+the pack, `interactionType` is `GAME`, `chapterKinds` is empty (no night can pick one) and
+`requiresMedia` is null.
+
+**The request.** Mode `TOGETHER`, no moods, novelty `MIXED`, the asked intensity and the
+server's seed. The filters are the couple's with **every** ask-first theme added to the
+excluded ones, the host's own included: a game is passed between the partners on one phone,
+where asking anyone would show the other a limit exists.
+
+**Choosing.** With `E` from §3 and `R` the game's `rounds`:
+
+1. Hard filter (§3) over all prompts, then keep the game's own.
+2. Score the survivors (§4).
+3. Targets: `start = max(1, E − 2)`; round `r` aims at `start + floor((E − start) × r / (R − 1))`
+   (`E` when `R` is 1) — a climb, never above `E`.
+4. For each round, for each of the game's prompt kinds in order (one pick when it has none):
+   among the unused prompts of that kind at or below the target, keep those at the highest
+   intensity present; sort by score descending, then id; draw one with weight
+   `score − min + 0.1` using one `next()` (§2, seed = `attemptSeed(seed, 0)`). A round missing
+   any kind is left out. The round's intensity is its highest prompt's.
+5. Fewer than 3 rounds fails with `NOT_ENOUGH_CONTENT`.
+6. Alternates: for each kind, the best 3 unused (score, then id). If rounds and alternates
+   would release every permitted prompt, the lowest-scored alternate is dropped (§6's rule).
+7. The hard filter again over everything released; any failure fails the game.
+
+**Cooldowns give way.** When the game cannot be filled with all `R` rounds, it is chosen again
+with `lastPlayed` emptied for the filter only (seed `attemptSeed(seed, 1)`) — the ranking still
+penalises what was played recently. The lifted game is kept when it has more rounds. Nothing
+but cooldowns is ever lifted.
+
+**Output.** `rounds` (index, prompt ids in kind order, intensity), `alternates`,
+`effectiveIntensity`, `seed`, `engineVersion`. The experience stores the rounds as `chapters`
+(`kind: ROUND`), so the session rules of a night apply to a game unchanged. The played prompt
+of a round leads its `contentIds` (a dare over a truth, or an alternate in the lead's place).

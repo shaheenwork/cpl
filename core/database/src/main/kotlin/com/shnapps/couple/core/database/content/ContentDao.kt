@@ -7,11 +7,16 @@ import androidx.room.Transaction
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
+// One cache, one DAO: each of its tables is installed and read here, together.
+@Suppress("TooManyFunctions")
 @Dao
 interface ContentDao {
 
     @Query("SELECT * FROM content_items ORDER BY pack, id")
     fun observeItems(): Flow<List<ContentItemEntity>>
+
+    @Query("SELECT * FROM content_prompts ORDER BY game, id")
+    fun observePrompts(): Flow<List<ContentPromptEntity>>
 
     @Query("SELECT * FROM content_deltas")
     fun observeDeltas(): Flow<List<ContentDeltaEntity>>
@@ -27,9 +32,15 @@ interface ContentDao {
      * mixture. Deltas are kept; they carry their own versions.
      */
     @Transaction
-    suspend fun installBundle(bundle: ContentBundleEntity, items: List<ContentItemEntity>) {
+    suspend fun installBundle(
+        bundle: ContentBundleEntity,
+        items: List<ContentItemEntity>,
+        prompts: List<ContentPromptEntity> = emptyList(),
+    ) {
         deleteItems()
         insertItems(items)
+        deletePrompts()
+        insertPrompts(prompts)
         upsertBundle(bundle)
     }
 
@@ -47,6 +58,12 @@ interface ContentDao {
 
     @Insert
     suspend fun insertItems(items: List<ContentItemEntity>)
+
+    @Query("DELETE FROM content_prompts")
+    suspend fun deletePrompts()
+
+    @Insert
+    suspend fun insertPrompts(prompts: List<ContentPromptEntity>)
 
     @Upsert
     suspend fun upsertBundle(bundle: ContentBundleEntity)

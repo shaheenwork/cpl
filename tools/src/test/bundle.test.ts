@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { BUNDLE_FILE, buildBundle, serializeBundle } from '../bundle';
-import { type ContentItem, DEFAULT_CONTENT_ROOT, loadContent } from '../content';
+import { type ContentItem, DEFAULT_CONTENT_ROOT, type GamePrompt, loadContent } from '../content';
 
 const repo = loadContent(DEFAULT_CONTENT_ROOT);
 
@@ -43,4 +43,22 @@ test('carries the taxonomy verbatim, so it updates with the content', () => {
   const bundle = JSON.parse(serializeBundle(buildBundle(repo)));
   assert.deepEqual(bundle.taxonomy, JSON.parse(readFileSync(join(DEFAULT_CONTENT_ROOT, 'taxonomy.json'), 'utf8')));
   assert.equal(bundle.taxonomyVersion, bundle.taxonomy.version);
+});
+
+test('ships every game without its authoring fields, and only published prompts, by id', () => {
+  const promptsByGame = new Map(repo.promptsByGame);
+  const first = repo.games[0];
+  const draft = { ...((repo.promptsByGame.get(first.id) ?? [])[0] as GamePrompt), status: 'draft' };
+  promptsByGame.set(first.id, [draft, ...(repo.promptsByGame.get(first.id) ?? []).slice(1)]);
+
+  const bundle = JSON.parse(serializeBundle(buildBundle({ ...repo, promptsByGame })));
+  assert.deepEqual(bundle.games.map((game: { id: string }) => game.id), repo.games.map((game) => game.id));
+  for (const game of bundle.games) {
+    for (const hidden of ['prefix', 'file', 'minPrompts', 'promptOptions']) assert.ok(!(hidden in game), hidden);
+    assert.ok(game.steps.length > 0);
+  }
+  assert.ok(!bundle.prompts.some((prompt: GamePrompt) => prompt.id === draft.id));
+  assert.ok(bundle.prompts.every((prompt: GamePrompt) => prompt.status === 'published'));
+  const ids = bundle.prompts.map((prompt: GamePrompt) => prompt.id);
+  assert.deepEqual(ids, [...ids].sort((a: string, b: string) => a.localeCompare(b)));
 });

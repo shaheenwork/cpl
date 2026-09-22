@@ -38,6 +38,7 @@ class ContentDaoTest {
         taxonomyVersion = 1,
         taxonomyJson = "{}",
         packsJson = "[]",
+        gamesJson = "[]",
         lastSyncMillis = null,
         deltaCursorMillis = cursor,
     )
@@ -52,6 +53,16 @@ class ContentDaoTest {
 
         assertThat(dao.observeItems().first().map { it.id }).containsExactly("tease_c")
         assertThat(dao.bundle()?.contentVersion).isEqualTo(2)
+    }
+
+    @Test
+    fun `installing a bundle replaces every prompt with the items`() = runTest {
+        val prompt = { id: String -> ContentPromptEntity(id, 1, "ME_OR_YOU", "published", "{\"id\":\"$id\"}") }
+        dao.installBundle(header(1), listOf(row("flirt_a")), listOf(prompt("meoryou_a"), prompt("meoryou_b")))
+        dao.installBundle(header(2), listOf(row("flirt_a")), listOf(prompt("meoryou_c")))
+
+        assertThat(dao.observePrompts().first().map { it.id }).containsExactly("meoryou_c")
+        assertThat(dao.observeItems().first().map { it.id }).containsExactly("flirt_a")
     }
 
     @Test

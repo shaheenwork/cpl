@@ -4,10 +4,11 @@
  * chokepoint").
  *
  * Runtime tests show the chokepoint works; these show nothing goes around it. They read the
- * sources: only experience/generate.ts may run the pipeline, and the catalogue is loaded only
- * there and where feedback learns what a played item was about; the pipeline filters before it
- * scores, samples or assembles and re-checks what it built; and the combined boundaries are
- * read in no other place.
+ * sources: only experience/generate.ts may run the pipeline and only experience/game.ts may
+ * choose a game, and the catalogue is loaded only through generate.ts and where feedback
+ * learns what a played item was about; the pipeline and the game chooser both filter before
+ * they score or pick, and re-check what they chose; and the combined boundaries are read in
+ * no other place.
  */
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -42,6 +43,8 @@ describe('the chokepoint cannot be bypassed', () => {
 
   it('only generateExperience runs the pipeline, and nothing else selects from the catalogue', () => {
     assert.deepEqual(importersOf('pipeline'), ['experience/generate.ts']);
+    // A game's rounds are chosen by the engine's game chooser, called from startGame alone.
+    assert.deepEqual(importersOf('game'), ['experience/game.ts']);
     // Feedback reads the catalogue for one item's category, type and moods — a chapter the
     // couple already played — and selects nothing (DECISIONS.md D-063).
     assert.deepEqual(importersOf('catalogue'), ['experience/generate.ts', 'feedback/affinity.ts']);
@@ -52,8 +55,30 @@ describe('the chokepoint cannot be bypassed', () => {
       const outside = importersOf(internal).filter((path) => !path.startsWith('engine/'));
       assert.deepEqual(outside, [], `${internal} imported from outside the engine`);
     }
-    assert.deepEqual(importersOf('score'), ['engine/pipeline.ts']);
-    assert.deepEqual(importersOf('sample'), ['engine/pipeline.ts']);
+    assert.deepEqual(importersOf('score'), ['engine/game.ts', 'engine/pipeline.ts']);
+    assert.deepEqual(importersOf('sample'), ['engine/game.ts', 'engine/pipeline.ts']);
+  });
+
+  it('prompts reach a couple only through the game chooser or the mid-game re-check', () => {
+    const readers = files.filter((file) => /catalogue\.prompts/.test(file.text)).map((file) => file.path).sort();
+    assert.deepEqual(readers, ['experience/game.ts', 'experience/generate.ts']);
+    const startGame = files.find((file) => file.path === 'experience/game.ts')!.text;
+    assert.match(startGame, /generateGame\(catalogue\.prompts,/);
+  });
+
+  it('a game is chosen the same way: filtered first, then scored and picked, then checked again', () => {
+    const game = files.find((file) => file.path === 'engine/game.ts')!.text;
+    const body = game.slice(game.indexOf('function chooseRounds('), game.indexOf('function pickPrompt('));
+    const at = (call: string) => {
+      const index = body.indexOf(call);
+      assert.ok(index >= 0, `${call} missing from chooseRounds()`);
+      return index;
+    };
+    assert.ok(at('hardFilter(') < at('scoreAll('), 'scored before filtering');
+    assert.ok(at('scoreAll(') < at('pickPrompt('));
+    assert.ok(at('pickPrompt(') < at('permits('), 'nothing re-checked after picking');
+    assert.match(body, /scoreAll\(permitted,/);
+    assert.match(body, /pickPrompt\(permitted,/);
   });
 
   it('the pipeline filters first, then scores, samples and assembles, then checks again', () => {

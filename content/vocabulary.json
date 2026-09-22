@@ -21,6 +21,16 @@
     "date", "planning", "countdown", "ritual", "bedtime", "morning", "distance", "voice",
     "photo", "letter", "message", "storytelling", "desire", "checkIn", "aftercare"
   ],
+  "games": {
+    "primitives": ["QUESTION", "CHOICE", "PREDICTION", "VOTE", "REVEAL", "TIMER", "CHALLENGE", "REACTION"],
+    "who": ["ACTIVE", "OTHER", "EACH", "TOGETHER"],
+    "answers": ["SPOKEN", "TEXT", "STATEMENTS"],
+    "outcomes": ["MATCH", "AGREEMENT", "PREDICTED", "JUDGED", "LIE_FOUND", "WINNER"],
+    "turns": ["SHARED", "ALTERNATE"],
+    "scoring": ["NONE", "MATCHES", "POINTS"],
+    "voteOptions": ["ME", "YOU", "TIE"],
+    "promptKinds": ["TRUTH", "DARE"]
+  },
   "boundaryKeywords": [
     { "pattern": "blindfold\\w*", "themes": ["sensory_blindfold"] },
     { "pattern": "ice(?: cubes?)?|temperature|warm and cool", "themes": ["sensory_temperature"] },
