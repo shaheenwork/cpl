@@ -3,6 +3,7 @@ package com.shnapps.couple.core.data.night
 import com.shnapps.couple.core.engine.Night
 import com.shnapps.couple.core.engine.NightRequest
 import com.shnapps.couple.core.engine.PermittedPool
+import com.shnapps.couple.core.engine.RemixModifier
 import com.shnapps.couple.core.engine.Remixer
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.NightChapter
@@ -31,6 +32,8 @@ internal data class HeldNight(
     val avoid: Set<String> = emptySet(),
     /** Chapters the couple's limits now rule out and nothing released can replace. */
     val unplayable: Set<Int> = emptySet(),
+    /** A Mystery Night: nothing of its shape is shown (§14.2, D-077). */
+    val mystery: Boolean = false,
 ) {
     private val byId = pool.items.associateBy { it.id }
 
@@ -43,7 +46,18 @@ internal data class HeldNight(
         focusIncluded = focusIncluded,
         seed = night.request.seed,
         unplayable = unplayable,
+        mystery = mystery,
     )
+
+    /**
+     * "Make it more…" (§14.6): the same released pool, planned and assembled again the way
+     * [modifier] asks. Null when the pool cannot make that night — the phone then asks the
+     * server for a fresh one rather than pretending.
+     */
+    fun remixed(modifier: RemixModifier, remixer: Remixer, seed: Long): HeldNight? {
+        val next = remixer.remix(night, modifier, pool, seed) ?: return null
+        return copy(night = next, settings = settings.copy(durationMin = next.request.durationMin))
+    }
 
     /** "Not this one" (§3.1) on chapter [index]: another released item, or null if none fits. */
     fun swapped(index: Int, remixer: Remixer): HeldNight? {

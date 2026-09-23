@@ -3,7 +3,7 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 12 complete. Next action: **Phase 13 — Together home + Surprise Us.**
+**Current position:** Phase 13 complete. Next action: **Phase 14 — Apart mode + async.**
 
 ---
 
@@ -24,8 +24,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 | 10 | Build Our Night + player | ✅ **Complete** |
 | 11 | Game primitives + 7 core games | ✅ **Complete** |
 | 12 | Realtime sessions | ✅ **Complete** |
-| 13 | Together home + Surprise Us | ⬜ Next |
-| 14 | Apart mode + async | ⬜ |
+| 13 | Together home + Surprise Us | ✅ **Complete** |
+| 14 | Apart mode + async | ⬜ Next |
 | 15 | Voice + photo | ⬜ |
 | 16 | Scheduled surprises + multi-day | ⬜ |
 | 17 | FCM + notification privacy | ⬜ |
@@ -1064,3 +1064,64 @@ npm --prefix firebase/tests test            84/84   (submissions, reveals, prese
 - **"Reconnecting…" never showed on a real network loss**: Firestore does not fail a listener
   when the network goes — it goes quiet and serves the cache. The listener now includes metadata
   changes, and a snapshot that starts coming from the cache *is* the reconnecting state.
+
+---
+
+## Phase 13 — Together home, Surprise Us and Mystery Night ✅
+
+### Shipped
+- **Home** (`:feature:home`, §14.2): it opens with "Tonight could get interesting." — never a
+  questionnaire — and one prominent switch drives the surface: the same room, or apart. What the
+  couple has under way, from either phone, is the first thing on it. Together holds 🔥 Build
+  tonight · 🎲 Surprise us · 🎮 Play a game · ⏱ We have 15 minutes, a 🌙 Mystery Night card, both
+  ways into discovery, and the quiet things (limits, app lock, sign out, unpair). Apart names what
+  is coming in Phase 14 rather than offering controls that do nothing (D-079). The switch is kept
+  on the phone, because it is about where this phone is rather than about the couple.
+- **Surprise Us** (D-078): one tap. The phone sends *nothing* — `parseSurprise` refuses every
+  field it could steer with — and the server picks the shape from what only it can see: one mood
+  that is not the last night's, the couple's own ceiling, and however long their recent nights
+  have run. It goes through the same `buildExperience` as every other night, and returns what it
+  chose so the phone can still remix it.
+- **Mystery Night** (D-077): the same night with `mystery` set. The shape screen says "You'll find
+  out as you go." — no chapter count, no length, no "Make it…" — and the progress row counts up
+  as it goes instead of showing how many are left. Everything else (STOP, PAUSE, limits, "Not this
+  one") is unchanged, because nothing else is.
+- **"MAKE IT…"** (§14.6): the ten words, on the night's shape screen, planned again by the
+  engine's `Remixer` over the pool the server already released — never past the night's own
+  ceiling (D-048). Because a remix can change how many chapters a night has, and a session counts
+  them, the new shape is written back through `remixNight`, which takes only ids that night
+  released, re-checks them at the chokepoint, and refuses once the night has started (D-080).
+- **"We have 15 minutes"** (§14.5): one route argument, `Route.BuildNight(express = true)`. One
+  screen, one question — a mood, or "surprise us" — at fifteen minutes and the couple's own level.
+  Nobody sets five dials for something short.
+
+### Verified
+```
+./gradlew check assembleDevDebug            BUILD SUCCESSFUL
+:core:data      87   (a surprise held like any night, a remix agreed with the server, and one
+                      the server refuses not played either)
+:feature:home   8    (HomeViewModelTest 5, HomeSnapshotTest 3)
+:feature:night  67   (express, "Make it…", and the mystery shape screen)
+npm --prefix tools test                     42/42
+npm --prefix functions run test:unit        111/111  (surprise 7)
+npm --prefix functions run test:int         104/104  (Surprise Us and Mystery Night 5, remix 4)
+npm --prefix functions run test:e2e         29/29    (surpriseNight over HTTP 2)
+npm --prefix firebase/tests test            84/84
+```
+- **Exit criterion — every Together entry point reaches a playable session**: on the emulator
+  (dev build, Emulator Suite), signed in as Alex with the script as Sam. Home → **Surprise us**
+  built a 6-chapter, 54-minute night at their own ceiling from one tap; "⚡ Shorter" and
+  "❤️ More romantic" each rebuilt it (51 minutes, peaking BOLD) and the couple's stored night
+  changed with it; both said "I'm in"; the player opened "Chapter 1 of 6" — the same six the
+  server had — and the first chapter played. Home → **🌙 Mystery night** showed "You'll find out
+  as you go." with no count and no length, and its player read "CHAPTER 1" with no total though
+  the session held six. Home → **We have 15 minutes** → "Naughty" gave a 3-chapter, 15-minute
+  night in two taps. **Apart** showed what is being built and nothing that pretends to work.
+
+### Found and fixed
+- **A local remix desynchronised the phone from the server**: "Make it…" could change how many
+  chapters a night has, but the session's count comes from the stored experience — the player
+  showed "Chapter 1 of 4" for a five-chapter session. Caught on the device on the first run.
+  A remix is now written back through `remixNight` (ids only, all of them already released, the
+  chokepoint re-applied, refused once the night has started), and a remix the server will not
+  take is not played here either.

@@ -51,12 +51,20 @@ describe('the chokepoint cannot be bypassed', () => {
   });
 
   it('nothing outside the engine reaches its ranking, sampling or assembly', () => {
-    for (const internal of ['score', 'sample', 'assemble', 'plan']) {
+    for (const internal of ['score', 'sample', 'assemble']) {
       const outside = importersOf(internal).filter((path) => !path.startsWith('engine/'));
       assert.deepEqual(outside, [], `${internal} imported from outside the engine`);
     }
     assert.deepEqual(importersOf('score'), ['engine/game.ts', 'engine/pipeline.ts']);
     assert.deepEqual(importersOf('sample'), ['engine/game.ts', 'engine/pipeline.ts']);
+
+    // How many chapters a night of a given length may have is a fact about its shape, not a way
+    // to plan one. The remix bound is the only place outside the engine that reads it, and it
+    // reads nothing else from the planner.
+    const planners = importersOf('plan').filter((path) => !path.startsWith('engine/'));
+    assert.deepEqual(planners, ['experience/remix.ts']);
+    const remix = files.find((file) => file.path === 'experience/remix.ts')!.text;
+    assert.match(remix, /import \{ chapterRange \} from '\.\.\/engine\/plan'/);
   });
 
   it('prompts reach a couple only through the game chooser or the mid-game re-check', () => {
@@ -96,6 +104,18 @@ describe('the chokepoint cannot be bypassed', () => {
     // Ranking sees only what the filter let through.
     assert.match(body, /scoreAll\(permitted,/);
     assert.match(body, /samplePool\(permitted,/);
+  });
+
+  it('every night is built by the one builder, whoever had the idea', () => {
+    const callers = files.filter((file) => /buildExperience\(/.test(file.text)).map((file) => file.path).sort();
+    assert.deepEqual(callers, ['experience/generate.ts', 'experience/surprise.ts']);
+    // And a night's record is created in one place: a surprise reads the couple's habit there,
+    // but writes nothing of its own.
+    const creators = files
+      .filter((file) => /experiences`\)\.doc\(\)/.test(file.text))
+      .map((file) => file.path)
+      .sort();
+    assert.deepEqual(creators, ['experience/game.ts', 'experience/generate.ts']);
   });
 
   it('the combined boundaries are read only where they are computed, filtered or loaded', () => {

@@ -4,6 +4,7 @@ import com.shnapps.couple.core.datastore.AppPreferences
 import com.shnapps.couple.core.datastore.AppPreferencesStore
 import com.shnapps.couple.core.model.AppLockMode
 import com.shnapps.couple.core.model.GamePlayers
+import com.shnapps.couple.core.model.Mode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 
@@ -13,6 +14,8 @@ class FakeAppPreferencesStore(initial: AppPreferences = AppPreferences()) : AppP
     val state = MutableStateFlow(initial)
 
     override val preferences = state
+
+    override suspend fun setMode(mode: Mode) = state.update { it.copy(mode = mode) }
 
     override suspend fun setLockOff() =
         state.update { it.copy(lockMode = AppLockMode.OFF, pinHash = null, pinSalt = null) }

@@ -73,6 +73,7 @@ Compiled bytecode targets **Java 17** regardless of the daemon JVM.
 :core:notifications   FCM + privacy-aware builders
 :core:testing         Fakes, fixtures, rules
 :architecture         Konsist rules that fail the build on violations
+:feature:home         The home surface and the TOGETHER / APART switch
 :feature:*            Added by the phase that introduces them (DECISIONS.md D-006)
 ```
 
@@ -119,6 +120,21 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   before anything else (§10.3); the catalogue is loaded only there and in `feedback/affinity.ts`.
   A game's rounds are chosen only by `engine/game.ts`, called only from `experience/game.ts`,
   filtering first too (SPEC §10). The TypeScript architecture test enforces both.
+
+### Home, and the nights nobody configured
+
+- Every night in the app is built by `buildExperience` in `functions/src/experience/generate.ts`.
+  A surprise chooses its own shape in `experience/surprise.ts` and hands it to that; the
+  TypeScript architecture test holds both rules.
+- A phone sends nothing at all for a surprise (`parseSurprise` refuses anything it could steer
+  with), and the server returns the settings it chose so the phone can still remix them.
+- A Mystery Night is an ordinary night with `mystery: true`: only the screens hide the shape
+  (D-077). Nothing about how it is built or played differs.
+- "Make it more…" is `Remixer` run on the phone over the released pool — never past the night's
+  ceiling (D-048) — and then written back with `remixNight`, because a session counts a night's
+  chapters (D-080). A remix the server refuses is not played here either.
+- Express ("We have 15 minutes") is one route argument, `Route.BuildNight(express = true)`: the
+  same builder with fifteen minutes, the couple's own level and one question.
 
 ### Games
 

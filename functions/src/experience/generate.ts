@@ -58,6 +58,20 @@ export const defaultDeps: GenerateDeps = {
 
 export interface GeneratedExperience {
   experienceId: string;
+  /** Set for a Mystery Night: the phone shows nothing of its shape (section 14.2, D-077). */
+  mystery?: boolean;
+  /**
+   * What the night was built from. The caller usually sent these; a surprise did not, and
+   * needs them back to remix what it was given (section 14.6).
+   */
+  settings: {
+    mode: string;
+    durationMin: number;
+    moods: string[];
+    intensity: number;
+    leadership: string;
+    novelty: string;
+  };
   chapters: { index: number; kind: string; contentId: string; intensity: number }[];
   alternates: string[];
   effectiveIntensity: number;
@@ -233,7 +247,27 @@ export async function generateExperience(
   deps: GenerateDeps = defaultDeps,
 ): Promise<GeneratedExperience> {
   const seed = deps.seed() >>> 0;
-  const request = parseRequest(input, seed);
+  return buildExperience(db, uid, parseRequest(input, seed), { mystery: false }, nowMs, deps);
+}
+
+/** What a night is, beyond what the engine was asked for (section 14.2). */
+export interface ExperienceShape {
+  /** Its shape is never shown: not how many chapters, not how long (D-077). */
+  mystery: boolean;
+}
+
+/**
+ * A night from [request]: the pipeline behind the chokepoint, and the couple's own record of
+ * what it produced. Every night in the app is built here — asked for, or the app's own idea.
+ */
+export async function buildExperience(
+  db: Firestore,
+  uid: string,
+  request: EngineRequest,
+  shape: ExperienceShape,
+  nowMs: number,
+  deps: GenerateDeps = defaultDeps,
+): Promise<GeneratedExperience> {
   const { coupleId, members } = await activeCoupleOf(db, uid);
   await consumeRateLimit(db, uid, 'generateExperience', GENERATE_LIMIT, GENERATE_WINDOW_MS, nowMs);
 
@@ -282,6 +316,7 @@ export async function generateExperience(
     novelty: request.novelty,
     focus: request.focus ?? null,
     focusIncluded: result.focusIncluded,
+    mystery: shape.mystery,
     chapters: chapters.map(({ index, kind, contentId, intensity }) => ({ index, kind, contentIds: [contentId], intensity, state: 'LOCKED' })),
     alternates: result.alternates,
     createdBy: uid,
@@ -310,6 +345,15 @@ export async function generateExperience(
     contentVersion: catalogue.contentVersion,
     askFirstItems,
     focusIncluded: result.focusIncluded,
+    mystery: shape.mystery,
+    settings: {
+      mode: request.mode,
+      durationMin: request.durationMin,
+      moods: [...request.moods],
+      intensity: request.intensity,
+      leadership: request.leadership,
+      novelty: request.novelty,
+    },
   };
 }
 

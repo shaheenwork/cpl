@@ -64,6 +64,7 @@ fun BuildNightScreen(
             onLeadership = viewModel::setLeadership,
             onNovelty = viewModel::setNovelty,
             onBuild = viewModel::build,
+            onExpress = viewModel::buildExpress,
             onDismissError = viewModel::dismissError,
             onOpenNight = onOpenNight,
             onBack = onBack,
@@ -80,6 +81,8 @@ internal data class BuildNightActions(
     val onLeadership: (Leadership) -> Unit = {},
     val onNovelty: (Novelty) -> Unit = {},
     val onBuild: () -> Unit = {},
+    /** "We have 15 minutes": the one choice, and the night at once. Null is "surprise me". */
+    val onExpress: (Mood?) -> Unit = {},
     val onDismissError: () -> Unit = {},
     val onOpenNight: (String) -> Unit = {},
     val onBack: () -> Unit = {},
@@ -88,6 +91,10 @@ internal data class BuildNightActions(
 @Composable
 internal fun BuildNightContent(state: BuildNightUiState, actions: BuildNightActions, modifier: Modifier = Modifier) {
     val settings = state.settings
+    if (state.express) {
+        ExpressContent(state, actions, modifier)
+        return
+    }
     Column(modifier = modifier) {
         ScreenColumn {
             BackRow(label = "Back", onBack = actions.onBack)
@@ -147,6 +154,54 @@ internal fun BuildNightContent(state: BuildNightUiState, actions: BuildNightActi
                     text = "Build our night",
                     onClick = actions.onBuild,
                     leadingEmoji = "🔥",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * "We have 15 minutes" (§14.5): one tap to get here, one mood — or none — and the night is
+ * built. Nobody should have to set five dials to play something short.
+ */
+@Composable
+private fun ExpressContent(state: BuildNightUiState, actions: BuildNightActions, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        ScreenColumn {
+            BackRow(label = "Back", onBack = actions.onBack)
+            ScreenHeading(
+                eyebrow = "15 minutes",
+                headline = "Something short, then.",
+                body = "Pick a mood, or let us. Everything else is already decided.",
+            )
+            state.activeNight?.let { night ->
+                Text(
+                    text = "There's a night under way already.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = AfterhoursTheme.colors.brass,
+                )
+                GlowButton(
+                    text = "Go to it",
+                    onClick = { actions.onOpenNight(night.experienceId) },
+                    style = GlowButtonStyle.Secondary,
+                )
+            }
+            state.error?.let { ErrorBanner(message = it.message(), onDismiss = actions.onDismissError) }
+            if (state.building) {
+                WaitingForPartner(
+                    message = "Building your night…",
+                    detail = "Only from what you've both said yes to.",
+                )
+            } else {
+                Section("Mood") {
+                    MoodChipRow(selected = emptySet(), onToggle = { mood -> actions.onExpress(mood) })
+                }
+                GlowButton(
+                    text = "Surprise us",
+                    onClick = { actions.onExpress(null) },
+                    leadingEmoji = "🎲",
+                    style = GlowButtonStyle.Secondary,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

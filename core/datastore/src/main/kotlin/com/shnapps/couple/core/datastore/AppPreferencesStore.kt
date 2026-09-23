@@ -1,6 +1,7 @@
 package com.shnapps.couple.core.datastore
 
 import com.shnapps.couple.core.model.GamePlayers
+import com.shnapps.couple.core.model.Mode
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -25,6 +26,9 @@ interface AppPreferencesStore {
     suspend fun setOnboardingCompleteHint(complete: Boolean)
 
     suspend fun setGamePlayers(players: GamePlayers)
+
+    /** TOGETHER or APART: the home this phone opens on (§14.2). */
+    suspend fun setMode(mode: Mode)
 
     /** Called on sign-out and account deletion. Leaves no trace of the previous user. */
     suspend fun clear()

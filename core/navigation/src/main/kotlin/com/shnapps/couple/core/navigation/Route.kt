@@ -51,10 +51,11 @@ object Route {
 
     /**
      * Build Our Night (§14.5). [focus] is a revealed mutual match to build it around, from
-     * "Build a night around this" (§14.7), or null.
+     * "Build a night around this" (§14.7), or null. [express] is "We have 15 minutes": one tap
+     * and at most one choice, rather than five dials (§14.5).
      */
     @Serializable
-    data class BuildNight(val focus: String? = null)
+    data class BuildNight(val focus: String? = null, val express: Boolean = false)
 
     /** A night being played — or waiting to be — on either partner's phone (§14.6). */
     @Serializable

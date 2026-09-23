@@ -42,8 +42,10 @@ import com.shnapps.couple.core.designsystem.theme.AfterhoursEasing
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.DisplayFontFamily
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
+import com.shnapps.couple.core.engine.RemixModifier
 import com.shnapps.couple.core.model.BoundaryLevel
 import com.shnapps.couple.core.model.SessionEndReason
+import com.shnapps.couple.core.ui.ErrorBanner
 import com.shnapps.couple.core.ui.ScreenColumn
 import com.shnapps.couple.core.ui.ScreenHeading
 import kotlinx.coroutines.delay
@@ -73,24 +75,36 @@ internal fun ShapeStage(state: NightUiState, actions: NightActions) {
     val spacing = AfterhoursTheme.spacing
     val peak = night.chapters.maxOf { it.intensity }
     ScreenColumn {
-        ScreenHeading(
-            eyebrow = "Tonight",
-            headline = "Tonight has ${night.chapters.size} chapters.",
-            body = "About ${night.totalMinutes} minutes, rising to ${peak.label}. " +
-                "One at a time — what's inside each stays sealed until you get there.",
-        )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(spacing.md),
-            verticalArrangement = Arrangement.spacedBy(spacing.sm),
-        ) {
-            night.chapters.forEach { chapter ->
-                Text(
-                    text = (chapter.index + 1).toString().padStart(2, '0'),
-                    fontFamily = DisplayFontFamily,
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = AfterhoursTheme.colors.textFaint,
-                )
+        if (night.mystery) {
+            // A Mystery Night shows nothing of its shape (§14.2, D-077) — not the count, not
+            // the length, not what it was built from. Only that it is about to start.
+            ScreenHeading(
+                eyebrow = "Tonight",
+                headline = "You'll find out as you go.",
+                body = "No shape, no list, no idea how long. One thing at a time, and it stops " +
+                    "whenever either of you says so.",
+            )
+        } else {
+            ScreenHeading(
+                eyebrow = "Tonight",
+                headline = "Tonight has ${night.chapters.size} chapters.",
+                body = "About ${night.totalMinutes} minutes, rising to ${peak.label}. " +
+                    "One at a time — what's inside each stays sealed until you get there.",
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(spacing.md),
+                verticalArrangement = Arrangement.spacedBy(spacing.sm),
+            ) {
+                night.chapters.forEach { chapter ->
+                    Text(
+                        text = (chapter.index + 1).toString().padStart(2, '0'),
+                        fontFamily = DisplayFontFamily,
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = AfterhoursTheme.colors.textFaint,
+                    )
+                }
             }
+            MakeIt(state, actions)
         }
         if (night.settings.focus != null) {
             Text(
@@ -125,6 +139,52 @@ internal fun ShapeStage(state: NightUiState, actions: NightActions) {
         )
     }
 }
+
+/**
+ * "MAKE IT…" (§14.6): the same night, planned again the way one word asks — more intense, more
+ * mysterious, shorter, slower. Instant and offline, from what the server already released, so
+ * it can never reach past the couple's boundaries or the night's own ceiling (D-048).
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MakeIt(state: NightUiState, actions: NightActions) {
+    val spacing = AfterhoursTheme.spacing
+    Text(text = "MAKE IT…", style = EyebrowTextStyle, color = AfterhoursTheme.colors.textFaint)
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(spacing.sm),
+    ) {
+        for (modifier in RemixModifier.entries) {
+            GlowButton(
+                text = modifier.label,
+                onClick = { actions.onMakeIt(modifier) },
+                style = GlowButtonStyle.Quiet,
+                enabled = !state.busy,
+            )
+        }
+    }
+    if (state.remixFailed) {
+        ErrorBanner(
+            message = "Tonight can't be made that way from what's here. Anything else?",
+            onDismiss = actions.onDismissRemixFailed,
+        )
+    }
+}
+
+/** The word on the button for each "Make it…" (§14.6). */
+private val RemixModifier.label: String
+    get() = when (this) {
+        RemixModifier.MORE_INTENSE -> "🔥 More intense"
+        RemixModifier.MORE_MYSTERIOUS -> "👀 More mysterious"
+        RemixModifier.MORE_TEASING -> "😏 More teasing"
+        RemixModifier.MORE_UNPREDICTABLE -> "🎲 More unpredictable"
+        RemixModifier.MORE_ROMANTIC -> "❤️ More romantic"
+        RemixModifier.MORE_ROLEPLAY -> "🎭 More roleplay"
+        RemixModifier.MORE_CONVERSATIONAL -> "💬 More talk"
+        RemixModifier.SHORTER -> "⚡ Shorter"
+        RemixModifier.SLOWER -> "🌙 Slower"
+        RemixModifier.MORE_ADVENTUROUS -> "✨ More adventurous"
+    }
 
 /** Each partner's own "I'm in", on their own phone, before a BOLD or WILD night (§3.1). */
 @Composable

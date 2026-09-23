@@ -18,6 +18,7 @@ import com.shnapps.couple.core.firebase.night.SessionPayload
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.Intensity
+import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightSettings
 import com.shnapps.couple.core.model.SessionState
 import com.shnapps.couple.core.model.UserProfile
@@ -279,6 +280,12 @@ class DefaultGameRepositoryTest {
 
         override suspend fun generate(settings: NightSettings): Outcome<ServerNightPayload> =
             error("a game builds no night")
+
+        override suspend fun surprise(mystery: Boolean, mode: Mode): Outcome<ServerNightPayload> =
+            error("a game builds no night")
+
+        override suspend fun remixNight(experienceId: String, chapters: List<Pair<String, String>>) =
+            error("a game is not remixed")
 
         override suspend fun createSession(experienceId: String, twoPhones: Boolean) =
             Outcome.Success(payload(SessionState.READY))

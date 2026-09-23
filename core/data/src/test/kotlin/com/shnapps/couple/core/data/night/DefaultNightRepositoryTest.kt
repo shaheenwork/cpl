@@ -4,12 +4,14 @@ import com.google.common.truth.Truth.assertThat
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.FakeClock
 import com.shnapps.couple.core.common.Outcome
+import com.shnapps.couple.core.engine.RemixModifier
 import com.shnapps.couple.core.firebase.night.AdvancePayload
 import com.shnapps.couple.core.firebase.night.ChapterPayload
 import com.shnapps.couple.core.firebase.night.CoupleNightState
 import com.shnapps.couple.core.firebase.night.ExperienceDoc
 import com.shnapps.couple.core.firebase.night.FeedbackPayload
 import com.shnapps.couple.core.firebase.night.NightRemoteDataSource
+import com.shnapps.couple.core.firebase.night.NightSettingsPayload
 import com.shnapps.couple.core.firebase.night.RevealDoc
 import com.shnapps.couple.core.firebase.night.ServerNightPayload
 import com.shnapps.couple.core.firebase.night.SessionAction
@@ -17,6 +19,7 @@ import com.shnapps.couple.core.firebase.night.SessionDoc
 import com.shnapps.couple.core.firebase.night.SessionPayload
 import com.shnapps.couple.core.model.BoundaryLevel
 import com.shnapps.couple.core.model.ChapterReaction
+import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightSettings
 import com.shnapps.couple.core.model.SessionState
 import com.shnapps.couple.core.model.UserProfile
@@ -192,6 +195,9 @@ class DefaultNightRepositoryTest {
         val advances = mutableListOf<Triple<String, Int, String?>>()
         val feedback = mutableListOf<FeedbackPayload>()
         var blocked: List<String> = emptyList()
+        val surprises = mutableListOf<Boolean>()
+        val remixes = mutableListOf<List<String>>()
+        var remixResult: Outcome<Unit>? = null
         var askFirst: List<String> = emptyList()
         var unknownChapter = false
         val couple = MutableStateFlow(CoupleNightState(activeSessionId = null, sharedLevel = null))
@@ -217,6 +223,40 @@ class DefaultNightRepositoryTest {
                     focusIncluded = false,
                 ),
             )
+        }
+
+        override suspend fun surprise(mystery: Boolean, mode: Mode): Outcome<ServerNightPayload> {
+            surprises += mystery
+            return Outcome.Success(
+                ServerNightPayload(
+                    experienceId = EXPERIENCE,
+                    chapters = chapters,
+                    alternates = server.alternates,
+                    effectiveIntensity = server.effectiveIntensity,
+                    seed = NightFixtures.SEED,
+                    engineVersion = 1,
+                    askFirstItems = emptyList(),
+                    focusIncluded = false,
+                    // The server chose the shape, and says what it chose (§14.2).
+                    settings = NightSettingsPayload(
+                        mode = "TOGETHER",
+                        durationMin = 60,
+                        moods = listOf("mysterious"),
+                        intensity = server.effectiveIntensity,
+                        leadership = "RANDOM",
+                        novelty = "SURPRISE_ME",
+                    ),
+                    mystery = mystery,
+                ),
+            )
+        }
+
+        override suspend fun remixNight(
+            experienceId: String,
+            chapters: List<Pair<String, String>>,
+        ): Outcome<Unit> {
+            remixes += chapters.map { it.first }
+            return remixResult ?: Outcome.Success(Unit)
         }
 
         override suspend fun createSession(experienceId: String, twoPhones: Boolean) =
@@ -297,6 +337,59 @@ class DefaultNightRepositoryTest {
         }
 
         private fun payload(state: SessionState) = SessionPayload(SESSION, state, current, server.chapters.size, false)
+    }
+
+    @Test
+    fun `a surprise is held like any night, with the shape the server chose`() = runTest {
+        val repository = repository()
+
+        val night = (repository.surprise() as Outcome.Success).value
+
+        assertThat(remote.surprises).containsExactly(false)
+        assertThat(night.chapters.map { it.item.id }).isEqualTo(serverIds)
+        // What the phone was never asked: it takes it from the server, so a remix still works.
+        assertThat(night.settings.durationMin).isEqualTo(60)
+        assertThat(night.settings.novelty.name).isEqualTo("SURPRISE_ME")
+        assertThat(night.mystery).isFalse()
+    }
+
+    @Test
+    fun `a mystery night is asked for, and held, as one`() = runTest {
+        val repository = repository()
+        val night = (repository.surprise(mystery = true) as Outcome.Success).value
+        assertThat(remote.surprises).containsExactly(true)
+        assertThat(night.mystery).isTrue()
+        // Its shape is hidden on screen, not missing: the phone still holds every chapter.
+        assertThat(night.chapters).hasSize(serverIds.size)
+    }
+
+    @Test
+    fun `make it more rebuilds the night from what the server released, and only from that`() = runTest {
+        val repository = repository()
+        val built = (repository.build(NightSettings()) as Outcome.Success).value
+
+        val remixed = repository.makeIt(built.experienceId, RemixModifier.MORE_INTENSE)
+
+        assertThat(remixed).isNotNull()
+        val released = (server.chapters.map { it.itemId } + server.alternates).toSet()
+        assertThat(released).containsAtLeastElementsIn(remixed!!.chapters.map { it.item.id })
+        // The couple's record is brought into line with it: a session counts its chapters (§12).
+        assertThat(remote.remixes.single()).isEqualTo(remixed.chapters.map { it.item.id })
+        // A night this phone does not hold cannot be remixed at all.
+        assertThat(repository.makeIt("another_night", RemixModifier.SHORTER)).isNull()
+    }
+
+    @Test
+    fun `a remix the server will not take is not played either`() = runTest {
+        val repository = repository()
+        val built = (repository.build(NightSettings()) as Outcome.Success).value
+        remote.remixResult = Outcome.Failure(AppError.Network())
+
+        assertThat(repository.makeIt(built.experienceId, RemixModifier.MORE_INTENSE)).isNull()
+
+        // The night this phone plays is the one the server still has.
+        val held = (repository.load(built.experienceId) as Outcome.Success).value
+        assertThat(held.chapters.map { it.item.id }).isEqualTo(built.chapters.map { it.item.id })
     }
 
     private companion object {

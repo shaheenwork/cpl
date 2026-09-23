@@ -156,6 +156,27 @@ shows the game, STOP is always there). `:architecture`'s `GameLogicTest` is the 
 game logic" gate: no code names a game, only the interpreter and the parser read a game's
 steps, one renderer per primitive, verdicts and scores made only by the interpreter.
 
+### Home, surprises and mystery nights (Phase 13)
+
+`surprise.unit.test.ts` holds what a phone may ask for — nothing it could steer with — and what
+the server picks: one mood that is not the last night's, the couple's own ceiling, however long
+their recent nights ran, and the same choice for the same seed. The integration tests build real
+surprises against the emulator (including a couple with a lower ceiling, and a mystery night), and
+the e2e tests call `surpriseNight` over HTTP the way the app does.
+
+On the phone, `HomeViewModelTest` covers the two taps that need no thought, the one-at-a-time rule
+and the switch between the same room and apart; `HomeSnapshotTest` records the Together and Apart
+surfaces and the "something under way" card, and asserts that Apart offers nothing that does not
+work yet. `DefaultNightRepositoryTest` holds a surprise the same way it holds a built night — with
+the settings the server chose — and proves "Make it more…" only ever rearranges what was released,
+tells the server what it did, and keeps the old night when the server refuses (D-080). The remix
+callable's own tests are in `experience.int.test.ts`: a rearrangement accepted, an unreleased id
+refused, the other partner's night refused, a started night refused, and a limit set since the
+night was built refused.
+`BuildNightViewModelTest` covers the fifteen-minute express path (one tap, one choice), and
+`NightSnapshotTest` records the "MAKE IT…" row and the mystery shape screen, which shows neither a
+chapter count nor a length.
+
 ### Two phones in one session (Phase 12)
 
 A phone each is tested at every layer, because nothing about it can be seen from one of them.

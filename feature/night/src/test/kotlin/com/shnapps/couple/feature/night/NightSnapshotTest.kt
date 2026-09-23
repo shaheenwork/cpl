@@ -3,6 +3,7 @@ package com.shnapps.couple.feature.night
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -113,9 +114,32 @@ class NightSnapshotTest {
         BuildNightUiState(error = BuildError.NOT_ENOUGH_CONTENT),
     )
 
+    @Test fun express() = captureBuilder(
+        "build-night-express",
+        BuildNightUiState(express = true, sharedLevel = Intensity.NAUGHTY, settings = NightSettings(durationMin = 15)),
+    )
+
     // ---- the player ----------------------------------------------------------------------------
 
     @Test fun shape() = capture("night-shape", state(NightStage.Shape))
+
+    @Test
+    fun mysteryShowsNothingOfItsShape() {
+        val mystery = state(NightStage.Shape).let { it.copy(night = it.night?.copy(mystery = true)) }
+        capture("night-shape-mystery", mystery)
+        composeRule.onNodeWithText("You'll find out as you go.").assertIsDisplayed()
+        // Not how many, not how long, and no "make it…" to fiddle with (§14.2, D-077).
+        assertThat(composeRule.onAllNodesWithText("chapters", substring = true).fetchSemanticsNodes()).isEmpty()
+        assertThat(composeRule.onAllNodesWithText("MAKE IT…").fetchSemanticsNodes()).isEmpty()
+    }
+
+    @Test
+    fun makeItOffersTheTenWords() {
+        capture("night-shape-make-it", state(NightStage.Shape))
+        composeRule.onNodeWithText("MAKE IT…").assertIsDisplayed()
+        composeRule.onNodeWithText("🔥 More intense").assertIsDisplayed()
+        composeRule.onNodeWithText("⚡ Shorter").assertIsDisplayed()
+    }
 
     @Test fun consentHost() = capture(
         "night-consent-host",

@@ -55,6 +55,11 @@ data class PlannedNight(
      * their place (DECISIONS.md D-062). The player passes over them without showing them.
      */
     val unplayable: Set<Int> = emptySet(),
+    /**
+     * A Mystery Night (§14.2): its shape is never shown — not how many chapters, not how long,
+     * not what it was built from. Only that there is one (D-077).
+     */
+    val mystery: Boolean = false,
 ) {
     val totalMinutes: Int get() = chapters.sumOf { it.item.durationMin }
 

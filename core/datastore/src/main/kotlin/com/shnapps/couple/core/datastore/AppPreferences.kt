@@ -2,6 +2,7 @@ package com.shnapps.couple.core.datastore
 
 import com.shnapps.couple.core.model.AppLockMode
 import com.shnapps.couple.core.model.GamePlayers
+import com.shnapps.couple.core.model.Mode
 
 /**
  * Device-local settings. Deliberately small.
@@ -31,6 +32,12 @@ data class AppPreferences(
      * (§11). Only what they typed; kept here so the next game remembers them.
      */
     val gamePlayers: GamePlayers? = null,
+
+    /**
+     * Which home the couple last had open (§14.2): the same room, or apart. Device-local,
+     * because it is about where this phone is, not about the couple.
+     */
+    val mode: Mode = Mode.TOGETHER,
 ) {
     companion object {
         const val DEFAULT_LOCK_TIMEOUT_MILLIS: Long = 60_000L

@@ -17,6 +17,8 @@ import { coupleOf, recomputeCouple } from './couple/recompute';
 import * as reveals from './discovery/reveals';
 import * as experience from './experience/generate';
 import * as games from './experience/game';
+import * as remix from './experience/remix';
+import * as surprise from './experience/surprise';
 import * as feedback from './feedback/affinity';
 import { revealTiming } from './discovery/timing';
 import * as pairing from './pairing/pairing';
@@ -188,6 +190,22 @@ const RELEASE_ON_OPEN_WINDOW_MS = 60 * 60 * 1000;
  */
 export const generateExperience = onCall(options, (request) =>
   guarded(() => experience.generateExperience(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+/**
+ * The night the couple did not configure (sections 2.4, 14.2): the server chooses its shape
+ * from what only it can see, and a Mystery Night keeps that shape to itself.
+ */
+export const surpriseNight = onCall(options, (request) =>
+  guarded(() => surprise.surpriseExperience(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+/**
+ * "Make it more…" (section 14.6): the night rearranged on the phone from what was released for
+ * it, written back so both partners' record and the session agree with what is played.
+ */
+export const remixNight = onCall(options, (request) =>
+  guarded(() => remix.remixExperience(getFirestore(), callerUid(request), request.data, Date.now())),
 );
 
 /** A game's rounds, chosen behind both partners' boundaries like a night (section 11). */

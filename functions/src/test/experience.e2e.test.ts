@@ -94,4 +94,28 @@ describe('generateExperience, end to end', () => {
     assert.equal(response.error?.status, 'FAILED_PRECONDITION');
     assert.equal(response.error?.message, 'not-paired');
   });
+
+  it('makes a surprise from a phone that sent nothing, and says what it chose', async () => {
+    const { result, error } = await call('surpriseNight', {}, alice.idToken);
+    assert.equal(error, undefined, JSON.stringify(error));
+    const chapters = result!.chapters as { intensity: number; kind: string }[];
+    assert.ok(chapters.length > 0);
+    assert.equal(chapters.at(-1)!.kind, 'FINALE');
+    // The phone is told the shape it did not choose, so it can remix what it was given.
+    const settings = result!.settings as { moods: string[]; novelty: string; leadership: string };
+    assert.equal(settings.moods.length, 1);
+    assert.equal(settings.novelty, 'SURPRISE_ME');
+    assert.equal(settings.leadership, 'RANDOM');
+    assert.equal(result!.mystery, false);
+    assert.ok(await exists(`couples/${coupleId}/experiences/${result!.experienceId as string}`));
+  });
+
+  it('marks a mystery night, and refuses a phone that tries to choose one for itself', async () => {
+    const mystery = await call('surpriseNight', { mystery: true }, alice.idToken);
+    assert.equal(mystery.error, undefined, JSON.stringify(mystery.error));
+    assert.equal(mystery.result!.mystery, true);
+
+    const steered = await call('surpriseNight', { moods: ['bold'], intensity: 5 }, alice.idToken);
+    assert.equal(steered.error?.status, 'INVALID_ARGUMENT');
+  });
 });

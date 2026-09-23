@@ -13,12 +13,14 @@ import com.shnapps.couple.core.engine.ClientContext
 import com.shnapps.couple.core.engine.Engine
 import com.shnapps.couple.core.engine.Night
 import com.shnapps.couple.core.engine.PermittedPool
+import com.shnapps.couple.core.engine.RemixModifier
 import com.shnapps.couple.core.engine.Remixer
 import com.shnapps.couple.core.engine.ServerNight
 import com.shnapps.couple.core.firebase.night.ChapterPayload
 import com.shnapps.couple.core.firebase.night.CoupleNightState
 import com.shnapps.couple.core.firebase.night.FeedbackPayload
 import com.shnapps.couple.core.firebase.night.NightRemoteDataSource
+import com.shnapps.couple.core.firebase.night.NightSettingsPayload
 import com.shnapps.couple.core.firebase.night.SessionAction
 import com.shnapps.couple.core.firebase.night.SessionDoc
 import com.shnapps.couple.core.model.Boundary
@@ -74,6 +76,12 @@ interface NightRepository {
     /** Asks the server for a night and holds it on this phone, ready to play. */
     suspend fun build(settings: NightSettings): Outcome<PlannedNight>
 
+    /**
+     * The night nobody configured (§14.2): the server chooses its shape and this phone holds
+     * it like any other. [mystery] asks for a Mystery Night, whose shape is never shown.
+     */
+    suspend fun surprise(mystery: Boolean = false): Outcome<PlannedNight>
+
     /** The night [experienceId]: the one held here, or fetched again after a restart. */
     suspend fun load(experienceId: String): Outcome<PlannedNight>
 
@@ -105,6 +113,15 @@ interface NightRepository {
 
     /** "Not this one" (§3.1): another released item for chapter [index], or null if none fits. */
     fun swap(experienceId: String, index: Int): PlannedNight?
+
+    /**
+     * "Make it more…" (§14.6): the night rebuilt from the same released pool, the way [modifier]
+     * asks — never past the night's own ceiling, and never with anything the server did not
+     * release. The couple's record is brought into line with it, because the session counts its
+     * chapters; a night the server will not accept is not kept. Null when the pool cannot make
+     * that night at all.
+     */
+    suspend fun makeIt(experienceId: String, modifier: RemixModifier): PlannedNight?
 
     /**
      * Keeps [themeId] out: the user's own boundary at [level], and out of the rest of tonight
@@ -197,6 +214,31 @@ class DefaultNightRepository @Inject constructor(
         hold(night.experienceId, settings, server, night.askFirstItems.toSet(), night.focusIncluded)
     }
 
+    override suspend fun surprise(mystery: Boolean): Outcome<PlannedNight> = lock.withLock {
+        val night = when (val result = remote.surprise(mystery, Mode.TOGETHER)) {
+            is Outcome.Failure -> return result
+            is Outcome.Success -> result.value
+        }
+        // The server chose the shape, and says what it chose: the phone holds it exactly as it
+        // holds a night the couple asked for, so "Not this one" and "Make it more…" still work.
+        val settings = night.settings?.toSettings() ?: NightSettings(
+            mode = Mode.TOGETHER,
+            durationMin = DEFAULT_SURPRISE_MIN,
+            moods = emptySet(),
+            intensity = Intensity.ofLevel(night.effectiveIntensity),
+            leadership = Leadership.RANDOM,
+            novelty = Novelty.SURPRISE_ME,
+        )
+        val server = ServerNight(
+            request = HeldNight.requestOf(settings, night.seed),
+            chapters = night.chapters.map { it.toChapter() },
+            alternates = night.alternates,
+            effectiveIntensity = night.effectiveIntensity,
+            engineVersion = night.engineVersion,
+        )
+        hold(night.experienceId, settings, server, night.askFirstItems.toSet(), night.focusIncluded, night.mystery)
+    }
+
     override suspend fun load(experienceId: String): Outcome<PlannedNight> = lock.withLock {
         heldFor(experienceId)?.let { return Outcome.Success(it.planned()) }
         val (uid, coupleId) = ids.first() ?: return Outcome.Failure(AppError.Unauthenticated())
@@ -225,12 +267,14 @@ class DefaultNightRepository @Inject constructor(
     }
 
     /** Resolves what the server released against this phone's content, and holds it. */
+    @Suppress("LongParameterList") // A held night is what the server released, in full.
     private suspend fun hold(
         experienceId: String,
         settings: NightSettings,
         server: ServerNight,
         askFirstItems: Set<String>,
         focusIncluded: Boolean,
+        mystery: Boolean = false,
     ): Outcome<PlannedNight> {
         var pool = poolFor(server)
         if (server.chapters.any { it.itemId !in pool.ids }) {
@@ -250,6 +294,7 @@ class DefaultNightRepository @Inject constructor(
             serverIds = server.chapters.map { it.itemId },
             askFirstItems = askFirstItems,
             focusIncluded = focusIncluded,
+            mystery = mystery,
         )
         held = next
         return Outcome.Success(next.planned())
@@ -308,6 +353,22 @@ class DefaultNightRepository @Inject constructor(
         return next.planned()
     }
 
+    override suspend fun makeIt(experienceId: String, modifier: RemixModifier): PlannedNight? = lock.withLock {
+        val current = heldFor(experienceId) ?: return null
+        // A new seed: "more intense" twice in a row should not give the same night twice.
+        val next = current.remixed(modifier, remixer(), clock.nowMillis()) ?: return null
+        // The night is also the couple's record, and a session counts its chapters (§12): the
+        // server has to agree to it before this phone plays it.
+        val chapters = next.night.chapters.map { it.itemId to it.kind.name }
+        return when (remote.remixNight(experienceId, chapters)) {
+            is Outcome.Failure -> null
+            is Outcome.Success -> {
+                held = next.copy(serverIds = next.night.chapters.map { it.itemId })
+                next.planned()
+            }
+        }
+    }
+
     override suspend fun keepOut(
         experienceId: String,
         themeId: String,
@@ -349,6 +410,9 @@ class DefaultNightRepository @Inject constructor(
     companion object {
         /** The server knows content this phone does not, even after a sync. */
         const val CONTENT_OUT_OF_DATE = "content-out-of-date"
+
+        /** Only ever a fallback: a server too old to say how long the surprise it built runs. */
+        private const val DEFAULT_SURPRISE_MIN = 45
         private const val STOP_TIMEOUT_MS = 5_000L
         private const val MATCHES_TIMEOUT_MS = 2_000L
     }
@@ -373,6 +437,16 @@ internal fun SessionDoc.toSession(uid: String?, partnerLastSeenMillis: Long? = n
     seen = uid != null && uid in seenUids,
     partnerSeen = seenUids.any { it != uid },
     partnerLastSeenMillis = partnerLastSeenMillis,
+)
+
+/** The settings the server says a night was built with (§14.2). */
+private fun NightSettingsPayload.toSettings(): NightSettings = NightSettings(
+    mode = Mode.entries.firstOrNull { it.name == mode } ?: Mode.TOGETHER,
+    durationMin = durationMin,
+    moods = moods.mapNotNullTo(LinkedHashSet()) { Mood.fromId(it) },
+    intensity = Intensity.entries.firstOrNull { it.level == intensity } ?: Intensity.SOFT,
+    leadership = Leadership.entries.firstOrNull { it.name == leadership } ?: Leadership.RANDOM,
+    novelty = Novelty.entries.firstOrNull { it.name == novelty } ?: Novelty.MIXED,
 )
 
 private fun ChapterPayload.toChapter(): Chapter = Chapter(

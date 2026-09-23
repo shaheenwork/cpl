@@ -29,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.StopPauseBar
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
+import com.shnapps.couple.core.engine.RemixModifier
 import com.shnapps.couple.core.model.BoundaryLevel
 import com.shnapps.couple.core.model.ChapterReaction
 import com.shnapps.couple.core.model.CloseCheckIn
@@ -65,6 +66,8 @@ fun NightScreen(
             onKeepOut = viewModel::keepOut,
             onDismissKeepOut = viewModel::dismissKeepOut,
             onDismissNothingElse = viewModel::dismissNothingElse,
+            onMakeIt = viewModel::makeIt,
+            onDismissRemixFailed = viewModel::dismissRemixFailed,
             onTogglePause = viewModel::togglePause,
             onStop = viewModel::stop,
             onAnswerClose = viewModel::answerClose,
@@ -94,6 +97,8 @@ internal data class NightActions(
     val onKeepOut: (String, BoundaryLevel, Int) -> Unit = { _, _, _ -> },
     val onDismissKeepOut: () -> Unit = {},
     val onDismissNothingElse: () -> Unit = {},
+    val onMakeIt: (RemixModifier) -> Unit = {},
+    val onDismissRemixFailed: () -> Unit = {},
     val onTogglePause: () -> Unit = {},
     val onStop: () -> Unit = {},
     val onAnswerClose: (CloseCheckIn) -> Unit = {},
@@ -157,36 +162,30 @@ private fun Stage(stage: NightStage, state: NightUiState, actions: NightActions)
     }
 }
 
-/** "Chapter 2 of 6", with the night's shape as a row of marks: done, now, still to come. */
+/**
+ * "Chapter 2 of 6", with the night's shape as a row of marks: done, now, still to come. A
+ * Mystery Night counts up instead: which chapter you are on, and never how many there are
+ * (§14.2, D-077).
+ */
 @Composable
 private fun ChapterProgress(state: NightUiState) {
     val colors = AfterhoursTheme.colors
     val spacing = AfterhoursTheme.spacing
+    val mystery = state.night?.mystery == true
     val current = state.chapterNumber.coerceIn(0, state.chapterCount)
+    val said = progressLine(mystery, current, state.chapterCount)
+    val shown = progressEyebrow(mystery, current, state.chapterCount)
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = spacing.gutter, vertical = spacing.md)
-            .semantics {
-                contentDescription = if (current == 0) {
-                    "Tonight has ${state.chapterCount} chapters"
-                } else {
-                    "Chapter $current of ${state.chapterCount}"
-                }
-            },
+            .semantics { contentDescription = said },
         verticalArrangement = Arrangement.spacedBy(spacing.sm),
     ) {
-        Text(
-            text = if (current == 0) {
-                "TONIGHT · ${state.chapterCount} CHAPTERS"
-            } else {
-                "CHAPTER $current OF ${state.chapterCount}"
-            },
-            style = EyebrowTextStyle,
-            color = colors.brass,
-        )
+        Text(text = shown, style = EyebrowTextStyle, color = colors.brass)
         Row(horizontalArrangement = Arrangement.spacedBy(spacing.xs)) {
-            repeat(state.chapterCount) { index ->
+            // A mystery shows only what has been played: a row of marks would be the shape.
+            repeat(if (mystery) current else state.chapterCount) { index ->
                 val mark = when {
                     index < current - 1 -> colors.textMuted
                     index == current - 1 -> MaterialTheme.colorScheme.primary
@@ -200,6 +199,22 @@ private fun ChapterProgress(state: NightUiState) {
             }
         }
     }
+}
+
+/** What the progress says to TalkBack. A mystery never says how many there are (D-077). */
+private fun progressLine(mystery: Boolean, current: Int, count: Int): String = when {
+    mystery && current == 0 -> "Tonight"
+    mystery -> "Chapter $current"
+    current == 0 -> "Tonight has $count chapters"
+    else -> "Chapter $current of $count"
+}
+
+/** The same, as the eyebrow above the marks. */
+private fun progressEyebrow(mystery: Boolean, current: Int, count: Int): String = when {
+    mystery && current == 0 -> "TONIGHT"
+    mystery -> "CHAPTER $current"
+    current == 0 -> "TONIGHT · $count CHAPTERS"
+    else -> "CHAPTER $current OF $count"
 }
 
 /**

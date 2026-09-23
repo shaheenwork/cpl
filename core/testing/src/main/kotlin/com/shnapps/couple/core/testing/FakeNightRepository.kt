@@ -3,6 +3,7 @@ package com.shnapps.couple.core.testing
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.night.NightRepository
+import com.shnapps.couple.core.engine.RemixModifier
 import com.shnapps.couple.core.model.BoundaryLevel
 import com.shnapps.couple.core.model.ChapterKind
 import com.shnapps.couple.core.model.ChapterReaction
@@ -25,6 +26,8 @@ import kotlinx.coroutines.flow.update
  * states the callables would move them through, so a ViewModel test can drive a whole night —
  * consent, chapters, pause, stop — and assert on what the phone asked for.
  */
+// One fake for one interface: it has as many functions as NightRepository has.
+@Suppress("TooManyFunctions")
 class FakeNightRepository(
     var night: PlannedNight = TestNights.gentle,
 ) : NightRepository {
@@ -45,6 +48,12 @@ class FakeNightRepository(
 
     /** What "Not this one" swaps chapter [index] for, or null when nothing fits. */
     var swapWith: (Int) -> PlannedNight? = { null }
+
+    /** What "Make it more…" gives back, or null when the pool cannot make it (§14.6). */
+    var remixWith: (RemixModifier) -> PlannedNight? = { night }
+
+    /** What the server chooses when nobody configures anything (§14.2). */
+    var surpriseResult: Outcome<PlannedNight>? = null
 
     /** When set, finishing a chapter waits for it: a request still on its way. */
     var holdFinish: CompletableDeferred<Unit>? = null
@@ -68,6 +77,11 @@ class FakeNightRepository(
         calls += "build"
         built += settings
         return if (buildResults.isNotEmpty()) buildResults.removeAt(0) else Outcome.Success(night)
+    }
+
+    override suspend fun surprise(mystery: Boolean): Outcome<PlannedNight> {
+        calls += if (mystery) "surprise:mystery" else "surprise"
+        return surpriseResult ?: Outcome.Success(night.copy(mystery = mystery))
     }
 
     override suspend fun load(experienceId: String): Outcome<PlannedNight> {
@@ -143,6 +157,11 @@ class FakeNightRepository(
     override fun swap(experienceId: String, index: Int): PlannedNight? {
         calls += "swap:$index"
         return swapWith(index)?.also { night = it }
+    }
+
+    override suspend fun makeIt(experienceId: String, modifier: RemixModifier): PlannedNight? {
+        calls += "makeIt:${modifier.name}"
+        return remixWith(modifier)?.also { night = it }
     }
 
     override suspend fun keepOut(

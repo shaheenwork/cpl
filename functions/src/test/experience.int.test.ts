@@ -17,6 +17,8 @@ import { loadCatalogue, resetCatalogueCache } from '../engine/catalogue';
 import { chapterRange } from '../engine/plan';
 import { DEFAULT_WEIGHTS, ENGINE_VERSION, type EngineItem } from '../engine/types';
 import { GENERATE_LIMIT, generateExperience, type GenerateDeps } from '../experience/generate';
+import { remixExperience } from '../experience/remix';
+import { surpriseExperience } from '../experience/surprise';
 import { createPairingCode, requestPairing, respondToPairing, unpairCouple } from '../pairing/pairing';
 import { ServiceError } from '../shared/errors';
 
@@ -281,5 +283,162 @@ describe('generateExperience', () => {
     await Promise.all(themes.map((theme) => db.doc(`users/${b}/boundaries/${theme}`).set({ level: 'NEVER', updatedAt: new Date(NOW) })));
     await recomputeCouple(db, coupleId, NOW);
     await rejects(generateExperience(db, a, request(), NOW, deps()), 'failed-precondition', 'not-enough-content');
+  });
+});
+
+describe('Surprise Us and Mystery Night', () => {
+  beforeEach(async () => {
+    await clearEmulator();
+    resetCatalogueCache();
+  });
+
+  it('builds a whole night from a phone that asked for nothing', async () => {
+    const { a, coupleId } = await couple();
+
+    const result = await surpriseExperience(db, a, {}, NOW, deps());
+
+    const [lo, hi] = chapterRange(45);
+    assert.ok(result.chapters.length >= lo && result.chapters.length <= hi);
+    assert.equal(result.chapters.at(-1)!.kind, 'FINALE');
+    const stored = (await db.doc(`couples/${coupleId}/experiences/${result.experienceId}`).get()).data()!;
+    assert.equal(stored.status, 'READY');
+    assert.equal(stored.durationMin, 45);
+    assert.equal(stored.novelty, 'SURPRISE_ME');
+    assert.equal(stored.leadership, 'RANDOM');
+    assert.equal(stored.mood.length, 1);
+    assert.equal(stored.mystery, false);
+    // The couple's ceiling, never past it: theirs is 5 here, and the night warms up to it.
+    assert.equal(stored.intensity, 5);
+  });
+
+  it('stays under the lower of the two ceilings', async () => {
+    const { a, coupleId } = await couple([2, 4]);
+    const result = await surpriseExperience(db, a, {}, NOW, deps());
+    const stored = (await db.doc(`couples/${coupleId}/experiences/${result.experienceId}`).get()).data()!;
+    assert.equal(stored.intensity, 2);
+    assert.ok(result.chapters.every((chapter) => chapter.intensity <= 2));
+  });
+
+  it('marks a mystery night as one, and is otherwise the same night', async () => {
+    const { a, coupleId } = await couple();
+    const mystery = await surpriseExperience(db, a, { mystery: true }, NOW, deps());
+    assert.equal(mystery.mystery, true);
+    const stored = (await db.doc(`couples/${coupleId}/experiences/${mystery.experienceId}`).get()).data()!;
+    assert.equal(stored.mystery, true);
+    assert.ok(stored.chapters.length > 0);
+  });
+
+  it('does not open on the mood the last night used', async () => {
+    const { a, coupleId } = await couple();
+    await generateExperience(db, a, request({ moods: ['romantic'] }), NOW, deps(7));
+    const result = await surpriseExperience(db, a, {}, NOW + 1000, deps(7));
+    const stored = (await db.doc(`couples/${coupleId}/experiences/${result.experienceId}`).get()).data()!;
+    assert.ok(!stored.mood.includes('romantic'), 'repeated the mood of the night before');
+  });
+
+  it('refuses a phone that tries to choose, and counts against the same budget', async () => {
+    const { a } = await couple();
+    await rejects(surpriseExperience(db, a, { moods: ['bold'] }, NOW, deps()), 'invalid-argument', 'unknown field moods');
+    await rejects(surpriseExperience(db, a, { intensity: 5 }, NOW, deps()), 'invalid-argument', 'unknown field intensity');
+    await rejects(surpriseExperience(db, 'nobody', {}, NOW, deps()), 'failed-precondition', 'not-paired');
+
+    for (let i = 0; i < GENERATE_LIMIT; i++) await generateExperience(db, a, request({ durationMin: 15 }), NOW, deps(i));
+    await rejects(surpriseExperience(db, a, {}, NOW, deps()), 'resource-exhausted');
+  });
+});
+
+describe('Make it more…', () => {
+  beforeEach(async () => {
+    await clearEmulator();
+    resetCatalogueCache();
+  });
+
+  /** The night's own chapters, as the phone would send them back after rearranging them. */
+  const asChapters = (stored: Record<string, unknown>) =>
+    (stored.chapters as { kind: string; contentIds: string[] }[]).map((chapter) => ({
+      contentId: chapter.contentIds[0],
+      kind: chapter.kind,
+    }));
+
+  it('takes a rearrangement of what it released, and stores it as the night', async () => {
+    const { a, coupleId } = await couple();
+    const built = await generateExperience(db, a, request(), NOW, deps());
+    const ref = db.doc(`couples/${coupleId}/experiences/${built.experienceId}`);
+    const before = asChapters((await ref.get()).data()!);
+    // The same chapters, one swapped for an alternate the server released for this night.
+    const remix = [...before.slice(0, -1), { contentId: built.alternates[0], kind: before.at(-1)!.kind }];
+
+    const result = await remixExperience(db, a, { experienceId: built.experienceId, chapters: remix }, NOW, deps());
+
+    assert.equal(result.chapterCount, remix.length);
+    const stored = (await ref.get()).data()!;
+    assert.deepEqual(asChapters(stored), remix);
+    assert.ok(stored.remixedAt);
+  });
+
+  it('refuses anything it did not release for that night', async () => {
+    const { a, coupleId } = await couple();
+    const built = await generateExperience(db, a, request(), NOW, deps());
+    const ref = db.doc(`couples/${coupleId}/experiences/${built.experienceId}`);
+    const mine = asChapters((await ref.get()).data()!);
+    const stranger = (await loadCatalogue(db, NOW)).items
+      .map((item) => item.id)
+      .find((id) => !mine.some((chapter) => chapter.contentId === id) && !built.alternates.includes(id))!;
+
+    await rejects(
+      remixExperience(db, a, { experienceId: built.experienceId, chapters: [{ contentId: stranger, kind: 'FINALE' }] }, NOW, deps()),
+      'permission-denied',
+      'not-released',
+    );
+    // And the night is untouched.
+    assert.deepEqual(asChapters((await ref.get()).data()!), mine);
+  });
+
+  it('refuses once the night has started, and one built by the other partner', async () => {
+    const { a, b, coupleId } = await couple();
+    const built = await generateExperience(db, a, request(), NOW, deps());
+    const ref = db.doc(`couples/${coupleId}/experiences/${built.experienceId}`);
+    const chapters = asChapters((await ref.get()).data()!);
+
+    await rejects(
+      remixExperience(db, b, { experienceId: built.experienceId, chapters }, NOW, deps()),
+      'permission-denied',
+      'not-yours',
+    );
+
+    await ref.update({ status: 'IN_PROGRESS', playedThrough: 1 });
+    await rejects(
+      remixExperience(db, a, { experienceId: built.experienceId, chapters }, NOW, deps()),
+      'failed-precondition',
+      'already-started',
+    );
+  });
+
+  it('refuses a limit set since the night was built, and a payload it cannot read', async () => {
+    const { a, b, coupleId } = await couple();
+    const built = await generateExperience(db, a, request(), NOW, deps());
+    const ref = db.doc(`couples/${coupleId}/experiences/${built.experienceId}`);
+    const chapters = asChapters((await ref.get()).data()!);
+
+    await rejects(remixExperience(db, a, { experienceId: built.experienceId }, NOW, deps()), 'invalid-argument', 'chapters');
+    await rejects(
+      remixExperience(db, a, { experienceId: built.experienceId, chapters, extra: true }, NOW, deps()),
+      'invalid-argument',
+      'unknown field extra',
+    );
+    await rejects(
+      remixExperience(db, a, { experienceId: built.experienceId, chapters: [chapters[0], chapters[0]] }, NOW, deps()),
+      'invalid-argument',
+      'chapters',
+    );
+
+    const themes = (await catalogueById()).get(chapters[0].contentId)!.excludedByBoundaries;
+    await Promise.all(themes.map((theme) => db.doc(`users/${b}/boundaries/${theme}`).set({ level: 'NEVER', updatedAt: new Date(NOW) })));
+    await recomputeCouple(db, coupleId, NOW);
+    await rejects(
+      remixExperience(db, a, { experienceId: built.experienceId, chapters }, NOW, deps()),
+      'failed-precondition',
+      'not-permitted',
+    );
   });
 });

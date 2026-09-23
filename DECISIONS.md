@@ -1036,3 +1036,51 @@ the loop always has another task scheduled, so the test scheduler never goes idl
 how often (`PRESENCE_EVERY_MS`). The ViewModel collects it while a session is live. The fake
 emits one beat and completes, so tests stay honest about what was sent without a virtual clock
 racing a real loop.
+
+---
+
+## D-077 — A Mystery Night is an ordinary night with its shape hidden
+**Phase 13.** The obvious reading of "Mystery Night" is a second kind of experience with its own
+pipeline. That would mean a second way to build a night, and every rule that matters — the
+chokepoint, PAUSE and STOP, a limit set mid-night, "Not this one" — would have to be taught
+twice.
+
+So it is one flag, `mystery`, stored on the experience and carried to the phone. The engine, the
+session, the player and the content are the same; only the screens change. The shape screen says
+"You'll find out as you go." instead of "Tonight has 6 chapters", shows no chapter count, no
+length, and no "Make it more…" — that would be a dial on a thing whose whole point is not having
+one.
+
+## D-078 — The server chooses what a surprise is; the phone sends nothing
+**Phase 13.** Surprise Us could have been the phone picking random settings and calling
+`generateExperience`. Two reasons it is not. The app is meant to be the third participant (§2.4):
+the mood should come from what the couple's nights have actually been, which is the couple's own
+data and lives on the server. And a phone that sends nothing cannot probe: `parseSurprise` refuses
+every field a client could steer with — moods, intensity, duration, a seed — where
+`generateExperience` accepts them.
+
+`surpriseNight` picks one mood that is not the last night's, the couple's own ceiling, and however
+long their recent nights have run, then hands that to the same `buildExperience` every night goes
+through. It returns the settings it chose, so the phone can still remix what it was given — a
+surprise is not a night the couple is stuck with.
+
+## D-079 — Apart says it is not built yet, rather than showing controls that do nothing
+**Phase 13.** Home's switch is meant to drive the whole surface (§14.2), and Apart is a
+first-class mode built in Phase 14 (§2.6). Rather than hide the switch until then, or fill Apart
+with buttons that lead nowhere — §25's dead ends — the Apart side shows one card naming what is
+coming and where everything currently works. The switch is real, the state is kept, and nothing
+on it pretends.
+
+## D-080 — A remix is agreed with the server, because a session counts chapters
+**Phase 13.** "Make it more…" is a local rearrangement of the pool the server released (D-048),
+and the first wiring of it kept everything on the phone. On the device, the first remix showed
+the flaw: the modifier changed how many chapters the night had, but `createSession` takes its
+`chapterCount` from the stored experience, so the player read "Chapter 1 of 4" for a five-chapter
+session — and the night would have ended with the server still waiting for two more.
+
+The remix is still planned on the phone, instantly and from what it already holds. It is then
+written back through `remixNight`, which accepts **ids only** — every one already released for
+that night — re-applies the chokepoint (a limit set since the night was built still rules its
+items out), bounds the count to what a night of that length may have, and refuses once the night
+has started. A remix the server will not take is not kept on the phone either: the couple plays
+the night their record describes.

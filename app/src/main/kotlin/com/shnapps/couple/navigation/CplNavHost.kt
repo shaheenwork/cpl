@@ -1,13 +1,6 @@
 package com.shnapps.couple.navigation
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -15,18 +8,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.shnapps.couple.core.designsystem.component.GlowButton
-import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.gallery.ComponentGallery
-import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.navigation.Route
 import com.shnapps.couple.core.security.BiometricAuthenticator
@@ -40,7 +27,8 @@ import com.shnapps.couple.feature.boundaries.BoundariesScreen
 import com.shnapps.couple.feature.discovery.MutualDiscoveryScreen
 import com.shnapps.couple.feature.games.GameScreen
 import com.shnapps.couple.feature.games.GamesScreen
-import com.shnapps.couple.feature.night.ActiveNightCard
+import com.shnapps.couple.feature.home.HomeActions
+import com.shnapps.couple.feature.home.HomeScreen
 import com.shnapps.couple.feature.night.BuildNightScreen
 import com.shnapps.couple.feature.night.NightScreen
 import com.shnapps.couple.feature.onboarding.AgeGateScreen
@@ -229,13 +217,7 @@ fun CplNavHost(
         }
 
         composable<Route.Home> {
-            ComingSoon(
-                title = "Tonight could get interesting.",
-                detail = "You're paired. Phase 13 builds the home surface.",
-                navController = navController,
-                showDiscovery = true,
-                showUnpair = true,
-            )
+            Home(navController)
         }
 
         composable<Route.DesignGallery> {
@@ -265,110 +247,41 @@ private fun StartDestination.toRoute(): Any = when (this) {
 }
 
 @Composable
-private fun ComingSoon(
-    title: String,
-    detail: String,
+private fun Home(
     navController: NavHostController,
-    modifier: Modifier = Modifier,
-    showDiscovery: Boolean = false,
-    showUnpair: Boolean = false,
     signOutViewModel: SignOutViewModel = hiltViewModel(),
     unpairViewModel: UnpairViewModel = hiltViewModel(),
 ) {
     var confirmingUnpair by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(32.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineMedium,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            text = detail,
-            style = MaterialTheme.typography.bodyMedium,
-            color = AfterhoursTheme.colors.textMuted,
-            textAlign = TextAlign.Center,
-        )
-        if (showDiscovery) {
-            // A night under way, on either phone: the way in to an "I'm in", or back to it.
-            ActiveNightCard(
-                onOpen = { experienceId, type -> navController.navigate(experienceRoute(experienceId, type)) },
-            )
-            GlowButton(
-                text = "Build tonight",
-                onClick = { navController.navigate(Route.BuildNight()) },
-                leadingEmoji = "🔥",
-            )
-            GlowButton(
-                text = "Play a game",
-                onClick = { navController.navigate(Route.Games) },
-                style = GlowButtonStyle.Secondary,
-                leadingEmoji = "🎲",
-            )
-            GlowButton(
-                text = "Your private curiosities",
-                onClick = { navController.navigate(Route.PreferenceDiscovery) },
-                style = GlowButtonStyle.Secondary,
-                leadingEmoji = "👀",
-            )
-            GlowButton(
-                text = "What you both chose",
-                onClick = { navController.navigate(Route.MutualDiscovery) },
-                style = GlowButtonStyle.Secondary,
-            )
-            GlowButton(
-                text = "Your limits",
-                onClick = { navController.navigate(Route.Boundaries) },
-                style = GlowButtonStyle.Secondary,
-            )
-        }
-        GlowButton(
-            text = "Set up app lock",
-            onClick = { navController.navigate(Route.AppLockSetup) },
-            style = GlowButtonStyle.Secondary,
-        )
-        GlowButton(
-            text = "Component gallery",
-            onClick = { navController.navigate(Route.DesignGallery) },
-            style = GlowButtonStyle.Quiet,
-        )
-        if (CONTENT_INSPECTOR_AVAILABLE) {
-            GlowButton(
-                text = "Content inspector",
-                onClick = { navController.navigate(Route.ContentInspector) },
-                style = GlowButtonStyle.Quiet,
-            )
-        }
-        if (showUnpair) {
-            GlowButton(
-                text = "Unpair",
-                onClick = { confirmingUnpair = true },
-                style = GlowButtonStyle.Quiet,
-            )
-        }
-        GlowButton(
-            text = "Sign out",
-            onClick = {
+    HomeScreen(
+        onNight = { experienceId -> navController.navigate(Route.Night(experienceId)) },
+        actions = HomeActions(
+            onBuild = { navController.navigate(Route.BuildNight()) },
+            onExpress = { navController.navigate(Route.BuildNight(express = true)) },
+            onGames = { navController.navigate(Route.Games) },
+            onCuriosities = { navController.navigate(Route.PreferenceDiscovery) },
+            onMutual = { navController.navigate(Route.MutualDiscovery) },
+            onLimits = { navController.navigate(Route.Boundaries) },
+            onAppLock = { navController.navigate(Route.AppLockSetup) },
+            onOpen = { experienceId, type -> navController.navigate(experienceRoute(experienceId, type)) },
+            onSignOut = {
                 signOutViewModel.signOut {
-                    navController.navigate(Route.Auth) {
-                        popUpTo(0) { inclusive = true }
-                    }
+                    navController.navigate(Route.Auth) { popUpTo(0) { inclusive = true } }
                 }
             },
-            style = GlowButtonStyle.Quiet,
-        )
-    }
+            onUnpair = { confirmingUnpair = true },
+            onGallery = { navController.navigate(Route.DesignGallery) },
+            onInspector = if (CONTENT_INSPECTOR_AVAILABLE) {
+                { navController.navigate(Route.ContentInspector) }
+            } else {
+                null
+            },
+        ),
+    )
 
-    // Unpairing ends the couple for both partners at once, so it gets one clear
-    // confirmation. Unlike STOP in a session (section 3.1), this is not time-critical and
-    // is not trivially undone.
+    // Unpairing ends the couple for both partners at once, so it gets one clear confirmation.
+    // Unlike STOP in a session (§3.1), this is not time-critical and is not trivially undone.
     if (confirmingUnpair) {
         AlertDialog(
             onDismissRequest = { confirmingUnpair = false },

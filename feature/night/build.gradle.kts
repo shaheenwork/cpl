@@ -6,3 +6,8 @@ plugins {
 android {
     namespace = "com.shnapps.couple.feature.night"
 }
+
+dependencies {
+    // "Make it more…" is the engine's remixer, run on the phone over what the server released.
+    implementation(project(":core:engine"))
+}

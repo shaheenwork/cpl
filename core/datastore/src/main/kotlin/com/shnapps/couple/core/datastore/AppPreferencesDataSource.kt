@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.shnapps.couple.core.model.AppLockMode
 import com.shnapps.couple.core.model.GamePlayers
+import com.shnapps.couple.core.model.Mode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -36,6 +37,7 @@ class AppPreferencesDataSource @Inject constructor(
             gamePlayers = prefs[Keys.FIRST_PLAYER]?.let { first ->
                 prefs[Keys.SECOND_PLAYER]?.let { second -> GamePlayers(first, second) }
             },
+            mode = prefs[Keys.MODE]?.let { name -> Mode.entries.firstOrNull { it.name == name } } ?: Mode.TOGETHER,
         )
     }
 
@@ -82,6 +84,10 @@ class AppPreferencesDataSource @Inject constructor(
         }
     }
 
+    override suspend fun setMode(mode: Mode) {
+        context.dataStore.edit { it[Keys.MODE] = mode.name }
+    }
+
     override suspend fun clear() {
         context.dataStore.edit { it.clear() }
     }
@@ -95,5 +101,6 @@ class AppPreferencesDataSource @Inject constructor(
         val ONBOARDING_COMPLETE_HINT = booleanPreferencesKey("onboarding_complete_hint")
         val FIRST_PLAYER = stringPreferencesKey("game_first_player")
         val SECOND_PLAYER = stringPreferencesKey("game_second_player")
+        val MODE = stringPreferencesKey("home_mode")
     }
 }

@@ -35,6 +35,8 @@ data class BuildNightUiState(
     val sharedLevel: Intensity? = null,
     /** The match the night is built around, in the taxonomy's words (§14.7). */
     val focusPrompt: String? = null,
+    /** "We have 15 minutes" (§14.5): one tap, one choice, and nothing else to set. */
+    val express: Boolean = false,
     /** A night already under way for this couple: there is one at a time (D-059). */
     val activeNight: NightSession? = null,
     val building: Boolean = false,
@@ -57,8 +59,19 @@ class BuildNightViewModel @Inject constructor(
 
     // Type-safe routes keep each argument under its property's name (Route.BuildNight).
     private val focus: String? = savedStateHandle.get<String>(Route.BuildNight::focus.name)
+    private val express: Boolean = savedStateHandle.get<Boolean>(Route.BuildNight::express.name) ?: false
 
-    private val local = MutableStateFlow(BuildNightUiState(settings = NightSettings(focus = focus)))
+    private val local = MutableStateFlow(
+        BuildNightUiState(
+            express = express,
+            // Fifteen minutes, nobody leading, and a mix: the only thing left to say is the mood.
+            settings = if (express) {
+                NightSettings(durationMin = EXPRESS_MIN, leadership = Leadership.RANDOM, focus = focus)
+            } else {
+                NightSettings(focus = focus)
+            },
+        ),
+    )
 
     val uiState: StateFlow<BuildNightUiState> = combine(
         local,
@@ -66,7 +79,9 @@ class BuildNightViewModel @Inject constructor(
         nights.activeSession,
         taxonomy.taxonomy.map { focus?.let(it::item)?.prompt },
     ) { state, shared, active, prompt ->
-        state.copy(sharedLevel = shared, activeNight = active, focusPrompt = prompt)
+        // Express never asks how far: it goes as far as the couple's own level allows.
+        val settings = if (express && shared != null) state.settings.copy(intensity = shared) else state.settings
+        state.copy(sharedLevel = shared, activeNight = active, focusPrompt = prompt, settings = settings)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), local.value)
 
     fun setDuration(minutes: Int) = edit { copy(durationMin = minutes) }
@@ -97,6 +112,20 @@ class BuildNightViewModel @Inject constructor(
         }
     }
 
+    /**
+     * "We have 15 minutes" (§14.5): the one choice express asks for, and the night at once.
+     * [mood] is null for "surprise me", which leaves the engine to rank on everything else.
+     */
+    fun buildExpress(mood: Mood?) {
+        // The couple's own level, not a dial: express asks for a mood and nothing else.
+        val ceiling = uiState.value.sharedLevel
+        local.update { state ->
+            val settings = state.settings.copy(moods = setOfNotNull(mood))
+            state.copy(settings = if (ceiling != null) settings.copy(intensity = ceiling) else settings)
+        }
+        build()
+    }
+
     /** The screen has moved on to the built night. */
     fun onShown() = local.update { it.copy(builtExperienceId = null) }
 
@@ -117,6 +146,8 @@ class BuildNightViewModel @Inject constructor(
     }
 
     private companion object {
+        /** "We have 15 minutes" means fifteen minutes. */
+        const val EXPRESS_MIN = 15
         const val STOP_TIMEOUT_MS = 5_000L
         const val NOT_ENOUGH_CONTENT = "not-enough-content"
     }

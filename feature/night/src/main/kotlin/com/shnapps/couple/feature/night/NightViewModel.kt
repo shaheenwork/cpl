@@ -9,6 +9,7 @@ import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.night.NightRepository
 import com.shnapps.couple.core.data.taxonomy.TaxonomyRepository
+import com.shnapps.couple.core.engine.RemixModifier
 import com.shnapps.couple.core.model.BoundaryLevel
 import com.shnapps.couple.core.model.ChapterReaction
 import com.shnapps.couple.core.model.CloseCheckIn
@@ -87,6 +88,8 @@ data class NightUiState(
     val keepOut: KeepOutOffer? = null,
     /** "Not this one" found nothing else that fits this chapter. */
     val nothingElseFits: Boolean = false,
+    /** "Make it more…" could not make that night from what was released (§14.6). */
+    val remixFailed: Boolean = false,
     val closeAnswer: CloseCheckIn? = null,
     val reactions: Map<Int, ChapterReaction> = emptyMap(),
 ) {
@@ -272,6 +275,28 @@ class NightViewModel @Inject constructor(
             if (themes.isNotEmpty()) local.update { it.copy(keepOut = KeepOutOffer(themes)) }
         }
     }
+
+    /**
+     * "Make it…" (§14.6): the night rebuilt from the same released pool — instantly, offline,
+     * and never past the ceiling it already has. Nothing new is asked for; when the pool cannot
+     * make it, the screen says so rather than quietly leaving the night as it was.
+     */
+    fun makeIt(modifier: RemixModifier) {
+        if (local.value.busy) return
+        local.update { it.copy(busy = true, remixFailed = false) }
+        viewModelScope.launch {
+            val remixed = nights.makeIt(experienceId, modifier)
+            local.update { state ->
+                if (remixed == null) {
+                    state.copy(busy = false, remixFailed = true)
+                } else {
+                    state.copy(busy = false, night = remixed, remixFailed = false)
+                }
+            }
+        }
+    }
+
+    fun dismissRemixFailed() = local.update { it.copy(remixFailed = false) }
 
     fun keepOut(themeId: String, level: BoundaryLevel, index: Int) {
         local.update { it.copy(keepOut = null) }

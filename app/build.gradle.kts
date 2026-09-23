@@ -119,6 +119,7 @@ dependencies {
     implementation(project(":feature:discovery"))
     implementation(project(":feature:night"))
     implementation(project(":feature:games"))
+    implementation(project(":feature:home"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

@@ -33,8 +33,13 @@ class BuildNightViewModelTest {
 
     private val nights = FakeNightRepository()
 
-    private fun TestScope.builder(focus: String? = null) = BuildNightViewModel(
-        savedStateHandle = SavedStateHandle(if (focus == null) emptyMap() else mapOf("focus" to focus)),
+    private fun TestScope.builder(focus: String? = null, express: Boolean = false) = BuildNightViewModel(
+        savedStateHandle = SavedStateHandle(
+            buildMap<String, Any> {
+                if (focus != null) put("focus", focus)
+                if (express) put("express", true)
+            },
+        ),
         nights = nights,
         taxonomy = FakeTaxonomyRepository(),
     ).also { vm ->
@@ -43,6 +48,11 @@ class BuildNightViewModelTest {
     }
 
     private val BuildNightViewModel.state get() = uiState.value
+
+    private fun TestScope.act(action: () -> Unit) {
+        action()
+        advanceUntilIdle()
+    }
 
     @Test
     fun `asks the server for exactly what was chosen`() = test {
@@ -123,5 +133,29 @@ class BuildNightViewModelTest {
         nights.start(TestNights.gentle.experienceId)
         advanceUntilIdle()
         assertThat(vm.state.activeNight?.experienceId).isEqualTo(TestNights.gentle.experienceId)
+    }
+
+    @Test
+    fun `fifteen minutes takes one tap and one choice, and nothing else is asked`() = test {
+        nights.level.value = Intensity.NAUGHTY
+        val vm = builder(express = true)
+
+        assertThat(vm.state.express).isTrue()
+        act { vm.buildExpress(Mood.ROMANTIC) }
+
+        val asked = nights.built.single()
+        assertThat(asked.durationMin).isEqualTo(15)
+        assertThat(asked.moods).containsExactly(Mood.ROMANTIC)
+        // As far as the couple's own level allows, with nobody leading: nothing left to set.
+        assertThat(asked.intensity).isEqualTo(Intensity.NAUGHTY)
+        assertThat(asked.leadership).isEqualTo(Leadership.RANDOM)
+        assertThat(vm.state.builtExperienceId).isEqualTo(nights.night.experienceId)
+    }
+
+    @Test
+    fun `express with no mood at all leaves the choosing to the engine`() = test {
+        val vm = builder(express = true)
+        act { vm.buildExpress(null) }
+        assertThat(nights.built.single().moods).isEmpty()
     }
 }

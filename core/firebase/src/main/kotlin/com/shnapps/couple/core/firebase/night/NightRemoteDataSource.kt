@@ -11,6 +11,7 @@ import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.firebase.callFunction
 import com.shnapps.couple.core.firebase.firestoreCall
 import com.shnapps.couple.core.model.ChapterReaction
+import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightSettings
 import com.shnapps.couple.core.model.SessionEndReason
 import com.shnapps.couple.core.model.SessionState
@@ -35,6 +36,19 @@ import javax.inject.Singleton
 @Suppress("TooManyFunctions")
 interface NightRemoteDataSource {
     suspend fun generate(settings: NightSettings): Outcome<ServerNightPayload>
+
+    /**
+     * The night the couple did not configure (§14.2): the server chooses its shape and returns
+     * what it chose. [mystery] keeps that shape from the phone as well.
+     */
+    suspend fun surprise(mystery: Boolean, mode: Mode): Outcome<ServerNightPayload>
+
+    /**
+     * "Make it more…" (§14.6): the night as this phone rearranged it, written back so the
+     * couple's record and the session agree with what is played. Only ids already released for
+     * that night are accepted, and only before it starts.
+     */
+    suspend fun remixNight(experienceId: String, chapters: List<Pair<String, String>>): Outcome<Unit>
 
     /** [twoPhones]: each partner answers on their own, rather than one phone passed over (§12). */
     suspend fun createSession(experienceId: String, twoPhones: Boolean = false): Outcome<SessionPayload>
@@ -85,6 +99,19 @@ interface NightRemoteDataSource {
 
 data class ChapterPayload(val index: Int, val kind: String, val contentId: String, val intensity: Int)
 
+/**
+ * The night's own settings as the server built it (§14.2): what the phone asked for, or —
+ * for a surprise — what the server chose on the couple's behalf.
+ */
+data class NightSettingsPayload(
+    val mode: String,
+    val durationMin: Int,
+    val moods: List<String>,
+    val intensity: Int,
+    val leadership: String,
+    val novelty: String,
+)
+
 /** What generateExperience returned: ids only, resolved against the content on the phone. */
 data class ServerNightPayload(
     val experienceId: String,
@@ -95,6 +122,10 @@ data class ServerNightPayload(
     val engineVersion: Int,
     val askFirstItems: List<String>,
     val focusIncluded: Boolean,
+    /** Null from a server that predates surprises; the phone then keeps what it asked for. */
+    val settings: NightSettingsPayload? = null,
+    /** A Mystery Night: the phone shows nothing of its shape (§14.2). */
+    val mystery: Boolean = false,
 )
 
 /** What both partners answered for one chapter, written by the server (§12.2). */
@@ -183,6 +214,17 @@ class FirebaseNightRemoteDataSource @Inject constructor(
     private val functions: FirebaseFunctions,
 ) : NightRemoteDataSource {
 
+    override suspend fun surprise(mystery: Boolean, mode: Mode): Outcome<ServerNightPayload> =
+        functions.callFunction("surpriseNight", mapOf("mystery" to mystery, "mode" to mode.name)) { it.toNight() }
+
+    override suspend fun remixNight(experienceId: String, chapters: List<Pair<String, String>>): Outcome<Unit> {
+        val payload = mapOf(
+            "experienceId" to experienceId,
+            "chapters" to chapters.map { (contentId, kind) -> mapOf("contentId" to contentId, "kind" to kind) },
+        )
+        return functions.callFunction("remixNight", payload) { }
+    }
+
     override suspend fun generate(settings: NightSettings): Outcome<ServerNightPayload> {
         val request = buildMap<String, Any> {
             put("mode", settings.mode.name)
@@ -193,18 +235,7 @@ class FirebaseNightRemoteDataSource @Inject constructor(
             put("novelty", settings.novelty.name)
             settings.focus?.let { put("focus", it) }
         }
-        return functions.callFunction("generateExperience", request) { data ->
-            ServerNightPayload(
-                experienceId = data["experienceId"] as String,
-                chapters = (data["chapters"] as List<*>).map { (it as Map<*, *>).toChapter("contentId") },
-                alternates = (data["alternates"] as List<*>).filterIsInstance<String>(),
-                effectiveIntensity = (data["effectiveIntensity"] as Number).toInt(),
-                seed = (data["seed"] as Number).toLong(),
-                engineVersion = (data["engineVersion"] as Number).toInt(),
-                askFirstItems = (data["askFirstItems"] as? List<*>).orEmpty().filterIsInstance<String>(),
-                focusIncluded = data["focusIncluded"] == true,
-            )
-        }
+        return functions.callFunction("generateExperience", request) { it.toNight() }
     }
 
     override suspend fun createSession(experienceId: String, twoPhones: Boolean): Outcome<SessionPayload> {
@@ -369,6 +400,40 @@ private const val FEEDBACK = "feedback"
 private const val SUBMISSIONS = "submissions"
 private const val ROUNDS = "rounds"
 private const val PRESENCE = "presence"
+
+/** A night as the server returned it: generated to order, or the app's own idea. */
+private fun Map<*, *>.toNight(): ServerNightPayload = ServerNightPayload(
+    experienceId = this["experienceId"] as String,
+    chapters = (this["chapters"] as List<*>).map { (it as Map<*, *>).toChapter("contentId") },
+    alternates = (this["alternates"] as List<*>).filterIsInstance<String>(),
+    effectiveIntensity = (this["effectiveIntensity"] as Number).toInt(),
+    seed = (this["seed"] as Number).toLong(),
+    engineVersion = (this["engineVersion"] as Number).toInt(),
+    askFirstItems = (this["askFirstItems"] as? List<*>).orEmpty().filterIsInstance<String>(),
+    focusIncluded = this["focusIncluded"] == true,
+    settings = (this["settings"] as? Map<*, *>)?.toNightSettings(),
+    mystery = this["mystery"] == true,
+)
+
+private fun Map<*, *>.toNightSettings(): NightSettingsPayload? {
+    // All of it, or none: a server too old to send the settings leaves the phone with what it
+    // asked for, and a surprise then falls back to its own defaults.
+    val mode = this["mode"] as? String
+    val leadership = this["leadership"] as? String
+    val novelty = this["novelty"] as? String
+    val durationMin = (this["durationMin"] as? Number)?.toInt()
+    val intensity = (this["intensity"] as? Number)?.toInt()
+    if (mode == null || leadership == null || novelty == null) return null
+    if (durationMin == null || intensity == null) return null
+    return NightSettingsPayload(
+        mode = mode,
+        durationMin = durationMin,
+        moods = (this["moods"] as? List<*>).orEmpty().filterIsInstance<String>(),
+        intensity = intensity,
+        leadership = leadership,
+        novelty = novelty,
+    )
+}
 
 private fun Map<*, *>.toChapter(idKey: String): ChapterPayload {
     // The callable names a chapter's content `contentId`; the stored night keeps `contentIds`.

@@ -6,6 +6,7 @@ import com.shnapps.couple.core.analytics.AnalyticsEvent
 import com.shnapps.couple.core.analytics.AnalyticsLogger
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
+import com.shnapps.couple.core.engine.RemixModifier
 import com.shnapps.couple.core.model.BoundaryLevel
 import com.shnapps.couple.core.model.ChapterReaction
 import com.shnapps.couple.core.model.CloseCheckIn
@@ -237,6 +238,30 @@ class NightViewModelTest {
         act { vm.keepOut("mood_charged", BoundaryLevel.NEVER, 1) }
         assertThat(nights.calls).contains("keepOut:mood_charged:NEVER")
         assertThat(vm.uiState.value.keepOut).isNull()
+    }
+
+    @Test
+    fun `make it more rebuilds the night from what was released, and says when it cannot`() = test {
+        val remixed = quiet.copy(chapters = quiet.chapters.reversed().mapIndexed { index, chapter ->
+            chapter.copy(index = index)
+        })
+        val nights = FakeNightRepository(quiet).apply { remixWith = { remixed } }
+        val vm = player(nights)
+        assertThat(vm.stage).isEqualTo(NightStage.Shape)
+
+        act { vm.makeIt(RemixModifier.MORE_INTENSE) }
+
+        assertThat(nights.calls).contains("makeIt:MORE_INTENSE")
+        assertThat(vm.uiState.value.night?.chapters?.first()?.item?.id).isEqualTo(remixed.chapters.first().item.id)
+        assertThat(vm.uiState.value.remixFailed).isFalse()
+
+        // Nothing released can make that night: said plainly, and the night stays as it was.
+        nights.remixWith = { null }
+        act { vm.makeIt(RemixModifier.SHORTER) }
+        assertThat(vm.uiState.value.remixFailed).isTrue()
+        assertThat(vm.uiState.value.night?.chapters?.first()?.item?.id).isEqualTo(remixed.chapters.first().item.id)
+        act(vm::dismissRemixFailed)
+        assertThat(vm.uiState.value.remixFailed).isFalse()
     }
 
     @Test
