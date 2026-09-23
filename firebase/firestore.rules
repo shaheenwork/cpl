@@ -249,6 +249,14 @@ service cloud.firestore {
         }
       }
 
+      // A voice note or a photo one partner sent the other (§13, §5.8). The server writes
+      // every one of these: what it is, where it is, when it expires and whether it burns.
+      // A client never writes one, and a deleted one takes its object with it (§7.3 row P).
+      match /media/{itemId} {
+        allow get, list: if isActiveMember(coupleId);
+        allow write: if false;
+      }
+
       // What one partner has planned for the other (§2.5 #2, §13): that there is something,
       // and how big it is. Never what is in it — that lives in the experience, which only the
       // partner it was planned for may read.

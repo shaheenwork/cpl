@@ -9,14 +9,17 @@
 //   node functions/scripts/dev-couple.js seen     sam has seen the round's reveal
 //   node functions/scripts/dev-couple.js present  sam's phone says it is still there (heartbeat)
 //   node functions/scripts/dev-couple.js plans    what either of them has planned for the other
+//   node functions/scripts/dev-couple.js media    voice notes and photos, and whether the bytes are still there
 //   node functions/scripts/dev-couple.js state    the couple's sessions, nights, history, feedback
 //
 // Build the functions first (npm --prefix functions run build): it uses their compiled code.
 // Password: DEV_COUPLE_PASSWORD, or the default below — emulator accounts only.
 process.env.FIRESTORE_EMULATOR_HOST ??= '127.0.0.1:8080';
+process.env.STORAGE_EMULATOR_HOST ??= 'http://127.0.0.1:9199';
 const { join } = require('node:path');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore, Timestamp } = require('firebase-admin/firestore');
+const { getStorage } = require('firebase-admin/storage');
 const pairing = require(join(__dirname, '..', 'lib', 'pairing', 'pairing'));
 const { recomputeCouple } = require(join(__dirname, '..', 'lib', 'couple', 'recompute'));
 
@@ -48,7 +51,9 @@ async function call(name, data, user) {
 }
 
 (async () => {
-  const db = getFirestore(initializeApp({ projectId: PROJECT }, 'seed-night'));
+  // The bucket the phones upload to: the Emulator Suite still defaults to the older name.
+  const app = initializeApp({ projectId: PROJECT, storageBucket: `${PROJECT}.firebasestorage.app` }, 'seed-night');
+  const db = getFirestore(app);
   const [cmd] = process.argv.slice(2);
   const alex = await account('alex@example.com');
   const sam = await account('sam@example.com');
@@ -103,6 +108,23 @@ async function call(name, data, user) {
         by: plan.get('plannedBy') === alex.uid ? 'alex' : 'sam',
         for: plan.get('plannedFor') === alex.uid ? 'alex' : 'sam',
         experience: { plannedFor: experience.get('plannedFor') === sam.uid ? 'sam' : 'alex', status: experience.get('status') },
+      }));
+    }
+  } else if (cmd === 'media') {
+    // Voice notes and photos (section 5.8): the record, and whether the object is still beside it.
+    const bucket = getStorage(app).bucket();
+    const media = await db.collection(`couples/${coupleId}/media`).get();
+    for (const item of media.docs) {
+      const [there] = await bucket.file(item.get('path')).exists();
+      console.log(JSON.stringify({
+        id: item.id,
+        kind: item.get('kind'),
+        state: item.get('state'),
+        burn: item.get('burnAfterView') === true,
+        from: item.get('ownerUid') === alex.uid ? 'alex' : 'sam',
+        note: item.get('note'),
+        viewed: item.get('viewedAt') ? 'yes' : 'no',
+        object: there ? 'there' : 'gone',
       }));
     }
   } else if (cmd === 'state') {

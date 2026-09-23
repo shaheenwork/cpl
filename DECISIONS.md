@@ -1112,3 +1112,30 @@ because they chose how far the night goes when they planned it, so only the part
 give. Presence is not expected, and the sweep gives it a week instead of ten minutes — an async
 night that nobody is coming back to still frees the couple's place eventually, but not while they
 are asleep.
+
+---
+
+## D-083 — Every object has a document beside it, and deleting the document is the burn
+**Phase 15.** A burn-after-view voice note has to be *gone*, not hidden (§5.8). Two mechanisms
+had to agree on that: the object in Storage, and whatever the rules consult to allow a read.
+
+So media is reserved before it exists. The server writes the document first — PENDING, with the
+one path the phone may upload to — the Storage rules allow a write to that path only for the
+author of a PENDING document, and the server confirms the object landed before marking it SENT.
+Reading asks the same document. A burn deletes the object and then the document; an expiry does
+the same on a schedule; and either way the path stops serving, because the rule that allowed it
+asked a question that now has no answer (§7.3 row P).
+
+That also removes the orphan problem in both directions: no object without a document, and any
+upload that never finished is swept an hour later.
+
+## D-084 — The emulator's default bucket is not the app's
+**Phase 15.** The first voice note sent on the device uploaded fine and then failed to send. The
+functions runtime in the Emulator Suite defaults to `<project>.appspot.com`, while the app's
+`google-services.json` uses `<project>.firebasestorage.app` — so `confirmMedia` looked for the
+object in a bucket nothing had ever been uploaded to, and the phone was told, correctly but
+uselessly, that nothing had been uploaded.
+
+The server now names the bucket explicitly when it runs in the emulator (`FUNCTIONS_EMULATOR`),
+and uses the project's default everywhere else. The device check found it; no unit test would
+have, because both halves were right on their own.

@@ -142,6 +142,19 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   expected to be present, and the expiry sweep gives it a week.
 - `node functions/scripts/dev-couple.js plans` shows what is planned, for device checks.
 
+### Voice notes and photos
+
+- Media is reserved, uploaded, then confirmed, in that order (D-083). The server names the path;
+  the Storage rules allow it only to the author of a PENDING record; reading asks for the record.
+- Deleting the record *is* the burn: the object goes first, the record second, and the rule stops
+  serving the path. Expiry and unfinished uploads are swept hourly by `expireMedia`.
+- Nothing mints a download URL. Bytes are fetched with the signed-in user's own credentials, into
+  this app's cache.
+- In the Emulator Suite the functions runtime's default bucket is `<project>.appspot.com` while
+  the app uses `<project>.firebasestorage.app` — `bucketOf()` names it explicitly (D-084).
+- `node functions/scripts/dev-couple.js media` lists what has been sent and whether the bytes are
+  still there.
+
 ### Games
 
 - A game is content, not code: steps over primitives in `content/games.json`, prompts in

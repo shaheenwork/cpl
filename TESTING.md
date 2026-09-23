@@ -177,6 +177,19 @@ night was built refused.
 `NightSnapshotTest` records the "MAKE IT…" row and the mystery shape screen, which shows neither a
 chapter count nor a length.
 
+### Voice notes and photos (Phase 15)
+
+`media.int.test.ts` drives the real Storage emulator: a path is reserved before anything exists,
+confirming fails until the object is really there, a burn-after-view item is deleted — object
+first, record second — as the partner opens it, one that does not burn records when it was opened,
+and the sweep removes both what is past its time and uploads that never finished.
+
+`storage.test.mjs` is the rules half (§7.3 rows O and P): an upload is allowed only to the path
+the server reserved and only to its author, the content type is held to the folder, both partners
+can read what was sent and nobody else can — including an unauthenticated reader — and deleting
+the record denies the object. On the phone, `SendViewModelTest` uses a recorder with no
+microphone, so recording, sending, opening and burning are all testable without a device.
+
 ### A night planned for later (Phase 14)
 
 The async flow is held at three layers. `experience.int.test.ts` covers planning: the night is

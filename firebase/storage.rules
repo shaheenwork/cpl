@@ -26,6 +26,24 @@ service firebase.storage {
              && request.resource.size < 20 * 1024 * 1024;
     }
 
+    // Membership is decided by the same document Firestore decides it by (§7.2): an ACTIVE
+    // couple this user is a member of. A couple that ended takes its media with it.
+    function isActiveMember(coupleId) {
+      return isSignedIn()
+             && firestore.get(/databases/(default)/documents/couples/$(coupleId)).data.status == 'ACTIVE'
+             && request.auth.uid in firestore.get(/databases/(default)/documents/couples/$(coupleId)).data.memberUids;
+    }
+
+    // The media document the server wrote for this object: what kind it is, whose it is, and
+    // whether it is still there at all. A deleted one denies the object with it (§5.8, row P).
+    function media(coupleId, itemId) {
+      return firestore.get(/databases/(default)/documents/couples/$(coupleId)/media/$(itemId)).data;
+    }
+
+    function mediaExists(coupleId, itemId) {
+      return firestore.exists(/databases/(default)/documents/couples/$(coupleId)/media/$(itemId));
+    }
+
     // ---- user-scoped -----------------------------------------------------
 
     match /users/{uid}/avatar/{file} {
@@ -40,8 +58,46 @@ service firebase.storage {
     }
 
     // ---- couple-scoped ---------------------------------------------------
-    // Couple membership is checked in Phase 4, once couples exist and the membership
-    // shape is settled. Denied until then rather than left open.
+    // Nothing here is public and no download URL is minted into a shared document (§5.8):
+    // every read is authenticated, scoped to an ACTIVE couple this user belongs to, and
+    // gated on the media document the server keeps beside it.
+
+    // A voice note or a photo one partner sent the other (§13). The server reserves the
+    // document first, the author uploads into the path it named, and the server confirms it.
+    // So every object has a document beside it, and a burn or an expiry deletes the document —
+    // which denies the object with it (§5.8, row P).
+    function canUpload(coupleId, itemId) {
+      return isActiveMember(coupleId)
+             && mediaExists(coupleId, itemId)
+             && media(coupleId, itemId).ownerUid == request.auth.uid
+             && media(coupleId, itemId).state == 'PENDING';
+    }
+
+    // Sent media is the couple's; one still being uploaded is its author's alone.
+    function canRead(coupleId, itemId) {
+      return isActiveMember(coupleId)
+             && mediaExists(coupleId, itemId)
+             && (media(coupleId, itemId).state == 'SENT'
+                 || media(coupleId, itemId).ownerUid == request.auth.uid);
+    }
+
+    match /couples/{coupleId}/voice/{itemId}/{file} {
+      allow read: if canRead(coupleId, itemId);
+      allow create: if canUpload(coupleId, itemId) && isAudio();
+      allow update, delete: if false;
+    }
+
+    match /couples/{coupleId}/media/{itemId}/{file} {
+      allow read: if canRead(coupleId, itemId);
+      allow create: if canUpload(coupleId, itemId) && isImage();
+      allow update, delete: if false;
+    }
+
+    // What a couple chose to keep (§14.8). Memories are built in Phase 18; until then the
+    // path exists so nothing can be written into it by mistake.
+    match /couples/{coupleId}/memories/{memoryId}/{file} {
+      allow read, write: if false;
+    }
 
     match /couples/{coupleId}/{allPaths=**} {
       allow read, write: if false;

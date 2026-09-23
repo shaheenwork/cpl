@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- A voice note is recorded on this phone and uploaded to the couple's own Storage (§5.8).
+         Photos are picked through the system picker, which needs no permission at all. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+</manifest>

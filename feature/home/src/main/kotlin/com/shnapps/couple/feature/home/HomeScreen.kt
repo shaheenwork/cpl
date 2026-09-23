@@ -18,6 +18,8 @@ import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.ExperienceType
+import com.shnapps.couple.core.model.MediaItem
+import com.shnapps.couple.core.model.MediaKind
 import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
@@ -68,6 +70,7 @@ data class HomeActions(
     val onGames: () -> Unit = {},
     val onApartNight: () -> Unit = {},
     val onPlanForThem: () -> Unit = {},
+    val onSend: () -> Unit = {},
     val onCuriosities: () -> Unit = {},
     val onMutual: () -> Unit = {},
     val onLimits: () -> Unit = {},
@@ -94,6 +97,7 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
             state.active?.let { session -> UnderWay(session, actions.onOpen) }
             // The strongest thing on this screen when it is there (§2.5 #2).
             state.waitingForMe?.let { plan -> SomethingWaiting(plan, state.canStart, actions.onOpenWaiting) }
+            state.unopenedMedia?.let { item -> TheySentSomething(item, actions.onSend) }
 
             when (state.mode) {
                 Mode.TOGETHER -> TogetherHome(state, actions)
@@ -166,6 +170,13 @@ private fun TogetherHome(state: HomeUiState, actions: HomeActions) {
             enabled = state.canStart,
             modifier = Modifier.fillMaxWidth(),
         )
+        GlowButton(
+            text = "Send something",
+            onClick = actions.onSend,
+            style = GlowButtonStyle.Secondary,
+            leadingEmoji = "💌",
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
     Section("Or let us decide") {
         CinematicCard(
@@ -217,6 +228,13 @@ private fun ApartHome(state: HomeUiState, actions: HomeActions) {
             enabled = state.canStart,
             modifier = Modifier.fillMaxWidth(),
         )
+        GlowButton(
+            text = "Send something",
+            onClick = actions.onSend,
+            style = GlowButtonStyle.Secondary,
+            leadingEmoji = "💌",
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
     Section("For them") {
         CinematicCard(
@@ -246,6 +264,32 @@ private fun ApartHome(state: HomeUiState, actions: HomeActions) {
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = AfterhoursTheme.colors.brass,
+            )
+        }
+    }
+}
+
+/** A voice note or a photo they sent that nobody has opened yet (§13). */
+@Composable
+private fun TheySentSomething(item: MediaItem, onOpen: () -> Unit) {
+    val what = if (item.kind == MediaKind.VOICE) "a voice note" else "a photo"
+    CinematicCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onOpen,
+        glowing = true,
+        contentDescription = "They sent you $what.",
+    ) {
+        Text(text = "💌 FROM THEM", style = EyebrowTextStyle, color = AfterhoursTheme.colors.brass)
+        Text(
+            text = "They sent you $what.",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        if (item.burnAfterView) {
+            Text(
+                text = "Once only — it goes when you open it.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AfterhoursTheme.colors.textMuted,
             )
         }
     }

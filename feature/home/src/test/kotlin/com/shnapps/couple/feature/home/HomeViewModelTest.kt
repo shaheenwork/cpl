@@ -6,11 +6,13 @@ import com.shnapps.couple.core.analytics.AnalyticsLogger
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.model.ExperienceType
+import com.shnapps.couple.core.model.MediaKind
 import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionState
 import com.shnapps.couple.core.testing.FakeAppPreferencesStore
+import com.shnapps.couple.core.testing.FakeMediaRepository
 import com.shnapps.couple.core.testing.FakeNightRepository
 import com.shnapps.couple.core.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -21,6 +23,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
+import java.io.File
 
 /**
  * Home (BUILD_PROMPT.md §2.4, §14.2): the two taps that need no thought, the switch between
@@ -38,11 +41,13 @@ class HomeViewModelTest {
     private val logged = mutableListOf<AnalyticsEvent>()
     private val nights = FakeNightRepository()
     private val preferences = FakeAppPreferencesStore()
+    private val media = FakeMediaRepository()
 
     private fun TestScope.home() = HomeViewModel(
         nights = nights,
         preferences = preferences,
         analytics = AnalyticsLogger { logged += it },
+        media = media,
     ).also { vm ->
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         advanceUntilIdle()
@@ -156,5 +161,19 @@ class HomeViewModelTest {
 
         assertThat(vm.uiState.value.mode).isEqualTo(Mode.APART)
         assertThat(preferences.state.value.mode).isEqualTo(Mode.APART)
+    }
+
+    @Test
+    fun `a voice note they sent waits here until it is opened`() = test {
+        media.theySend(MediaKind.VOICE, note = "listen to this", burnAfterView = true)
+        val vm = home()
+
+        assertThat(vm.uiState.value.unopenedMedia?.note).isEqualTo("listen to this")
+        assertThat(vm.uiState.value.unopenedMedia?.burnAfterView).isTrue()
+
+        // Once it has been opened, it stops asking to be.
+        media.open(media.items.value.single().id, File.createTempFile("open", ".bin"))
+        advanceUntilIdle()
+        assertThat(vm.uiState.value.unopenedMedia).isNull()
     }
 }

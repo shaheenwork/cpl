@@ -38,6 +38,7 @@ import com.shnapps.couple.feature.onboarding.WelcomeScreen
 import com.shnapps.couple.feature.pairing.PairingScreen
 import com.shnapps.couple.feature.pairing.UnpairViewModel
 import com.shnapps.couple.feature.preferences.PreferenceDiscoveryScreen
+import com.shnapps.couple.feature.send.SendScreen
 
 /**
  * The app's navigation graph.
@@ -191,6 +192,10 @@ fun CplNavHost(
             )
         }
 
+        composable<Route.Send> {
+            SendScreen(onBack = { navController.popBackStack() })
+        }
+
         composable<Route.Games> {
             GamesScreen(
                 // The setup has done its job once a game exists: back from the game is the games.
@@ -262,6 +267,7 @@ private fun Home(
             onGames = { navController.navigate(Route.Games) },
             onApartNight = { navController.navigate(Route.BuildNight(apart = true)) },
             onPlanForThem = { navController.navigate(Route.BuildNight(forPartner = true)) },
+            onSend = { navController.navigate(Route.Send) },
             onCuriosities = { navController.navigate(Route.PreferenceDiscovery) },
             onMutual = { navController.navigate(Route.MutualDiscovery) },
             onLimits = { navController.navigate(Route.Boundaries) },

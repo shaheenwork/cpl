@@ -6,8 +6,10 @@ import com.shnapps.couple.core.analytics.AnalyticsEvent
 import com.shnapps.couple.core.analytics.AnalyticsLogger
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
+import com.shnapps.couple.core.data.media.MediaRepository
 import com.shnapps.couple.core.data.night.NightRepository
 import com.shnapps.couple.core.datastore.AppPreferencesStore
+import com.shnapps.couple.core.model.MediaItem
 import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
@@ -38,6 +40,8 @@ data class HomeUiState(
     val waitingForMe: NightPlan? = null,
     /** Something this phone's user planned for them, and whether they have opened it. */
     val plannedByMe: NightPlan? = null,
+    /** A voice note or a photo they sent that nobody has opened (§13). */
+    val unopenedMedia: MediaItem? = null,
     val error: HomeError? = null,
 ) {
     /** Nothing else can start while the couple already has something under way (D-059). */
@@ -60,6 +64,7 @@ class HomeViewModel @Inject constructor(
     private val nights: NightRepository,
     private val preferences: AppPreferencesStore,
     private val analytics: AnalyticsLogger,
+    media: MediaRepository,
 ) : ViewModel() {
 
     private val local = MutableStateFlow(HomeUiState())
@@ -69,13 +74,15 @@ class HomeViewModel @Inject constructor(
         nights.activeSession,
         preferences.preferences.map { it.mode },
         nights.plans,
-    ) { state, active, mode, plans ->
+        media.inbox,
+    ) { state, active, mode, plans, inbox ->
         state.copy(
             active = active,
             mode = mode,
             // Theirs first: a night waiting to be found is the best thing on this screen.
             waitingForMe = plans.firstOrNull { !it.mine },
             plannedByMe = plans.firstOrNull { it.mine },
+            unopenedMedia = inbox.firstOrNull { it.unopened },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), HomeUiState())
 

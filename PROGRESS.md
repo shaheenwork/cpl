@@ -3,7 +3,7 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 14 complete. Next action: **Phase 15 — Voice + photo.**
+**Current position:** Phase 15 complete. Next action: **Phase 16 — Scheduled surprises + multi-day.**
 
 ---
 
@@ -26,8 +26,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 | 12 | Realtime sessions | ✅ **Complete** |
 | 13 | Together home + Surprise Us | ✅ **Complete** |
 | 14 | Apart mode + async | ✅ **Complete** |
-| 15 | Voice + photo | ⬜ Next |
-| 16 | Scheduled surprises + multi-day | ⬜ |
+| 15 | Voice + photo | ✅ **Complete** |
+| 16 | Scheduled surprises + multi-day | ⬜ Next |
 | 17 | FCM + notification privacy | ⬜ |
 | 18 | Memories + library | ⬜ |
 | 19 | Subscription | ⬜ |
@@ -1174,3 +1174,53 @@ npm --prefix firebase/tests test            86/86    (a planner cannot read what
   submission the previous run had left behind, so a second run failed on a document that was
   supposed to be fresh. The fixture now clears both partners' submissions for that chapter, and
   the suite passes twice in a row.
+
+---
+
+## Phase 15 — Voice notes, photos, and a burn that really burns ✅
+
+### Shipped
+- **Send something** (`:feature:send`, §13): record a voice note or pick a photo, add a line, and
+  send it to the two of you and nowhere else. What is recorded stays in this app's own cache
+  until it is sent; what is opened is fetched with the user's own credentials. Nothing anywhere
+  holds a download URL.
+- **Reserve, upload, confirm** (D-083): the server writes the record first and names the one path
+  the phone may upload to; the Storage rules allow that path only to the author of a PENDING
+  record; the server confirms the object landed before the partner can see there is one. So there
+  is no object without a record, and no record without an object for long.
+- **Burn after view** — really: opening a burn-after-view item deletes the object and then the
+  record, server-side. The Storage rule asks for the record before it allows a read, so the path
+  stops serving the moment the record is gone (§7.3 row P). An expiry sweep does the same hourly,
+  and takes unfinished uploads with it.
+- **Storage rules** (§7.2): couple membership checked against the same document Firestore checks,
+  images ≤ 10 MB, audio ≤ 20 MB, the content type held to the folder, no client delete, no client
+  overwrite, and no listing.
+- Home says when something is waiting: "They sent you a voice note", and whether it is once-only.
+
+### Verified
+```
+./gradlew check assembleDevDebug            BUILD SUCCESSFUL
+:core:data      89
+:feature:home   12   (what they sent waits here until it is opened)
+:feature:send   10   (SendViewModelTest 6, SendSnapshotTest 4)
+npm --prefix tools test                     42/42
+npm --prefix functions run test:unit        111/111
+npm --prefix functions run test:int         116/116  (media 6: reserve, confirm, burn, sweep)
+npm --prefix functions run test:e2e         29/29
+npm --prefix firebase/tests test            92/92    (Storage O and P, and six more rows)
+```
+- **Exit criterion — rules tests O and P pass; media never public**: `storage.test.mjs` proves an
+  upload is allowed only to the path the server reserved and only to its author, that the content
+  type is held to the folder, that both partners can read what was sent and nobody else can (row
+  O, including an unauthenticated read), and that deleting the record denies the object (row P).
+- **On the device**: signed in as Sam, recorded a voice note, added a line, turned on "gone after
+  they open it", and sent it; the server held it as SENT with the object beside it. Signed out;
+  signed in as Alex: home said "They sent you a voice note — once only", opening it played from a
+  file on the phone and said "This one is gone now — for both of you", and the server had neither
+  the record nor the object any more. A second note, sent without the burn, was still there.
+
+### Found and fixed
+- **The emulator's default bucket is not the app's** (D-084): the first send uploaded fine and
+  then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
+  uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
+  emulator. Only the device check could have found this: both halves were correct on their own.

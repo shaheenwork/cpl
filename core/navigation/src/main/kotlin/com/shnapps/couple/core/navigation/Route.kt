@@ -64,6 +64,10 @@ object Route {
         val apart: Boolean = false,
     )
 
+    /** Send something, and what they have sent back (§13): voice notes and photos. */
+    @Serializable
+    data object Send
+
     /** A night being played — or waiting to be — on either partner's phone (§14.6). */
     @Serializable
     data class Night(val experienceId: String)

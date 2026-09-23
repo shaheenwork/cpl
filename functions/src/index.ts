@@ -10,6 +10,7 @@
  */
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import { onDocumentCreated, onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
@@ -21,6 +22,7 @@ import * as plan from './experience/plan';
 import * as remix from './experience/remix';
 import * as surprise from './experience/surprise';
 import * as feedback from './feedback/affinity';
+import * as media from './media/media';
 import { revealTiming } from './discovery/timing';
 import * as pairing from './pairing/pairing';
 import * as session from './session/session';
@@ -268,6 +270,34 @@ export const onSubmissionCreated = onDocumentCreated(
       event.params.submissionId,
       Date.now(),
     );
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Voice notes and photos (sections 5.8, 13): the server names every path, confirms every
+// object, and is the only thing that ever deletes one
+// ---------------------------------------------------------------------------
+
+/** A place to upload a voice note or a photo to, and the record that will describe it. */
+export const reserveMedia = onCall(options, (request) =>
+  guarded(() => media.reserveMedia(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+/** The upload landed: it becomes the couple's, and their partner can see there is something. */
+export const confirmMedia = onCall(options, (request) =>
+  guarded(() => media.confirmMedia(getFirestore(), getStorage(), callerUid(request), request.data, Date.now())),
+);
+
+/** Opening one. A burn-after-view item is deleted here — the object first, then its record. */
+export const viewMedia = onCall(options, (request) =>
+  guarded(() => media.viewMedia(getFirestore(), getStorage(), callerUid(request), request.data, Date.now())),
+);
+
+/** Media past its time, and uploads that never finished, are deleted server-side (section 5.8). */
+export const expireMedia = onSchedule(
+  { schedule: 'every 60 minutes', retryCount: 3, maxInstances: 1 },
+  async () => {
+    await media.expireMedia(getFirestore(), getStorage(), Date.now());
   },
 );
 
