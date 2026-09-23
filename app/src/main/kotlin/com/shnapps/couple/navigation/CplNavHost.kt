@@ -260,6 +260,8 @@ private fun Home(
             onBuild = { navController.navigate(Route.BuildNight()) },
             onExpress = { navController.navigate(Route.BuildNight(express = true)) },
             onGames = { navController.navigate(Route.Games) },
+            onApartNight = { navController.navigate(Route.BuildNight(apart = true)) },
+            onPlanForThem = { navController.navigate(Route.BuildNight(forPartner = true)) },
             onCuriosities = { navController.navigate(Route.PreferenceDiscovery) },
             onMutual = { navController.navigate(Route.MutualDiscovery) },
             onLimits = { navController.navigate(Route.Boundaries) },

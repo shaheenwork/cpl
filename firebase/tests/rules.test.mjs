@@ -477,16 +477,36 @@ describe('couples/{coupleId}/experiences (§6.1, §10)', () => {
       await setDoc(doc(db, 'couples', 'e1'), { status: 'ACTIVE', memberUids: [ALICE, BOB] });
       await setDoc(doc(db, 'couples', 'e1', 'experiences', 'x1'), night);
       await setDoc(doc(db, 'couples', 'e1', 'experiences', 'x1', 'askFirst', BOB), { chapters: [0] });
+      // A night Alice planned for Bob (§2.5 #2), and the plan both of them may see.
+      await setDoc(doc(db, 'couples', 'e1', 'experiences', 'p1'), { ...night, plannedBy: ALICE, plannedFor: BOB });
+      await setDoc(doc(db, 'couples', 'e1', 'plans', 'p1'), {
+        experienceId: 'p1', plannedBy: ALICE, plannedFor: BOB, chapterCount: 1, state: 'WAITING',
+      });
       await setDoc(doc(db, 'couples', 'e1', 'engineState', 'history'), { lastPlayed: { flirt_one_look: 1 } });
       await setDoc(doc(db, 'couples', 'gone'), { status: 'UNPAIRED', memberUids: [ALICE, BOB] });
       await setDoc(doc(db, 'couples', 'gone', 'experiences', 'x2'), night);
     });
   });
 
-  it('lets both members read and list their nights', async () => {
+  it('lets both members read their nights, and nobody list them', async () => {
     await assertSucceeds(getDoc(doc(alice(), 'couples', 'e1', 'experiences', 'x1')));
     await assertSucceeds(getDoc(doc(bob(), 'couples', 'e1', 'experiences', 'x1')));
-    await assertSucceeds(getDocs(collection(alice(), 'couples', 'e1', 'experiences')));
+    // Listing would hand a planner every night they must not read (§2.5 #2).
+    await assertFails(getDocs(collection(alice(), 'couples', 'e1', 'experiences')));
+  });
+
+  it('keeps a planned night from the partner who planned it (§2.5 #2)', async () => {
+    await assertSucceeds(getDoc(doc(bob(), 'couples', 'e1', 'experiences', 'p1')));
+    await assertFails(getDoc(doc(alice(), 'couples', 'e1', 'experiences', 'p1')));
+    await assertFails(getDoc(doc(mallory(), 'couples', 'e1', 'experiences', 'p1')));
+  });
+
+  it('lets both see that a plan exists, and neither write one', async () => {
+    await assertSucceeds(getDoc(doc(alice(), 'couples', 'e1', 'plans', 'p1')));
+    await assertSucceeds(getDocs(collection(bob(), 'couples', 'e1', 'plans')));
+    await assertFails(getDoc(doc(mallory(), 'couples', 'e1', 'plans', 'p1')));
+    await assertFails(setDoc(doc(alice(), 'couples', 'e1', 'plans', 'forged'), { plannedBy: ALICE, plannedFor: BOB }));
+    await assertFails(updateDoc(doc(bob(), 'couples', 'e1', 'plans', 'p1'), { state: 'OPENED' }));
   });
 
   it('denies anyone outside the couple, and everyone once unpaired', async () => {
@@ -553,7 +573,10 @@ describe('couples/{coupleId}/sessions/{id}/submissions, rounds and presence (§7
       await setDoc(doc(db, 'couples', 'rt1', 'sessions', 'live', 'submissions', `0_${BOB}`), {
         chapter: 0, byUid: BOB, answer: 'go out', at: Timestamp.now(),
       });
+      // Chapter 1 starts unanswered by both, so "written once" is tested on a fresh document
+      // however many times the suite has run before against this emulator.
       await deleteDoc(doc(db, 'couples', 'rt1', 'sessions', 'live', 'submissions', `1_${ALICE}`));
+      await deleteDoc(doc(db, 'couples', 'rt1', 'sessions', 'live', 'submissions', `1_${BOB}`));
     });
   });
 

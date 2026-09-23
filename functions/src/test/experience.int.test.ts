@@ -17,6 +17,7 @@ import { loadCatalogue, resetCatalogueCache } from '../engine/catalogue';
 import { chapterRange } from '../engine/plan';
 import { DEFAULT_WEIGHTS, ENGINE_VERSION, type EngineItem } from '../engine/types';
 import { GENERATE_LIMIT, generateExperience, type GenerateDeps } from '../experience/generate';
+import { openPlan, planNight } from '../experience/plan';
 import { remixExperience } from '../experience/remix';
 import { surpriseExperience } from '../experience/surprise';
 import { createPairingCode, requestPairing, respondToPairing, unpairCouple } from '../pairing/pairing';
@@ -440,5 +441,73 @@ describe('Make it more…', () => {
       'failed-precondition',
       'not-permitted',
     );
+  });
+});
+
+describe('a night one partner plans for the other', () => {
+  beforeEach(async () => {
+    await clearEmulator();
+    resetCatalogueCache();
+  });
+
+  it('is built for the partner who will play it, and told back as a shape alone', async () => {
+    const { a, b, coupleId } = await couple();
+
+    const planned = await planNight(db, a, request(), NOW, deps());
+
+    assert.equal(planned.plannedFor, b);
+    assert.ok(planned.chapterCount > 0);
+    // Nothing the planner could read the night from came back with it.
+    assert.deepEqual(Object.keys(planned).sort(), ['chapterCount', 'experienceId', 'plannedFor']);
+
+    const stored = (await db.doc(`couples/${coupleId}/experiences/${planned.experienceId}`).get()).data()!;
+    assert.equal(stored.plannedBy, a);
+    assert.equal(stored.plannedFor, b);
+    assert.equal(stored.createdBy, a);
+    assert.equal(stored.status, 'READY');
+
+    const plan = (await db.doc(`couples/${coupleId}/plans/${planned.experienceId}`).get()).data()!;
+    assert.equal(plan.state, 'WAITING');
+    assert.equal(plan.chapterCount, planned.chapterCount);
+    // The plan says nothing about what is in the night.
+    for (const key of Object.keys(plan)) assert.ok(!/content|chapters|alternates/i.test(key), `plan has ${key}`);
+  });
+
+  it("asks about the partner's own ask-first themes, and leaves the planner's out", async () => {
+    const { a, coupleId } = await couple();
+    const catalogue = await catalogueById();
+    const theme = [...new Set([...catalogue.values()].flatMap((item) => item.excludedByBoundaries))][0];
+    // Each partner asks to be asked first about a different theme.
+    await db.doc(`users/${a}/boundaries/${theme}`).set({ level: 'ASK_FIRST', updatedAt: new Date(NOW) });
+    await recomputeCouple(db, coupleId, NOW);
+
+    const planned = await planNight(db, a, request(), NOW, deps());
+    const stored = (await db.doc(`couples/${coupleId}/experiences/${planned.experienceId}`).get()).data()!;
+    const ids = stored.chapters.map((chapter: { contentIds: string[] }) => chapter.contentIds[0]);
+
+    // The planner's ask-first theme cannot be asked about on the partner's phone, so it is out.
+    for (const id of ids) assert.ok(!catalogue.get(id)!.excludedByBoundaries.includes(theme), id);
+    // And the flags that do exist are stored for the partner, never the planner.
+    assert.ok(!(await db.doc(`couples/${coupleId}/experiences/${planned.experienceId}/askFirst/${a}`).get()).exists);
+  });
+
+  it('is opened once by the partner it was planned for, and by nobody else', async () => {
+    const { a, b, coupleId } = await couple();
+    const planned = await planNight(db, a, request(), NOW, deps());
+    const ref = db.doc(`couples/${coupleId}/plans/${planned.experienceId}`);
+
+    await rejects(openPlan(db, a, { experienceId: planned.experienceId }, NOW), 'permission-denied', 'not-yours');
+    assert.equal((await ref.get()).get('state'), 'WAITING');
+
+    await openPlan(db, b, { experienceId: planned.experienceId }, NOW);
+    const opened = await ref.get();
+    assert.equal(opened.get('state'), 'OPENED');
+    const at = opened.get('openedAt');
+    // Opening it again changes nothing: the planner sees when it landed, once.
+    await openPlan(db, b, { experienceId: planned.experienceId }, NOW + 60_000);
+    assert.deepEqual((await ref.get()).get('openedAt'), at);
+
+    await rejects(openPlan(db, b, { experienceId: 'nothing_here' }, NOW), 'not-found', 'plan');
+    await rejects(openPlan(db, b, { experienceId: planned.experienceId, extra: 1 }, NOW), 'invalid-argument', 'unknown field extra');
   });
 });

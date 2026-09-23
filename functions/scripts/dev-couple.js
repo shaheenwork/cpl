@@ -8,6 +8,7 @@
 //   node functions/scripts/dev-couple.js answer [0|1]  sam answers this round on their own phone
 //   node functions/scripts/dev-couple.js seen     sam has seen the round's reveal
 //   node functions/scripts/dev-couple.js present  sam's phone says it is still there (heartbeat)
+//   node functions/scripts/dev-couple.js plans    what either of them has planned for the other
 //   node functions/scripts/dev-couple.js state    the couple's sessions, nights, history, feedback
 //
 // Build the functions first (npm --prefix functions run build): it uses their compiled code.
@@ -90,6 +91,20 @@ async function call(name, data, user) {
   }
   else if (['stop', 'pause', 'resume'].includes(cmd)) {
     console.log(JSON.stringify(await call('endSession', { sessionId, action: cmd.toUpperCase() }, sam)));
+  } else if (cmd === 'plans') {
+    // What one partner planned for the other (section 2.5 #2), and what the server kept of it.
+    const plans = await db.collection(`couples/${coupleId}/plans`).get();
+    for (const plan of plans.docs) {
+      const experience = await db.doc(`couples/${coupleId}/experiences/${plan.id}`).get();
+      console.log(JSON.stringify({
+        id: plan.id,
+        state: plan.get('state'),
+        chapters: plan.get('chapterCount'),
+        by: plan.get('plannedBy') === alex.uid ? 'alex' : 'sam',
+        for: plan.get('plannedFor') === alex.uid ? 'alex' : 'sam',
+        experience: { plannedFor: experience.get('plannedFor') === sam.uid ? 'sam' : 'alex', status: experience.get('status') },
+      }));
+    }
   } else if (cmd === 'state') {
     const sessions = await db.collection(`couples/${coupleId}/sessions`).get();
     const experiences = await db.collection(`couples/${coupleId}/experiences`).get();

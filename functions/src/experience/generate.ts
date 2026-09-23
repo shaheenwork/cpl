@@ -254,6 +254,12 @@ export async function generateExperience(
 export interface ExperienceShape {
   /** Its shape is never shown: not how many chapters, not how long (D-077). */
   mystery: boolean;
+  /**
+   * The partner this night is for, when one partner planned it for the other (section 2.5 #2).
+   * The night is filtered and flagged for *them*, because it is their phone it will play on,
+   * and the rules keep its contents from the planner.
+   */
+  plannedFor?: string;
 }
 
 /**
@@ -269,6 +275,9 @@ export async function buildExperience(
   deps: GenerateDeps = defaultDeps,
 ): Promise<GeneratedExperience> {
   const { coupleId, members } = await activeCoupleOf(db, uid);
+  // Whose night it is to play: the caller's, or the partner's when it was planned for them.
+  const playerUid = shape.plannedFor ?? uid;
+  if (shape.plannedFor !== undefined && !members.includes(shape.plannedFor)) invalid('plannedFor');
   await consumeRateLimit(db, uid, 'generateExperience', GENERATE_LIMIT, GENERATE_WINDOW_MS, nowMs);
 
   const couplePath = `couples/${coupleId}`;
@@ -283,7 +292,7 @@ export async function buildExperience(
   if (request.focus !== undefined && mutual[request.focus] === undefined) invalid('focus');
 
   const context: CoupleContext = {
-    filters: forHost(filters, uid),
+    filters: forHost(filters, playerUid),
     mutual,
     lastPlayed: lastPlayedOf(history),
     nowMs,
@@ -295,7 +304,7 @@ export async function buildExperience(
 
   const catalogueById = new Map(catalogue.items.map((item) => [item.id, item]));
   const released = [...result.chapters.map((chapter) => chapter.itemId), ...result.alternates];
-  const askFirstItems = released.filter((id) => askFirstUids(catalogueById.get(id)!, context).includes(uid));
+  const askFirstItems = released.filter((id) => askFirstUids(catalogueById.get(id)!, context).includes(playerUid));
 
   const chapters = result.chapters.map((chapter) => ({
     index: chapter.index,
@@ -320,7 +329,8 @@ export async function buildExperience(
     chapters: chapters.map(({ index, kind, contentId, intensity }) => ({ index, kind, contentIds: [contentId], intensity, state: 'LOCKED' })),
     alternates: result.alternates,
     createdBy: uid,
-    plannedBy: null,
+    plannedBy: shape.plannedFor === undefined ? null : uid,
+    plannedFor: shape.plannedFor ?? null,
     scheduledFor: null,
     status: 'READY',
     /** How many chapters have been played, in order. Server-written as the night goes on. */
@@ -332,7 +342,9 @@ export async function buildExperience(
   });
   // The caller's own ask-first items, where only they can read them (section 3.2), so a
   // restarted player can still ask before each one.
-  if (askFirstItems.length > 0) batch.set(ref.collection('askFirst').doc(uid), { items: askFirstItems, createdAt });
+  if (askFirstItems.length > 0) {
+    batch.set(ref.collection('askFirst').doc(playerUid), { items: askFirstItems, createdAt });
+  }
   await batch.commit();
 
   return {

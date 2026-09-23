@@ -13,6 +13,7 @@ import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.Mode
+import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionState
 import org.junit.Rule
@@ -49,11 +50,28 @@ class HomeSnapshotTest {
     }
 
     @Test
-    fun apartSaysWhatItIs() {
-        capture("home-apart") { HomeContent(HomeUiState(mode = Mode.APART), HomeActions()) }
-        composeRule.onNodeWithText("Apart is being built.").assertIsDisplayed()
-        // Nothing on this side pretends to work yet.
-        assertThat(composeRule.onAllNodesWithText("Surprise us").fetchSemanticsNodes()).isEmpty()
+    fun apartIsItsOwnWayIn() {
+        val state = HomeUiState(
+            mode = Mode.APART,
+            plannedByMe = NightPlan(experienceId = "for_them", mine = true, chapterCount = 4, opened = false),
+        )
+        capture("home-apart") { HomeContent(state, HomeActions()) }
+        composeRule.onNodeWithText("Start tonight").assertIsDisplayed()
+        composeRule.onNodeWithText("Plan a night they'll find later.").assertIsDisplayed()
+        // The planner is told it landed, never what is in it (§2.5 #2).
+        composeRule.onNodeWithText("You've planned something. They haven't found it yet.").assertIsDisplayed()
+        assertThat(composeRule.onAllNodesWithText("Build tonight").fetchSemanticsNodes()).isEmpty()
+    }
+
+    @Test
+    fun somethingIsWaiting() {
+        val state = HomeUiState(
+            waitingForMe = NightPlan(experienceId = "planned", mine = false, chapterCount = 5, opened = false),
+        )
+        capture("home-waiting") { HomeContent(state, HomeActions()) }
+        composeRule.onNodeWithText("They've planned something for you.").assertIsDisplayed()
+        composeRule.onNodeWithText("5 chapters. That's all either of you knows until you open it.")
+            .assertIsDisplayed()
     }
 
     @Test

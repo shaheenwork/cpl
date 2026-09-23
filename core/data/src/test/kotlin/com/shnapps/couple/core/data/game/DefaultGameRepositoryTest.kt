@@ -10,6 +10,7 @@ import com.shnapps.couple.core.firebase.night.CoupleNightState
 import com.shnapps.couple.core.firebase.night.ExperienceDoc
 import com.shnapps.couple.core.firebase.night.FeedbackPayload
 import com.shnapps.couple.core.firebase.night.NightRemoteDataSource
+import com.shnapps.couple.core.firebase.night.PlanDoc
 import com.shnapps.couple.core.firebase.night.RevealDoc
 import com.shnapps.couple.core.firebase.night.ServerNightPayload
 import com.shnapps.couple.core.firebase.night.SessionAction
@@ -31,6 +32,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -286,6 +288,12 @@ class DefaultGameRepositoryTest {
 
         override suspend fun remixNight(experienceId: String, chapters: List<Pair<String, String>>) =
             error("a game is not remixed")
+
+        override suspend fun planNight(settings: NightSettings) = error("a game is not planned")
+
+        override suspend fun openPlan(experienceId: String) = error("a game is not planned")
+
+        override fun observePlans(coupleId: String): Flow<List<PlanDoc>> = flowOf(emptyList())
 
         override suspend fun createSession(experienceId: String, twoPhones: Boolean) =
             Outcome.Success(payload(SessionState.READY))

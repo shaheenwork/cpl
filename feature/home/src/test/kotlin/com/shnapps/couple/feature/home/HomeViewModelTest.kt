@@ -7,6 +7,7 @@ import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.Mode
+import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionState
 import com.shnapps.couple.core.testing.FakeAppPreferencesStore
@@ -111,6 +112,39 @@ class HomeViewModelTest {
         nights.surpriseResult = Outcome.Failure(AppError.Network())
         act { vm.surprise() }
         assertThat(vm.uiState.value.error).isEqualTo(HomeError.OFFLINE)
+    }
+
+    @Test
+    fun `a night the partner planned waits on this screen, and opening it says so`() = test {
+        nights.plannedNights.value = listOf(
+            NightPlan(experienceId = "planned_night", mine = false, chapterCount = 5, opened = false),
+        )
+        val vm = home()
+
+        assertThat(vm.uiState.value.waitingForMe?.chapterCount).isEqualTo(5)
+        assertThat(vm.uiState.value.plannedByMe).isNull()
+
+        act(vm::openWaiting)
+
+        assertThat(nights.calls).containsExactly("openPlan:planned_night")
+        assertThat(vm.uiState.value.startedExperienceId).isEqualTo("planned_night")
+    }
+
+    @Test
+    fun `a night planned on this phone is only ever a shape, and says whether it landed`() = test {
+        nights.plannedNights.value = listOf(
+            NightPlan(experienceId = "for_them", mine = true, chapterCount = 4, opened = false),
+        )
+        val vm = home()
+
+        assertThat(vm.uiState.value.plannedByMe?.opened).isFalse()
+        // Nothing about it is waiting for this phone: it is theirs to find.
+        assertThat(vm.uiState.value.waitingForMe).isNull()
+        act(vm::openWaiting)
+        assertThat(nights.calls).isEmpty()
+
+        act { nights.plannedNights.value = listOf(NightPlan("for_them", mine = true, chapterCount = 4, opened = true)) }
+        assertThat(vm.uiState.value.plannedByMe?.opened).isTrue()
     }
 
     @Test

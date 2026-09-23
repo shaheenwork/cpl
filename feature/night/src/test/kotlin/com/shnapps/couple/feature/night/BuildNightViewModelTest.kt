@@ -6,6 +6,7 @@ import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Leadership
+import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.Mood
 import com.shnapps.couple.core.model.Novelty
 import com.shnapps.couple.core.testing.FakeNightRepository
@@ -33,11 +34,18 @@ class BuildNightViewModelTest {
 
     private val nights = FakeNightRepository()
 
-    private fun TestScope.builder(focus: String? = null, express: Boolean = false) = BuildNightViewModel(
+    private fun TestScope.builder(
+        focus: String? = null,
+        express: Boolean = false,
+        forPartner: Boolean = false,
+        apart: Boolean = false,
+    ) = BuildNightViewModel(
         savedStateHandle = SavedStateHandle(
             buildMap<String, Any> {
                 if (focus != null) put("focus", focus)
                 if (express) put("express", true)
+                if (forPartner) put("forPartner", true)
+                if (apart) put("apart", true)
             },
         ),
         nights = nights,
@@ -157,5 +165,27 @@ class BuildNightViewModelTest {
         val vm = builder(express = true)
         act { vm.buildExpress(null) }
         assertThat(nights.built.single().moods).isEmpty()
+    }
+
+    @Test
+    fun `planning for the partner asks the server to build it for them, and shows only its shape`() = test {
+        val vm = builder(forPartner = true)
+        assertThat(vm.state.forPartner).isTrue()
+
+        act { vm.setDuration(60) }
+        act(vm::build)
+
+        assertThat(nights.calls).containsExactly("plan")
+        assertThat(nights.built.single().durationMin).isEqualTo(60)
+        assertThat(vm.state.plannedChapters).isEqualTo(nights.night.chapters.size)
+        // Nothing to open here: what was planned is the partner's to find (§2.5 #2).
+        assertThat(vm.state.builtExperienceId).isNull()
+    }
+
+    @Test
+    fun `a night for being apart is asked for as one`() = test {
+        val vm = builder(apart = true)
+        act(vm::build)
+        assertThat(nights.built.single().mode).isEqualTo(Mode.APART)
     }
 }

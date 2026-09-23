@@ -10,6 +10,7 @@ import com.shnapps.couple.core.model.ChapterReaction
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightChapter
+import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.NightSettings
 import com.shnapps.couple.core.model.PlannedNight
@@ -55,6 +56,9 @@ class FakeNightRepository(
     /** What the server chooses when nobody configures anything (§14.2). */
     var surpriseResult: Outcome<PlannedNight>? = null
 
+    /** What either partner has planned for the other (§2.5 #2). */
+    val plannedNights = MutableStateFlow<List<NightPlan>>(emptyList())
+
     /** When set, finishing a chapter waits for it: a request still on its way. */
     var holdFinish: CompletableDeferred<Unit>? = null
 
@@ -83,6 +87,16 @@ class FakeNightRepository(
         calls += if (mystery) "surprise:mystery" else "surprise"
         return surpriseResult ?: Outcome.Success(night.copy(mystery = mystery))
     }
+
+    override suspend fun planForPartner(settings: NightSettings): Outcome<Int> {
+        calls += "plan"
+        built += settings
+        return Outcome.Success(night.chapters.size)
+    }
+
+    override val plans: Flow<List<NightPlan>> = plannedNights
+
+    override suspend fun openPlan(experienceId: String): Outcome<Unit> = call("openPlan:$experienceId") { }
 
     override suspend fun load(experienceId: String): Outcome<PlannedNight> {
         calls += "load"

@@ -1084,3 +1084,31 @@ that night — re-applies the chokepoint (a limit set since the night was built 
 items out), bounds the count to what a night of that length may have, and refuses once the night
 has started. A remix the server will not take is not kept on the phone either: the couple plays
 the night their record describes.
+
+---
+
+## D-081 — A planned night is closed to the partner who planned it
+**Phase 14.** "Your partner planned tonight 👀" only works if the planner cannot look. The
+experience document is the night, and both partners could read every experience — so a planner
+could have read exactly what they were supposed to be keeping secret.
+
+A night with `plannedFor` set is now readable by that partner alone, and listing experiences is
+closed for everyone (a list would hand the planner every document the rule denies). What both may
+see lives in `couples/{cid}/plans/{experienceId}`: who planned it, how many chapters, and whether
+it has been opened — never a content id. `planNight` returns the same three things and nothing
+else, so the planner's own phone never holds what it planned.
+
+It is built for the partner who will play it, not for the planner: their boundaries decide what it
+may hold, their ask-first themes are the ones flagged, and the planner's are left out — the mirror
+image of D-060, and for the same reason.
+
+## D-082 — ASYNC is a session kind, not a degraded live one
+**Phase 14.** §12.4 asks for async as a first-class session type. The states it needs are the ones
+two phones already use, so ASYNC is a kind rather than a second machine: what changes is time and
+patience.
+
+A session for a planned night is ASYNC. The planner's "I'm in" is recorded when the session opens,
+because they chose how far the night goes when they planned it, so only the partner's is still to
+give. Presence is not expected, and the sweep gives it a week instead of ten minutes — an async
+night that nobody is coming back to still frees the couple's place eventually, but not while they
+are asleep.

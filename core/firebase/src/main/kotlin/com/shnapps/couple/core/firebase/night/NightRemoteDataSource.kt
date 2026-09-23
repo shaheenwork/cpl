@@ -50,6 +50,18 @@ interface NightRemoteDataSource {
      */
     suspend fun remixNight(experienceId: String, chapters: List<Pair<String, String>>): Outcome<Unit>
 
+    /**
+     * A night planned for the partner (§2.5 #2). The planner is told the shape and nothing else:
+     * what is in it is the partner's to find.
+     */
+    suspend fun planNight(settings: NightSettings): Outcome<PlanPayload>
+
+    /** The partner opening what was planned for them: the planner learns it landed. */
+    suspend fun openPlan(experienceId: String): Outcome<Unit>
+
+    /** What either partner has planned for the other, as both of them may see it. */
+    fun observePlans(coupleId: String): Flow<List<PlanDoc>>
+
     /** [twoPhones]: each partner answers on their own, rather than one phone passed over (§12). */
     suspend fun createSession(experienceId: String, twoPhones: Boolean = false): Outcome<SessionPayload>
 
@@ -110,6 +122,18 @@ data class NightSettingsPayload(
     val intensity: Int,
     val leadership: String,
     val novelty: String,
+)
+
+/** What planNight returned: the shape of what was planned, and not one word of what is in it. */
+data class PlanPayload(val experienceId: String, val chapterCount: Int)
+
+/** A plan as both partners may read it (§2.5 #2). */
+data class PlanDoc(
+    val experienceId: String,
+    val plannedBy: String,
+    val plannedFor: String,
+    val chapterCount: Int,
+    val opened: Boolean,
 )
 
 /** What generateExperience returned: ids only, resolved against the content on the phone. */
@@ -209,6 +233,9 @@ data class FeedbackPayload(
 )
 
 @Singleton
+// One data source for one interface: it has a function per callable and per listener a night
+// needs, and nothing else.
+@Suppress("TooManyFunctions")
 class FirebaseNightRemoteDataSource @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val functions: FirebaseFunctions,
@@ -216,6 +243,29 @@ class FirebaseNightRemoteDataSource @Inject constructor(
 
     override suspend fun surprise(mystery: Boolean, mode: Mode): Outcome<ServerNightPayload> =
         functions.callFunction("surpriseNight", mapOf("mystery" to mystery, "mode" to mode.name)) { it.toNight() }
+
+    override suspend fun planNight(settings: NightSettings): Outcome<PlanPayload> =
+        functions.callFunction("planNight", settings.toRequest()) { data ->
+            PlanPayload(
+                experienceId = data["experienceId"] as String,
+                chapterCount = (data["chapterCount"] as Number).toInt(),
+            )
+        }
+
+    override suspend fun openPlan(experienceId: String): Outcome<Unit> =
+        functions.callFunction("openPlan", mapOf("experienceId" to experienceId)) { }
+
+    override fun observePlans(coupleId: String): Flow<List<PlanDoc>> = callbackFlow {
+        val registration = firestore.collection(COUPLES).document(coupleId).collection(PLANS)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                trySend(snapshot?.documents.orEmpty().mapNotNull { it.toPlan() })
+            }
+        awaitClose { registration.remove() }
+    }
 
     override suspend fun remixNight(experienceId: String, chapters: List<Pair<String, String>>): Outcome<Unit> {
         val payload = mapOf(
@@ -225,17 +275,18 @@ class FirebaseNightRemoteDataSource @Inject constructor(
         return functions.callFunction("remixNight", payload) { }
     }
 
-    override suspend fun generate(settings: NightSettings): Outcome<ServerNightPayload> {
-        val request = buildMap<String, Any> {
-            put("mode", settings.mode.name)
-            put("durationMin", settings.durationMin)
-            put("moods", settings.moods.map { it.id })
-            put("intensity", settings.intensity.level)
-            put("leadership", settings.leadership.name)
-            put("novelty", settings.novelty.name)
-            settings.focus?.let { put("focus", it) }
-        }
-        return functions.callFunction("generateExperience", request) { it.toNight() }
+    override suspend fun generate(settings: NightSettings): Outcome<ServerNightPayload> =
+        functions.callFunction("generateExperience", settings.toRequest()) { it.toNight() }
+
+    /** The night as the server's callables take it. */
+    private fun NightSettings.toRequest(): Map<String, Any> = buildMap {
+        put("mode", mode.name)
+        put("durationMin", durationMin)
+        put("moods", moods.map { it.id })
+        put("intensity", intensity.level)
+        put("leadership", leadership.name)
+        put("novelty", novelty.name)
+        focus?.let { put("focus", it) }
     }
 
     override suspend fun createSession(experienceId: String, twoPhones: Boolean): Outcome<SessionPayload> {
@@ -395,6 +446,7 @@ class FirebaseNightRemoteDataSource @Inject constructor(
 private const val COUPLES = "couples"
 private const val SESSIONS = "sessions"
 private const val EXPERIENCES = "experiences"
+private const val PLANS = "plans"
 private const val ASK_FIRST = "askFirst"
 private const val FEEDBACK = "feedback"
 private const val SUBMISSIONS = "submissions"
@@ -432,6 +484,18 @@ private fun Map<*, *>.toNightSettings(): NightSettingsPayload? {
         intensity = intensity,
         leadership = leadership,
         novelty = novelty,
+    )
+}
+
+private fun DocumentSnapshot.toPlan(): PlanDoc? {
+    val plannedBy = getString("plannedBy") ?: return null
+    val plannedFor = getString("plannedFor") ?: return null
+    return PlanDoc(
+        experienceId = id,
+        plannedBy = plannedBy,
+        plannedFor = plannedFor,
+        chapterCount = getLong("chapterCount")?.toInt() ?: 0,
+        opened = getString("state") == "OPENED",
     )
 }
 

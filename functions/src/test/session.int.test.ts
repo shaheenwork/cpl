@@ -17,7 +17,9 @@ import { recomputeCouple } from '../couple/recompute';
 import { loadCatalogue, resetCatalogueCache } from '../engine/catalogue';
 import { DEFAULT_WEIGHTS, type EngineItem } from '../engine/types';
 import { generateExperience, type GenerateDeps } from '../experience/generate';
+import { openPlan, planNight } from '../experience/plan';
 import { createPairingCode, requestPairing, respondToPairing, unpairCouple } from '../pairing/pairing';
+import { expireStale } from '../session/expiry';
 import { STALE_SESSION_MS, advanceSession, createSession, endSession, markReady } from '../session/session';
 import { ServiceError } from '../shared/errors';
 
@@ -280,5 +282,86 @@ describe('playing a night', () => {
     await rejects(advanceSession(db, a, { sessionId, fromChapter: 'one' }, NOW), 'invalid-argument', 'fromChapter');
     await unpairCouple(db, a, NOW);
     await rejects(endSession(db, a, { sessionId, action: 'STOP' }, NOW), 'failed-precondition', 'not-paired');
+  });
+});
+
+describe('a night planned for the partner, played later', () => {
+  beforeEach(async () => {
+    await clearEmulator();
+    resetCatalogueCache();
+  });
+
+  it('completes with the two of them never in it at once (section 12.4)', async () => {
+    const { a, b, coupleId } = await couple();
+
+    // Alex plans it, at a level that would need both to say they are in, and goes away.
+    const planned = await planNight(
+      db,
+      a,
+      { mode: 'TOGETHER', durationMin: 30, moods: ['romantic'], intensity: 5, leadership: 'ME', novelty: 'MIXED' },
+      NOW,
+      deps(),
+    );
+    assert.equal((await read(`couples/${coupleId}/plans/${planned.experienceId}`)).state, 'WAITING');
+
+    // Hours later, Sam finds it and opens it. Alex is not here, and is never asked to be.
+    const later = NOW + 6 * 60 * 60 * 1000;
+    await openPlan(db, b, { experienceId: planned.experienceId }, later);
+    const session = await createSession(db, b, { experienceId: planned.experienceId }, later);
+    assert.equal(session.kind, 'ASYNC');
+    // Alex said how far it goes by planning it: their "I'm in" is already in, and only Sam's
+    // is still to give — if this night reaches a level that needs one at all.
+    const opened = await read(`couples/${coupleId}/sessions/${session.sessionId}`);
+    assert.deepEqual(opened.consentAcks, { [a]: true });
+    if (session.consentRequired) {
+      assert.equal(session.state, 'WAITING_FOR_PARTNER');
+      assert.equal((await markReady(db, b, { sessionId: session.sessionId }, later)).state, 'READY');
+    }
+
+    let view = await advance(b, session.sessionId, -1, undefined, later);
+    for (let chapter = 0; chapter < session.chapterCount; chapter++) {
+      view = await advance(b, session.sessionId, chapter, undefined, later);
+    }
+    assert.equal(view.state, 'COMPLETED');
+    assert.equal((await read(`couples/${coupleId}/experiences/${planned.experienceId}`)).status, 'COMPLETED');
+    // The couple's place is theirs again: the pointer is removed, not emptied.
+    assert.equal((await read(`couples/${coupleId}`)).activeSessionId, undefined);
+  });
+
+  it('is the partner to open it, and nobody else', async () => {
+    const { a, b } = await couple();
+    const planned = await planNight(
+      db,
+      a,
+      { mode: 'TOGETHER', durationMin: 30, moods: ['romantic'], intensity: 2, leadership: 'ME', novelty: 'MIXED' },
+      NOW,
+      deps(),
+    );
+
+    // The planner cannot play what they planned: it is not theirs to open.
+    await rejects(createSession(db, a, { experienceId: planned.experienceId }, NOW), 'permission-denied', 'not-yours');
+    const session = await createSession(db, b, { experienceId: planned.experienceId }, NOW);
+    assert.equal(session.kind, 'ASYNC');
+    assert.equal(session.consentRequired, false);
+  });
+
+  it('is given a week before it is swept away, rather than ten minutes', async () => {
+    const { a, b, coupleId } = await couple();
+    const planned = await planNight(
+      db,
+      a,
+      { mode: 'TOGETHER', durationMin: 30, moods: ['romantic'], intensity: 2, leadership: 'ME', novelty: 'MIXED' },
+      NOW,
+      deps(),
+    );
+    const session = await createSession(db, b, { experienceId: planned.experienceId }, NOW);
+
+    // A day later it is still theirs to come back to, exactly where they left it.
+    assert.deepEqual(await expireStale(db, NOW + 24 * 60 * 60 * 1000), { expired: 0 });
+    assert.equal((await read(`couples/${coupleId}/sessions/${session.sessionId}`)).state, session.state);
+
+    // After a week, the couple gets their place back.
+    assert.deepEqual(await expireStale(db, NOW + 8 * 24 * 60 * 60 * 1000), { expired: 1 });
+    assert.equal((await read(`couples/${coupleId}/sessions/${session.sessionId}`)).endReason, 'EXPIRED');
   });
 });

@@ -9,6 +9,7 @@ import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.night.NightRepository
 import com.shnapps.couple.core.datastore.AppPreferencesStore
 import com.shnapps.couple.core.model.Mode
+import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +34,10 @@ data class HomeUiState(
     val making: Boolean = false,
     /** Set once a surprise exists: the screen opens it and calls [HomeViewModel.onShown]. */
     val startedExperienceId: String? = null,
+    /** Something the partner planned, waiting to be found (§2.5 #2). */
+    val waitingForMe: NightPlan? = null,
+    /** Something this phone's user planned for them, and whether they have opened it. */
+    val plannedByMe: NightPlan? = null,
     val error: HomeError? = null,
 ) {
     /** Nothing else can start while the couple already has something under way (D-059). */
@@ -59,10 +64,20 @@ class HomeViewModel @Inject constructor(
 
     private val local = MutableStateFlow(HomeUiState())
 
-    val uiState: StateFlow<HomeUiState> =
-        combine(local, nights.activeSession, preferences.preferences.map { it.mode }) { state, active, mode ->
-            state.copy(active = active, mode = mode)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), HomeUiState())
+    val uiState: StateFlow<HomeUiState> = combine(
+        local,
+        nights.activeSession,
+        preferences.preferences.map { it.mode },
+        nights.plans,
+    ) { state, active, mode, plans ->
+        state.copy(
+            active = active,
+            mode = mode,
+            // Theirs first: a night waiting to be found is the best thing on this screen.
+            waitingForMe = plans.firstOrNull { !it.mine },
+            plannedByMe = plans.firstOrNull { it.mine },
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), HomeUiState())
 
     fun setMode(mode: Mode) {
         viewModelScope.launch { preferences.setMode(mode) }
@@ -78,6 +93,24 @@ class HomeViewModel @Inject constructor(
                     // One event for both: which of the two taps it was is not worth recording.
                     analytics.log(AnalyticsEvent.SurpriseCreated)
                     local.update { it.copy(making = false, startedExperienceId = result.value.experienceId) }
+                }
+                is Outcome.Failure -> local.update { it.copy(making = false, error = result.error.toHomeError()) }
+            }
+        }
+    }
+
+    /**
+     * "Something is waiting for you tonight 👀" (§13): opening it tells the partner it landed —
+     * never what happened next — and hands the night to the player.
+     */
+    fun openWaiting() {
+        val plan = uiState.value.waitingForMe ?: return
+        if (!uiState.value.canStart) return
+        local.update { it.copy(making = true, error = null) }
+        viewModelScope.launch {
+            when (val result = nights.openPlan(plan.experienceId)) {
+                is Outcome.Success -> local.update {
+                    it.copy(making = false, startedExperienceId = plan.experienceId)
                 }
                 is Outcome.Failure -> local.update { it.copy(making = false, error = result.error.toHomeError()) }
             }

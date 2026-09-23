@@ -231,7 +231,14 @@ service cloud.firestore {
       // (generateExperience); both members read them. They hold content ids, never anything
       // about either partner's answers or limits.
       match /experiences/{experienceId} {
-        allow get, list: if isActiveMember(coupleId);
+        // A night one partner planned for the other (§2.5 #2) is readable only by the partner
+        // it was planned for: the surprise is the point, and the planner already knows the
+        // shape they asked for. Listing is closed for the same reason — a list would hand the
+        // planner every document it must not read.
+        allow get: if isActiveMember(coupleId)
+                   && (!('plannedFor' in resource.data) || resource.data.plannedFor == null
+                       || isSelf(resource.data.plannedFor));
+        allow list: if false;
         allow write: if false;
 
         // Each partner's ask-first items (§3.2), readable by that partner alone: the other
@@ -240,6 +247,14 @@ service cloud.firestore {
           allow get: if isSelf(askUid) && isActiveMember(coupleId);
           allow list, write: if false;
         }
+      }
+
+      // What one partner has planned for the other (§2.5 #2, §13): that there is something,
+      // and how big it is. Never what is in it — that lives in the experience, which only the
+      // partner it was planned for may read.
+      match /plans/{planId} {
+        allow get, list: if isActiveMember(coupleId);
+        allow write: if false;
       }
 
       // A night being played (§3.1, §12). Server-authoritative: every transition, every

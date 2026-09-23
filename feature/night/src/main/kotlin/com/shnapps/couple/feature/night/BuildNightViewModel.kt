@@ -10,6 +10,7 @@ import com.shnapps.couple.core.data.night.NightRepository
 import com.shnapps.couple.core.data.taxonomy.TaxonomyRepository
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Leadership
+import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.Mood
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.NightSettings
@@ -37,6 +38,10 @@ data class BuildNightUiState(
     val focusPrompt: String? = null,
     /** "We have 15 minutes" (§14.5): one tap, one choice, and nothing else to set. */
     val express: Boolean = false,
+    /** Planned for the partner (§2.5 #2): built, never shown, and left for them to find. */
+    val forPartner: Boolean = false,
+    /** Set once a night has been planned for the partner: how many chapters it has. */
+    val plannedChapters: Int? = null,
     /** A night already under way for this couple: there is one at a time (D-059). */
     val activeNight: NightSession? = null,
     val building: Boolean = false,
@@ -60,18 +65,24 @@ class BuildNightViewModel @Inject constructor(
     // Type-safe routes keep each argument under its property's name (Route.BuildNight).
     private val focus: String? = savedStateHandle.get<String>(Route.BuildNight::focus.name)
     private val express: Boolean = savedStateHandle.get<Boolean>(Route.BuildNight::express.name) ?: false
+    private val forPartner: Boolean = savedStateHandle.get<Boolean>(Route.BuildNight::forPartner.name) ?: false
+    private val apart: Boolean = savedStateHandle.get<Boolean>(Route.BuildNight::apart.name) ?: false
 
     private val local = MutableStateFlow(
         BuildNightUiState(
             express = express,
+            forPartner = forPartner,
             // Fifteen minutes, nobody leading, and a mix: the only thing left to say is the mood.
             settings = if (express) {
-                NightSettings(durationMin = EXPRESS_MIN, leadership = Leadership.RANDOM, focus = focus)
+                NightSettings(durationMin = EXPRESS_MIN, leadership = Leadership.RANDOM, focus = focus, mode = mode)
             } else {
-                NightSettings(focus = focus)
+                NightSettings(focus = focus, mode = mode)
             },
         ),
     )
+
+    /** The same room, or apart: what the night is built for (§13). */
+    private val mode: Mode get() = if (apart) Mode.APART else Mode.TOGETHER
 
     val uiState: StateFlow<BuildNightUiState> = combine(
         local,
@@ -96,6 +107,7 @@ class BuildNightViewModel @Inject constructor(
 
     fun build() {
         if (local.value.building) return
+        if (forPartner) return planIt()
         local.update { it.copy(building = true, error = null) }
         viewModelScope.launch {
             val settings = local.value.settings
@@ -106,6 +118,25 @@ class BuildNightViewModel @Inject constructor(
             local.update { state ->
                 when (result) {
                     is Outcome.Success -> state.copy(building = false, builtExperienceId = result.value.experienceId)
+                    is Outcome.Failure -> state.copy(building = false, error = result.error.toBuildError())
+                }
+            }
+        }
+    }
+
+    /**
+     * Planning it for the partner (§2.5 #2): the server builds it behind *their* limits and
+     * keeps it from this phone. All that comes back is how many chapters it has.
+     */
+    private fun planIt() {
+        local.update { it.copy(building = true, error = null) }
+        viewModelScope.launch {
+            val settings = local.value.settings
+            var result = nights.planForPartner(settings)
+            if (result.isNotEnoughContent()) result = nights.planForPartner(settings)
+            local.update { state ->
+                when (result) {
+                    is Outcome.Success -> state.copy(building = false, plannedChapters = result.value)
                     is Outcome.Failure -> state.copy(building = false, error = result.error.toBuildError())
                 }
             }

@@ -17,6 +17,7 @@ import { coupleOf, recomputeCouple } from './couple/recompute';
 import * as reveals from './discovery/reveals';
 import * as experience from './experience/generate';
 import * as games from './experience/game';
+import * as plan from './experience/plan';
 import * as remix from './experience/remix';
 import * as surprise from './experience/surprise';
 import * as feedback from './feedback/affinity';
@@ -206,6 +207,19 @@ export const surpriseNight = onCall(options, (request) =>
  */
 export const remixNight = onCall(options, (request) =>
   guarded(() => remix.remixExperience(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+/**
+ * A night one partner plans for the other (sections 2.5 #2, 13). Built for the partner who will
+ * play it, and told back to the planner as a shape and nothing else.
+ */
+export const planNight = onCall(options, (request) =>
+  guarded(() => plan.planNight(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+/** The partner opening what was planned for them: the planner learns it landed, never what it is. */
+export const openPlan = onCall(options, (request) =>
+  guarded(() => plan.openPlan(getFirestore(), callerUid(request), request.data, Date.now())),
 );
 
 /** A game's rounds, chosen behind both partners' boundaries like a night (section 11). */

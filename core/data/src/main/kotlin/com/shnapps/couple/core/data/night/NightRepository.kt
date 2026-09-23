@@ -21,6 +21,7 @@ import com.shnapps.couple.core.firebase.night.CoupleNightState
 import com.shnapps.couple.core.firebase.night.FeedbackPayload
 import com.shnapps.couple.core.firebase.night.NightRemoteDataSource
 import com.shnapps.couple.core.firebase.night.NightSettingsPayload
+import com.shnapps.couple.core.firebase.night.PlanDoc
 import com.shnapps.couple.core.firebase.night.SessionAction
 import com.shnapps.couple.core.firebase.night.SessionDoc
 import com.shnapps.couple.core.model.Boundary
@@ -33,6 +34,7 @@ import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Leadership
 import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.Mood
+import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.NightSettings
 import com.shnapps.couple.core.model.Novelty
@@ -81,6 +83,19 @@ interface NightRepository {
      * it like any other. [mystery] asks for a Mystery Night, whose shape is never shown.
      */
     suspend fun surprise(mystery: Boolean = false): Outcome<PlannedNight>
+
+    /**
+     * A night planned for the partner (§2.5 #2): built for them, behind their limits, and kept
+     * from this phone entirely. Returns how many chapters it has, which is all the planner is
+     * ever told about it.
+     */
+    suspend fun planForPartner(settings: NightSettings): Outcome<Int>
+
+    /** What either partner has planned for the other, as both may see it (§13). */
+    val plans: Flow<List<NightPlan>>
+
+    /** The partner opening what was planned for them: the planner learns it landed. */
+    suspend fun openPlan(experienceId: String): Outcome<Unit>
 
     /** The night [experienceId]: the one held here, or fetched again after a restart. */
     suspend fun load(experienceId: String): Outcome<PlannedNight>
@@ -238,6 +253,23 @@ class DefaultNightRepository @Inject constructor(
         )
         hold(night.experienceId, settings, server, night.askFirstItems.toSet(), night.focusIncluded, night.mystery)
     }
+
+    override suspend fun planForPartner(settings: NightSettings): Outcome<Int> =
+        remote.planNight(settings).map { it.chapterCount }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override val plans: Flow<List<NightPlan>> = ids.flatMapLatest { pair ->
+        if (pair == null) {
+            flowOf(emptyList())
+        } else {
+            val (uid, coupleId) = pair
+            remote.observePlans(coupleId)
+                .map { docs -> docs.map { it.toPlan(uid) } }
+                .catch { emit(emptyList()) }
+        }
+    }
+
+    override suspend fun openPlan(experienceId: String): Outcome<Unit> = remote.openPlan(experienceId)
 
     override suspend fun load(experienceId: String): Outcome<PlannedNight> = lock.withLock {
         heldFor(experienceId)?.let { return Outcome.Success(it.planned()) }
@@ -437,6 +469,14 @@ internal fun SessionDoc.toSession(uid: String?, partnerLastSeenMillis: Long? = n
     seen = uid != null && uid in seenUids,
     partnerSeen = seenUids.any { it != uid },
     partnerLastSeenMillis = partnerLastSeenMillis,
+)
+
+/** A plan as this phone reads it: whose it is, and how much of it there is. */
+private fun PlanDoc.toPlan(uid: String): NightPlan = NightPlan(
+    experienceId = experienceId,
+    mine = plannedBy == uid,
+    chapterCount = chapterCount,
+    opened = opened,
 )
 
 /** The settings the server says a night was built with (§14.2). */

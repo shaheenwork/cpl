@@ -16,8 +16,15 @@ import { isTerminal, type SessionState } from './transitions';
 /** Ten minutes of silence from both phones (section 12.3). */
 export const EXPIRE_AFTER_MS = 10 * 60 * 1000;
 
+/**
+ * An async session is not waiting for anyone to be there (section 12.4): one partner does their
+ * part and the other comes to it hours or days later. It gives up its place after a week, so a
+ * couple is never held by something neither of them is going to finish.
+ */
+export const EXPIRE_ASYNC_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
+
 /** How far back the sweep looks: sessions touched since then are certainly alive. */
-const WINDOW_MS = 24 * 60 * 60 * 1000;
+const WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 export async function expireStale(db: Firestore, nowMs: number): Promise<{ expired: number }> {
   const cutoff = Timestamp.fromMillis(nowMs - EXPIRE_AFTER_MS);
@@ -30,8 +37,11 @@ export async function expireStale(db: Firestore, nowMs: number): Promise<{ expir
   let expired = 0;
   for (const session of candidates.docs) {
     if (isTerminal(session.get('state') as SessionState)) continue;
+    const patience = session.get('kind') === 'ASYNC' ? EXPIRE_ASYNC_AFTER_MS : EXPIRE_AFTER_MS;
+    const touched = (session.get('updatedAt') as Timestamp | undefined)?.toMillis() ?? 0;
+    if (nowMs - touched < patience) continue;
     const seen = await lastSeen(session.ref);
-    if (seen !== null && seen > nowMs - EXPIRE_AFTER_MS) continue;
+    if (seen !== null && seen > nowMs - patience) continue;
     const coupleId = session.ref.parent.parent!.id;
     if (await expireSession(db, coupleId, session.id, nowMs)) expired += 1;
   }

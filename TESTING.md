@@ -177,6 +177,21 @@ night was built refused.
 `NightSnapshotTest` records the "MAKE IT…" row and the mystery shape screen, which shows neither a
 chapter count nor a length.
 
+### A night planned for later (Phase 14)
+
+The async flow is held at three layers. `experience.int.test.ts` covers planning: the night is
+built for the partner (their ask-first themes flagged, the planner's left out), the planner is
+returned a shape and nothing else, and the plan is opened once, by the partner it belongs to.
+`session.int.test.ts` plays the whole thing with the two of them never in it at once — planned at
+one time, opened and finished hours later — and holds the two rules that make that safe: the
+planner cannot open what they planned, and an async session is given a week rather than ten
+minutes before the sweep takes it. The rules tests prove the planner cannot read the night itself,
+and that nobody can list experiences.
+
+On the phone, `DefaultNightRepositoryTest` keeps a planned night out of this phone's hands (it is
+a shape, not a night to play), `HomeViewModelTest` covers what waits and what was planned, and
+`HomeSnapshotTest` records both sides of it.
+
 ### Two phones in one session (Phase 12)
 
 A phone each is tested at every layer, because nothing about it can be seen from one of them.

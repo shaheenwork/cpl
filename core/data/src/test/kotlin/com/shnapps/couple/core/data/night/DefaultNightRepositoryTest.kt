@@ -12,6 +12,8 @@ import com.shnapps.couple.core.firebase.night.ExperienceDoc
 import com.shnapps.couple.core.firebase.night.FeedbackPayload
 import com.shnapps.couple.core.firebase.night.NightRemoteDataSource
 import com.shnapps.couple.core.firebase.night.NightSettingsPayload
+import com.shnapps.couple.core.firebase.night.PlanDoc
+import com.shnapps.couple.core.firebase.night.PlanPayload
 import com.shnapps.couple.core.firebase.night.RevealDoc
 import com.shnapps.couple.core.firebase.night.ServerNightPayload
 import com.shnapps.couple.core.firebase.night.SessionAction
@@ -198,6 +200,9 @@ class DefaultNightRepositoryTest {
         val surprises = mutableListOf<Boolean>()
         val remixes = mutableListOf<List<String>>()
         var remixResult: Outcome<Unit>? = null
+        val planned = mutableListOf<NightSettings>()
+        val opened = mutableListOf<String>()
+        val plans = MutableStateFlow<List<PlanDoc>>(emptyList())
         var askFirst: List<String> = emptyList()
         var unknownChapter = false
         val couple = MutableStateFlow(CoupleNightState(activeSessionId = null, sharedLevel = null))
@@ -258,6 +263,18 @@ class DefaultNightRepositoryTest {
             remixes += chapters.map { it.first }
             return remixResult ?: Outcome.Success(Unit)
         }
+
+        override suspend fun planNight(settings: NightSettings): Outcome<PlanPayload> {
+            planned += settings
+            return Outcome.Success(PlanPayload(experienceId = PLANNED, chapterCount = server.chapters.size))
+        }
+
+        override suspend fun openPlan(experienceId: String): Outcome<Unit> {
+            opened += experienceId
+            return Outcome.Success(Unit)
+        }
+
+        override fun observePlans(coupleId: String): Flow<List<PlanDoc>> = plans
 
         override suspend fun createSession(experienceId: String, twoPhones: Boolean) =
             Outcome.Success(payload(SessionState.READY))
@@ -392,10 +409,41 @@ class DefaultNightRepositoryTest {
         assertThat(held.chapters.map { it.item.id }).isEqualTo(built.chapters.map { it.item.id })
     }
 
+    @Test
+    fun `a night planned for the partner comes back as a shape, and never as a night to play`() = runTest {
+        val repository = repository()
+
+        val chapters = (repository.planForPartner(NightSettings()) as Outcome.Success).value
+
+        assertThat(chapters).isEqualTo(server.chapters.size)
+        assertThat(remote.planned).hasSize(1)
+        // Nothing is held here: a planned night is the partner's, and this phone cannot play it.
+        assertThat(repository.makeIt(PLANNED, RemixModifier.SHORTER)).isNull()
+    }
+
+    @Test
+    fun `plans say whose they are, and opening one tells the server`() = runTest {
+        val repository = repository()
+        remote.plans.value = listOf(
+            PlanDoc(experienceId = "mine", plannedBy = UID, plannedFor = "partner", chapterCount = 4, opened = false),
+            PlanDoc(experienceId = "theirs", plannedBy = "partner", plannedFor = UID, chapterCount = 6, opened = true),
+        )
+
+        val plans = repository.plans.first()
+
+        assertThat(plans.map { it.mine }).containsExactly(true, false).inOrder()
+        assertThat(plans.map { it.chapterCount }).containsExactly(4, 6).inOrder()
+        assertThat(plans.last().opened).isTrue()
+
+        repository.openPlan("theirs")
+        assertThat(remote.opened).containsExactly("theirs")
+    }
+
     private companion object {
         const val UID = "uid_host"
         const val COUPLE = "couple1"
         const val EXPERIENCE = "night1"
+        const val PLANNED = "planned_night"
         const val SESSION = "session1"
         const val NOW = 1_790_000_000_000L
         const val TIMEOUT_MS = 5_000L

@@ -32,6 +32,8 @@ export interface SessionView {
   currentChapter: number;
   chapterCount: number;
   consentRequired: boolean;
+  /** One phone, two, or neither at the same time (section 12.4). */
+  kind: SessionKind;
 }
 
 export interface AdvanceResult extends SessionView {
@@ -73,6 +75,10 @@ export function snapshotOf(session: DocumentData, members: readonly string[]): S
   };
 }
 
+/** Both phones, each answering for itself (section 12), or one passed between them (D-059). */
+export const SESSION_KINDS = ['ONE_DEVICE', 'TWO_DEVICE', 'ASYNC'] as const;
+type SessionKind = (typeof SESSION_KINDS)[number];
+
 function viewOf(sessionId: string, session: DocumentData): SessionView {
   return {
     sessionId,
@@ -80,12 +86,9 @@ function viewOf(sessionId: string, session: DocumentData): SessionView {
     currentChapter: session.currentChapter,
     chapterCount: session.chapterCount,
     consentRequired: session.consentRequired === true,
+    kind: SESSION_KINDS.includes(session.kind) ? session.kind : 'ONE_DEVICE',
   };
 }
-
-/** Both phones, each answering for itself (section 12), or one passed between them (D-059). */
-export const SESSION_KINDS = ['ONE_DEVICE', 'TWO_DEVICE'] as const;
-type SessionKind = (typeof SESSION_KINDS)[number];
 
 interface Loaded {
   coupleRef: DocumentReference;
@@ -244,6 +247,14 @@ export async function createSession(db: Firestore, uid: string, input: unknown, 
       }
     }
 
+    // A night one partner planned for the other (section 2.5 #2) is played on the partner's
+    // phone alone, whenever they get to it: an async session (section 12.4). The planner's
+    // "I'm in" came with the planning — they chose how far it goes — so only the partner's is
+    // still to give.
+    const plannedBy = typeof experience.plannedBy === 'string' ? experience.plannedBy : null;
+    if (plannedBy !== null && experience.plannedFor !== uid) {
+      throw new ServiceError('permission-denied', 'not-yours');
+    }
     const chapters = experience.chapters as DocumentData[];
     const consentRequired = chapters.some((chapter) => chapter.intensity >= CONSENT_FROM_INTENSITY);
     const state: SessionState = consentRequired ? 'WAITING_FOR_PARTNER' : 'READY';
@@ -253,14 +264,14 @@ export async function createSession(db: Firestore, uid: string, input: unknown, 
       experienceId,
       /** What is played, so either phone opens the right player for it. */
       experienceType: experience.type === 'GAME' ? 'GAME' : 'NIGHT',
-      kind,
+      kind: plannedBy === null ? kind : 'ASYNC',
       hostUid: uid,
       state,
       pausedFrom: null,
       currentChapter: -1,
       chapterCount: chapters.length,
       consentRequired,
-      consentAcks: {},
+      consentAcks: plannedBy === null ? {} : { [plannedBy]: true },
       submittedBy: {},
       seenBy: {},
       participants: Object.fromEntries((members as string[]).map((member) => [member, { ready: false }])),

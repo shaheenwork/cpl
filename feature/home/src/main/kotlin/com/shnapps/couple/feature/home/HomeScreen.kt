@@ -19,6 +19,7 @@ import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.Mode
+import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionState
 import com.shnapps.couple.core.ui.ErrorBanner
@@ -53,6 +54,7 @@ fun HomeScreen(
         actions = actions.copy(
             onSurprise = viewModel::surprise,
             onMode = viewModel::setMode,
+            onOpenWaiting = viewModel::openWaiting,
             onDismissError = viewModel::dismissError,
         ),
         modifier = modifier,
@@ -64,6 +66,8 @@ data class HomeActions(
     val onBuild: () -> Unit = {},
     val onExpress: () -> Unit = {},
     val onGames: () -> Unit = {},
+    val onApartNight: () -> Unit = {},
+    val onPlanForThem: () -> Unit = {},
     val onCuriosities: () -> Unit = {},
     val onMutual: () -> Unit = {},
     val onLimits: () -> Unit = {},
@@ -75,6 +79,7 @@ data class HomeActions(
     val onInspector: (() -> Unit)? = null,
     val onOpen: (experienceId: String, type: ExperienceType) -> Unit = { _, _ -> },
     val onSurprise: (mystery: Boolean) -> Unit = {},
+    val onOpenWaiting: () -> Unit = {},
     val onMode: (Mode) -> Unit = {},
     val onDismissError: () -> Unit = {},
 )
@@ -87,10 +92,12 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
             ModeSwitch(mode = state.mode, onMode = actions.onMode)
             state.error?.let { error -> ErrorBanner(message = error.message(), onDismiss = actions.onDismissError) }
             state.active?.let { session -> UnderWay(session, actions.onOpen) }
+            // The strongest thing on this screen when it is there (§2.5 #2).
+            state.waitingForMe?.let { plan -> SomethingWaiting(plan, state.canStart, actions.onOpenWaiting) }
 
             when (state.mode) {
                 Mode.TOGETHER -> TogetherHome(state, actions)
-                Mode.APART -> ApartHome()
+                Mode.APART -> ApartHome(state, actions)
             }
 
             Section("Yours") {
@@ -188,24 +195,82 @@ private fun TogetherHome(state: HomeUiState, actions: HomeActions) {
     }
 }
 
-/** Apart is a first-class mode, built in Phase 14 — not a reskin, and not a dead button (§2.6). */
+/**
+ * Apart (§13): its own way in, not a reskin of the same room. What is here now is a night built
+ * for being apart, and one partner planning a night the other finds later (§2.5 #2). Voice,
+ * photos, countdowns and multi-day arcs come in the phases that build them.
+ */
 @Composable
-private fun ApartHome() {
-    Section("Apart") {
-        CinematicCard(modifier = Modifier.fillMaxWidth()) {
-            Text(text = "SOON", style = EyebrowTextStyle, color = AfterhoursTheme.colors.brass)
+private fun ApartHome(state: HomeUiState, actions: HomeActions) {
+    Column(verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm)) {
+        GlowButton(
+            text = "Start tonight",
+            onClick = actions.onApartNight,
+            leadingEmoji = "🔥",
+            enabled = state.canStart,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        GlowButton(
+            text = if (state.making) "Deciding…" else "Surprise us",
+            onClick = { actions.onSurprise(false) },
+            leadingEmoji = "🎲",
+            enabled = state.canStart,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+    Section("For them") {
+        CinematicCard(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = actions.onPlanForThem,
+            contentDescription = "Plan something for them. They'll only know something is coming.",
+        ) {
+            Text(text = "👀 PLAN SOMETHING", style = EyebrowTextStyle, color = AfterhoursTheme.colors.brass)
             Text(
-                text = "Apart is being built.",
+                text = "Plan a night they'll find later.",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = "Voice notes, surprises that wait for them, countdowns and multi-day arcs. " +
-                    "For now, everything here is for the same room.",
+                text = "You choose the shape. They only know something is coming — and you never " +
+                    "see it either.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = AfterhoursTheme.colors.textMuted,
             )
         }
+        state.plannedByMe?.let { plan ->
+            Text(
+                text = if (plan.opened) {
+                    "They've opened what you planned."
+                } else {
+                    "You've planned something. They haven't found it yet."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = AfterhoursTheme.colors.brass,
+            )
+        }
+    }
+}
+
+/** "Something is waiting for you tonight 👀" (§13): what their partner planned, unopened. */
+@Composable
+private fun SomethingWaiting(plan: NightPlan, canOpen: Boolean, onOpen: () -> Unit) {
+    CinematicCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = { if (canOpen) onOpen() },
+        glowing = true,
+        contentDescription = "Something is waiting for you. ${plan.chapterCount} chapters, planned by them.",
+    ) {
+        Text(text = "👀 SOMETHING IS WAITING", style = EyebrowTextStyle, color = AfterhoursTheme.colors.brass)
+        Text(
+            text = "They've planned something for you.",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = "${plan.chapterCount} chapters. That's all either of you knows until you open it.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = AfterhoursTheme.colors.textMuted,
+        )
     }
 }
 

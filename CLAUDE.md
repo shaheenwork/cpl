@@ -135,6 +135,12 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   chapters (D-080). A remix the server refuses is not played here either.
 - Express ("We have 15 minutes") is one route argument, `Route.BuildNight(express = true)`: the
   same builder with fifteen minutes, the couple's own level and one question.
+- A night one partner plans for the other is built **for them** (`plannedFor`), readable by them
+  alone, and summarised for both in `couples/{cid}/plans/{experienceId}` — which never holds a
+  content id (D-081). Experiences cannot be listed by anyone, for the same reason.
+- Its session is `ASYNC` (D-082): the planner's consent is recorded when it opens, nobody is
+  expected to be present, and the expiry sweep gives it a week.
+- `node functions/scripts/dev-couple.js plans` shows what is planned, for device checks.
 
 ### Games
 

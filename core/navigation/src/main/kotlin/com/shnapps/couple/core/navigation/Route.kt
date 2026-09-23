@@ -55,7 +55,14 @@ object Route {
      * and at most one choice, rather than five dials (§14.5).
      */
     @Serializable
-    data class BuildNight(val focus: String? = null, val express: Boolean = false)
+    data class BuildNight(
+        val focus: String? = null,
+        val express: Boolean = false,
+        /** Planned for the partner, who finds it later (§2.5 #2): the planner never sees it. */
+        val forPartner: Boolean = false,
+        /** Built for being apart rather than in the same room (§13). */
+        val apart: Boolean = false,
+    )
 
     /** A night being played — or waiting to be — on either partner's phone (§14.6). */
     @Serializable

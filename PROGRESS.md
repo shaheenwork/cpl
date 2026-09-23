@@ -3,7 +3,7 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 13 complete. Next action: **Phase 14 — Apart mode + async.**
+**Current position:** Phase 14 complete. Next action: **Phase 15 — Voice + photo.**
 
 ---
 
@@ -25,8 +25,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 | 11 | Game primitives + 7 core games | ✅ **Complete** |
 | 12 | Realtime sessions | ✅ **Complete** |
 | 13 | Together home + Surprise Us | ✅ **Complete** |
-| 14 | Apart mode + async | ⬜ Next |
-| 15 | Voice + photo | ⬜ |
+| 14 | Apart mode + async | ✅ **Complete** |
+| 15 | Voice + photo | ⬜ Next |
 | 16 | Scheduled surprises + multi-day | ⬜ |
 | 17 | FCM + notification privacy | ⬜ |
 | 18 | Memories + library | ⬜ |
@@ -1125,3 +1125,52 @@ npm --prefix firebase/tests test            84/84
   A remix is now written back through `remixNight` (ids only, all of them already released, the
   chokepoint re-applied, refused once the night has started), and a remix the server will not
   take is not played here either.
+
+---
+
+## Phase 14 — Apart mode, and a night planned for later ✅
+
+### Shipped
+- **Apart is its own way in** (§2.6, §13): the switch on home leads to a surface built for being
+  apart — a night for the two of you when you are not in the same room, a surprise, and the thing
+  Apart is really for: planning something they find later.
+- **"Your partner planned tonight 👀"** (§2.5 #2, D-081): one partner sets the shape and the
+  server builds the night **for the other** — their boundaries, their ask-first themes, their
+  phone. The planner is told how many chapters it has and nothing else, ever: a planned night is
+  readable by the partner it was planned for alone, listing experiences is closed to everyone, and
+  `planNight` returns no ids. What both may see is the plan — that there is one, how big, and
+  whether it has been opened.
+- **Async sessions** (§12.4, D-082): a session for a planned night is `ASYNC`. The planner's "I'm
+  in" is recorded when it opens, because they chose how far it goes; only the partner's is still
+  to give. Nobody is expected to be present, and the sweep gives it a week rather than ten
+  minutes.
+- **Home says what is waiting**: "Something is waiting for you" on the partner's side, with the
+  chapter count and no more; "You've planned something. They haven't found it yet." on the
+  planner's, which becomes "They've opened what you planned." when it lands.
+
+### Verified
+```
+./gradlew check assembleDevDebug            BUILD SUCCESSFUL
+:core:data      89   (a plan is a shape here, never a night to play; plans say whose they are)
+:feature:home   11   (what waits, what was planned, and what neither side is told)
+:feature:night  71   (planning for them asks the server to build it for them)
+npm --prefix tools test                     42/42
+npm --prefix functions run test:unit        111/111
+npm --prefix functions run test:int         110/110  (planned nights 3, the async flow 3)
+npm --prefix functions run test:e2e         29/29
+npm --prefix firebase/tests test            86/86    (a planner cannot read what they planned)
+```
+- **Exit criterion — the async flow completes with the partners never online at once**: on the
+  emulator, signed in as Alex: Apart → "Plan a night they'll find later" → 45 minutes, mysterious
+  → "6 chapters, waiting for them." Home then said "You've planned something. They haven't found
+  it yet." The server held the plan as WAITING, the night as `plannedFor: sam`, and nothing about
+  its contents reached Alex's phone. Signed out; signed in as Sam on the same device: home showed
+  "Something is waiting for you. 6 chapters", opening it flipped the plan to OPENED, and the night
+  played — `kind: ASYNC`, Alex's consent already recorded, chapter 1 of 6 opened and read, then
+  STOP, and the couple's place was free again. Alex was never in the app for any of it.
+
+### Found and fixed
+- **The rules suite could only run once against a given emulator**: "written once" tested a
+  submission the previous run had left behind, so a second run failed on a document that was
+  supposed to be fresh. The fixture now clears both partners' submissions for that chapter, and
+  the suite passes twice in a row.

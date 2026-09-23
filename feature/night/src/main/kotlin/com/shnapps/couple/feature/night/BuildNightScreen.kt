@@ -95,15 +95,28 @@ internal fun BuildNightContent(state: BuildNightUiState, actions: BuildNightActi
         ExpressContent(state, actions, modifier)
         return
     }
+    val planned = state.plannedChapters
+    if (planned != null) {
+        PlannedContent(chapters = planned, onDone = actions.onBack, modifier = modifier)
+        return
+    }
     Column(modifier = modifier) {
         ScreenColumn {
             BackRow(label = "Back", onBack = actions.onBack)
-            ScreenHeading(
-                eyebrow = "Build our night",
-                headline = "What are we in the mood for?",
-                body = state.focusPrompt?.let { "Built around something you both chose: $it." },
-            )
-
+            if (state.forPartner) {
+                ScreenHeading(
+                    eyebrow = "For them",
+                    headline = "What are they in the mood for?",
+                    body = "You choose the shape. What goes in it is built for them, behind their " +
+                        "own limits — and you won't see it either.",
+                )
+            } else {
+                ScreenHeading(
+                    eyebrow = "Build our night",
+                    headline = "What are we in the mood for?",
+                    body = state.focusPrompt?.let { "Built around something you both chose: $it." },
+                )
+            }
             state.activeNight?.let { night ->
                 // One night at a time (D-059): say so before anyone sets five dials.
                 Text(
@@ -146,17 +159,41 @@ internal fun BuildNightContent(state: BuildNightUiState, actions: BuildNightActi
 
             if (state.building) {
                 WaitingForPartner(
-                    message = "Building your night…",
+                    message = if (state.forPartner) "Planning it…" else "Building your night…",
                     detail = "Only from what you've both said yes to.",
                 )
             } else {
                 GlowButton(
-                    text = "Build our night",
+                    text = if (state.forPartner) "Plan it for them" else "Build our night",
                     onClick = actions.onBuild,
-                    leadingEmoji = "🔥",
+                    leadingEmoji = if (state.forPartner) "👀" else "🔥",
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+        }
+    }
+}
+
+/**
+ * Planned, and gone from this phone (§2.5 #2): the planner is told the shape and no more. What
+ * is in it is built behind their partner's limits, and only their partner will ever see it.
+ */
+@Composable
+private fun PlannedContent(chapters: Int, onDone: () -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        ScreenColumn {
+            ScreenHeading(
+                eyebrow = "It's ready",
+                headline = "$chapters chapters, waiting for them.",
+                body = "They'll see that something is waiting. Neither of you sees what until " +
+                    "they open it.",
+            )
+            GlowButton(
+                text = "Done",
+                onClick = onDone,
+                style = GlowButtonStyle.Secondary,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }

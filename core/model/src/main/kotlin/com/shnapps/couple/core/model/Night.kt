@@ -99,10 +99,26 @@ enum class SessionState {
 enum class SessionKind {
     ONE_DEVICE,
     TWO_DEVICE,
+
+    /** Neither of you has to be there at the same time (§12.4): a night planned for later. */
+    ASYNC,
     ;
 
     val isTwoPhones: Boolean get() = this == TWO_DEVICE
 }
+
+/**
+ * A night one partner planned for the other (§2.5 #2, §13), as both of them may see it: that
+ * there is one, how big it is, and whether it has been opened. Never what is in it — only the
+ * partner it was planned for can read that, and only by playing it.
+ */
+data class NightPlan(
+    val experienceId: String,
+    /** True when this phone's user is the one who planned it. */
+    val mine: Boolean,
+    val chapterCount: Int,
+    val opened: Boolean,
+)
 
 /** Why a night ended. Never who ended it: STOP is nobody's failure (§3.1, D-059). */
 enum class SessionEndReason {

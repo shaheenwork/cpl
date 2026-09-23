@@ -114,6 +114,19 @@ class NightSnapshotTest {
         BuildNightUiState(error = BuildError.NOT_ENOUGH_CONTENT),
     )
 
+    @Test fun forThem() = captureBuilder(
+        "build-night-for-them",
+        BuildNightUiState(forPartner = true, sharedLevel = Intensity.BOLD),
+    )
+
+    @Test
+    fun plannedForThem() {
+        captureBuilder("build-night-planned", BuildNightUiState(forPartner = true, plannedChapters = 5))
+        composeRule.onNodeWithText("5 chapters, waiting for them.").assertIsDisplayed()
+        // Not a word about what is in it — not even to the partner who planned it (§2.5 #2).
+        assertThat(composeRule.onAllNodesWithText("Mood").fetchSemanticsNodes()).isEmpty()
+    }
+
     @Test fun express() = captureBuilder(
         "build-night-express",
         BuildNightUiState(express = true, sharedLevel = Intensity.NAUGHTY, settings = NightSettings(durationMin = 15)),
