@@ -3,7 +3,7 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 11 complete. Next action: **Phase 12 — Realtime sessions.**
+**Current position:** Phase 12 complete. Next action: **Phase 13 — Together home + Surprise Us.**
 
 ---
 
@@ -23,8 +23,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 | 9 | Experience engine | ✅ **Complete** |
 | 10 | Build Our Night + player | ✅ **Complete** |
 | 11 | Game primitives + 7 core games | ✅ **Complete** |
-| 12 | Realtime sessions | ⬜ Next |
-| 13 | Together home + Surprise Us | ⬜ |
+| 12 | Realtime sessions | ✅ **Complete** |
+| 13 | Together home + Surprise Us | ⬜ Next |
 | 14 | Apart mode + async | ⬜ |
 | 15 | Voice + photo | ⬜ |
 | 16 | Scheduled surprises + multi-day | ⬜ |
@@ -989,3 +989,78 @@ npm --prefix firebase/tests test            77/77
   missions as content; feedback on game rounds into affinity.
 - **Phase 22 (cost):** a game of n rounds is one `startGame` (a catalogue load and the
   couple's filters, matches, history and affinity), one createSession, n + 1 advances.
+
+---
+
+## Phase 12 — Realtime sessions ✅
+
+### Shipped
+- **The state machine, in full** (§12.1): `CHAPTER_ACTIVE → AWAITING_SUBMISSIONS →
+  BOTH_SUBMITTED → REVEAL → CHAPTER_COMPLETE →` the next chapter or `COMPLETED`, added to the
+  one transition table both phones follow (`functions/src/session/transitions.ts`, D-059).
+  `RECONNECTING` is never stored: it is what a phone says about itself.
+- **What a phone may write** (§12.2): its own `submissions/{chapter}_{uid}`, its own
+  `presence/{uid}`, its own "I'm in", and a PAUSE/STOP request — nothing else, enforced by the
+  rules. No phone can read a submission, not even its own partner's: the `onSubmissionCreated`
+  trigger is the only reader, and in one transaction it writes a single `rounds/{chapter}`
+  reveal both may read. Duplicate submissions, premature reveals and double advancement are
+  refused by the transaction, not by hope.
+- **A session that ends itself** (§12.3): `expireStaleSessions` runs every five minutes and
+  abandons any session whose phones have been silent for ten.
+- **A phone each** (D-074): the games that both partners answer at once — Would You Rather, Me
+  or You, Predict My Answer, Who Knows Who — can be played on two phones. The setup asks "One
+  phone" or "A phone each", and with a phone each nobody is named: each side is "You" and "Your
+  partner", and no names travel. Each phone answers its own step, sends that one answer as a
+  short string (`Answers.kt`), waits, and reads the same reveal. The round moves on only once
+  both have seen it; until then the phone that is ready says so rather than showing a button
+  that does nothing. A game of turns is still one phone passed between you — being handed it is
+  the turn.
+- **Cut off, and back** (§12.3): a phone reading its own cache says "Reconnecting…" and keeps
+  the last thing the server said on screen; a listener that actually fails is retried with a
+  backoff. A partner whose phone has not been heard from for ninety seconds shows as dropped
+  out, on the waiting screen and at the round's end.
+- **Nothing about a round is written to the phone** (D-075): a phone restarted mid-round rejoins
+  at the session's round, never answers twice, and takes its own answer back from the reveal.
+
+### Verified
+```
+./gradlew check assembleDevDebug            BUILD SUCCESSFUL
+:core:engine    46   (TwoPhoneRunTest 5: each phone answers first and waits after, the reveal
+                      read the same on both, an answer encoded and read back)
+:core:data      83   (DefaultGameRepositoryTest 13: the answer sent as this phone's own, the
+                      reveal by seat, the partner's heartbeat, a dropped listener, a cached read)
+:feature:games  40   (GameViewModelTest 16, GamesViewModelTest 8, GameSnapshotTest 16)
+:feature:night  61   (unchanged: a night is still played on one phone)
+:architecture   17
+npm --prefix tools test                     42/42
+npm --prefix functions run test:unit        104/104
+npm --prefix functions run test:int         95/95   (realtime 8)
+npm --prefix functions run test:e2e         27/27   (two clients, one session)
+npm --prefix firebase/tests test            84/84   (submissions, reveals, presence: D–G)
+```
+- **Exit criterion — two devices in one session**: on the emulator (dev build, Emulator Suite)
+  signed in as Alex, with `node functions/scripts/dev-couple.js answer|seen|present` playing
+  Sam's own phone. Would You Rather with "A phone each": Alex answered and saw "Over to them.";
+  Sam answered; both answers appeared at once on Alex's phone ("You matched."). The round did
+  not move on until Sam had seen it too — "Still with them." while it waited. Round 2 with the
+  order reversed (Sam first) revealed the moment Alex answered.
+- **Process death**: the app was killed and reopened mid-round. It came back through "Your game
+  is waiting" to the same round, with both answers — its own from the reveal, never from a
+  cache — and did not send a second submission.
+- **Ninety seconds of silence**: with Sam's heartbeat stopped, "Your partner dropped out —
+  waiting…" appeared and stayed.
+- **Airplane mode**: "Reconnecting…" appeared with the network gone, the reveal stayed on
+  screen under it, and both cleared when the network came back.
+- **No regression on one phone**: Me or You played as before — "Over to Alex. Only Alex should
+  look.", the gathering, the reveal with their own names.
+
+### Found and fixed
+- **A phone each would have deadlocked on a game of turns** (D-074): the first reading placed
+  the other partner's steps in order, so the second seat waited for the first — but the reveal
+  arrives only once *both* have answered. Each phone now takes its own steps first and waits
+  after them, and the choice is offered only for games whose steps are all `EACH` or `TOGETHER`.
+- **A heartbeat loop in the ViewModel hung every test** (D-076): `while (true) { delay }` in
+  `viewModelScope` never lets `advanceUntilIdle()` finish. The beat moved into the repository.
+- **"Reconnecting…" never showed on a real network loss**: Firestore does not fail a listener
+  when the network goes — it goes quiet and serves the cache. The listener now includes metadata
+  changes, and a snapshot that starts coming from the cache *is* the reconnecting state.

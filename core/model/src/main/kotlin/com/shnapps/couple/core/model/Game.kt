@@ -21,7 +21,15 @@ data class Game(
     /** Each round offers one prompt of every kind, in this order (a truth and a dare). */
     val promptKinds: List<PromptKind>,
     val steps: List<GameStep>,
-)
+) {
+    /**
+     * Every step is answered by both at once, or taken by both together — so the couple can play
+     * it with a phone each (§12). A game of turns is played on one phone: being handed it is the
+     * turn.
+     */
+    val bothAtOnce: Boolean
+        get() = steps.all { it.who == StepAudience.EACH || it.who == StepAudience.TOGETHER }
+}
 
 /** One step of every round: a primitive, who takes it, and what it shows or compares. */
 data class GameStep(

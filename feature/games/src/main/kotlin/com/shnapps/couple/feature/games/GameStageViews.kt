@@ -58,7 +58,11 @@ internal fun IntroStage(state: GameUiState, actions: GameActions) {
             body = game.description,
         )
         Text(
-            text = "${state.players.first} goes first, then ${state.players.second}.",
+            text = if (state.twoPhones) {
+                "You'll each answer on your own phone, and see both answers together."
+            } else {
+                "${state.players.first} goes first, then ${state.players.second}."
+            },
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
@@ -117,7 +121,11 @@ internal fun ReadyStage(state: GameUiState, actions: GameActions) {
         ScreenHeading(
             eyebrow = "Ready",
             headline = "Here we go.",
-            body = "${state.players.first} goes first. Pass the phone when it asks — and only look when it's yours.",
+            body = if (state.twoPhones) {
+                "Answer on your own phone. Neither of you sees the other's until you've both answered."
+            } else {
+                "${state.players.first} goes first. Pass the phone when it asks — and only look when it's yours."
+            },
         )
         GlowButton(
             text = "Let's play",
@@ -139,6 +147,11 @@ internal fun PlayingStage(moment: GameMoment, state: GameUiState, actions: GameA
                 ScreenHeading(eyebrow = "Pass the phone", headline = "Over to $name.", body = "Only $name should look.")
                 GlowButton(text = "I'm $name", onClick = actions.onProceed, modifier = Modifier.fillMaxWidth())
             }
+            is GameMoment.Waiting -> WaitingOnThem(
+                message = if (state.twoPhones) "Over to them." else "${state.players.name(moment.seat)} is answering.",
+                detail = "You'll both see the answers at once.",
+                away = state.partnerAway,
+            )
             is GameMoment.Gather -> {
                 ScreenHeading(
                     eyebrow = "Answers are in",
@@ -154,25 +167,48 @@ internal fun PlayingStage(moment: GameMoment, state: GameUiState, actions: GameA
                 }
                 state.keepOut?.let { KeepOutOffer(it, actions) }
             }
-            is GameMoment.RoundOver -> {
-                val last = moment.round >= state.roundCount - 1
-                ScreenHeading(
-                    eyebrow = "Round ${moment.round + 1} of ${state.roundCount}",
-                    headline = if (last) "That's the last one." else "Round done.",
-                    body = scoreLine(state),
-                )
-                GlowButton(
-                    text = if (last) "See how it went" else "Next round",
-                    onClick = actions.onNextRound,
-                    enabled = !state.busy,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
+            is GameMoment.RoundOver -> RoundOver(moment, state, actions)
             is GameMoment.Finished -> {
                 ScreenHeading(eyebrow = "Game over", headline = "That's the game.", body = scoreLine(state))
             }
         }
     }
+}
+
+/** The end of a round: what it came to, and the way on — once there is one. */
+@Composable
+private fun RoundOver(moment: GameMoment.RoundOver, state: GameUiState, actions: GameActions) {
+    val last = moment.round >= state.roundCount - 1
+    ScreenHeading(
+        eyebrow = "Round ${moment.round + 1} of ${state.roundCount}",
+        headline = if (last) "That's the last one." else "Round done.",
+        body = scoreLine(state),
+    )
+    // A round is over for both only once both have looked (§12.1): rather than a button that
+    // does nothing, say what is being waited for.
+    if (state.waitingOnPartner) {
+        WaitingOnThem(
+            message = "Still with them.",
+            detail = "They're still looking at the answers.",
+            away = state.partnerAway,
+        )
+    } else {
+        GlowButton(
+            text = if (last) "See how it went" else "Next round",
+            onClick = actions.onNextRound,
+            enabled = !state.busy,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+/** Waiting on the other phone — and saying so plainly when it has gone quiet (§12.3). */
+@Composable
+private fun WaitingOnThem(message: String, detail: String, away: Boolean) {
+    WaitingForPartner(
+        message = message,
+        detail = if (away) "Your partner dropped out — waiting for them to come back." else detail,
+    )
 }
 
 /** After "Not this one": keep what it was about out of the rest of this game (D-071). */

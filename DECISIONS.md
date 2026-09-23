@@ -1000,3 +1000,39 @@ in full, and the night player did the same after Build Our Night handed over to 
 The flag is now a hold: every `SecureScreen` in composition counts, and it is cleared only when
 the last one leaves. `SecureScreenTest` composes the handover — the next screen arrives, then
 the last one leaves — and fails against the old code.
+
+---
+
+## D-074 — A phone each, only for the games both partners answer at once
+**Phase 12.** With one phone the hand-off *is* the turn: the phone changes hands, and the
+screen covers what came before. With a phone each, "Truth or dare" would ask the other partner
+to react to a dare they cannot see yet — the server reveals a round only once both phones have
+answered, so a phone that waits for the other before answering waits for ever.
+
+So the choice is offered only for games whose every step is `EACH` or `TOGETHER`
+(`Game.bothAtOnce`): Would You Rather, Me or You, Predict My Answer, Who Knows Who. A game of
+turns is played the way it was always meant to be, on one phone. The reading of a round on a
+phone follows the same rule: this phone takes its own steps first, and waits after them
+(`RoundReading.ownSlots`), whichever seat it plays.
+
+## D-075 — A round's answers are never written down; the reveal gives them back
+**Phase 12.** §12.3 asks for a session restored after process death. What a partner answered
+never leaves the phone (D-069), so caching answers locally to restore a half-played round would
+be the one place the app wrote them down — and the one place a forensic look would find them.
+
+Instead: the session says which round it is on and whether this phone has already answered
+(`submittedBy`), and the server's reveal carries *both* answers. A phone restarted mid-round
+rejoins at the round, waits rather than answering twice (`GameRun.awaitingReveal`), and takes
+its own answer back from the reveal along with the partner's. Nothing about a round is stored
+on the phone at all. Verified on the device: killed mid-round, the app came back to the same
+reveal with both answers.
+
+## D-076 — The heartbeat's beat belongs to the repository, not the ViewModel
+**Phase 12.** A `while (true) { send(); delay(20s) }` in `viewModelScope` is the obvious way to
+send a heartbeat, and it makes every `advanceUntilIdle()` in a ViewModel test hang for ever:
+the loop always has another task scheduled, so the test scheduler never goes idle.
+
+`GameRepository.keepPresent(sessionId)` is a flow that sends while it is collected, and owns
+how often (`PRESENCE_EVERY_MS`). The ViewModel collects it while a session is live. The fake
+emits one beat and completes, so tests stay honest about what was sent without a virtual clock
+racing a real loop.

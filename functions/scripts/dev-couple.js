@@ -5,6 +5,9 @@
 //                                                sam@example.com, attested, level 5, paired
 //   node functions/scripts/dev-couple.js ready    sam says "I'm in" to the couple's night under way
 //   node functions/scripts/dev-couple.js pause|resume|stop   sam, from "their phone"
+//   node functions/scripts/dev-couple.js answer [0|1]  sam answers this round on their own phone
+//   node functions/scripts/dev-couple.js seen     sam has seen the round's reveal
+//   node functions/scripts/dev-couple.js present  sam's phone says it is still there (heartbeat)
 //   node functions/scripts/dev-couple.js state    the couple's sessions, nights, history, feedback
 //
 // Build the functions first (npm --prefix functions run build): it uses their compiled code.
@@ -20,6 +23,9 @@ const PROJECT = 'afterhours-dev-emulator';
 const AUTH = 'http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1';
 const FUNCTIONS = `http://127.0.0.1:5001/${PROJECT}/us-central1`;
 const PASSWORD = process.env.DEV_COUPLE_PASSWORD ?? 'correct-horse-43';
+
+/** How an answer's parts are separated on the wire, as :core:engine writes them. */
+const SEPARATOR = '';
 
 async function account(email) {
   const body = JSON.stringify({ email, password: PASSWORD, returnSecureToken: true });
@@ -65,7 +71,23 @@ async function call(name, data, user) {
   const coupleId = (await db.doc(`users/${alex.uid}`).get()).get('coupleId');
   const couple = (await db.doc(`couples/${coupleId}`).get()).data();
   const sessionId = couple.activeSessionId;
+  const sessionRef = db.doc(`couples/${coupleId}/sessions/${sessionId}`);
   if (cmd === 'ready') console.log(JSON.stringify(await call('markReady', { sessionId }, sam)));
+  else if (cmd === 'answer') {
+    // Sam's own phone, in a game played on a phone each: one answer for the round it is on.
+    // The trigger reads both and writes the reveal (section 12.2).
+    const chapter = (await sessionRef.get()).get('currentChapter');
+    const picked = process.argv[3] ?? '0';
+    const answer = picked.includes(SEPARATOR) ? picked : `P${SEPARATOR}${picked}`;
+    await sessionRef.collection('submissions').doc(`${chapter}_${sam.uid}`).set({ answer, at: Timestamp.now() });
+    console.log(JSON.stringify({ chapter, answer: answer.replace(SEPARATOR, '|') }));
+  } else if (cmd === 'seen') {
+    const chapter = (await sessionRef.get()).get('currentChapter');
+    console.log(JSON.stringify(await call('markSeen', { sessionId, chapter }, sam)));
+  } else if (cmd === 'present') {
+    await sessionRef.collection('presence').doc(sam.uid).set({ at: Timestamp.now() });
+    console.log(JSON.stringify({ presence: sam.uid }));
+  }
   else if (['stop', 'pause', 'resume'].includes(cmd)) {
     console.log(JSON.stringify(await call('endSession', { sessionId, action: cmd.toUpperCase() }, sam)));
   } else if (cmd === 'state') {
@@ -76,7 +98,7 @@ async function call(name, data, user) {
     const affinity = await db.collection(`users/${alex.uid}/affinity`).get();
     console.log(JSON.stringify({
       couple: { activeSessionId: couple.activeSessionId ?? null, stats: couple.stats ?? null },
-      sessions: sessions.docs.map((d) => ({ id: d.id, state: d.get('state'), chapter: d.get('currentChapter'), end: d.get('endReason'), acks: Object.keys(d.get('consentAcks') || {}).length })),
+      sessions: sessions.docs.map((d) => ({ id: d.id, kind: d.get('kind'), state: d.get('state'), chapter: d.get('currentChapter'), end: d.get('endReason'), acks: Object.keys(d.get('consentAcks') || {}).length, submitted: Object.keys(d.get('submittedBy') || {}).length, seen: Object.keys(d.get('seenBy') || {}).length })),
       experiences: experiences.docs.map((d) => ({ id: d.id, status: d.get('status'), played: d.get('playedThrough'), chapters: d.get('chapters').map((c) => `${c.state}:${c.contentIds[0]}`) })),
       history: Object.keys(history?.lastPlayed ?? {}).length,
       feedback: feedback.docs.map((d) => `${d.id}:${d.get('reaction')}:${d.get('processedAt') ? 'processed' : 'pending'}`),

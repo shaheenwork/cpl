@@ -6,18 +6,24 @@ import androidx.lifecycle.viewModelScope
 import com.shnapps.couple.core.analytics.AnalyticsEvent
 import com.shnapps.couple.core.analytics.AnalyticsLogger
 import com.shnapps.couple.core.common.AppError
+import com.shnapps.couple.core.common.Clock
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.game.GameRepository
+import com.shnapps.couple.core.data.game.SessionLink
 import com.shnapps.couple.core.data.game.StartedGame
 import com.shnapps.couple.core.data.night.NightRepository
 import com.shnapps.couple.core.data.taxonomy.TaxonomyRepository
 import com.shnapps.couple.core.engine.game.Answer
 import com.shnapps.couple.core.engine.game.GameMoment
 import com.shnapps.couple.core.engine.game.GameRun
+import com.shnapps.couple.core.engine.game.RoundPrimitive
+import com.shnapps.couple.core.engine.game.decodeAnswer
+import com.shnapps.couple.core.engine.game.encode
 import com.shnapps.couple.core.model.CloseCheckIn
 import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionEndReason
+import com.shnapps.couple.core.model.SessionKind
 import com.shnapps.couple.core.model.SessionState
 import com.shnapps.couple.core.navigation.Route
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,6 +34,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -85,8 +92,21 @@ data class GameUiState(
     val closeAnswer: CloseCheckIn? = null,
     val closed: Boolean = false,
     val missing: Boolean = false,
+    /** A phone each, rather than one passed between them (§12). */
+    val twoPhones: Boolean = false,
+    /** The listener is down: what is on screen is the last thing the server said (§12.3). */
+    val reconnecting: Boolean = false,
+    /** The partner's phone has not been heard from for a while (§12.3). */
+    val partnerAway: Boolean = false,
 ) {
     val roundCount: Int get() = started?.released?.rounds?.size ?: session?.chapterCount ?: 0
+
+    /**
+     * This phone has seen the round's reveal and the other has not: on two phones the round
+     * moves on only once both have (§12.1).
+     */
+    val waitingOnPartner: Boolean
+        get() = twoPhones && session?.state == SessionState.REVEAL && session.seen && !session.partnerSeen
 
     /** 1-based, for "Round 2 of 8". */
     val roundNumber: Int get() = (session?.currentChapter ?: -1) + 1
@@ -115,6 +135,7 @@ class GameViewModel @Inject constructor(
     nights: NightRepository,
     private val taxonomy: TaxonomyRepository,
     private val analytics: AnalyticsLogger,
+    private val clock: Clock,
 ) : ViewModel() {
 
     // Type-safe routes keep each argument under its property's name (Route.Game).
@@ -122,25 +143,48 @@ class GameViewModel @Inject constructor(
         "Route.Game needs an experienceId"
     }
 
-    private val local = MutableStateFlow(GameUiState())
+    /** How the couple chose to play: a phone each, or one passed between them. */
+    private val twoPhones: Boolean = savedStateHandle.get<Boolean>(Route.Game::twoPhones.name) ?: false
+
+    private val local = MutableStateFlow(GameUiState(twoPhones = twoPhones))
     private val sessionId = MutableStateFlow<String?>(null)
     private var completedLogged = false
+
+    /** The round this phone has already sent its answer for. */
+    private var sentRound: Int? = null
+
+    /** The round whose reveal this phone has already taken in. */
+    private var receivedRound: Int? = null
 
     /** A passed-over round is waiting to be moved on. */
     private var passing = false
 
     /** The session, followed by its own id: the couple's pointer clears the moment it ends. */
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val session: Flow<NightSession?> =
-        sessionId.flatMapLatest { id -> if (id == null) flowOf(null) else games.observeSession(id) }
+    private val link: Flow<SessionLink> =
+        sessionId.flatMapLatest { id -> if (id == null) flowOf(SessionLink(null)) else games.observeSession(id) }
 
-    val uiState: StateFlow<GameUiState> = combine(local, session, sessionId) { state, session, id ->
-        val current = state.copy(session = session)
+    private val session: Flow<NightSession?> = link.map { it.session }
+
+    val uiState: StateFlow<GameUiState> = combine(local, link, sessionId) { state, link, id ->
+        val session = link.session
+        // How it is being played is the couple's choice until there is a session, and the
+        // session's own after that: the phone that did not start it was never asked (§12).
+        val current = state.copy(session = session, twoPhones = session?.kind?.isTwoPhones ?: state.twoPhones)
         current.copy(
-            stage = GameStages.stageOf(current, awaitingSession = id != null && session == null),
+            stage = GameStages.stageOf(current, awaitingSession = id != null && session == null && !link.reconnecting),
             paused = session?.state == SessionState.PAUSED,
+            reconnecting = link.reconnecting,
+            partnerAway = awayFor(session),
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), GameUiState())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), GameUiState(twoPhones = twoPhones))
+
+    /** A partner whose phone has said nothing for PARTNER_AWAY_MS is shown as dropped out (§12.3). */
+    private fun awayFor(session: NightSession?): Boolean {
+        if (session == null || session.kind != SessionKind.TWO_DEVICE || session.state.isOver) return false
+        val seen = session.partnerLastSeenMillis ?: return false
+        return clock.nowMillis() - seen > PARTNER_AWAY_MS
+    }
 
     init {
         viewModelScope.launch {
@@ -162,14 +206,51 @@ class GameViewModel @Inject constructor(
             combine(local.map { it.started }.distinctUntilChanged(), session.filterNotNull(), ::Pair)
                 .collect { (started, session) -> onSessionMoved(started, session) }
         }
+        // "I'm still here", for as long as there is a session to be in (§12.3).
+        viewModelScope.launch {
+            combine(sessionId, session.map { it?.state?.isOver == true }) { id, over -> id.takeIf { !over } }
+                .distinctUntilChanged()
+                .flatMapLatest { id -> if (id == null) emptyFlow() else games.keepPresent(id) }
+                .collect { }
+        }
+        // What the other phone answered, once the server has revealed it (§12.2).
+        viewModelScope.launch {
+            sessionId.filterNotNull().flatMapLatest { id ->
+                local.map { it.run?.round }.distinctUntilChanged().filterNotNull().flatMapLatest { round ->
+                    games.observeReveal(id, round).map { round to it }
+                }
+            }.collect { (round, answers) -> onReveal(round, answers) }
+        }
+    }
+
+    /** The server's reveal for [round]: each phone's answer, put where this round expects it. */
+    private fun onReveal(round: Int, answers: Map<Int, String?>?) {
+        if (answers == null || receivedRound == round) return
+        val run = local.value.run ?: return
+        val seat = run.phone ?: return
+        receivedRound = round
+        // Its own answer comes back too: to a phone restarted mid-round, this is the only copy
+        // of it there is (§12.3, D-074).
+        val mine = run.answerToSend()
+        val told = answers
+            .filterKeys { who -> who != seat || mine == null }
+            .mapNotNull { (who, encoded) -> encoded?.let(::decodeAnswer)?.let { who to it } }
+            .fold(run) { current, (who, answer) -> current.receive(who, answer) }
+        setRun(if (told.moment is GameMoment.Waiting) told.proceed() else told)
     }
 
     /** A phone that restarted mid-game picks the game up at the round the server has. */
     private fun onSessionMoved(started: StartedGame?, session: NightSession) {
         if (started == null) return
         val state = local.value
-        if (session.isHost && session.state == SessionState.CHAPTER_ACTIVE && state.run == null) {
-            setRun(GameRun.start(started.released, state.players, fromRound = session.currentChapter))
+        // On two phones both sides hold the game; on one, only the phone it is played on.
+        val plays = session.kind == SessionKind.TWO_DEVICE || session.isHost
+        if (plays && session.state.inChapter && state.run == null) {
+            val run = startRun(started, session, fromRound = session.currentChapter)
+            // Restarted after it had answered: it waits for the reveal, and never answers twice.
+            val answered = session.submitted
+            if (answered) sentRound = session.currentChapter
+            setRun(if (answered) run.awaitingReveal() else run)
         }
         if (session.state == SessionState.COMPLETED && session.isHost && !completedLogged) {
             completedLogged = true
@@ -180,7 +261,7 @@ class GameViewModel @Inject constructor(
     // ---- before the first round ---------------------------------------------------------------
 
     fun open() = act {
-        games.openSession(experienceId).map { id -> sessionId.value = id }
+        games.openSession(experienceId, twoPhones).map { id -> sessionId.value = id }
     }
 
     fun consent() = act { games.consent(requireSession()) }
@@ -192,16 +273,52 @@ class GameViewModel @Inject constructor(
         val started = local.value.started ?: return@act Outcome.Failure(AppError.NotFound())
         games.begin(requireSession()).map { blocked ->
             analytics.log(AnalyticsEvent.GameStarted(started.released.game.id))
-            setRun(GameRun.start(started.released, local.value.players).withBlocked(blocked, fromRound = 0))
+            setRun(startRun(started, uiState.value.session, fromRound = 0).withBlocked(blocked, fromRound = 0))
         }
     }
+
+    /** The game in hand, as this phone plays it: its own seat when there is a phone each (§12). */
+    private fun startRun(started: StartedGame, session: NightSession?, fromRound: Int): GameRun {
+        val phone = if (session?.kind == SessionKind.TWO_DEVICE) (if (session.isHost) 0 else 1) else null
+        val players = if (phone == null) local.value.players else labels(phone)
+        // With a phone each there are no names to pass around: each side is simply "you" (§12).
+        if (phone != null) local.update { it.copy(players = players) }
+        return GameRun.start(started.released, players, fromRound = fromRound, phone = phone)
+    }
+
+    /** On two phones, each side is "you" and the other is simply the partner: no names travel. */
+    private fun labels(phone: Int): GamePlayers =
+        if (phone == 0) GamePlayers(YOU, YOUR_PARTNER) else GamePlayers(YOUR_PARTNER, YOU)
 
     // ---- within a round: the interpreter's -----------------------------------------------------
 
     /** Past a hand-off or a gathering. */
     fun proceed() = edit { it.proceed() }
 
-    fun submit(answer: Answer) = edit { it.submit(answer) ?: it }
+    fun submit(answer: Answer) {
+        val before = local.value.run
+        edit { it.submit(answer) ?: it }
+        val after = local.value.run ?: return
+        if (before != null && after.phone != null) sendAnswer(after)
+        // Seen by this phone: the round is over for both only when each has seen it (§12.1).
+        val sawReveal = (before?.moment as? GameMoment.Turn)?.primitive is RoundPrimitive.Reveal
+        if (sawReveal && after.phone != null && uiState.value.session?.seen != true) {
+            val round = before.round
+            act { games.markSeen(requireSession(), round) }
+        }
+    }
+
+    /**
+     * This phone's answer for the round, sent once (§12.2). Everything it does alone is done, so
+     * there is nothing more the other phone could be waiting for.
+     */
+    private fun sendAnswer(run: GameRun) {
+        val waiting = run.moment is GameMoment.Waiting || run.moment is GameMoment.RoundOver
+        if (!waiting || sentRound == run.round) return
+        val round = run.round
+        sentRound = round
+        act { games.submit(requireSession(), round, run.answerToSend()?.encode()) }
+    }
 
     /**
      * "Not this one" (§3.1): the prompt swapped at once for another the server released, and
@@ -233,6 +350,10 @@ class GameViewModel @Inject constructor(
     fun nextRound() {
         val run = local.value.run ?: return
         val over = run.moment as? GameMoment.RoundOver ?: return
+        // On two phones the round is only over once both have seen it; the server says when.
+        if (run.phone != null && uiState.value.session?.state == SessionState.REVEAL) return
+        sentRound = null
+        receivedRound = null
         act {
             games.finishRound(requireSession(), over.round, over.playedPromptId).map { blocked ->
                 val current = local.value.run ?: run
@@ -302,6 +423,12 @@ class GameViewModel @Inject constructor(
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
+
+        /** Silence from the other phone for ninety seconds shows as dropped out (§12.3). */
+        const val PARTNER_AWAY_MS = 90_000L
+
+        const val YOU = "You"
+        const val YOUR_PARTNER = "Your partner"
     }
 }
 

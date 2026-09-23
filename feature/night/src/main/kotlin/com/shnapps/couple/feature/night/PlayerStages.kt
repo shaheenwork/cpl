@@ -50,8 +50,14 @@ internal object PlayerStages {
         return when (state) {
             SessionState.WAITING_FOR_PARTNER -> NightStage.Consent
             SessionState.READY -> if (session.isHost) NightStage.Countdown else NightStage.Elsewhere
-            SessionState.CHAPTER_ACTIVE ->
-                if (session.isHost) chapter(session.currentChapter, night, step) else NightStage.Elsewhere
+            // A night is played on one phone (§14.6): every state a chapter is under way in is the
+            // same stage here, and the other phone is Elsewhere.
+            SessionState.CHAPTER_ACTIVE,
+            SessionState.AWAITING_SUBMISSIONS,
+            SessionState.BOTH_SUBMITTED,
+            SessionState.REVEAL,
+            SessionState.CHAPTER_COMPLETE,
+            -> if (session.isHost) chapter(session.currentChapter, night, step) else NightStage.Elsewhere
             SessionState.COMPLETED -> close(step)
             SessionState.ABANDONED, SessionState.PAUSED ->
                 NightStage.Ended(session.endReason ?: SessionEndReason.STOPPED)

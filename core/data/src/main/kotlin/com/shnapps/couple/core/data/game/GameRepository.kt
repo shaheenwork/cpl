@@ -17,19 +17,33 @@ import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.GamePrompt
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.NightSession
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.isActive
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /** A game the server started, released to this phone and ready to play (§11). */
 data class StartedGame(val experienceId: String, val released: ReleasedGame)
+
+/**
+ * What this phone knows about a session right now (§12.3). While the listener is down, the last
+ * thing the server said stays on screen, marked [reconnecting]: the server's state is the truth,
+ * and this is the most recent truth there is.
+ */
+data class SessionLink(val session: NightSession?, val reconnecting: Boolean = false)
 
 /**
  * Games (BUILD_PROMPT.md §11): the server chooses every round behind both partners'
@@ -57,10 +71,17 @@ interface GameRepository {
     /** The game [experienceId] again, for a phone that restarted mid-game. */
     suspend fun load(experienceId: String): Outcome<StartedGame>
 
-    fun observeSession(sessionId: String): Flow<NightSession?>
+    /**
+     * The session, as this phone sees it: the server's state, the partner's presence, and
+     * whether this phone is currently cut off from it (§12.3).
+     */
+    fun observeSession(sessionId: String): Flow<SessionLink>
 
-    /** Opens the game's session — the couple's one experience under way — and returns its id. */
-    suspend fun openSession(experienceId: String): Outcome<String>
+    /**
+     * Opens the game's session — the couple's one experience under way — and returns its id.
+     * [twoPhones]: each partner answers on their own, rather than one phone passed over (§12).
+     */
+    suspend fun openSession(experienceId: String, twoPhones: Boolean = false): Outcome<String>
 
     /** "I'm in" — this user's own, and nobody else's (§3.1). */
     suspend fun consent(sessionId: String): Outcome<Unit>
@@ -75,6 +96,24 @@ interface GameRepository {
      * Returns what the couple's limits no longer permit from here on (D-062).
      */
     suspend fun finishRound(sessionId: String, index: Int, playedPromptId: String?): Outcome<Set<String>>
+
+    /**
+     * This phone's own answer for round [round] (§12.2), as one short string — the only thing it
+     * writes about a round. The server turns both partners' into the reveal below.
+     */
+    suspend fun submit(sessionId: String, round: Int, answer: String?): Outcome<Unit>
+
+    /** "I've seen the reveal", this phone's own: the round is over when both have. */
+    suspend fun markSeen(sessionId: String, round: Int): Outcome<Unit>
+
+    /** The reveal the server wrote for [round]: what each seat answered, or null until it exists. */
+    fun observeReveal(sessionId: String, round: Int): Flow<Map<Int, String?>?>
+
+    /**
+     * "I'm still here" (§12.3): while this flow is collected, the phone says so on its own
+     * beat. How often is this layer's business, not the caller's.
+     */
+    fun keepPresent(sessionId: String): Flow<Unit>
 
     suspend fun pause(sessionId: String): Outcome<Unit>
 
@@ -149,17 +188,53 @@ class DefaultGameRepository @Inject constructor(
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    override fun observeSession(sessionId: String): Flow<NightSession?> = ids.flatMapLatest { pair ->
+    override fun observeSession(sessionId: String): Flow<SessionLink> = ids.flatMapLatest { pair ->
         if (pair == null) {
-            flowOf(null)
+            flowOf(SessionLink(session = null))
         } else {
             val (uid, coupleId) = pair
-            sessions.observeSession(coupleId, sessionId).map { it?.toSession(uid) }.catch { emit(null) }
+            combine(linkedSession(coupleId, sessionId), presence(coupleId, sessionId)) { link, seen ->
+                val partnerSeen = seen.filterKeys { it != uid }.values.maxOrNull()
+                link.copy(session = link.session?.copy(partnerLastSeenMillis = partnerSeen))
+            }
         }
     }
 
-    override suspend fun openSession(experienceId: String): Outcome<String> =
-        sessions.createSession(experienceId).map { it.sessionId }
+    /**
+     * The session document, followed through whatever the network does (§12.3): a listener that
+     * drops is retried, and until it is back the last state stays on screen, marked as such.
+     */
+    private fun linkedSession(coupleId: String, sessionId: String): Flow<SessionLink> = flow {
+        val uid = ids.first()?.first
+        var last: NightSession? = null
+        var attempt = 0
+        // Until the server has answered once, a cached read is the phone catching up, not a
+        // phone cut off: saying "Reconnecting…" before the first word would be noise.
+        var heard = false
+        while (currentCoroutineContext().isActive) {
+            try {
+                sessions.observeSession(coupleId, sessionId).collect { doc ->
+                    attempt = 0
+                    heard = heard || doc?.fromCache == false
+                    last = doc?.toSession(uid)
+                    emit(SessionLink(last, reconnecting = heard && doc?.fromCache == true))
+                }
+                return@flow
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Throwable) {
+                emit(SessionLink(last, reconnecting = true))
+                delay(minOf(RECONNECT_MAX_MS, RECONNECT_FIRST_MS shl attempt.coerceAtMost(RECONNECT_SHIFTS)))
+                attempt += 1
+            }
+        }
+    }
+
+    private fun presence(coupleId: String, sessionId: String): Flow<Map<String, Long>> =
+        sessions.observePresence(coupleId, sessionId).catch { emit(emptyMap()) }.onStart { emit(emptyMap()) }
+
+    override suspend fun openSession(experienceId: String, twoPhones: Boolean): Outcome<String> =
+        sessions.createSession(experienceId, twoPhones).map { it.sessionId }
 
     override suspend fun consent(sessionId: String): Outcome<Unit> = sessions.markReady(sessionId).map { }
 
@@ -171,6 +246,40 @@ class DefaultGameRepository @Inject constructor(
     override suspend fun finishRound(sessionId: String, index: Int, playedPromptId: String?): Outcome<Set<String>> =
         sessions.advance(sessionId, fromChapter = index, playedItemId = playedPromptId).map { it.blocked.toSet() }
 
+    override suspend fun submit(sessionId: String, round: Int, answer: String?): Outcome<Unit> {
+        val (uid, coupleId) = ids.first() ?: return Outcome.Failure(AppError.Unauthenticated())
+        return sessions.submitAnswer(coupleId, sessionId, uid, round, answer)
+    }
+
+    override suspend fun markSeen(sessionId: String, round: Int): Outcome<Unit> =
+        sessions.markSeen(sessionId, round).map { }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun observeReveal(sessionId: String, round: Int): Flow<Map<Int, String?>?> = ids.flatMapLatest { pair ->
+        if (pair == null) {
+            flowOf(null)
+        } else {
+            val (_, coupleId) = pair
+            // The reveal names each partner by uid; a phone plays a seat, and the host is the first.
+            combine(
+                sessions.observeSession(coupleId, sessionId).catch { emit(null) },
+                sessions.observeReveal(coupleId, sessionId, round).catch { emit(null) },
+            ) { doc, reveal ->
+                val host = doc?.hostUid
+                reveal?.answers?.entries?.associate { (uid, answer) -> (if (uid == host) 0 else 1) to answer }
+            }
+        }
+    }
+
+    override fun keepPresent(sessionId: String): Flow<Unit> = flow {
+        while (true) {
+            val (uid, coupleId) = ids.first() ?: return@flow
+            sessions.sendPresence(coupleId, sessionId, uid)
+            emit(Unit)
+            delay(PRESENCE_EVERY_MS)
+        }
+    }
+
     override suspend fun pause(sessionId: String): Outcome<Unit> = end(sessionId, SessionAction.PAUSE)
 
     override suspend fun resume(sessionId: String): Outcome<Unit> = end(sessionId, SessionAction.RESUME)
@@ -181,6 +290,14 @@ class DefaultGameRepository @Inject constructor(
         sessions.endSession(sessionId, action).map { }
 
     companion object {
+        /** How often a phone in a session says it is still there (§12.3). */
+        const val PRESENCE_EVERY_MS = 20_000L
+
+        /** How long a dropped listener waits before trying again, and the longest it ever waits. */
+        const val RECONNECT_FIRST_MS = 1_000L
+        const val RECONNECT_MAX_MS = 30_000L
+        private const val RECONNECT_SHIFTS = 5
+
         /** The server started a game this phone's content does not have. */
         const val GAME_UNKNOWN = "game-unknown"
 

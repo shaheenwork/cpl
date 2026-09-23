@@ -2,6 +2,7 @@ package com.shnapps.couple.feature.games
 
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionEndReason
+import com.shnapps.couple.core.model.SessionKind
 import com.shnapps.couple.core.model.SessionState
 
 /**
@@ -27,7 +28,14 @@ internal object GameStages {
         return when (current) {
             SessionState.WAITING_FOR_PARTNER -> GameStage.Consent
             SessionState.READY -> if (session.isHost) GameStage.Ready else GameStage.Elsewhere
-            SessionState.CHAPTER_ACTIVE -> if (session.isHost) playing(state) else GameStage.Elsewhere
+            // Every state a chapter is under way in: on two phones both sides play it; on one,
+            // only the phone it is played on (§12.1, D-059).
+            SessionState.CHAPTER_ACTIVE,
+            SessionState.AWAITING_SUBMISSIONS,
+            SessionState.BOTH_SUBMITTED,
+            SessionState.REVEAL,
+            SessionState.CHAPTER_COMPLETE,
+            -> if (session.isHost || session.kind == SessionKind.TWO_DEVICE) playing(state) else GameStage.Elsewhere
             SessionState.COMPLETED ->
                 if (session.isHost) closing(state) else GameStage.Ended(SessionEndReason.COMPLETED)
             SessionState.ABANDONED, SessionState.PAUSED ->

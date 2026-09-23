@@ -37,7 +37,7 @@ import com.shnapps.couple.core.ui.SecureScreen
  */
 @Composable
 fun GamesScreen(
-    onStarted: (experienceId: String) -> Unit,
+    onStarted: (experienceId: String, twoPhones: Boolean) -> Unit,
     onOpen: (experienceId: String, type: ExperienceType) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -47,8 +47,9 @@ fun GamesScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(state.startedExperienceId) {
         state.startedExperienceId?.let {
+            val twoPhones = state.onTwoPhones
             viewModel.onShown()
-            onStarted(it)
+            onStarted(it, twoPhones)
         }
     }
     GamesContent(
@@ -60,6 +61,7 @@ fun GamesScreen(
             onFirst = viewModel::setFirst,
             onSecond = viewModel::setSecond,
             onSwap = viewModel::swapNames,
+            onTwoPhones = viewModel::setTwoPhones,
             onStart = viewModel::start,
             onDismissError = viewModel::dismissError,
             onOpen = onOpen,
@@ -77,6 +79,7 @@ internal data class GamesActions(
     val onFirst: (String) -> Unit = {},
     val onSecond: (String) -> Unit = {},
     val onSwap: () -> Unit = {},
+    val onTwoPhones: (Boolean) -> Unit = {},
     val onStart: () -> Unit = {},
     val onDismissError: () -> Unit = {},
     val onOpen: (String, ExperienceType) -> Unit = { _, _ -> },
@@ -93,7 +96,7 @@ internal fun GamesContent(state: GamesUiState, actions: GamesActions, modifier: 
                 ScreenHeading(
                     eyebrow = "Games",
                     headline = "Play something together.",
-                    body = "One phone, passed between you. What you answer stays on it.",
+                    body = "One phone between you, or a phone each. What you answer stays on it.",
                 )
                 state.active?.let { active ->
                     // One thing at a time (D-059): say so before anyone picks a game.
@@ -153,11 +156,23 @@ private fun Setup(game: Game, state: GamesUiState, actions: GamesActions) {
         )
     }
 
-    Section("Who's playing") {
-        Column(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
-            NameField(label = "Goes first", value = state.first, onChange = actions.onFirst)
-            NameField(label = "Goes second", value = state.second, onChange = actions.onSecond)
-            GlowButton(text = "Swap who goes first", onClick = actions.onSwap, style = GlowButtonStyle.Quiet)
+    // A game of turns is played on one phone: being handed it is the turn (§12).
+    if (state.canTwoPhones) {
+        Section("How you're playing") {
+            Column(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
+                PlayingOn(twoPhones = false, selected = !state.onTwoPhones, onSelect = actions.onTwoPhones)
+                PlayingOn(twoPhones = true, selected = state.onTwoPhones, onSelect = actions.onTwoPhones)
+            }
+        }
+    }
+
+    if (!state.onTwoPhones) {
+        Section("Who's playing") {
+            Column(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
+                NameField(label = "Goes first", value = state.first, onChange = actions.onFirst)
+                NameField(label = "Goes second", value = state.second, onChange = actions.onSecond)
+                GlowButton(text = "Swap who goes first", onClick = actions.onSwap, style = GlowButtonStyle.Quiet)
+            }
         }
     }
 
@@ -177,6 +192,30 @@ private fun Setup(game: Game, state: GamesUiState, actions: GamesActions) {
         leadingEmoji = "🎲",
         modifier = Modifier.fillMaxWidth(),
     )
+}
+
+@Composable
+private fun PlayingOn(twoPhones: Boolean, selected: Boolean, onSelect: (Boolean) -> Unit) {
+    val title = if (twoPhones) "A phone each" else "One phone"
+    val detail = if (twoPhones) {
+        "You each answer on your own, and see both answers together."
+    } else {
+        "Passed between you, with a hand-off before anything private."
+    }
+    CinematicCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = { onSelect(twoPhones) },
+        glowing = selected,
+        contentDescription = "$title. $detail",
+    ) {
+        Text(
+            text = if (selected) "CHOSEN" else " ",
+            style = EyebrowTextStyle,
+            color = AfterhoursTheme.colors.brass,
+        )
+        Text(text = title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+        Text(text = detail, style = MaterialTheme.typography.bodyMedium, color = AfterhoursTheme.colors.textMuted)
+    }
 }
 
 @Composable

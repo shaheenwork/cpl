@@ -212,7 +212,7 @@ class ContentBundleFileTest {
         var run = start
         repeat(MAX_MOVES) {
             run = when (val moment = run.moment) {
-                is GameMoment.HandOff, is GameMoment.Gather -> run.proceed()
+                is GameMoment.HandOff, is GameMoment.Gather, is GameMoment.Waiting -> run.proceed()
                 is GameMoment.RoundOver -> {
                     assertThat(moment.playedPromptId).isNotNull()
                     run.nextRound()

@@ -89,6 +89,33 @@ class GamesViewModelTest {
     }
 
     @Test
+    fun `a phone each needs no names, and is offered only where the game allows it`() = test {
+        val vm = screen()
+        act { vm.select(TestGames.CHOICES) }
+        assertThat(vm.state.canTwoPhones).isTrue()
+        act { vm.setTwoPhones(true) }
+        act { vm.setFirst("") }
+        assertThat(vm.state.namesReady).isFalse()
+        assertThat(vm.state.canStart).isTrue()
+
+        // Truth or dare is played in turns: being handed the phone is the turn.
+        act { vm.select(TestGames.TRUTH_OR_DARE) }
+        assertThat(vm.state.canTwoPhones).isFalse()
+        assertThat(vm.state.onTwoPhones).isFalse()
+        assertThat(vm.state.canStart).isFalse()
+    }
+
+    @Test
+    fun `with a phone each, no names are kept`() = test {
+        val vm = screen()
+        act { vm.select(TestGames.CHOICES) }
+        act { vm.setTwoPhones(true) }
+        act(vm::start)
+        assertThat(games.calls).doesNotContain("players")
+        assertThat(games.savedPlayers.value).isNull()
+    }
+
+    @Test
     fun `the dial never reaches past the couple's shared level`() = test {
         nights.level.value = Intensity.FLIRTY
         val vm = screen()

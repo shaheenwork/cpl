@@ -104,6 +104,18 @@ internal fun GameContent(state: GameUiState, actions: GameActions, modifier: Mod
                 ErrorBanner(message = error.message(), onDismiss = actions.onDismissError)
             }
         }
+        // The server's state is the truth; while this phone cannot hear it, say so and keep
+        // the last thing it said on screen (§12.3).
+        if (state.reconnecting || state.partnerAway) {
+            Text(
+                text = if (state.reconnecting) "Reconnecting…" else "Your partner dropped out — waiting…",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AfterhoursTheme.colors.brass,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AfterhoursTheme.spacing.gutter, vertical = AfterhoursTheme.spacing.xs),
+            )
+        }
         Box(modifier = Modifier.weight(1f)) {
             // A pause takes the game off the screen entirely — out of sight, out of reach, out of
             // TalkBack — but never its controls.

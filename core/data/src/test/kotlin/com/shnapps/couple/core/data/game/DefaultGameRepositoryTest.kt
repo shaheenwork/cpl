@@ -25,11 +25,16 @@ import com.shnapps.couple.core.testing.FakeAppPreferencesStore
 import com.shnapps.couple.core.testing.FakeAuthRepository
 import com.shnapps.couple.core.testing.FakeContentRepository
 import com.shnapps.couple.core.testing.TestGames
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import java.io.IOException
 
 /**
  * The game repository against a fake backend (BUILD_PROMPT.md §11, §12): rounds resolved
@@ -136,7 +141,7 @@ class DefaultGameRepositoryTest {
             endReason = null,
             experienceType = "GAME",
         )
-        val session = repository.observeSession(SESSION).first()!!
+        val session = repository.observeSession(SESSION).first().session!!
         assertThat(session.experienceType).isEqualTo(ExperienceType.GAME)
         assertThat(session.isHost).isTrue()
     }
@@ -150,11 +155,85 @@ class DefaultGameRepositoryTest {
     }
 
     @Test
+    fun `this phone sends its own answer, and the reveal comes back by seat`() = runTest {
+        sessions.session.value = sessionDoc(SessionState.AWAITING_SUBMISSIONS)
+        repository.submit(SESSION, round = 1, answer = "P0")
+        assertThat(sessions.submissions).containsExactly(Triple(UID, 1, "P0"))
+        repository.markSeen(SESSION, round = 1)
+        assertThat(sessions.seen).containsExactly(1)
+
+        // The server names each answer by uid; a phone plays a seat, and the host is the first.
+        sessions.reveal.value = RevealDoc(chapter = 1, answers = mapOf(UID to "P0", PARTNER to "P1"))
+        assertThat(repository.observeReveal(SESSION, 1).first()).containsExactly(0, "P0", 1, "P1")
+    }
+
+    @Test
+    fun `the partner's heartbeat reaches the session, and this phone's own is not mistaken for it`() = runTest {
+        sessions.session.value = sessionDoc(SessionState.CHAPTER_ACTIVE)
+        sessions.presence.value = mapOf(UID to 900L, PARTNER to 500L)
+        // The first value carries no presence yet: a heartbeat is news, not a starting condition.
+        val link = repository.observeSession(SESSION).first { it.session?.partnerLastSeenMillis != null }
+        assertThat(link.session?.partnerLastSeenMillis).isEqualTo(500L)
+
+        repository.keepPresent(SESSION).first()
+        assertThat(sessions.presenceSent).containsExactly(UID)
+    }
+
+    @Test
+    fun `a phone reading its own cache is reconnecting, once the server has spoken at all`() = runTest {
+        val doc = sessionDoc(SessionState.CHAPTER_ACTIVE)
+        sessions.sessionFlow = flow {
+            // Firestore serves the cache first, then the server, and falls back to the cache
+            // when the network goes: only the last of those is being cut off (§12.3).
+            emit(doc.copy(fromCache = true))
+            emit(doc)
+            emit(doc.copy(fromCache = true))
+            awaitCancellation()
+        }
+
+        val seen = repository.observeSession(SESSION).take(3).toList()
+
+        assertThat(seen.map { it.reconnecting }).containsExactly(false, false, true).inOrder()
+    }
+
+    @Test
+    fun `a listener that drops keeps the last state on screen, and says it is reconnecting`() = runTest {
+        val doc = sessionDoc(SessionState.CHAPTER_ACTIVE)
+        var attempts = 0
+        sessions.sessionFlow = flow {
+            attempts += 1
+            emit(doc)
+            if (attempts == 1) throw IOException("the network went away")
+            awaitCancellation()
+        }
+
+        val seen = repository.observeSession(SESSION).take(3).toList()
+
+        assertThat(seen.map { it.reconnecting }).containsExactly(false, true, false).inOrder()
+        // Cut off, the last thing the server said stays on screen (§12.3).
+        assertThat(seen.map { it.session?.id }).containsExactly(SESSION, SESSION, SESSION)
+    }
+
+    @Test
     fun `the names given for a game stay on the phone for the next one`() = runTest {
         assertThat(repository.players.first()).isNull()
         repository.rememberPlayers(GamePlayers("Alex", "Sam"))
         assertThat(repository.players.first()).isEqualTo(GamePlayers("Alex", "Sam"))
     }
+
+    private fun sessionDoc(state: SessionState) = SessionDoc(
+        id = SESSION,
+        experienceId = EXPERIENCE,
+        hostUid = UID,
+        state = state,
+        pausedFrom = null,
+        currentChapter = 1,
+        chapterCount = 3,
+        consentRequired = false,
+        consentedUids = emptySet(),
+        endReason = null,
+        experienceType = "GAME",
+    )
 
     private fun payload(rounds: List<List<String>>, alternates: List<String> = emptyList()) = GamePayload(
         experienceId = EXPERIENCE,
@@ -192,6 +271,9 @@ class DefaultGameRepositoryTest {
         val ended = mutableListOf<SessionAction>()
         var blocked: List<String> = emptyList()
         val session = MutableStateFlow<SessionDoc?>(null)
+
+        /** A session followed some other way: one that drops, for instance. */
+        var sessionFlow: Flow<SessionDoc?>? = null
 
         private fun payload(state: SessionState) = SessionPayload(SESSION, state, 0, 3, consentRequired = false)
 
@@ -245,7 +327,7 @@ class DefaultGameRepositoryTest {
         override fun observeCouple(coupleId: String): Flow<CoupleNightState> =
             MutableStateFlow(CoupleNightState(null, null))
 
-        override fun observeSession(coupleId: String, sessionId: String): Flow<SessionDoc?> = session
+        override fun observeSession(coupleId: String, sessionId: String): Flow<SessionDoc?> = sessionFlow ?: session
 
         override suspend fun experience(coupleId: String, experienceId: String): Outcome<ExperienceDoc> =
             error("a game reads its own record")
@@ -259,6 +341,7 @@ class DefaultGameRepositoryTest {
 
     private companion object {
         const val UID = "uid_host"
+        const val PARTNER = "uid_partner"
         const val COUPLE = "couple_1"
         const val EXPERIENCE = "experience_game"
         const val SESSION = "session_game"

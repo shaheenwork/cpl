@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -28,6 +29,7 @@ import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.RevealOutcome
 import com.shnapps.couple.core.model.Scoring
 import com.shnapps.couple.core.model.SessionEndReason
+import com.shnapps.couple.core.model.SessionKind
 import com.shnapps.couple.core.model.SessionState
 import com.shnapps.couple.core.model.StepAudience
 import com.shnapps.couple.core.model.StepSeconds
@@ -71,6 +73,7 @@ class GameSnapshotTest {
         isHost: Boolean = true,
         round: Int = 0,
         consented: Boolean = false,
+        kind: SessionKind = SessionKind.ONE_DEVICE,
     ) = NightSession(
         id = "s",
         experienceId = "e",
@@ -84,6 +87,7 @@ class GameSnapshotTest {
         isHost = isHost,
         endReason = if (state == SessionState.ABANDONED) SessionEndReason.STOPPED else null,
         experienceType = ExperienceType.GAME,
+        kind = kind,
     )
 
     private fun released(game: Game, prompts: List<com.shnapps.couple.core.model.GamePrompt>): ReleasedGame {
@@ -108,6 +112,20 @@ class GameSnapshotTest {
             players = players,
             session = session(SessionState.CHAPTER_ACTIVE, round = run.round),
             run = run,
+        )
+        return state.copy(stage = GameStages.stageOf(state, awaitingSession = false))
+    }
+
+    /** The same game, a phone each: this phone plays the first seat, and nothing is handed over. */
+    private fun playingApart(moves: (GameRun) -> GameRun): GameUiState {
+        val released = released(TestGames.choices, choicePrompts)
+        val run = moves(GameRun.start(released, GamePlayers("You", "Your partner"), phone = 0))
+        val state = GameUiState(
+            started = StartedGame("e", released),
+            players = GamePlayers("You", "Your partner"),
+            session = session(SessionState.AWAITING_SUBMISSIONS, round = run.round, kind = SessionKind.TWO_DEVICE),
+            run = run,
+            twoPhones = true,
         )
         return state.copy(stage = GameStages.stageOf(state, awaitingSession = false))
     }
@@ -183,6 +201,60 @@ class GameSnapshotTest {
             TestGames.dares.map { it.copy(text = "Slow dance with me for one whole song, no talking.") }
         val state = playing(TestGames.truthOrDare, prompts) { it.submit(Answer.Picked("DARE"))!! }
         capture("game-dare") { GameContent(state, GameActions()) }
+    }
+
+    @Test
+    fun twoPhonesSetup() {
+        val state = GamesUiState(
+            games = TestGames.games,
+            selectedId = TestGames.CHOICES,
+            intensity = Intensity.FLIRTY,
+            sharedLevel = Intensity.BOLD,
+            twoPhones = true,
+        )
+        capture("games-setup-two-phones") { GamesContent(state, GamesActions()) }
+        composeRule.onNodeWithText("A phone each").assertIsDisplayed()
+        // With a phone each there is nobody to pass it to, so no names are asked for.
+        assertThat(composeRule.onAllNodesWithText("Goes first").fetchSemanticsNodes()).isEmpty()
+    }
+
+    @Test
+    fun waitingForTheOtherPhone() {
+        val state = playingApart { it.submit(Answer.Picked("0"))!! }
+        capture("game-waiting") { GameContent(state, GameActions()) }
+        composeRule.onNodeWithContentDescription("Over to them.", substring = true).assertIsDisplayed()
+        assertThat(composeRule.onAllNodesWithText("Would you rather…").fetchSemanticsNodes()).isEmpty()
+        composeRule.onNodeWithText("Stop").assertIsDisplayed()
+    }
+
+    @Test
+    fun cutOffFromTheServer() {
+        val state = playingApart { it.submit(Answer.Picked("0"))!! }.copy(reconnecting = true)
+        capture("game-reconnecting") { GameContent(state, GameActions()) }
+        composeRule.onNodeWithText("Reconnecting…").assertIsDisplayed()
+    }
+
+    @Test
+    fun theRoundWaitsForTheOtherPhoneToLook() {
+        val played = playingApart { run ->
+            run.submit(Answer.Picked("0"))!!
+                .withPartnerAnswer(step = 0, seat = 1, answer = Answer.Picked("0"))
+                .proceed()
+                .submit(Answer.Done)!!
+        }
+        val state = played.copy(
+            session = session(SessionState.REVEAL, kind = SessionKind.TWO_DEVICE).copy(seen = true),
+        )
+        capture("game-round-waiting") { GameContent(state, GameActions()) }
+        composeRule.onNodeWithContentDescription("Still with them.", substring = true).assertIsDisplayed()
+        assertThat(composeRule.onAllNodesWithText("Next round").fetchSemanticsNodes()).isEmpty()
+    }
+
+    @Test
+    fun aPartnerWhoDroppedOut() {
+        val state = playingApart { it.submit(Answer.Picked("0"))!! }.copy(partnerAway = true)
+        capture("game-partner-away") { GameContent(state, GameActions()) }
+        composeRule.onNodeWithText("Your partner dropped out — waiting…").assertIsDisplayed()
     }
 
     @Test

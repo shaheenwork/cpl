@@ -206,7 +206,7 @@ fun CplNavHost(
         composable<Route.Games> {
             GamesScreen(
                 // The setup has done its job once a game exists: back from the game is the games.
-                onStarted = { experienceId -> navController.navigate(Route.Game(experienceId)) },
+                onStarted = { experienceId, twoPhones -> navController.navigate(Route.Game(experienceId, twoPhones)) },
                 onOpen = { experienceId, type -> navController.navigate(experienceRoute(experienceId, type)) },
                 onBack = { navController.popBackStack() },
             )

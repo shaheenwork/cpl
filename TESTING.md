@@ -156,6 +156,27 @@ shows the game, STOP is always there). `:architecture`'s `GameLogicTest` is the 
 game logic" gate: no code names a game, only the interpreter and the parser read a game's
 steps, one renderer per primitive, verdicts and scores made only by the interpreter.
 
+### Two phones in one session (Phase 12)
+
+A phone each is tested at every layer, because nothing about it can be seen from one of them.
+`TwoPhoneRunTest` (`:core:engine`) holds the rule that makes it work at all: whichever seat a
+phone plays, it takes its own steps first and waits after them — the server reveals a round only
+once both have answered, so a phone that waited first would wait for ever (D-074). It also walks
+an answer out to its short string and back.
+
+`DefaultGameRepositoryTest` covers the phone's side of the wire: its own answer sent under its
+own id, the reveal read back by seat, the partner's heartbeat told apart from its own, a listener
+that drops (retried, with the last state kept and marked), and a snapshot that starts coming from
+the cache — which is the only way Firestore says a phone is cut off. `GameViewModelTest` plays a
+two-phone round against `FakeGameRepository`, including the phone that did not start the game,
+a phone restarted after it had answered, and a partner gone quiet; `GameSnapshotTest` records the
+waiting, reconnecting, dropped-out and round-waiting screens.
+
+On the server, `realtime.int.test.ts` drives the submission trigger and the expiry sweep against
+the emulator, `realtime.e2e.test.ts` runs two signed-in clients through one session, and the rules
+tests (D–G) hold what a phone may write: its own submission only, no read of anyone's, its own
+presence, and no write to a reveal.
+
 ### Contrast
 
 `ContrastTest` computes WCAG 2.1 ratios for all 20 foreground/background pairs the theme
@@ -284,6 +305,17 @@ node functions/scripts/dev-couple.js ready
 
 `ready` is Sam's "I'm in" to the night under way; `pause`, `resume` and `stop` are Sam's
 controls; `state` prints the couple's sessions, nights, history, feedback and Alex's affinity.
+
+For a game played on a phone each (§12), Sam's phone answers and looks from the terminal:
+
+```bash
+node functions/scripts/dev-couple.js answer 1
+```
+
+`answer [0|1]` writes Sam's submission for the round the session is on — the same short string
+the app sends — and the trigger reveals both; `seen` is Sam's "I've looked", which the round
+waits for; `present` is one heartbeat, and stopping it for ninety seconds is how the device shows
+"Your partner dropped out — waiting…".
 A game under way is a session too (D-070): the same commands answer for it, and `state` shows
 `stats.gamesPlayed`.
 Run `seed` again after the e2e suite, which clears the dev project.

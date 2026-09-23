@@ -24,6 +24,7 @@ internal class RoundReading(private val state: RunState) {
 
     fun moment(): GameMoment = when (val slot = slots().getOrElse(state.position) { Slot.End }) {
         is Slot.HandOff -> GameMoment.HandOff(state.round, slot.seat)
+        is Slot.Wait -> GameMoment.Waiting(state.round, slot.seat)
         Slot.Gather -> GameMoment.Gather(state.round)
         is Slot.Take -> {
             val prompted = showsPrompt(game.steps[slot.step])
@@ -32,13 +33,9 @@ internal class RoundReading(private val state: RunState) {
         Slot.End -> GameMoment.RoundOver(state.round, promptInPlay()?.id)
     }
 
-    /**
-     * The round as the phone moves through it: each step taken by whoever it belongs to, a
-     * hand-off before anything private to one partner, and a gathering when private answers
-     * give way to something both see.
-     */
-    fun slots(): List<Slot> {
-        val takes = game.steps.flatMapIndexed { index, step ->
+    /** Every step of the round, and the seat it belongs to: the round before any phone reads it. */
+    private val takes: List<Slot.Take>
+        get() = game.steps.flatMapIndexed { index, step ->
             when (step.who) {
                 StepAudience.ACTIVE -> listOf(Slot.Take(index, active))
                 StepAudience.OTHER -> listOf(Slot.Take(index, other))
@@ -46,6 +43,16 @@ internal class RoundReading(private val state: RunState) {
                 StepAudience.TOGETHER -> listOf(Slot.Take(index, null))
             }
         }
+
+    /**
+     * The round as the phone moves through it: each step taken by whoever it belongs to, a
+     * hand-off before anything private to one partner, and a gathering when private answers
+     * give way to something both see.
+     */
+    fun slots(): List<Slot> {
+        val takes = takes
+        val phone = state.phone
+        if (phone != null) return ownSlots(takes, phone)
         val slots = mutableListOf<Slot>()
         var holder: Int? = null
         for (take in takes) {
@@ -61,6 +68,31 @@ internal class RoundReading(private val state: RunState) {
         }
         slots += Slot.End
         return slots
+    }
+
+    /**
+     * A phone each (§12): this phone takes its own steps, and the other partner's are only ever
+     * "they are answering". What they said arrives as the server's reveal, which comes only once
+     * both have answered — so this phone always answers first, and waits after.
+     */
+    private fun ownSlots(takes: List<Slot.Take>, phone: Int): List<Slot> {
+        val partner = 1 - phone
+        val slots = mutableListOf<Slot>()
+        var owed = false
+        for (take in takes) {
+            when (take.seat) {
+                phone -> slots += take
+                null -> {
+                    // A step they both see needs both their answers first.
+                    if (owed) slots += Slot.Wait(partner)
+                    owed = false
+                    slots += take
+                }
+                else -> owed = true
+            }
+        }
+        if (owed) slots += Slot.Wait(partner)
+        return slots + Slot.End
     }
 
     /** The prompt the round is played with: the chosen kind's, once chosen, else the first. */
@@ -152,6 +184,32 @@ internal class RoundReading(private val state: RunState) {
     }
 
     fun answerOf(step: Int, seat: Int?): Answer? = state.answers[AnswerKey(step, seat)]
+
+    /**
+     * The step [seat] answers in this round: the last one that asks them for something only they
+     * can give. It is where the reveal puts what the server says they answered.
+     */
+    fun answeringStepFor(seat: Int): Slot.Take? =
+        takes.lastOrNull { take -> (take.seat == seat || take.seat == null) && asks(game.steps[take.step]) }
+
+    private fun asks(step: GameStep): Boolean = when (step.primitive) {
+        GamePrimitive.CHOICE, GamePrimitive.PREDICTION, GamePrimitive.VOTE -> true
+        GamePrimitive.QUESTION -> step.answer != AnswerKind.SPOKEN
+        else -> false
+    }
+
+    /**
+     * What this phone must send for the round (§12.2): the last answer it gave that the other
+     * phone cannot know — a choice, a guess, words, statements — or null when it only pressed on.
+     */
+    fun answerToSend(): Answer? {
+        val phone = state.phone ?: return null
+        val mine = slots()
+            .filterIsInstance<Slot.Take>()
+            .filter { it.seat == phone || it.seat == null }
+            .mapNotNull { take -> answerOf(take.step, take.seat) }
+        return mine.lastOrNull { it !is Answer.Done && it !is Answer.Judged }
+    }
 
     fun name(seat: Int): String = state.players.name(seat)
 }

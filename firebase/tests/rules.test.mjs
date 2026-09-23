@@ -594,7 +594,7 @@ describe('couples/{coupleId}/sessions/{id}/submissions, rounds and presence (§7
     await assertFails(setDoc(submission(bob(), `1_${BOB}`), answerFor(BOB, 1, { byUid: ALICE })));
     await assertFails(setDoc(submission(bob(), `1_${BOB}`), answerFor(BOB, 1, { at: Timestamp.now() })));
     await assertFails(setDoc(submission(bob(), `1_${BOB}`), answerFor(BOB, 1, { extra: true })));
-    await assertFails(setDoc(submission(bob(), `1_${BOB}`), answerFor(BOB, 1, { answer: 'x'.repeat(281) })));
+    await assertFails(setDoc(submission(bob(), `1_${BOB}`), answerFor(BOB, 1, { answer: 'x'.repeat(701) })));
     // Written once: the answer already given cannot be rewritten after seeing anything.
     await assertSucceeds(setDoc(submission(bob(), `1_${BOB}`), answerFor(BOB)));
     await assertFails(setDoc(submission(bob(), `1_${BOB}`), answerFor(BOB, 1, { answer: 'changed' })));

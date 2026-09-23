@@ -3,6 +3,7 @@ package com.shnapps.couple.core.testing
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.game.GameRepository
+import com.shnapps.couple.core.data.game.SessionLink
 import com.shnapps.couple.core.data.game.StartedGame
 import com.shnapps.couple.core.engine.game.ReleasedGame
 import com.shnapps.couple.core.engine.game.ServerGame
@@ -12,9 +13,12 @@ import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionEndReason
+import com.shnapps.couple.core.model.SessionKind
 import com.shnapps.couple.core.model.SessionState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
@@ -23,6 +27,9 @@ import kotlinx.coroutines.flow.update
  * nights: a started game is released from [TestGames]' prompts, and its session moves through
  * the states the callables would move it through.
  */
+// One fake for one interface: it has as many functions as GameRepository has, plus the few a
+// test uses to play the partner's phone.
+@Suppress("TooManyFunctions")
 class FakeGameRepository(
     games: List<Game> = TestGames.games,
 ) : GameRepository {
@@ -32,6 +39,17 @@ class FakeGameRepository(
     override val players: Flow<GamePlayers?> = savedPlayers
 
     val session = MutableStateFlow<NightSession?>(null)
+
+    /** The reveals the server has written, by round: what each seat answered (§12.2). */
+    val reveals = MutableStateFlow<Map<Int, Map<Int, String?>>>(emptyMap())
+
+    /** Set while this phone is cut off from the session (§12.3). */
+    val reconnecting = MutableStateFlow(false)
+
+    /** Every answer this phone sent, and every round it said it had seen. */
+    val submitted = mutableListOf<Pair<Int, String?>>()
+    val seenRounds = mutableListOf<Int>()
+    val presenceSent = mutableListOf<String>()
 
     /** Every call, in order: "start:GAME:2", "open", "consent", "begin", "finish:0:id", "stop"… */
     val calls = mutableListOf<String>()
@@ -72,27 +90,70 @@ class FakeGameRepository(
         released(experienceId.removePrefix(EXPERIENCE_PREFIX).removeSuffix(BOLD_SUFFIX), Intensity.WILD)
     }
 
-    override fun observeSession(sessionId: String): Flow<NightSession?> =
-        session.map { current -> current?.takeIf { it.id == sessionId } }
+    override fun observeSession(sessionId: String): Flow<SessionLink> =
+        combine(session, reconnecting) { current, cut ->
+            SessionLink(current?.takeIf { it.id == sessionId }, reconnecting = cut)
+        }
 
-    override suspend fun openSession(experienceId: String): Outcome<String> = call("open") {
-        val consent = experienceId.endsWith(BOLD_SUFFIX)
-        session.value = NightSession(
-            id = SESSION_ID,
-            experienceId = experienceId,
-            state = if (consent) SessionState.WAITING_FOR_PARTNER else SessionState.READY,
-            pausedFrom = null,
-            currentChapter = -1,
-            chapterCount = ROUNDS,
-            consentRequired = consent,
-            consented = false,
-            partnerConsented = false,
-            isHost = true,
-            endReason = null,
-            experienceType = ExperienceType.GAME,
-        )
-        SESSION_ID
+    override suspend fun submit(sessionId: String, round: Int, answer: String?): Outcome<Unit> =
+        call("submit:$round:$answer") {
+            submitted += round to answer
+            session.update { current ->
+                current?.copy(
+                    submitted = true,
+                    state = if (current.partnerSubmitted) SessionState.REVEAL else SessionState.AWAITING_SUBMISSIONS,
+                )
+            }
+        }
+
+    override suspend fun markSeen(sessionId: String, round: Int): Outcome<Unit> = call("seen:$round") {
+        seenRounds += round
+        session.update { current ->
+            current?.let {
+                it.copy(seen = true, state = if (it.partnerSeen) SessionState.CHAPTER_COMPLETE else it.state)
+            }
+        }
     }
+
+    override fun observeReveal(sessionId: String, round: Int): Flow<Map<Int, String?>?> = reveals.map { it[round] }
+
+    /** One heartbeat, then done: a test says how long a session is watched by what it does. */
+    override fun keepPresent(sessionId: String): Flow<Unit> = flow {
+        presenceSent += sessionId
+        emit(Unit)
+    }
+
+    /** The partner, on their own phone: answers [round], which the server then reveals. */
+    fun partnerSubmits(round: Int, answers: Map<Int, String?>) {
+        session.update { current -> current?.copy(partnerSubmitted = true, state = SessionState.REVEAL) }
+        reveals.update { it + (round to answers) }
+    }
+
+    /** The partner, on their own phone: has seen the reveal. */
+    fun partnerSeesReveal() = session.update { current ->
+        current?.let { it.copy(partnerSeen = true, state = if (it.seen) SessionState.CHAPTER_COMPLETE else it.state) }
+    }
+
+    override suspend fun openSession(experienceId: String, twoPhones: Boolean): Outcome<String> =
+        call(if (twoPhones) "open:two" else "open") {
+            val consent = experienceId.endsWith(BOLD_SUFFIX)
+            session.value = NightSession(
+                id = SESSION_ID,
+                experienceId = experienceId,
+                state = if (consent) SessionState.WAITING_FOR_PARTNER else SessionState.READY,
+                pausedFrom = null,
+                currentChapter = -1,
+                chapterCount = ROUNDS,
+                consentRequired = consent,
+                consented = false,
+                partnerConsented = false,
+                isHost = true,
+                endReason = null,
+                experienceType = ExperienceType.GAME,
+                kind = if (twoPhones) SessionKind.TWO_DEVICE else SessionKind.ONE_DEVICE,
+            )
+            SESSION_ID
+        }
 
     override suspend fun consent(sessionId: String): Outcome<Unit> = call("consent") {
         session.update { current ->
@@ -118,7 +179,16 @@ class FakeGameRepository(
                     if (index >= it.chapterCount - 1) {
                         it.copy(state = SessionState.COMPLETED, endReason = SessionEndReason.COMPLETED)
                     } else {
-                        it.copy(currentChapter = index + 1)
+                        // A new chapter starts clean: what each phone has sent and seen is per
+                        // chapter, and the server clears it (§12.1).
+                        it.copy(
+                            currentChapter = index + 1,
+                            state = SessionState.CHAPTER_ACTIVE,
+                            submitted = false,
+                            partnerSubmitted = false,
+                            seen = false,
+                            partnerSeen = false,
+                        )
                     }
                 }
             }

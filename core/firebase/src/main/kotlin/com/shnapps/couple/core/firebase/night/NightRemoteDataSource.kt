@@ -3,6 +3,7 @@ package com.shnapps.couple.core.firebase.night
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.Source
 import com.google.firebase.functions.FirebaseFunctions
 import com.shnapps.couple.core.common.AppError
@@ -141,6 +142,12 @@ data class SessionDoc(
     /** Who has answered the chapter under way, and who has seen its reveal. */
     val submittedUids: Set<String> = emptySet(),
     val seenUids: Set<String> = emptySet(),
+    /**
+     * Served from this phone's own cache rather than the server (§12.3). Firestore does not
+     * fail a listener when the network goes: it goes quiet and serves what it has, and this is
+     * how it says so.
+     */
+    val fromCache: Boolean = false,
 )
 
 /** `couples/{cid}/experiences/{id}`: the night as the server stored it. */
@@ -303,7 +310,9 @@ class FirebaseNightRemoteDataSource @Inject constructor(
     override fun observeSession(coupleId: String, sessionId: String): Flow<SessionDoc?> = callbackFlow {
         val registration = firestore.collection(COUPLES).document(coupleId)
             .collection(SESSIONS).document(sessionId)
-            .addSnapshotListener { snapshot, error ->
+            // Metadata changes included: a snapshot that starts coming from the cache is the
+            // only sign Firestore gives that this phone is cut off (§12.3).
+            .addSnapshotListener(MetadataChanges.INCLUDE) { snapshot, error ->
                 if (error != null) {
                     close(error)
                     return@addSnapshotListener
@@ -402,6 +411,7 @@ private fun DocumentSnapshot.toSessionDoc(): SessionDoc? {
         kind = getString("kind") ?: "ONE_DEVICE",
         submittedUids = (get("submittedBy") as? Map<*, *>).orEmpty().keys.filterIsInstance<String>().toSet(),
         seenUids = (get("seenBy") as? Map<*, *>).orEmpty().keys.filterIsInstance<String>().toSet(),
+        fromCache = metadata.isFromCache,
     )
 }
 

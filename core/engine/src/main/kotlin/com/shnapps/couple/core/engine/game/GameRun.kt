@@ -18,6 +18,9 @@ sealed interface GameMoment {
     /** A primitive to take. [canSkip]: it shows the round's prompt, so "Not this one" applies. */
     data class Turn(override val round: Int, val primitive: RoundPrimitive, val canSkip: Boolean) : GameMoment
 
+    /** On two phones: what the other partner is answering, while this one waits (§12). */
+    data class Waiting(override val round: Int, val seat: Int) : GameMoment
+
     /**
      * The round is over. [playedPromptId] is what was played — the dare, not the truth, when
      * the dare was chosen — or null when the round was passed over.
@@ -74,9 +77,10 @@ class GameRun private constructor(private val state: RunState) {
     /** The prompt the round is played with: the chosen kind's, once chosen, else the first. */
     fun promptInPlay(): GamePrompt? = reading.promptInPlay()
 
-    /** Past a hand-off or a gathering. */
+    /** Past a hand-off, a gathering, or the wait for the other phone's answer. */
     fun proceed(): GameRun = when (moment) {
-        is GameMoment.HandOff, is GameMoment.Gather -> next(state.copy(position = state.position + 1))
+        is GameMoment.HandOff, is GameMoment.Gather, is GameMoment.Waiting ->
+            next(state.copy(position = state.position + 1))
         else -> this
     }
 
@@ -143,6 +147,41 @@ class GameRun private constructor(private val state: RunState) {
         return run
     }
 
+    /** The seat this phone plays, or null when it is passed between the partners. */
+    val phone: Int? get() = state.phone
+
+    /**
+     * The answer this phone has to send for the round it is on (§12.2): the last one it gave that
+     * another phone could not know, or null when everything it did was its own to do.
+     */
+    fun answerToSend(): Answer? = reading.answerToSend()
+
+    /**
+     * [answer], given by [seat] to step [step] on the other phone, as the server's reveal reported
+     * it. The reveal is then read exactly as it is when one phone holds both answers.
+     */
+    fun withPartnerAnswer(step: Int, seat: Int?, answer: Answer): GameRun =
+        next(state.copy(answers = state.answers + (AnswerKey(step, seat) to answer)))
+
+    /**
+     * What the server says [seat] answered this round, put where the round expects it — without
+     * the phone needing to know the shape of the game.
+     */
+    fun receive(seat: Int, answer: Answer): GameRun {
+        val take = reading.answeringStepFor(seat) ?: return this
+        return withPartnerAnswer(take.step, take.seat ?: seat, answer)
+    }
+
+    /**
+     * This phone's answer for the round is already with the server (§12.3): restarted mid-round,
+     * it waits for the reveal rather than answering a second time. What it answered comes back
+     * in the reveal, which carries both.
+     */
+    fun awaitingReveal(): GameRun {
+        val wait = reading.slots().indexOfFirst { it is Slot.Wait }
+        return if (wait < 0) this else next(state.copy(position = maxOf(state.position, wait)))
+    }
+
     /** The released prompts still to come that are about [themeId]: what keeping it out removes. */
     fun promptsAbout(themeId: String): Set<String> =
         (state.rounds.drop(round).flatten() + state.alternates)
@@ -194,13 +233,22 @@ class GameRun private constructor(private val state: RunState) {
         /**
          * A game ready to play from round [fromRound] — the first, or where a session already
          * stands after the phone was restarted. [firstSeat] goes first: 0 is whoever started it.
+         * [phone] is the seat this phone plays when the couple has one each (§12); left out, the
+         * phone is passed between them and plays both.
          */
-        fun start(released: ReleasedGame, players: GamePlayers, firstSeat: Int = 0, fromRound: Int = 0): GameRun =
+        fun start(
+            released: ReleasedGame,
+            players: GamePlayers,
+            firstSeat: Int = 0,
+            fromRound: Int = 0,
+            phone: Int? = null,
+        ): GameRun =
             GameRun(
                 RunState(
                     game = released.game,
                     players = players,
                     firstSeat = firstSeat.coerceIn(0, 1),
+                    phone = phone?.coerceIn(0, 1),
                     rounds = released.rounds.map { it.prompts },
                     alternates = released.alternates,
                     unplayable = released.rounds.filterNot { it.playable }.mapTo(HashSet()) { it.index },
@@ -236,6 +284,8 @@ internal data class RunState(
     val game: Game,
     val players: GamePlayers,
     val firstSeat: Int,
+    /** The seat this phone plays, on two phones; null when one phone is passed between them. */
+    val phone: Int? = null,
     val rounds: List<List<GamePrompt>>,
     val alternates: List<GamePrompt>,
     val unplayable: Set<Int>,
@@ -253,6 +303,9 @@ internal data class AnswerKey(val step: Int, val seat: Int?)
 /** One place in a round: a hand-off, a gathering, a step taken by a seat (or both), the end. */
 internal sealed interface Slot {
     data class HandOff(val seat: Int) : Slot
+
+    /** The other partner's step, on their own phone: this one waits. */
+    data class Wait(val seat: Int) : Slot
 
     data object Gather : Slot
 

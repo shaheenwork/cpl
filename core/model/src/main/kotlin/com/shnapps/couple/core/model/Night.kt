@@ -94,6 +94,9 @@ enum class SessionState {
 enum class SessionKind {
     ONE_DEVICE,
     TWO_DEVICE,
+    ;
+
+    val isTwoPhones: Boolean get() = this == TWO_DEVICE
 }
 
 /** Why a night ended. Never who ended it: STOP is nobody's failure (§3.1, D-059). */

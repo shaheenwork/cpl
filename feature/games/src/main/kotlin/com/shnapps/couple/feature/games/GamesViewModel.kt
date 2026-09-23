@@ -36,6 +36,8 @@ data class GamesUiState(
     /** Who goes first, then second: the names the phone is passed between. */
     val first: String = "",
     val second: String = "",
+    /** A phone each, rather than one passed between them (§12). */
+    val twoPhones: Boolean = false,
     /** Something already under way for this couple: there is one at a time (D-059). */
     val active: NightSession? = null,
     val starting: Boolean = false,
@@ -45,11 +47,20 @@ data class GamesUiState(
 ) {
     val selected: Game? get() = games.firstOrNull { it.id == selectedId }
 
+    /** Only a game both answer at once can be played on a phone each: a turn needs the phone. */
+    val canTwoPhones: Boolean get() = selected?.bothAtOnce == true
+
+    /** How it will be played, whatever was chosen for a game that allows the choice. */
+    val onTwoPhones: Boolean get() = twoPhones && canTwoPhones
+
     /** Both names given, and different: otherwise "pass the phone to…" means nothing. */
     val namesReady: Boolean
         get() = first.isNotBlank() && second.isNotBlank() && !first.trim().equals(second.trim(), ignoreCase = true)
 
-    val canStart: Boolean get() = selected != null && namesReady && active == null && !starting
+    /** With a phone each, nobody passes anything: no names are needed, and none travel (§12). */
+    val ready: Boolean get() = onTwoPhones || namesReady
+
+    val canStart: Boolean get() = selected != null && ready && active == null && !starting
 }
 
 /**
@@ -99,13 +110,16 @@ class GamesViewModel @Inject constructor(
     /** The other one goes first. */
     fun swapNames() = local.update { it.copy(first = it.second, second = it.first) }
 
+    /** One phone passed between you, or a phone each (§12), where the game allows it. */
+    fun setTwoPhones(twoPhones: Boolean) = local.update { it.copy(twoPhones = twoPhones) }
+
     fun start() {
         val state = uiState.value
         val game = state.selected ?: return
         if (!state.canStart) return
         local.update { it.copy(starting = true, error = null) }
         viewModelScope.launch {
-            games.rememberPlayers(GamePlayers(state.first.trim(), state.second.trim()))
+            if (!state.onTwoPhones) games.rememberPlayers(GamePlayers(state.first.trim(), state.second.trim()))
             val result = games.start(game.id, state.intensity)
             local.update { current ->
                 when (result) {

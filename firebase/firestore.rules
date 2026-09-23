@@ -214,7 +214,7 @@ service cloud.firestore {
             && data.byUid == request.auth.uid
             && data.chapter is int
             && submissionId == string(data.chapter) + '_' + request.auth.uid
-            && (data.answer == null || (data.answer is string && data.answer.size() <= 280))
+            && (data.answer == null || (data.answer is string && data.answer.size() <= 700))
             && data.at == request.time
             && liveChapter(coupleId, sessionId, data.chapter);
       }
