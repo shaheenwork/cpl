@@ -46,6 +46,7 @@ import com.shnapps.couple.core.ui.SecureScreen
 fun NightScreen(
     onHome: () -> Unit,
     onAdjustLimits: () -> Unit,
+    onKeepIt: (experienceId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: NightViewModel = hiltViewModel(),
 ) {
@@ -78,6 +79,7 @@ fun NightScreen(
             onDismissError = viewModel::dismissError,
             onHome = onHome,
             onAdjustLimits = onAdjustLimits,
+            onKeepIt = { state.night?.experienceId?.let(onKeepIt) },
         ),
         modifier = modifier,
     )
@@ -109,6 +111,8 @@ internal data class NightActions(
     val onDismissError: () -> Unit = {},
     val onHome: () -> Unit = {},
     val onAdjustLimits: () -> Unit = {},
+    /** "Save to Our Memories" at the close of a night (§14.8). */
+    val onKeepIt: () -> Unit = {},
 )
 
 /** The stages a night is under way in: each carries PAUSE and STOP (§3.1). */
@@ -158,7 +162,7 @@ private fun Stage(stage: NightStage, state: NightUiState, actions: NightActions)
         is NightStage.Ended -> EndedStage(stage.reason, actions.onHome)
         NightStage.HowAreWe -> HowAreWeStage(state, actions)
         NightStage.Feedback -> FeedbackStage(state, actions)
-        NightStage.Done -> DoneStage(actions.onHome)
+        NightStage.Done -> DoneStage(actions.onKeepIt, actions.onHome)
     }
 }
 

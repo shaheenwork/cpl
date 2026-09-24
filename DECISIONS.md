@@ -1232,3 +1232,32 @@ read by anything, and two switches for one idea is how they end up disagreeing. 
 notification may say is `notificationSettings.showContent`, and the phone keeps its own copy in
 DataStore because a message can arrive at three in the morning, before anything has loaded.
 
+---
+
+## D-090 — A memory holds their words, and never a content id
+**Phase 18.** The library is the one screen in this app that lists freely: everything else a
+couple sees comes through the engine's boundary filter, and experiences cannot be listed at all
+(D-081). A memory can be listed because of what it does not contain.
+
+What the server writes is the shape of an evening — its moods, how long it ran, how many chapters
+they played — and what the couple wrote about it: a title, a note, the moment they want to keep, a
+rating, and the ids of any voice note or photo they attached. Not one content id. That matters for
+one case in particular: a night one partner planned for the other is readable only by the partner
+it was planned for, and a memory both may read would otherwise be the way around that rule.
+
+The phone sends only its own words. The date, the length, the moods and the fact that the night
+was *played* are read on the server from the night itself, so a memory says what happened rather
+than what a phone claimed — and a night that belongs to another couple, or that nobody played, is
+refused rather than quietly kept.
+
+One memory per night, keyed by the experience: saving again edits what they kept rather than
+filling the library with the same evening four times, and neither the favourite mark nor who first
+kept it survives being overwritten by the edit. Marking a favourite is the single field a client
+may write; keeping and forgetting are callables. Either partner may forget one — the library is
+theirs together — and what it pointed at is not deleted with it: a voice note has its own life,
+and its own burn (D-083).
+
+Pages of twenty, newest first. A library is one of the few things here that only grows, and a
+screen that read it whole would cost a read per night every time it opened. The Room cache of the
+first page (§6.3) is deliberately not built yet; it belongs with the cost work in Phase 22.
+

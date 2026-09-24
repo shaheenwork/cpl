@@ -80,6 +80,14 @@ object Route {
     @Serializable
     data object NotificationSettings
 
+    /** The couple's own library of the nights they kept (§14.8). */
+    @Serializable
+    data object Memories
+
+    /** Keeping the night just played, in their own words (§14.8). */
+    @Serializable
+    data class SaveMemory(val experienceId: String)
+
     /** A night being played — or waiting to be — on either partner's phone (§14.6). */
     @Serializable
     data class Night(val experienceId: String)

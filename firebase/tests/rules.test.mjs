@@ -525,6 +525,11 @@ describe('couples/{coupleId}/experiences (§6.1, §10)', () => {
       await setDoc(doc(db, 'couples', 'e1', 'surprises', 's_delivered', 'payload', 'content'), {
         ownerUid: ALICE, text: 'no longer a secret', deliveredAt: Timestamp.now(),
       });
+      // A memory of a night they played, as the server writes it (§14.8).
+      await setDoc(doc(db, 'couples', 'e1', 'memories', 'm1'), {
+        experienceId: 'n1', title: 'The Tuesday one', note: 'we talked until two',
+        mood: ['naughty'], durationMin: 60, favorite: false, createdBy: ALICE, mediaIds: [],
+      });
       // A few days of this, as the server writes it (§13).
       await setDoc(doc(db, 'couples', 'e1', 'arcs', 'a1'), {
         title: '7 days', lengthDays: 7, state: 'ACTIVE', createdBy: ALICE, days: [],
@@ -577,6 +582,20 @@ describe('couples/{coupleId}/experiences (§6.1, §10)', () => {
       }),
     );
     await assertFails(deleteDoc(doc(alice(), 'couples', 'e1', 'surprises', 's_waiting')));
+  });
+
+  it('lets both read a memory and mark it a favourite, and nothing else', async () => {
+    await assertSucceeds(getDoc(doc(bob(), 'couples', 'e1', 'memories', 'm1')));
+    await assertSucceeds(getDocs(collection(alice(), 'couples', 'e1', 'memories')));
+    await assertFails(getDoc(doc(mallory(), 'couples', 'e1', 'memories', 'm1')));
+    // The one field a phone may change.
+    await assertSucceeds(updateDoc(doc(bob(), 'couples', 'e1', 'memories', 'm1'), { favorite: true }));
+    await assertFails(updateDoc(doc(alice(), 'couples', 'e1', 'memories', 'm1'), { title: 'rewritten' }));
+    await assertFails(updateDoc(doc(alice(), 'couples', 'e1', 'memories', 'm1'), { favorite: 'yes' }));
+    await assertFails(updateDoc(doc(alice(), 'couples', 'e1', 'memories', 'm1'), { favorite: true, note: 'and this' }));
+    // Keeping and forgetting are callables: a phone writes neither.
+    await assertFails(setDoc(doc(alice(), 'couples', 'e1', 'memories', 'forged'), { title: 'made up' }));
+    await assertFails(deleteDoc(doc(alice(), 'couples', 'e1', 'memories', 'm1')));
   });
 
   it('lets both read an arc, and neither write one', async () => {

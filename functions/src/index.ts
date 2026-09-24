@@ -25,6 +25,7 @@ import * as arcs from './surprises/arcs';
 import * as surprises from './surprises/surprises';
 import * as feedback from './feedback/affinity';
 import * as media from './media/media';
+import * as memories from './memories/memories';
 import { revealTiming } from './discovery/timing';
 import * as pairing from './pairing/pairing';
 import * as session from './session/session';
@@ -308,6 +309,20 @@ export const openArcDay = onCall(options, (request) =>
 /** Ending an arc, whether it ran its course or not. */
 export const closeArc = onCall(options, (request) =>
   guarded(() => arcs.closeArc(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+// ---------------------------------------------------------------------------
+// Memories (sections 6.1, 14.8): the couple's own library of the nights they played
+// ---------------------------------------------------------------------------
+
+/** Saves a night they played, in their own words. Saving it again edits the one they have. */
+export const saveMemory = onCall(options, (request) =>
+  guarded(() => memories.saveMemory(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+/** Forgetting one. Either of them may; what it pointed at is not deleted with it. */
+export const forgetMemory = onCall(options, (request) =>
+  guarded(() => memories.forgetMemory(getFirestore(), callerUid(request), request.data, Date.now())),
 );
 
 /** Everything whose moment has come, delivered on the clock (section 13). */

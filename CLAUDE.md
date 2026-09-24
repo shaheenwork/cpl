@@ -172,6 +172,17 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   said. The first day is due the moment the arc starts, without waiting for the phone's clock to
   agree with the server's (D-087).
 
+### Memories
+
+- A memory is the shape of an evening plus their own words — never a content id (D-090), which is
+  why the library may list freely when nothing else may.
+- The phone sends its own words; `saveMemory` reads the date, length, moods and "was it played"
+  from the night itself, and refuses one that is not theirs or was never played.
+- One memory per night (the experience id *is* the memory id): saving again edits it. `favorite`
+  is the one field a client writes; keeping and forgetting are callables.
+- Pages of twenty, newest first (`MemoryRepository.page(beforeMillis)`), because the library only
+  grows.
+
 ### Notifications
 
 - One place sends: `functions/src/notify/notify.ts`. Every message is **data-only** and carries

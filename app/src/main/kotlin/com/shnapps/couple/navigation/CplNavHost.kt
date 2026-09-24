@@ -29,6 +29,8 @@ import com.shnapps.couple.feature.games.GameScreen
 import com.shnapps.couple.feature.games.GamesScreen
 import com.shnapps.couple.feature.home.HomeActions
 import com.shnapps.couple.feature.home.HomeScreen
+import com.shnapps.couple.feature.memories.MemoriesScreen
+import com.shnapps.couple.feature.memories.SaveMemoryScreen
 import com.shnapps.couple.feature.night.BuildNightScreen
 import com.shnapps.couple.feature.night.NightScreen
 import com.shnapps.couple.feature.onboarding.AgeGateScreen
@@ -192,6 +194,7 @@ fun CplNavHost(
                     }
                 },
                 onAdjustLimits = { navController.navigate(Route.Boundaries) },
+                onKeepIt = { experienceId -> navController.navigate(Route.SaveMemory(experienceId)) },
             )
         }
 
@@ -201,6 +204,22 @@ fun CplNavHost(
 
         composable<Route.Later> {
             LaterScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable<Route.Memories> {
+            MemoriesScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable<Route.SaveMemory> {
+            SaveMemoryScreen(
+                // Kept, and then the library, so they see it land — with the night behind them.
+                onSaved = {
+                    navController.navigate(Route.Memories) {
+                        popUpTo(Route.Home) { inclusive = false }
+                    }
+                },
+                onBack = { navController.popBackStack() },
+            )
         }
 
         composable<Route.NotificationSettings> {
@@ -289,6 +308,7 @@ private fun Home(
             onLater = { navController.navigate(Route.Later) },
             onArc = { navController.navigate(Route.Arc) },
             onNotifications = { navController.navigate(Route.NotificationSettings) },
+            onMemories = { navController.navigate(Route.Memories) },
             onCuriosities = { navController.navigate(Route.PreferenceDiscovery) },
             onMutual = { navController.navigate(Route.MutualDiscovery) },
             onLimits = { navController.navigate(Route.Boundaries) },

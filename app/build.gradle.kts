@@ -121,6 +121,7 @@ dependencies {
     implementation(project(":feature:games"))
     implementation(project(":feature:home"))
     implementation(project(":feature:send"))
+    implementation(project(":feature:memories"))
     implementation(project(":feature:settings"))
     implementation(project(":core:notifications"))
 

@@ -315,6 +315,18 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // The couple's own library (§14.8). The server writes one from a night they played — it
+      // never holds a content id, so a memory cannot become a way to read a night one partner
+      // planned for the other (D-081, D-090). Both read them; both may mark one a favourite, and
+      // that is the only field a phone may change.
+      match /memories/{memoryId} {
+        allow get, list: if isActiveMember(coupleId);
+        allow update: if isActiveMember(coupleId)
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['favorite'])
+                      && request.resource.data.favorite is bool;
+        allow create, delete: if false;
+      }
+
       // A countdown to something they are both waiting for (§13). Either partner may make one
       // and either may remove it; there is nothing private in it.
       match /countdowns/{countdownId} {

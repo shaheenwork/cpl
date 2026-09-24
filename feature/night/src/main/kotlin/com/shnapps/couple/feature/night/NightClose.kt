@@ -128,11 +128,22 @@ internal fun FeedbackStage(state: NightUiState, actions: NightActions) {
     }
 }
 
-/** "NIGHT COMPLETE ❤️" (§14.8). Saving it to Our Memories arrives with the library (Phase 18). */
+/** "NIGHT COMPLETE ❤️" (§14.8), and the one tap that keeps it. */
 @Composable
-internal fun DoneStage(onHome: () -> Unit) {
+internal fun DoneStage(onKeepIt: () -> Unit, onHome: () -> Unit) {
     ScreenColumn {
         ScreenHeading(eyebrow = "Night complete", headline = "Night complete ❤️", body = "Sleep well, you two.")
-        GlowButton(text = "Back home", onClick = onHome, modifier = Modifier.fillMaxWidth())
+        GlowButton(
+            text = "Save to Our Memories",
+            onClick = onKeepIt,
+            leadingEmoji = "📖",
+            modifier = Modifier.fillMaxWidth(),
+        )
+        GlowButton(
+            text = "Back home",
+            onClick = onHome,
+            style = GlowButtonStyle.Quiet,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }

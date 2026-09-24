@@ -3,7 +3,7 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 17 complete. Phase 18 (memories + private library) is next.
+**Current position:** Phase 18 complete. Phase 19 (subscription) is next.
 
 ---
 
@@ -29,8 +29,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 | 15 | Voice + photo | ✅ **Complete** |
 | 16 | Scheduled surprises + multi-day | ✅ **Complete** |
 | 17 | FCM + notification privacy | ✅ **Complete** |
-| 18 | Memories + library | ⬜ Next |
-| 19 | Subscription | ⬜ |
+| 18 | Memories + library | ✅ **Complete** |
+| 19 | Subscription | ⬜ Next |
 | 20 | Settings, export, delete, reporting | ⬜ |
 | 21 | Security hardening | ⬜ |
 | 22 | Performance, cost, a11y, polish | ⬜ |
@@ -1224,6 +1224,44 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Phase 18 — Memories, and the library that may list ✅
+
+### Shipped
+- **A memory is their words and the shape of an evening** (§14.8): moods, how long it ran, how
+  many chapters they played, a title, the moment they want to keep, a note, a rating, and any
+  voice note or photo they attached. **Never a content id** (D-090) — which is exactly why the
+  library may list freely when experiences cannot be listed at all (D-081).
+- **The server fills in what the phone could be wrong about**: the date, the length, the moods and
+  the fact that the night was played come from the night itself. A night that is not theirs, or
+  that nobody played, is refused.
+- **One memory per night**, keyed by the experience: saving again edits what they kept, and
+  neither the favourite mark nor who first kept it is lost to the edit.
+- **`favorite` is the one field a phone writes**; keeping and forgetting are callables. Either
+  partner may forget one, and what it pointed at keeps its own life — a voice note still burns on
+  its own terms (D-083).
+- **Pages of twenty, newest first**: a library only grows, so it is never read whole.
+- **The screens** (`:feature:memories`, new): "Save to Our Memories" at the close of a night —
+  one tap from NIGHT COMPLETE ❤️ — and the library itself, with "Our nights" and "We love".
+
+### Verified
+```
+./gradlew check assembleDevDebug            BUILD SUCCESSFUL
+:feature:memories   13   (MemoriesViewModelTest 6, SaveMemoryViewModelTest 4, MemoriesSnapshotTest 3)
+npm --prefix functions run test:int         138/138  (memories 5)
+npm --prefix firebase/tests test            101/101  (both read, both may mark, nothing else)
+```
+- **Exit criterion — save, browse (paginated), favorite, media attached**: `memories.int.test.ts`
+  saves a played night and reads it back, `MemoriesViewModelTest` pages twenty at a time and
+  marks one, and `SaveMemoryViewModelTest` attaches up to four of the things they sent each other.
+- **On the device**: Alex built a fifteen-minute night, played all three chapters, left feedback,
+  and tapped "Save to Our Memories" at NIGHT COMPLETE ❤️. The library then showed
+  "TALK · 15 MIN · ALL 3 — The Tuesday one — "the bit where you laughed"", marking it a favourite
+  reached the server, and the stored memory carried **none** of that night's three content ids.
+- **Deliberately not built yet**: the Room cache of the library's first page (§6.3). It is a cost
+  and cold-start concern, and belongs with Phase 22.
 
 ---
 

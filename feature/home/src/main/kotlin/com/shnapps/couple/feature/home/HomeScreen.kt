@@ -77,6 +77,7 @@ data class HomeActions(
     val onMutual: () -> Unit = {},
     val onLimits: () -> Unit = {},
     val onNotifications: () -> Unit = {},
+    val onMemories: () -> Unit = {},
     val onAppLock: () -> Unit = {},
     val onSignOut: () -> Unit = {},
     val onUnpair: () -> Unit = {},
@@ -109,6 +110,7 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
 
             Section("Yours") {
                 Column(verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm)) {
+                    Quiet("Our memories", actions.onMemories)
                     Quiet("Your limits", actions.onLimits)
                     Quiet("Notifications", actions.onNotifications)
                     Quiet("Set up app lock", actions.onAppLock)

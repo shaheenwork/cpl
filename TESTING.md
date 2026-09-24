@@ -195,6 +195,19 @@ ended arc opens nothing. `ArcTest` holds which day is due — including the firs
 moment the arc starts — and `ArcViewModelTest` drives the screen against a fake that refuses the
 way the server does.
 
+### Memories (Phase 18)
+
+`memories.int.test.ts` keeps a played night and reads it back: their words, the evening's shape
+taken from the night rather than from the phone, and — the assertion that matters — that none of
+the night's content ids appear anywhere in the memory. It also covers one memory per night (an
+edit, not a second one, and the favourite mark surviving it), attachments limited to media of
+their own that was really sent, the refusals (a night nobody played, another couple's night, a
+field the server does not know), and that either partner may forget one without taking the voice
+note or the night with it. `rules.test.mjs` holds the client side: both read, both may mark a
+favourite, and nothing else about a memory may be written from a phone.
+`MemoriesViewModelTest` covers the library — pages of twenty, the favourite filter, a mark the
+server refuses going back where it was — and `SaveMemoryViewModelTest` the screen that keeps one.
+
 ### Notifications (Phase 17)
 
 `notify.unit.test.ts` is the payload inspection Phase 17 exits on: for every kind, what keys a
