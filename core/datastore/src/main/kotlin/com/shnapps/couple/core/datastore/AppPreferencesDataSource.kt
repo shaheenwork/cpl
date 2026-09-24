@@ -38,6 +38,7 @@ class AppPreferencesDataSource @Inject constructor(
                 prefs[Keys.SECOND_PLAYER]?.let { second -> GamePlayers(first, second) }
             },
             mode = prefs[Keys.MODE]?.let { name -> Mode.entries.firstOrNull { it.name == name } } ?: Mode.TOGETHER,
+            showNotificationContent = prefs[Keys.SHOW_NOTIFICATION_CONTENT] ?: false,
         )
     }
 
@@ -84,6 +85,10 @@ class AppPreferencesDataSource @Inject constructor(
         }
     }
 
+    override suspend fun setShowNotificationContent(show: Boolean) {
+        context.dataStore.edit { it[Keys.SHOW_NOTIFICATION_CONTENT] = show }
+    }
+
     override suspend fun setMode(mode: Mode) {
         context.dataStore.edit { it[Keys.MODE] = mode.name }
     }
@@ -102,5 +107,6 @@ class AppPreferencesDataSource @Inject constructor(
         val FIRST_PLAYER = stringPreferencesKey("game_first_player")
         val SECOND_PLAYER = stringPreferencesKey("game_second_player")
         val MODE = stringPreferencesKey("home_mode")
+        val SHOW_NOTIFICATION_CONTENT = booleanPreferencesKey("show_notification_content")
     }
 }

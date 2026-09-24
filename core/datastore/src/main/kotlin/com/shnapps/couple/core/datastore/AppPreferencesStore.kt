@@ -30,6 +30,9 @@ interface AppPreferencesStore {
     /** TOGETHER or APART: the home this phone opens on (§14.2). */
     suspend fun setMode(mode: Mode)
 
+    /** What a notification may say on this phone (§16.2), cached for when one arrives. */
+    suspend fun setShowNotificationContent(show: Boolean)
+
     /** Called on sign-out and account deletion. Leaves no trace of the previous user. */
     suspend fun clear()
 }

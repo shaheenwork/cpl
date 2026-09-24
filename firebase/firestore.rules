@@ -57,8 +57,34 @@ service cloud.firestore {
                 data.contentLevel is int && data.contentLevel >= 1 && data.contentLevel <= 5))
           && (!('privacySettings' in data) || (
                 data.privacySettings is map
-                && data.privacySettings.keys().hasOnly(
-                     ['appLock', 'hideNotificationPreviews', 'analyticsOptOut'])));
+                && data.privacySettings.keys().hasOnly(['appLock', 'analyticsOptOut'])))
+          && (!('notificationSettings' in data) || validNotificationSettings(data.notificationSettings));
+    }
+
+    // What the server checks before it sends anything (§16). The shape matters because the
+    // server reads it: a malformed quiet-hours window must not become a silent phone, and
+    // `enabled` must be a bool or nothing at all.
+    function validNotificationSettings(settings) {
+      return settings is map
+          && settings.keys().hasOnly(['enabled', 'showContent', 'quietHours'])
+          && (!('enabled' in settings) || settings.enabled is bool)
+          && (!('showContent' in settings) || settings.showContent is bool)
+          && (!('quietHours' in settings) || settings.quietHours == null || (
+                settings.quietHours is map
+                && settings.quietHours.keys().hasOnly(['from', 'to'])
+                && settings.quietHours.from is string && settings.quietHours.from.size() == 5
+                && settings.quietHours.to is string && settings.quietHours.to.size() == 5));
+    }
+
+    // A phone signed in as this user, so the server knows where to send (§16). Only ever the
+    // user's own: a token written into someone else's list would deliver their notifications
+    // to the writer's phone.
+    function validFcmToken(data) {
+      return data.keys().hasAll(['token', 'platform', 'updatedAt'])
+          && data.keys().hasOnly(['token', 'platform', 'updatedAt'])
+          && data.token is string && data.token.size() > 0 && data.token.size() <= 4096
+          && data.platform == 'ANDROID'
+          && data.updatedAt == request.time;
     }
 
     // The attestation is an audit record, so its time is the server's, not the device's
@@ -137,6 +163,12 @@ service cloud.firestore {
       match /affinity/{dimensionId} {
         allow read: if isSelf(uid);
         allow write: if false; // Derived from feedback by a Cloud Function.
+      }
+
+      // Where this user's phones can be reached (§16). The server reads them; nobody else can.
+      match /fcmTokens/{tokenId} {
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isSelf(uid) && validFcmToken(request.resource.data);
       }
     }
 

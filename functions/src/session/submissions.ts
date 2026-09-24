@@ -10,6 +10,7 @@
  * leave a chapter waiting for an answer that is already in.
  */
 import { Timestamp, type DocumentData, type Firestore } from 'firebase-admin/firestore';
+import { fcmSender, notifyPartner, type NotificationKind, type Sender } from '../notify/notify';
 import { snapshotOf } from './session';
 import { isTerminal, step } from './transitions';
 
@@ -31,6 +32,7 @@ export async function applySubmission(
   sessionId: string,
   submissionId: string,
   nowMs: number,
+  sender: Sender = fcmSender,
 ): Promise<void> {
   const match = SUBMISSION_ID.exec(submissionId);
   if (!match) return;
@@ -42,16 +44,16 @@ export async function applySubmission(
   const submissionsRef = sessionRef.collection('submissions');
   const revealRef = sessionRef.collection('rounds').doc(String(chapter));
 
-  await db.runTransaction(async (tx) => {
+  const told = await db.runTransaction(async (tx) => {
     const [couple, session, reveal] = await Promise.all([tx.get(coupleRef), tx.get(sessionRef), tx.get(revealRef)]);
     const members: unknown = couple.get('memberUids');
-    if (!session.exists || !Array.isArray(members) || !members.includes(uid)) return;
+    if (!session.exists || !Array.isArray(members) || !members.includes(uid)) return null;
     const data = session.data()!;
-    if (isTerminal(data.state)) return;
+    if (isTerminal(data.state)) return null;
 
     const snapshot = snapshotOf(data, members as string[]);
     const submitted = step(snapshot, { type: 'SUBMIT', uid, chapter });
-    if (submitted.status === 'illegal') return;
+    if (submitted.status === 'illegal') return null;
 
     const update: Record<string, unknown> = {};
     const now = Timestamp.fromMillis(nowMs);
@@ -73,7 +75,16 @@ export async function applySubmission(
       }
     }
     if (Object.keys(update).length > 0) tx.update(sessionRef, update);
+    if (submitted.status !== 'changed') return null;
+    // One of them has answered. The other is told that, and never what was answered (section 12.2):
+    // that they finished their part, or — when this answer completed the round — that both are in.
+    const reached = (update.state as string | undefined) ?? state;
+    const kind: NotificationKind = reached === 'REVEAL' ? 'BOTH_READY' : 'PARTNER_FINISHED';
+    return { members: members as string[], kind };
   });
+
+  // After the commit: a transaction may run more than once, and a phone must never be told twice.
+  if (told !== null) await notifyPartner(db, told.members, uid, told.kind, sessionId, nowMs, sender);
 }
 
 /** What each partner answered for [chapter]: read inside the transaction, never sent to a client. */

@@ -179,14 +179,14 @@ describe('a session nobody is in', () => {
     const { coupleId, sessionId } = await playing();
     const later = NOW + EXPIRE_AFTER_MS + 1_000;
 
-    assert.deepEqual(await expireStale(db, NOW + 1_000), { expired: 0 }, 'a session under way is left alone');
-    assert.deepEqual(await expireStale(db, later), { expired: 1 });
+    assert.deepEqual(await expireStale(db, NOW + 1_000), { expired: 0, warned: 0 }, 'a session under way is left alone');
+    assert.deepEqual(await expireStale(db, later), { expired: 1, warned: 0 });
 
     const session = await read(`couples/${coupleId}/sessions/${sessionId}`);
     assert.equal(session!.state, 'ABANDONED');
     assert.equal(session!.endReason, 'EXPIRED');
     assert.equal((await read(`couples/${coupleId}`))!.activeSessionId, undefined);
-    assert.deepEqual(await expireStale(db, later), { expired: 0 }, 'and stays ended');
+    assert.deepEqual(await expireStale(db, later), { expired: 0, warned: 0 }, 'and stays ended');
   });
 
   it('is left alone while either phone is still there', async () => {
@@ -196,7 +196,7 @@ describe('a session nobody is in', () => {
       at: Timestamp.fromMillis(later - 20_000),
     });
 
-    assert.deepEqual(await expireStale(db, later), { expired: 0 });
+    assert.deepEqual(await expireStale(db, later), { expired: 0, warned: 0 });
     assert.equal((await read(`couples/${coupleId}/sessions/${sessionId}`))!.state, 'CHAPTER_ACTIVE');
   });
 });

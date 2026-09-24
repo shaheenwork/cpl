@@ -96,6 +96,41 @@ describe('users/{uid}', () => {
   });
 });
 
+// Section 16. Where a phone can be reached, and what the server checks before reaching it.
+describe('users/{uid}/fcmTokens and notificationSettings (§16)', () => {
+  const token = () => ({ token: 'fcm-token-abc', platform: 'ANDROID', updatedAt: serverTimestamp() });
+
+  it('lets a user register their own phone, and read and drop it', async () => {
+    await assertSucceeds(setDoc(doc(alice(), 'users', ALICE, 'fcmTokens', 't1'), token()));
+    await assertSucceeds(getDocs(collection(alice(), 'users', ALICE, 'fcmTokens')));
+    await assertSucceeds(deleteDoc(doc(alice(), 'users', ALICE, 'fcmTokens', 't1')));
+  });
+
+  it("denies writing a token into someone else's list, which would forward their notifications", async () => {
+    await assertFails(setDoc(doc(bob(), 'users', ALICE, 'fcmTokens', 't2'), token()));
+    await assertFails(getDocs(collection(bob(), 'users', ALICE, 'fcmTokens')));
+  });
+
+  it("holds a token to its shape, and its time to the server's", async () => {
+    const at = (fields) => setDoc(doc(alice(), 'users', ALICE, 'fcmTokens', 't3'), fields);
+    await assertFails(at({ token: 'fcm-token-abc', platform: 'ANDROID', updatedAt: Timestamp.now() }));
+    await assertFails(at({ token: 'fcm-token-abc', platform: 'IOS', updatedAt: serverTimestamp() }));
+    await assertFails(at({ token: '', platform: 'ANDROID', updatedAt: serverTimestamp() }));
+    await assertFails(at({ ...token(), coupleId: 'couple_1' }));
+    await assertFails(at({ platform: 'ANDROID', updatedAt: serverTimestamp() }));
+  });
+
+  it('holds notification settings to a shape the server can read', async () => {
+    const settings = (notificationSettings) => updateDoc(doc(alice(), 'users', ALICE), { notificationSettings });
+    await assertSucceeds(settings({ enabled: true, showContent: false, quietHours: { from: '22:00', to: '07:00' } }));
+    await assertSucceeds(settings({ enabled: false, showContent: false, quietHours: null }));
+    await assertFails(settings({ enabled: 'yes' }));
+    await assertFails(settings({ enabled: true, quietHours: { from: '22:00' } }));
+    await assertFails(settings({ enabled: true, quietHours: { from: '10pm', to: '7am' } }));
+    await assertFails(settings({ enabled: true, mute: 'everything' }));
+  });
+});
+
 // Section 3.1. The 18+ attestation is an audit record: well-formed, and stamped with the
 // server's time rather than the device's.
 describe('users/{uid}.ageAttestation', () => {

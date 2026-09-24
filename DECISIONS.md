@@ -1188,3 +1188,47 @@ opening its first day, and that needs no clock. Later days still wait for their 
 screen asks again every five seconds so a day that comes round while the screen is open says so
 without being reopened. The server's own check is unchanged — it refuses a day it has not reached
 — and day one always passes it, because its unlock time is the moment the server wrote it.
+
+---
+
+## D-088 — A push payload carries ids, never words
+**Phase 17.** §16.2 forbids private content in a notification, and the cheapest way to keep a
+promise like that is to have nothing to leak. Every message this server sends is **data-only** —
+no `notification` block at all, so nothing is ever displayed on the app's behalf — and its data
+map holds four fields: the kind, its channel, the time, and at most one document id.
+
+`buildMessage` is the single place a payload is built, and it refuses a reference that is not a
+Firestore document id: twenty characters of its alphabet, which is what every reference actually
+is. A single word — a title, a name, a mood — is not one, and nothing with a space in it comes
+close. So a caller cannot smuggle a surprise's title into a payload even by accident, and the
+payload inspection (`notify.unit.test.ts`, Phase 17's exit criterion) proves it for every kind.
+
+The words come from the phone: `NotificationText` is a fixed table in `:core:notifications` with
+no placeholders in it, and `NotifierTest` reads the table back and fails if a notification ever
+says anything that is not in it. Tapping one opens the app rather than a deep link with an id in
+it — whatever it was about is on the home surface once the app is unlocked, fetched there as the
+signed-in user, which is exactly what §16.2 asks for.
+
+The cost is real and accepted: a data-only message is not shown by the system while the app is
+force-stopped, so a notification can be missed. A notification that was never delivered is a
+smaller harm than one that reads "Your partner selected 'blindfold'" on a shared lock screen.
+
+---
+
+## D-089 — Whether to send is the server's decision, not the phone's
+**Phase 17.** A phone that simply declined to show what it had been sent would be the same
+mistake as hiding content in the UI (§7.1): the message would still have travelled, still have
+been delivered, and still be sitting in a push service's logs. So `notificationSettings` lives in
+`users/{uid}` where the server reads it — on, off, and quiet hours — and `notifyUser` checks it
+before it sends anything at all.
+
+Quiet hours are evaluated on the *user's own* clock, from their `timezone`: 22:00 means ten at
+night where they are, and a window that wraps midnight is read the way people mean it. A window
+the server cannot parse is ignored rather than obeyed — a malformed setting must not become a
+phone that silently receives nothing — and the rules hold the shape so it stays parseable.
+
+One switch, not two: `privacySettings.hideNotificationPreviews` was defined in Phase 3 and never
+read by anything, and two switches for one idea is how they end up disagreeing. What a
+notification may say is `notificationSettings.showContent`, and the phone keeps its own copy in
+DataStore because a message can arrive at three in the morning, before anything has loaded.
+

@@ -15,6 +15,7 @@
  * and delegates.
  */
 import { Timestamp, type Firestore } from 'firebase-admin/firestore';
+import { fcmSender, notifyUser, type Sender } from '../notify/notify';
 import { ServiceError } from '../shared/errors';
 import { activeCoupleOf, buildExperience, defaultDeps, parseRequest, type GenerateDeps } from './generate';
 
@@ -38,6 +39,7 @@ export async function planNight(
   input: unknown,
   nowMs: number,
   deps: GenerateDeps = defaultDeps,
+  sender: Sender = fcmSender,
 ): Promise<PlannedNight> {
   const seed = deps.seed() >>> 0;
   const request = parseRequest(input, seed);
@@ -55,6 +57,8 @@ export async function planNight(
     createdAt: Timestamp.fromMillis(nowMs),
     openedAt: null,
   });
+  // They hear that a night is waiting, and nothing about its shape (section 16.2).
+  await notifyUser(db, partner, 'NIGHT_STARTING', built.experienceId, nowMs, sender);
   // Ids, alternates and ask-first items all stay out of this: the planner is not told what they
   // planned, only that it is there and how long it runs.
   return { experienceId: built.experienceId, chapterCount: built.chapters.length, plannedFor: partner };

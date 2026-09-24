@@ -14,6 +14,7 @@
  */
 import { FieldValue, Timestamp, type DocumentData, type Firestore } from 'firebase-admin/firestore';
 import { activeCoupleOf } from '../experience/generate';
+import { fcmSender, notifyUser, type Sender } from '../notify/notify';
 import { ServiceError } from '../shared/errors';
 import { consumeRateLimit } from '../shared/rateLimit';
 
@@ -117,6 +118,7 @@ export async function createSurprise(
   uid: string,
   input: unknown,
   nowMs: number,
+  sender: Sender = fcmSender,
 ): Promise<CreatedSurprise> {
   const request = parseCreate(input, nowMs);
   const { coupleId, members } = await activeCoupleOf(db, uid);
@@ -154,6 +156,8 @@ export async function createSurprise(
     deliveredAt: null,
   });
   await batch.commit();
+  // They are told that something exists, with its id and nothing else (section 16.2).
+  await notifyUser(db, partner, 'SURPRISE_LEFT', ref.id, nowMs, sender);
   return { surpriseId: ref.id, state: 'SCHEDULED' };
 }
 
@@ -214,7 +218,11 @@ export async function openSurprise(
  * Everything whose time has come (section 13). Swept every five minutes, and safe to run twice:
  * a surprise already delivered is not delivered again.
  */
-export async function deliverDue(db: Firestore, nowMs: number): Promise<{ delivered: number }> {
+export async function deliverDue(
+  db: Firestore,
+  nowMs: number,
+  sender: Sender = fcmSender,
+): Promise<{ delivered: number }> {
   const due = await db
     .collectionGroup('surprises')
     .where('state', '==', 'SCHEDULED')
@@ -224,6 +232,10 @@ export async function deliverDue(db: Firestore, nowMs: number): Promise<{ delive
   let delivered = 0;
   for (const surprise of due.docs) {
     await deliver(db, surprise.ref, nowMs);
+    const forUid = surprise.get('forUid');
+    if (typeof forUid === 'string') {
+      await notifyUser(db, forUid, 'SURPRISE_UNLOCKED', surprise.id, nowMs, sender);
+    }
     delivered += 1;
   }
   return { delivered };

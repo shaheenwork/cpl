@@ -41,6 +41,7 @@ import com.shnapps.couple.feature.preferences.PreferenceDiscoveryScreen
 import com.shnapps.couple.feature.send.ArcScreen
 import com.shnapps.couple.feature.send.LaterScreen
 import com.shnapps.couple.feature.send.SendScreen
+import com.shnapps.couple.feature.settings.NotificationSettingsScreen
 
 /**
  * The app's navigation graph.
@@ -202,6 +203,10 @@ fun CplNavHost(
             LaterScreen(onBack = { navController.popBackStack() })
         }
 
+        composable<Route.NotificationSettings> {
+            NotificationSettingsScreen(onBack = { navController.popBackStack() })
+        }
+
         composable<Route.Arc> {
             ArcScreen(
                 onNight = { experienceId -> navController.navigate(Route.Night(experienceId)) },
@@ -283,6 +288,7 @@ private fun Home(
             onSend = { navController.navigate(Route.Send) },
             onLater = { navController.navigate(Route.Later) },
             onArc = { navController.navigate(Route.Arc) },
+            onNotifications = { navController.navigate(Route.NotificationSettings) },
             onCuriosities = { navController.navigate(Route.PreferenceDiscovery) },
             onMutual = { navController.navigate(Route.MutualDiscovery) },
             onLimits = { navController.navigate(Route.Boundaries) },

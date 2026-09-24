@@ -28,6 +28,7 @@ data class UserProfile(
     val contentLevel: Intensity = Intensity.FLIRTY,
     val coupleId: String? = null,
     val privacySettings: PrivacySettings = PrivacySettings(),
+    val notificationSettings: NotificationSettings = NotificationSettings(),
     /** Present only while a pairing handshake is in progress. Server-written. */
     val pairing: PairingState? = null,
 ) {
@@ -46,13 +47,31 @@ data class AgeAttestation(
     val confirmedAtEpochMillis: Long,
 )
 
-/** Per-user privacy choices (§6.1, §16.2, §3.4). */
+/** Per-user privacy choices (§6.1, §3.4). What a notification may say lives in [NotificationSettings]. */
 data class PrivacySettings(
     val appLock: AppLockMode = AppLockMode.OFF,
-    /** When true, notifications never carry content — only "something is waiting" (§16.2). */
-    val hideNotificationPreviews: Boolean = true,
     val analyticsOptOut: Boolean = false,
 )
+
+/**
+ * The three notification choices of §16.2, and the hours nobody wants to hear from anyone.
+ *
+ * [showContent] never means "put private content in a notification" — nothing in a payload could
+ * carry any (§16.2). It chooses between saying which kind of thing happened and saying nothing
+ * but the app's name, which is what "hide sensitive previews" means on a shared lock screen.
+ */
+data class NotificationSettings(
+    val enabled: Boolean = true,
+    val showContent: Boolean = false,
+    val quietHours: QuietHours? = null,
+)
+
+/** A window on the user's own clock, each end "HH:MM". Wraps around midnight. */
+data class QuietHours(val from: String, val to: String) {
+    companion object {
+        val NIGHT = QuietHours(from = "22:00", to = "07:00")
+    }
+}
 
 /**
  * How the app locks itself (§3.4, §57).

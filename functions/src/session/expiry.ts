@@ -10,6 +10,7 @@
  * Swept every five minutes by a scheduled function, and safe to run twice.
  */
 import { Timestamp, type Firestore } from 'firebase-admin/firestore';
+import { fcmSender, notifyUser, type Sender } from '../notify/notify';
 import { expireSession } from './session';
 import { isTerminal, type SessionState } from './transitions';
 
@@ -26,7 +27,18 @@ export const EXPIRE_ASYNC_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 /** How far back the sweep looks: sessions touched since then are certainly alive. */
 const WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
-export async function expireStale(db: Firestore, nowMs: number): Promise<{ expired: number }> {
+/**
+ * How long before its time is up a session says so. A live session's ten minutes are shorter than
+ * any warning would be useful for, so only an async one — a night waiting days for the other
+ * partner — is ever worth a word (section 16.1).
+ */
+export const WARN_BEFORE_MS = 24 * 60 * 60 * 1000;
+
+export async function expireStale(
+  db: Firestore,
+  nowMs: number,
+  sender: Sender = fcmSender,
+): Promise<{ expired: number; warned: number }> {
   const cutoff = Timestamp.fromMillis(nowMs - EXPIRE_AFTER_MS);
   const candidates = await db
     .collectionGroup('sessions')
@@ -35,17 +47,42 @@ export async function expireStale(db: Firestore, nowMs: number): Promise<{ expir
     .get();
 
   let expired = 0;
+  let warned = 0;
   for (const session of candidates.docs) {
     if (isTerminal(session.get('state') as SessionState)) continue;
-    const patience = session.get('kind') === 'ASYNC' ? EXPIRE_ASYNC_AFTER_MS : EXPIRE_AFTER_MS;
+    const async = session.get('kind') === 'ASYNC';
+    const patience = async ? EXPIRE_ASYNC_AFTER_MS : EXPIRE_AFTER_MS;
     const touched = (session.get('updatedAt') as Timestamp | undefined)?.toMillis() ?? 0;
-    if (nowMs - touched < patience) continue;
     const seen = await lastSeen(session.ref);
-    if (seen !== null && seen > nowMs - patience) continue;
+    const quietSince = Math.max(touched, seen ?? 0);
+    if (nowMs - quietSince < patience) {
+      // Still alive, but not for much longer: said once, to whoever has not finished it.
+      if (async && nowMs - quietSince >= patience - WARN_BEFORE_MS && session.get('expiryWarnedAt') == null) {
+        await warn(db, session, nowMs, sender);
+        warned += 1;
+      }
+      continue;
+    }
     const coupleId = session.ref.parent.parent!.id;
     if (await expireSession(db, coupleId, session.id, nowMs)) expired += 1;
   }
-  return { expired };
+  return { expired, warned };
+}
+
+/** Tells the couple a waiting night is nearly out of time, once. */
+async function warn(
+  db: Firestore,
+  session: FirebaseFirestore.QueryDocumentSnapshot,
+  nowMs: number,
+  sender: Sender,
+): Promise<void> {
+  await session.ref.update({ expiryWarnedAt: Timestamp.fromMillis(nowMs) });
+  const coupleId = session.ref.parent.parent!.id;
+  const members: unknown = (await db.doc(`couples/${coupleId}`).get()).get('memberUids');
+  if (!Array.isArray(members)) return;
+  for (const member of members as string[]) {
+    await notifyUser(db, member, 'SESSION_EXPIRING', session.id, nowMs, sender);
+  }
 }
 
 /** When either phone was last in the session, or null if neither ever said. */

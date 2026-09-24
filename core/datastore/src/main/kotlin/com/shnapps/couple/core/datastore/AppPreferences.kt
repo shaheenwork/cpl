@@ -38,6 +38,13 @@ data class AppPreferences(
      * because it is about where this phone is, not about the couple.
      */
     val mode: Mode = Mode.TOGETHER,
+
+    /**
+     * Whether a notification may name which kind of thing happened (§16.2). The answer lives in
+     * the user's profile, because the server reads it too; this is the copy the phone has when a
+     * message arrives before anything has loaded. Hidden until told otherwise.
+     */
+    val showNotificationContent: Boolean = false,
 ) {
     companion object {
         const val DEFAULT_LOCK_TIMEOUT_MILLIS: Long = 60_000L

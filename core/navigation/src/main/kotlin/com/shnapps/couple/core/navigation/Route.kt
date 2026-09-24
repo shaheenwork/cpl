@@ -76,6 +76,10 @@ object Route {
     @Serializable
     data object Arc
 
+    /** What this phone may say out loud (§16.2). */
+    @Serializable
+    data object NotificationSettings
+
     /** A night being played — or waiting to be — on either partner's phone (§14.6). */
     @Serializable
     data class Night(val experienceId: String)

@@ -18,6 +18,7 @@ import { Timestamp, type DocumentData, type Firestore } from 'firebase-admin/fir
 import type { Bucket } from '@google-cloud/storage';
 import type { Storage } from 'firebase-admin/storage';
 import { activeCoupleOf } from '../experience/generate';
+import { fcmSender, notifyPartner, type Sender } from '../notify/notify';
 import { ServiceError } from '../shared/errors';
 import { consumeRateLimit } from '../shared/rateLimit';
 
@@ -125,9 +126,10 @@ export async function confirmMedia(
   uid: string,
   input: unknown,
   nowMs: number,
+  sender: Sender = fcmSender,
 ): Promise<{ itemId: string }> {
   const itemId = idOf(input);
-  const { coupleId } = await activeCoupleOf(db, uid);
+  const { coupleId, members } = await activeCoupleOf(db, uid);
   const ref = db.doc(`couples/${coupleId}/media/${itemId}`);
   const snapshot = await ref.get();
   const media = snapshot.data();
@@ -138,6 +140,8 @@ export async function confirmMedia(
   const [exists] = await bucketOf(storage).file(media.path).exists();
   if (!exists) throw new ServiceError('failed-precondition', 'nothing-uploaded');
   await ref.update({ state: 'SENT', sentAt: Timestamp.fromMillis(nowMs) });
+  // Not what it is, not even whether it is a voice note: that they sent something (section 16.2).
+  await notifyPartner(db, members, uid, 'THEY_SENT_SOMETHING', itemId, nowMs, sender);
   return { itemId };
 }
 

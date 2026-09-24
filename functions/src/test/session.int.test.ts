@@ -357,11 +357,11 @@ describe('a night planned for the partner, played later', () => {
     const session = await createSession(db, b, { experienceId: planned.experienceId }, NOW);
 
     // A day later it is still theirs to come back to, exactly where they left it.
-    assert.deepEqual(await expireStale(db, NOW + 24 * 60 * 60 * 1000), { expired: 0 });
+    assert.deepEqual(await expireStale(db, NOW + 24 * 60 * 60 * 1000), { expired: 0, warned: 0 });
     assert.equal((await read(`couples/${coupleId}/sessions/${session.sessionId}`)).state, session.state);
 
     // After a week, the couple gets their place back.
-    assert.deepEqual(await expireStale(db, NOW + 8 * 24 * 60 * 60 * 1000), { expired: 1 });
+    assert.deepEqual(await expireStale(db, NOW + 8 * 24 * 60 * 60 * 1000), { expired: 1, warned: 0 });
     assert.equal((await read(`couples/${coupleId}/sessions/${session.sessionId}`)).endReason, 'EXPIRED');
   });
 });

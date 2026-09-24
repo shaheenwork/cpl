@@ -8,6 +8,8 @@ import com.shnapps.couple.core.firebase.media.FirebaseMediaRemoteDataSource
 import com.shnapps.couple.core.firebase.media.MediaRemoteDataSource
 import com.shnapps.couple.core.firebase.night.FirebaseNightRemoteDataSource
 import com.shnapps.couple.core.firebase.night.NightRemoteDataSource
+import com.shnapps.couple.core.firebase.notifications.FirebasePushDataSource
+import com.shnapps.couple.core.firebase.notifications.PushDataSource
 import com.shnapps.couple.core.firebase.surprise.ArcRemoteDataSource
 import com.shnapps.couple.core.firebase.surprise.FirebaseArcRemoteDataSource
 import com.shnapps.couple.core.firebase.surprise.FirebaseSurpriseRemoteDataSource
@@ -36,6 +38,9 @@ abstract class DataSourceModule {
 
     @Binds
     abstract fun bindArcRemoteDataSource(impl: FirebaseArcRemoteDataSource): ArcRemoteDataSource
+
+    @Binds
+    abstract fun bindPushDataSource(impl: FirebasePushDataSource): PushDataSource
 
     @Binds
     abstract fun bindGameRemoteDataSource(impl: FirebaseGameRemoteDataSource): GameRemoteDataSource

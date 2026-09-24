@@ -18,6 +18,8 @@ import com.shnapps.couple.core.data.mutual.DefaultMutualRepository
 import com.shnapps.couple.core.data.mutual.MutualRepository
 import com.shnapps.couple.core.data.night.DefaultNightRepository
 import com.shnapps.couple.core.data.night.NightRepository
+import com.shnapps.couple.core.data.notifications.DefaultNotificationsRepository
+import com.shnapps.couple.core.data.notifications.NotificationsRepository
 import com.shnapps.couple.core.data.preferences.DefaultPreferenceRepository
 import com.shnapps.couple.core.data.preferences.PreferenceRepository
 import com.shnapps.couple.core.data.surprise.ArcRepository
@@ -84,4 +86,7 @@ abstract class DataModule {
 
     @Binds
     abstract fun bindArcRepository(impl: DefaultArcRepository): ArcRepository
+
+    @Binds
+    abstract fun bindNotificationsRepository(impl: DefaultNotificationsRepository): NotificationsRepository
 }

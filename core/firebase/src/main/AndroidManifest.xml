@@ -4,14 +4,28 @@
   module is self-contained: any consumer of :core:firebase gets what it needs, and lint
   can verify it (BUILD_PROMPT.md §4.2).
 
-  POST_NOTIFICATIONS is deliberately NOT here. It belongs to :core:notifications in
-  Phase 17, together with the runtime permission request and the privacy settings that
-  govern it (§16.2).
+  POST_NOTIFICATIONS is deliberately NOT here. It belongs to :core:notifications, with the
+  builders that post notifications and the settings that govern them (§16.2).
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <application>
+        <!--
+          Messages from the server (§16). Data-only, so nothing is ever displayed on this app's
+          behalf: this service reads the kind and hands it to :core:notifications, which writes
+          the words. Not exported: only the push SDK on this device may start it.
+        -->
+        <service
+            android:name=".notifications.CplMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+    </application>
 
 </manifest>

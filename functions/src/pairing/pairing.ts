@@ -22,6 +22,7 @@
  */
 import { FieldValue, Timestamp, type Firestore, type Transaction } from 'firebase-admin/firestore';
 import { contentLevelOf } from '../engine/filters';
+import { fcmSender, notifyUser, type Sender } from '../notify/notify';
 import { ServiceError } from '../shared/errors';
 import { consumeRateLimit } from '../shared/rateLimit';
 import { CODE_TTL_MS, generateCode, isWellFormed } from './code';
@@ -146,6 +147,7 @@ export async function requestPairing(
   joinerUid: string,
   rawCode: unknown,
   nowMs: number,
+  sender: Sender = fcmSender,
 ): Promise<{ verification: string[] }> {
   if (!isWellFormed(rawCode)) throw new ServiceError('invalid-argument', 'malformed-code');
   const code = rawCode;
@@ -156,7 +158,7 @@ export async function requestPairing(
     LIMITS.requestPairing.limit, LIMITS.requestPairing.windowMs, nowMs,
   );
 
-  return db.runTransaction(async (tx) => {
+  const requested = await db.runTransaction(async (tx) => {
     const codeRef = codes(db).doc(code);
     const codeDoc = (await tx.get(codeRef)).data() as CodeDoc | undefined;
 
@@ -195,8 +197,12 @@ export async function requestPairing(
     });
     tx.set(joinerRef, { pairing: { role: 'JOINER', status: 'WAITING', code, verification } }, { merge: true });
     tx.set(creatorRef, { pairing: { role: 'CREATOR', status: 'REQUESTED', code, verification, expiresAtMs } }, { merge: true });
-    return { verification };
+    return { verification, creatorUid: codeDoc.creatorUid };
   });
+
+  // After the commit, never inside it: a transaction may run more than once (section 16.1).
+  await notifyUser(db, requested.creatorUid, 'PARTNER_INVITED', null, nowMs, sender);
+  return { verification: requested.verification };
 }
 
 // ---------------------------------------------------------------------------
@@ -208,8 +214,9 @@ export async function respondToPairing(
   creatorUid: string,
   approve: boolean,
   nowMs: number,
+  sender: Sender = fcmSender,
 ): Promise<{ coupleId: string | null }> {
-  return db.runTransaction(async (tx) => {
+  const answered = await db.runTransaction(async (tx) => {
     const creatorRef = users(db).doc(creatorUid);
     const creator = (await tx.get(creatorRef)).data() as UserDoc | undefined;
     const pairing = creator?.pairing;
@@ -230,7 +237,7 @@ export async function respondToPairing(
       tx.update(codeRef, { status: 'CANCELLED' });
       tx.set(creatorRef, { pairing: FieldValue.delete() }, { merge: true });
       tx.set(joinerRef, { pairing: { role: 'JOINER', status: 'DECLINED', code: pairing.code } }, { merge: true });
-      return { coupleId: null };
+      return { coupleId: null, joinerUid: codeDoc.joinerUid };
     }
 
     if (codeDoc.expiresAt.toMillis() <= nowMs) throw new ServiceError('failed-precondition', 'expired');
@@ -259,8 +266,13 @@ export async function respondToPairing(
     tx.set(joinerRef, { coupleId: coupleRef.id, pairing: FieldValue.delete() }, { merge: true });
     tx.update(codeRef, { status: 'CONSUMED', consumedAt: now, coupleId: coupleRef.id });
 
-    return { coupleId: coupleRef.id };
+    return { coupleId: coupleRef.id, joinerUid: codeDoc.joinerUid };
   });
+
+  if (answered.coupleId !== null) {
+    await notifyUser(db, answered.joinerUid, 'PARTNER_JOINED', null, nowMs, sender);
+  }
+  return { coupleId: answered.coupleId };
 }
 
 // ---------------------------------------------------------------------------

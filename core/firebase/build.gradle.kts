@@ -28,4 +28,8 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:common"))
     implementation(project(":core:analytics"))
+    // The one place a push message becomes a notification: the service is here, because it is a
+    // Firebase type, and everything it shows comes from :core:notifications (§16.2).
+    implementation(project(":core:notifications"))
+    implementation(project(":core:datastore"))
 }

@@ -121,6 +121,8 @@ dependencies {
     implementation(project(":feature:games"))
     implementation(project(":feature:home"))
     implementation(project(":feature:send"))
+    implementation(project(":feature:settings"))
+    implementation(project(":core:notifications"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

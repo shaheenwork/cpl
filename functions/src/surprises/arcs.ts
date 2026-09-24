@@ -13,6 +13,7 @@
 import { Timestamp, type DocumentData, type Firestore } from 'firebase-admin/firestore';
 import { MOODS, type Mood } from '../engine/types';
 import { activeCoupleOf, buildExperience, currentFilters, defaultDeps, type GenerateDeps } from '../experience/generate';
+import { fcmSender, notifyPartner, type Sender } from '../notify/notify';
 import { ServiceError } from '../shared/errors';
 
 export const ARC_LENGTHS = [1, 3, 7, 14] as const;
@@ -113,6 +114,7 @@ export async function openArcDay(
   input: unknown,
   nowMs: number,
   deps: GenerateDeps = defaultDeps,
+  sender: Sender = fcmSender,
 ): Promise<{ arcId: string; dayIndex: number; experienceId: string }> {
   if (typeof input !== 'object' || input === null || Array.isArray(input)) invalid('request');
   const raw = input as Record<string, unknown>;
@@ -122,7 +124,7 @@ export async function openArcDay(
   if (!Number.isInteger(raw.dayIndex) || (raw.dayIndex as number) < 0) invalid('dayIndex');
   const dayIndex = raw.dayIndex as number;
 
-  const { coupleId } = await activeCoupleOf(db, uid);
+  const { coupleId, members } = await activeCoupleOf(db, uid);
   const ref = db.doc(`couples/${coupleId}/arcs/${arcId}`);
   const snapshot = await ref.get();
   const arc = snapshot.data();
@@ -165,6 +167,8 @@ export async function openArcDay(
   days[dayIndex] = { ...day, state: 'READY' satisfies ArcDayState, experienceId: built.experienceId };
   if (before !== undefined) days[dayIndex - 1] = { ...before, state: 'DONE' satisfies ArcDayState };
   await ref.update({ days });
+  // Today's day is open. Which beat it is stays on the phone that asks (section 16.2).
+  await notifyPartner(db, members, uid, 'DAY_UNLOCKED', built.experienceId, nowMs, sender);
   return { arcId, dayIndex, experienceId: built.experienceId };
 }
 

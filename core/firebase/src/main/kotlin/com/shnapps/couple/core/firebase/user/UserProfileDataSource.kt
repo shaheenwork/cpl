@@ -10,10 +10,12 @@ import com.shnapps.couple.core.firebase.firestoreCall
 import com.shnapps.couple.core.model.AgeAttestation
 import com.shnapps.couple.core.model.AppLockMode
 import com.shnapps.couple.core.model.Intensity
+import com.shnapps.couple.core.model.NotificationSettings
 import com.shnapps.couple.core.model.PairingRole
 import com.shnapps.couple.core.model.PairingState
 import com.shnapps.couple.core.model.PairingStatus
 import com.shnapps.couple.core.model.PrivacySettings
+import com.shnapps.couple.core.model.QuietHours
 import com.shnapps.couple.core.model.UserProfile
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -100,8 +102,24 @@ class UserProfileDataSource @Inject constructor(
             mapOf(
                 "privacySettings" to mapOf(
                     "appLock" to settings.appLock.name,
-                    "hideNotificationPreviews" to settings.hideNotificationPreviews,
                     "analyticsOptOut" to settings.analyticsOptOut,
+                ),
+            ),
+            SetOptions.merge(),
+        ).await()
+    }
+
+    /**
+     * What the server checks before it sends anything (§16). Written here rather than kept on the
+     * phone, because it is the server that decides whether to send.
+     */
+    suspend fun updateNotificationSettings(uid: String, settings: NotificationSettings): Outcome<Unit> = call {
+        firestore.collection(USERS).document(uid).set(
+            mapOf(
+                "notificationSettings" to mapOf(
+                    "enabled" to settings.enabled,
+                    "showContent" to settings.showContent,
+                    "quietHours" to settings.quietHours?.let { mapOf("from" to it.from, "to" to it.to) },
                 ),
             ),
             SetOptions.merge(),
@@ -133,6 +151,8 @@ class UserProfileDataSource @Inject constructor(
 private fun DocumentSnapshot.toUserProfile(uid: String): UserProfile {
     val attestation = get("ageAttestation") as? Map<*, *>
     val privacy = get("privacySettings") as? Map<*, *>
+    val notifications = get("notificationSettings") as? Map<*, *>
+    val quiet = notifications?.get("quietHours") as? Map<*, *>
 
     return UserProfile(
         uid = uid,
@@ -152,8 +172,14 @@ private fun DocumentSnapshot.toUserProfile(uid: String): UserProfile {
             appLock = (privacy?.get("appLock") as? String)
                 ?.let { mode -> runCatching { AppLockMode.valueOf(mode) }.getOrNull() }
                 ?: AppLockMode.OFF,
-            hideNotificationPreviews = privacy?.get("hideNotificationPreviews") as? Boolean ?: true,
             analyticsOptOut = privacy?.get("analyticsOptOut") as? Boolean ?: false,
+        ),
+        notificationSettings = NotificationSettings(
+            enabled = notifications?.get("enabled") as? Boolean ?: true,
+            showContent = notifications?.get("showContent") as? Boolean ?: false,
+            quietHours = (quiet?.get("from") as? String)?.let { from ->
+                (quiet["to"] as? String)?.let { to -> QuietHours(from, to) }
+            },
         ),
         pairing = (get("pairing") as? Map<*, *>)?.toPairingState(),
     )

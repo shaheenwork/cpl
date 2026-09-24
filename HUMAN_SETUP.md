@@ -134,6 +134,24 @@ In each project: **Authentication** (Email/Password, and Google if wanted),
 **Cloud Messaging**, **Crashlytics**, **Remote Config**, **App Check**,
 **Performance Monitoring**.
 
+### ⬜ 2.3a Cloud Messaging — needed from Phase 17
+
+Push has **no emulator**. Everything about a notification can be tested locally except the
+delivery itself: the payloads are inspected by `notify.unit.test.ts`, the flows that send them by
+`notify.int.test.ts`, and what a phone shows by `NotifierTest` — but a message only reaches a real
+device from a real project.
+
+So, in `staging` and `prod`:
+- Enable **Cloud Messaging** (2.3 above) and keep the default service account, which is what the
+  functions use to send. Nothing else is configured: the app sends **data-only** messages, so
+  there is no notification template, no icon and no channel to set in the console (D-088).
+- On the device, notifications need the runtime permission on Android 13+; the app asks on first
+  start and never again — a user who said no changes it in Android's own settings.
+- To check delivery by hand, sign in on a staging build, look at `users/{uid}/fcmTokens` for this
+  phone's token, and send a **data** message to it from *Cloud Messaging → Send test message*.
+  A payload of `kind=SURPRISE_LEFT` alone is enough; anything the app does not recognise is
+  dropped rather than shown.
+
 ### ⬜ 2.4 App Check
 
 Register the **Play Integrity** provider for `staging` and `prod`. For local debug

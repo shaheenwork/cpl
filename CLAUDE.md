@@ -172,6 +172,21 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   said. The first day is due the moment the arc starts, without waiting for the phone's clock to
   agree with the server's (D-087).
 
+### Notifications
+
+- One place sends: `functions/src/notify/notify.ts`. Every message is **data-only** and carries
+  `kind`, `channel`, `at` and at most a document id — `buildMessage` refuses a reference that is
+  not a Firestore id, so a title cannot ride along (D-088).
+- The words are the phone's: `NotificationText` in `:core:notifications` is a fixed table with no
+  placeholders. `NotifierTest` fails if a notification ever says something that is not in it.
+- Whether to send at all, and whether it is the middle of that user's night, is decided on the
+  server from `users/{uid}.notificationSettings` and their `timezone` (D-089). A phone filtering
+  what it was already sent would be the §7.1 mistake again.
+- `users/{uid}/fcmTokens/{tokenId}` is owner-only: a token in someone else's list would forward
+  their notifications to the writer's phone.
+- A new trigger is a new kind in `NOTIFICATION_KINDS`, `PushKind` and `NotificationText` together,
+  plus one `notifyUser`/`notifyPartner` call *after* the transaction that caused it.
+
 ### Games
 
 - A game is content, not code: steps over primitives in `content/games.json`, prompts in

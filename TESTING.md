@@ -195,6 +195,19 @@ ended arc opens nothing. `ArcTest` holds which day is due — including the firs
 moment the arc starts — and `ArcViewModelTest` drives the screen against a fake that refuses the
 way the server does.
 
+### Notifications (Phase 17)
+
+`notify.unit.test.ts` is the payload inspection Phase 17 exits on: for every kind, what keys a
+payload has, that each value is an id or an enum rather than free text, that there is no
+`notification` block, and that a title, a name or a whole sentence is refused as a reference.
+`notify.int.test.ts` runs the real flows — pairing, a surprise left and delivered, a planned
+night, an arc day opened — through a sender that keeps what it was given, and asserts that none of
+the words the couple wrote appear anywhere in what was sent; it also covers who is told (not the
+one who did it), who is not (off, or asleep on their own clock), and that a token the service
+rejects is forgotten. `NotifierTest` is the same promise on the phone: every line that reaches a
+lock screen comes from `NotificationText`, previews are hidden until asked for, and a phone that
+refused the permission gets nothing at all.
+
 ### Voice notes and photos (Phase 15)
 
 `media.int.test.ts` drives the real Storage emulator: a path is reserved before anything exists,

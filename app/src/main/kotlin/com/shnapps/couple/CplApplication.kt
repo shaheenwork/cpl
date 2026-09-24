@@ -8,6 +8,7 @@ import com.shnapps.couple.core.data.auth.AuthRepository
 import com.shnapps.couple.core.data.content.ContentSyncScheduler
 import com.shnapps.couple.core.firebase.FirebaseInitializer
 import com.shnapps.couple.core.firebase.config.RemoteConfigSource
+import com.shnapps.couple.core.notifications.Notifier
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -42,6 +43,9 @@ class CplApplication : Application(), Configuration.Provider {
     lateinit var authRepository: AuthRepository
 
     @Inject
+    lateinit var notifier: Notifier
+
+    @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
 
@@ -57,6 +61,9 @@ class CplApplication : Application(), Configuration.Provider {
         // Off the main thread and not awaited: XML defaults are already in force, so a
         // slow or failed fetch never blocks launch.
         applicationScope.launch { remoteConfigSource.initialize() }
+        // The four categories exist from the first launch, so a user can silence one in Android's
+        // own settings without waiting for a notification to arrive first (§16.2).
+        notifier.ensureChannels()
         // Content is already on the device (§9.2); syncing only looks for something newer.
         // Reading the pointer and the deltas needs a signed-in user, so besides the periodic
         // run, a sync is requested whenever a session starts: at launch if already signed

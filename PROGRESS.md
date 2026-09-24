@@ -3,7 +3,7 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 16 complete. Phase 17 (FCM + notification privacy) is next.
+**Current position:** Phase 17 complete. Phase 18 (memories + private library) is next.
 
 ---
 
@@ -28,8 +28,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 | 14 | Apart mode + async | ✅ **Complete** |
 | 15 | Voice + photo | ✅ **Complete** |
 | 16 | Scheduled surprises + multi-day | ✅ **Complete** |
-| 17 | FCM + notification privacy | ⬜ Next |
-| 18 | Memories + library | ⬜ |
+| 17 | FCM + notification privacy | ✅ **Complete** |
+| 18 | Memories + library | ⬜ Next |
 | 19 | Subscription | ⬜ |
 | 20 | Settings, export, delete, reporting | ⬜ |
 | 21 | Security hardening | ⬜ |
@@ -1224,6 +1224,57 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Phase 17 — Notifications that say nothing ✅
+
+### Shipped
+- **One place sends** (`functions/src/notify/notify.ts`), and every message is **data-only**: no
+  `notification` block at all, so nothing is ever displayed on the app's behalf. The payload is
+  four fields — `kind`, `channel`, `at`, and at most one document id — and `buildMessage` refuses a
+  reference that is not a Firestore id, so a title cannot ride along even by accident (D-088).
+- **The words are the phone's.** `NotificationText` in `:core:notifications` is a fixed table with
+  no placeholders: "They left you something 👀", never "Your partner selected 'blindfold'". With
+  previews hidden — the default — even the kind is left out and it says only "Something's waiting
+  for you."
+- **All ten triggers of §16.1**, each after the transaction that caused it: pairing asked and
+  accepted, something left and something delivered, a night planned, a day of an arc opened, a
+  partner finished their part, both in, a voice note or photo sent, and an async night an hour
+  from timing out.
+- **Whether to send is the server's** (D-089): `users/{uid}.notificationSettings` — on, off, and
+  quiet hours read on the user's own clock from their `timezone`, wrapping midnight the way people
+  mean it. A window the server cannot parse is ignored rather than obeyed.
+- **Tokens are owner-only**: `users/{uid}/fcmTokens/{tokenId}`, shape-checked, server-timestamped,
+  and dropped the moment the push service says a token is gone. A token in someone else's list
+  would forward their notifications to the writer's phone.
+- **The settings screen** (`:feature:settings`, new): three switches and the promise in plain
+  words. Four channels, created at first launch so one can be silenced in Android's own settings
+  before anything arrives. Android 13+ is asked once, on start.
+
+### Verified
+```
+./gradlew check assembleDevDebug            BUILD SUCCESSFUL
+:core:notifications  NotifierTest 5
+:feature:settings    6   (NotificationSettingsViewModelTest 4, SettingsSnapshotTest 2)
+npm --prefix functions run test:unit        121/121  (notify 10 — the payload inspection)
+npm --prefix functions run test:int         133/133  (notify 6)
+npm --prefix firebase/tests test            100/100  (fcmTokens owner-only, settings held to shape)
+```
+- **Exit criterion — a payload-inspection test proves no content in any notification**:
+  `notify.unit.test.ts` takes every kind apart (keys, values, no `notification` block) and refuses
+  a title, a name or a sentence as a reference; `notify.int.test.ts` drives the real flows — a
+  surprise titled "For Friday" with a line inside it, a planned night, an arc day — through a
+  sender that keeps what it was given, and asserts none of those words appear anywhere in what was
+  sent. `NotifierTest` proves the same on the phone: every line on a lock screen comes from the
+  app's own table.
+- **On the device**: the permission prompt appeared on first start; the four channels
+  (`pairing`, `surprises`, `together`, `messages`) are on the phone, from launch, before any
+  message. The settings screen wrote `{enabled: true, showContent: true, quietHours: 22:00–07:00}`
+  to the user document — accepted by the rules — and said so back ("They left you something 👀").
+- **Not verifiable locally**: delivery itself. FCM has no emulator, and the dev flavour's project
+  is not real, so the token fetch fails (`FCM Registration failed`) and nothing is registered —
+  handled without an error on screen. The console steps for staging are HUMAN_SETUP.md §2.3a.
 
 ---
 

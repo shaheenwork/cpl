@@ -35,6 +35,9 @@ class FakeAppPreferencesStore(initial: AppPreferences = AppPreferences()) : AppP
 
     override suspend fun setGamePlayers(players: GamePlayers) = state.update { it.copy(gamePlayers = players) }
 
+    override suspend fun setShowNotificationContent(show: Boolean) =
+        state.update { it.copy(showNotificationContent = show) }
+
     override suspend fun clear() {
         state.value = AppPreferences()
     }
