@@ -8,6 +8,8 @@ import com.shnapps.couple.core.firebase.media.FirebaseMediaRemoteDataSource
 import com.shnapps.couple.core.firebase.media.MediaRemoteDataSource
 import com.shnapps.couple.core.firebase.night.FirebaseNightRemoteDataSource
 import com.shnapps.couple.core.firebase.night.NightRemoteDataSource
+import com.shnapps.couple.core.firebase.surprise.FirebaseSurpriseRemoteDataSource
+import com.shnapps.couple.core.firebase.surprise.SurpriseRemoteDataSource
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -26,6 +28,9 @@ abstract class DataSourceModule {
 
     @Binds
     abstract fun bindMediaRemoteDataSource(impl: FirebaseMediaRemoteDataSource): MediaRemoteDataSource
+
+    @Binds
+    abstract fun bindSurpriseRemoteDataSource(impl: FirebaseSurpriseRemoteDataSource): SurpriseRemoteDataSource
 
     @Binds
     abstract fun bindGameRemoteDataSource(impl: FirebaseGameRemoteDataSource): GameRemoteDataSource

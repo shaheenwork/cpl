@@ -13,6 +13,10 @@ import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.model.MediaItem
 import com.shnapps.couple.core.model.MediaKind
+import com.shnapps.couple.core.model.OpenWhenTrigger
+import com.shnapps.couple.core.model.Surprise
+import com.shnapps.couple.core.model.SurpriseState
+import com.shnapps.couple.core.model.SurpriseType
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -105,6 +109,51 @@ class SendSnapshotTest {
         capture("send-open-burned") { SendContent(state, SendActions()) }
         composeRule.onNodeWithText("This one is gone now — for both of you.").assertIsDisplayed()
         composeRule.onNodeWithText("Play it").assertIsDisplayed()
+    }
+
+    @Test
+    fun leavingSomethingForLater() {
+        capture("later-leave") {
+            LaterContent(
+                LaterUiState(title = "For Friday", text = "something to think about", leaveWhen = LeaveWhen.TOMORROW),
+                LaterActions(),
+            )
+        }
+        composeRule.onNodeWithText("Leave it").assertIsDisplayed()
+        composeRule.onNodeWithText("Tomorrow").assertIsDisplayed()
+    }
+
+    @Test
+    fun somethingHasArrived() {
+        val state = LaterUiState(
+            surprises = listOf(
+                Surprise(
+                    id = "s1",
+                    type = SurpriseType.SCHEDULED,
+                    title = "For Friday",
+                    mine = false,
+                    state = SurpriseState.DELIVERED,
+                    scheduledForMillis = SENT_AT,
+                    trigger = null,
+                    hasMedia = false,
+                ),
+                Surprise(
+                    id = "s2",
+                    type = SurpriseType.OPEN_WHEN,
+                    title = "When you can't sleep",
+                    mine = false,
+                    state = SurpriseState.SCHEDULED,
+                    scheduledForMillis = null,
+                    trigger = OpenWhenTrigger.CANT_SLEEP,
+                    hasMedia = false,
+                ),
+            ),
+        )
+        capture("later-arrived") { LaterContent(state, LaterActions()) }
+        composeRule.onNodeWithText("🎁 IT'S HERE").assertIsDisplayed()
+        composeRule.onNodeWithText("OPEN WHEN…").assertIsDisplayed()
+        // What is still kept for a moment says only that, never what is in it (§5.7).
+        assertThat(composeRule.onAllNodesWithText("read this").fetchSemanticsNodes()).isEmpty()
     }
 
     private companion object {

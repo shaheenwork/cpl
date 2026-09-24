@@ -10,6 +10,10 @@
 //   node functions/scripts/dev-couple.js present  sam's phone says it is still there (heartbeat)
 //   node functions/scripts/dev-couple.js plans    what either of them has planned for the other
 //   node functions/scripts/dev-couple.js media    voice notes and photos, and whether the bytes are still there
+//   node functions/scripts/dev-couple.js leave [minutes]   sam leaves a surprise for alex, due in N minutes (default 1)
+//   node functions/scripts/dev-couple.js openwhen [TRIGGER]  sam leaves an "open when…" for alex (default MISS_ME)
+//   node functions/scripts/dev-couple.js deliver  runs the delivery sweep, as the schedule would
+//   node functions/scripts/dev-couple.js waiting  what either of them has left, and where it stands
 //   node functions/scripts/dev-couple.js state    the couple's sessions, nights, history, feedback
 //
 // Build the functions first (npm --prefix functions run build): it uses their compiled code.
@@ -75,7 +79,7 @@ async function call(name, data, user) {
   }
 
   const coupleId = (await db.doc(`users/${alex.uid}`).get()).get('coupleId');
-  const couple = (await db.doc(`couples/${coupleId}`).get()).data();
+  const couple = (await db.doc(`couples/${coupleId}`).get()).data() ?? {};
   const sessionId = couple.activeSessionId;
   const sessionRef = db.doc(`couples/${coupleId}/sessions/${sessionId}`);
   if (cmd === 'ready') console.log(JSON.stringify(await call('markReady', { sessionId }, sam)));
@@ -108,6 +112,41 @@ async function call(name, data, user) {
         by: plan.get('plannedBy') === alex.uid ? 'alex' : 'sam',
         for: plan.get('plannedFor') === alex.uid ? 'alex' : 'sam',
         experience: { plannedFor: experience.get('plannedFor') === sam.uid ? 'sam' : 'alex', status: experience.get('status') },
+      }));
+    }
+  } else if (cmd === 'leave') {
+    // Sam leaves something for Alex, due in a few minutes (section 13).
+    const minutes = Number(process.argv[3] ?? 1);
+    const scheduledFor = Date.now() + minutes * 60 * 1000;
+    console.log(JSON.stringify(await call('createSurprise', {
+      type: 'SCHEDULED',
+      title: 'For you',
+      text: 'I left this here for you.',
+      scheduledFor,
+    }, sam)));
+  } else if (cmd === 'openwhen') {
+    console.log(JSON.stringify(await call('createSurprise', {
+      type: 'OPEN_WHEN',
+      title: 'When you miss me',
+      text: 'I miss you too.',
+      trigger: process.argv[3] ?? 'MISS_ME',
+    }, sam)));
+  } else if (cmd === 'deliver') {
+    // What the scheduled function does, on demand: deliver everything whose moment has come.
+    const { deliverDue } = require(join(__dirname, '..', 'lib', 'surprises', 'surprises'));
+    console.log(JSON.stringify(await deliverDue(db, Date.now())));
+  } else if (cmd === 'waiting') {
+    const surprises = await db.collection(`couples/${coupleId}/surprises`).get();
+    for (const item of surprises.docs) {
+      const payload = await db.doc(`couples/${coupleId}/surprises/${item.id}/payload/content`).get();
+      console.log(JSON.stringify({
+        id: item.id,
+        type: item.get('type'),
+        title: item.get('title'),
+        state: item.get('state'),
+        from: item.get('createdBy') === alex.uid ? 'alex' : 'sam',
+        trigger: item.get('trigger'),
+        payloadDelivered: payload.get('deliveredAt') ? 'yes' : 'no',
       }));
     }
   } else if (cmd === 'media') {

@@ -21,6 +21,7 @@ import * as games from './experience/game';
 import * as plan from './experience/plan';
 import * as remix from './experience/remix';
 import * as surprise from './experience/surprise';
+import * as surprises from './surprises/surprises';
 import * as feedback from './feedback/affinity';
 import * as media from './media/media';
 import { revealTiming } from './discovery/timing';
@@ -270,6 +271,34 @@ export const onSubmissionCreated = onDocumentCreated(
       event.params.submissionId,
       Date.now(),
     );
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Things left for later (sections 5.7, 13): a scheduled surprise, an "Open when…", a capsule.
+// The payload is guarded until the server delivers it; a client never delivers anything
+// ---------------------------------------------------------------------------
+
+/** Leaves something for the partner to find later. */
+export const createSurprise = onCall(options, (request) =>
+  guarded(() => surprises.createSurprise(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+/** "Open when you can't sleep": the partner pulls a trigger, and one of them is delivered. */
+export const openWhen = onCall(options, (request) =>
+  guarded(() => surprises.openWhen(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+/** The partner opening what was delivered. */
+export const openSurprise = onCall(options, (request) =>
+  guarded(() => surprises.openSurprise(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+/** Everything whose moment has come, delivered on the clock (section 13). */
+export const deliverSurprises = onSchedule(
+  { schedule: 'every 5 minutes', retryCount: 3, maxInstances: 1 },
+  async () => {
+    await surprises.deliverDue(getFirestore(), Date.now());
   },
 );
 

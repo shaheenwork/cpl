@@ -68,6 +68,10 @@ object Route {
     @Serializable
     data object Send
 
+    /** Something left for later (§13): a surprise, an "Open when…", a countdown. */
+    @Serializable
+    data object Later
+
     /** A night being played — or waiting to be — on either partner's phone (§14.6). */
     @Serializable
     data class Night(val experienceId: String)

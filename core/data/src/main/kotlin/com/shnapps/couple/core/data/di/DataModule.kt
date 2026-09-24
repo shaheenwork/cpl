@@ -20,6 +20,8 @@ import com.shnapps.couple.core.data.night.DefaultNightRepository
 import com.shnapps.couple.core.data.night.NightRepository
 import com.shnapps.couple.core.data.preferences.DefaultPreferenceRepository
 import com.shnapps.couple.core.data.preferences.PreferenceRepository
+import com.shnapps.couple.core.data.surprise.DefaultSurpriseRepository
+import com.shnapps.couple.core.data.surprise.SurpriseRepository
 import com.shnapps.couple.core.data.taxonomy.ContentTaxonomyRepository
 import com.shnapps.couple.core.data.taxonomy.TaxonomyRepository
 import dagger.Binds
@@ -74,4 +76,7 @@ abstract class DataModule {
 
     @Binds
     abstract fun bindMediaRepository(impl: DefaultMediaRepository): MediaRepository
+
+    @Binds
+    abstract fun bindSurpriseRepository(impl: DefaultSurpriseRepository): SurpriseRepository
 }

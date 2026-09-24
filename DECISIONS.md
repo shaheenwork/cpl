@@ -1139,3 +1139,20 @@ uselessly, that nothing had been uploaded.
 The server now names the bucket explicitly when it runs in the emulator (`FUNCTIONS_EMULATOR`),
 and uses the project's default everywhere else. The device check found it; no unit test would
 have, because both halves were right on their own.
+
+---
+
+## D-085 — What is left for later is guarded by a document, not by the screen
+**Phase 16.** A scheduled surprise has to be visible and unreadable at the same time: the partner
+should know something is coming — that is the whole feeling — and must not be able to read it
+early. §5.7 forbids "hidden in the UI but present in the payload", so the two halves live in two
+documents.
+
+`couples/{cid}/surprises/{id}` is the fact: type, title, when, state. Both partners read it.
+`…/payload/content` is the thing itself, under one rule: its author may read it whenever, and
+anyone in the couple may read it once the server has written `deliveredAt`. A client can write
+neither. Delivery is a scheduled function for a time, and a callable for "Open when…", which hands
+over exactly one — the oldest kept for that moment.
+
+So the phone asks for the payload and is refused until it is meant to have it. The screen says
+"not yet" because the server said so, not because the screen decided to hide something.

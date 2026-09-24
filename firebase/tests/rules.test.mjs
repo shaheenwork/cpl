@@ -477,6 +477,19 @@ describe('couples/{coupleId}/experiences (§6.1, §10)', () => {
       await setDoc(doc(db, 'couples', 'e1'), { status: 'ACTIVE', memberUids: [ALICE, BOB] });
       await setDoc(doc(db, 'couples', 'e1', 'experiences', 'x1'), night);
       await setDoc(doc(db, 'couples', 'e1', 'experiences', 'x1', 'askFirst', BOB), { chapters: [0] });
+      // Something Alice left for Bob, before and after the server delivers it (§5.7, row S).
+      await setDoc(doc(db, 'couples', 'e1', 'surprises', 's_waiting'), {
+        type: 'SCHEDULED', title: 'For Friday', createdBy: ALICE, forUid: BOB, state: 'SCHEDULED',
+      });
+      await setDoc(doc(db, 'couples', 'e1', 'surprises', 's_waiting', 'payload', 'content'), {
+        ownerUid: ALICE, text: 'the secret', deliveredAt: null,
+      });
+      await setDoc(doc(db, 'couples', 'e1', 'surprises', 's_delivered'), {
+        type: 'SCHEDULED', title: 'For last Friday', createdBy: ALICE, forUid: BOB, state: 'DELIVERED',
+      });
+      await setDoc(doc(db, 'couples', 'e1', 'surprises', 's_delivered', 'payload', 'content'), {
+        ownerUid: ALICE, text: 'no longer a secret', deliveredAt: Timestamp.now(),
+      });
       // A night Alice planned for Bob (§2.5 #2), and the plan both of them may see.
       await setDoc(doc(db, 'couples', 'e1', 'experiences', 'p1'), { ...night, plannedBy: ALICE, plannedFor: BOB });
       await setDoc(doc(db, 'couples', 'e1', 'plans', 'p1'), {
@@ -499,6 +512,45 @@ describe('couples/{coupleId}/experiences (§6.1, §10)', () => {
     await assertSucceeds(getDoc(doc(bob(), 'couples', 'e1', 'experiences', 'p1')));
     await assertFails(getDoc(doc(alice(), 'couples', 'e1', 'experiences', 'p1')));
     await assertFails(getDoc(doc(mallory(), 'couples', 'e1', 'experiences', 'p1')));
+  });
+
+  it('S: denies reading a surprise payload before the server delivers it (§5.7)', async () => {
+    // That something is waiting is the hook: both may see the surprise itself.
+    await assertSucceeds(getDoc(doc(bob(), 'couples', 'e1', 'surprises', 's_waiting')));
+    await assertSucceeds(getDocs(collection(bob(), 'couples', 'e1', 'surprises')));
+
+    // What is in it is another matter.
+    await assertFails(getDoc(doc(bob(), 'couples', 'e1', 'surprises', 's_waiting', 'payload', 'content')));
+    await assertFails(getDocs(collection(bob(), 'couples', 'e1', 'surprises', 's_waiting', 'payload')));
+    // Its author may look at what they left, whenever they like.
+    await assertSucceeds(getDoc(doc(alice(), 'couples', 'e1', 'surprises', 's_waiting', 'payload', 'content')));
+    // Delivered, it is theirs to read — and nobody outside the couple can, either way.
+    await assertSucceeds(getDoc(doc(bob(), 'couples', 'e1', 'surprises', 's_delivered', 'payload', 'content')));
+    await assertFails(getDoc(doc(mallory(), 'couples', 'e1', 'surprises', 's_delivered', 'payload', 'content')));
+  });
+
+  it("denies every client write to a surprise: delivery is the server's (§5.7)", async () => {
+    await assertFails(setDoc(doc(bob(), 'couples', 'e1', 'surprises', 'forged'), { title: 'mine now' }));
+    await assertFails(updateDoc(doc(bob(), 'couples', 'e1', 'surprises', 's_waiting'), { state: 'DELIVERED' }));
+    await assertFails(
+      updateDoc(doc(bob(), 'couples', 'e1', 'surprises', 's_waiting', 'payload', 'content'), {
+        deliveredAt: Timestamp.now(),
+      }),
+    );
+    await assertFails(deleteDoc(doc(alice(), 'couples', 'e1', 'surprises', 's_waiting')));
+  });
+
+  it('lets either partner keep a countdown, and holds it to its shape', async () => {
+    const countdown = (by) => ({ title: 'Until we meet', targetAt: Timestamp.now(), createdBy: by, createdAt: serverTimestamp() });
+    await assertSucceeds(setDoc(doc(alice(), 'couples', 'e1', 'countdowns', 'c1'), countdown(ALICE)));
+    await assertSucceeds(getDocs(collection(bob(), 'couples', 'e1', 'countdowns')));
+    await assertSucceeds(deleteDoc(doc(bob(), 'couples', 'e1', 'countdowns', 'c1')));
+
+    await assertFails(setDoc(doc(alice(), 'couples', 'e1', 'countdowns', 'c2'), countdown(BOB)));
+    await assertFails(setDoc(doc(alice(), 'couples', 'e1', 'countdowns', 'c3'), {
+      ...countdown(ALICE), secret: 'not part of a countdown',
+    }));
+    await assertFails(setDoc(doc(mallory(), 'couples', 'e1', 'countdowns', 'c4'), countdown(MALLORY)));
   });
 
   it('lets both see that a plan exists, and neither write one', async () => {

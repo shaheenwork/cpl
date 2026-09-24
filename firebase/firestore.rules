@@ -219,6 +219,16 @@ service cloud.firestore {
             && liveChapter(coupleId, sessionId, data.chapter);
       }
 
+      // A countdown is a title, a moment to wait for, and who made it. Nothing else.
+      function validCountdown(data) {
+        return data.keys().hasOnly(['title', 'targetAt', 'createdBy', 'createdAt'])
+            && data.keys().hasAll(['title', 'targetAt', 'createdBy', 'createdAt'])
+            && data.title is string && data.title.size() > 0 && data.title.size() <= 60
+            && data.targetAt is timestamp
+            && data.createdBy == request.auth.uid
+            && data.createdAt == request.time;
+      }
+
       // The session is under way, on this chapter, and this phone is playing it.
       function liveChapter(coupleId, sessionId, chapter) {
         let session = get(/databases/$(database)/documents/couples/$(coupleId)/sessions/$(sessionId)).data;
@@ -247,6 +257,33 @@ service cloud.firestore {
           allow get: if isSelf(askUid) && isActiveMember(coupleId);
           allow list, write: if false;
         }
+      }
+
+      // Something one partner left for the other to find later (§5.7, §13): a scheduled
+      // surprise, an "Open when…", a capsule. Both may see that it exists — that is the hook —
+      // and the server writes every one of them.
+      match /surprises/{surpriseId} {
+        allow get, list: if isActiveMember(coupleId);
+        allow write: if false;
+
+        // What is in it. Readable by its author at any time, and by anyone in the couple only
+        // once the server has delivered it (§7.3 row S). "Hidden in the UI" is not a rule.
+        match /payload/{payloadId} {
+          allow get: if isActiveMember(coupleId)
+                     && (isSelf(resource.data.ownerUid) || resource.data.deliveredAt != null);
+          allow list, write: if false;
+        }
+      }
+
+      // A countdown to something they are both waiting for (§13). Either partner may make one
+      // and either may remove it; there is nothing private in it.
+      match /countdowns/{countdownId} {
+        allow get, list: if isActiveMember(coupleId);
+        allow create: if isActiveMember(coupleId) && validCountdown(request.resource.data);
+        allow update: if isActiveMember(coupleId)
+                      && validCountdown(request.resource.data)
+                      && request.resource.data.createdBy == resource.data.createdBy;
+        allow delete: if isActiveMember(coupleId);
       }
 
       // A voice note or a photo one partner sent the other (§13, §5.8). The server writes

@@ -177,6 +177,16 @@ night was built refused.
 `NightSnapshotTest` records the "MAKE IT…" row and the mystery shape screen, which shows neither a
 chapter count nor a length.
 
+### Things left for later (Phase 16)
+
+`surprises.int.test.ts` covers the whole shape: what is left is visible as a thing and unreadable
+as a secret, the sweep delivers nothing early and everything due exactly once, "Open when…" hands
+over the oldest kept for that moment and refuses the partner who left it, and what nobody opened
+is marked expired long after. The rules half is row S in `rules.test.mjs`: the partner sees the
+surprise and is denied its payload, its author is not, and a delivered one is readable by both.
+`LaterViewModelTest` covers the screen against a fake that refuses an undelivered payload the way
+the rules do.
+
 ### Voice notes and photos (Phase 15)
 
 `media.int.test.ts` drives the real Storage emulator: a path is reserved before anything exists,

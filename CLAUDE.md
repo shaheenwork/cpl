@@ -155,6 +155,16 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
 - `node functions/scripts/dev-couple.js media` lists what has been sent and whether the bytes are
   still there.
 
+### Things left for later
+
+- A surprise is two documents: `couples/{cid}/surprises/{id}` (the fact, both partners read it)
+  and `…/payload/content` (the thing, its author until the server writes `deliveredAt`) — D-085.
+- Delivery is the server's: `deliverSurprises` every five minutes for a time, `openWhen` for a
+  moment. A client cannot write a surprise, deliver one, or mark one opened.
+- Countdowns are the couple's own documents, held to their shape by the rules; no server logic.
+- `node functions/scripts/dev-couple.js leave|openwhen|deliver|waiting` plays the partner and the
+  clock for a device check.
+
 ### Games
 
 - A game is content, not code: steps over primitives in `content/games.json`, prompts in

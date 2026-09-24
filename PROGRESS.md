@@ -3,7 +3,7 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 15 complete. Next action: **Phase 16 — Scheduled surprises + multi-day.**
+**Current position:** Phase 16 in progress — surprises, Open When, capsules and countdowns are done; multi-day arcs are next.
 
 ---
 
@@ -1224,3 +1224,47 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Phase 16 — Things left for later (surprises, Open When, capsules, countdowns) 🟡
+
+Multi-day arcs are the remaining piece of this phase.
+
+### Shipped
+- **One mechanism, three shapes** (§13): a **scheduled surprise** for a time, an **"Open when…"**
+  for a moment (you miss me · you need a laugh · you can't sleep · you want a surprise · you're
+  thinking about me · you need attention · you want to remember us), and a **capsule** for
+  further off. All three are a surprise document plus a payload document beside it.
+- **Guarded until its moment** (D-085, §5.7): the surprise says there *is* something — both
+  partners see that, which is the whole feeling — and the payload is readable by its author at
+  any time, and by the couple only once the server has written `deliveredAt`. §7.3 row S is a
+  rule, not a screen.
+- **Delivered by the clock**: `deliverSurprises` runs every five minutes and delivers everything
+  whose moment has come, once. "Open when…" is delivered by a callable that hands over exactly
+  one — the oldest kept for that moment — and refuses the partner who left it.
+- **Countdowns** (§13): either partner keeps one, either drops it, and the rules hold it to a
+  title, a moment and its author. There is nothing private in a countdown, so there is no server
+  logic in it either.
+- **Home and the Later screen**: "Leave something for later" on the Apart surface; what has
+  arrived is a card that opens it; what is still waiting says only that something is coming.
+
+### Verified so far
+```
+./gradlew check assembleDevDebug            BUILD SUCCESSFUL
+:core:data      89
+:feature:send   20   (SendViewModelTest 6, LaterViewModelTest 8, SendSnapshotTest 6)
+npm --prefix tools test                     42/42
+npm --prefix functions run test:unit        111/111
+npm --prefix functions run test:int         122/122  (surprises 6)
+npm --prefix firebase/tests test            95/95    (row S, and countdowns held to their shape)
+```
+- **Exit criterion (first half) — the scheduled function delivers on time in the emulator, and
+  rules test S passes**: `surprises.int.test.ts` shows nothing is delivered an hour early and
+  everything due is delivered once; `rules.test.mjs` shows the partner can see the surprise and
+  not read its payload, while its author can, and that a delivered one is readable by both.
+- **On the device**: the script left a surprise as Sam, due in a minute. Alex's Later screen said
+  "Something is coming" and nothing else. Running the sweep delivered it; the screen became
+  "🎁 IT'S HERE — For you", opening it showed the line inside, and the server marked it OPENED.
+  An "Open when you miss me" left the same way appeared as a moment to pull, and pulling it
+  delivered and opened exactly that one. A countdown was added from the same screen.

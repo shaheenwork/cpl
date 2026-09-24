@@ -71,6 +71,7 @@ data class HomeActions(
     val onApartNight: () -> Unit = {},
     val onPlanForThem: () -> Unit = {},
     val onSend: () -> Unit = {},
+    val onLater: () -> Unit = {},
     val onCuriosities: () -> Unit = {},
     val onMutual: () -> Unit = {},
     val onLimits: () -> Unit = {},
@@ -233,6 +234,13 @@ private fun ApartHome(state: HomeUiState, actions: HomeActions) {
             onClick = actions.onSend,
             style = GlowButtonStyle.Secondary,
             leadingEmoji = "💌",
+            modifier = Modifier.fillMaxWidth(),
+        )
+        GlowButton(
+            text = "Leave something for later",
+            onClick = actions.onLater,
+            style = GlowButtonStyle.Secondary,
+            leadingEmoji = "🎁",
             modifier = Modifier.fillMaxWidth(),
         )
     }
