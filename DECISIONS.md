@@ -1156,3 +1156,35 @@ over exactly one — the oldest kept for that moment.
 
 So the phone asks for the payload and is refused until it is meant to have it. The screen says
 "not yet" because the server said so, not because the screen decided to hide something.
+
+---
+
+## D-086 — An arc is a plan; its nights are built one day at a time
+**Phase 16.** A fourteen-day arc could have been fourteen experiences written at once. It is not.
+`couples/{cid}/arcs/{id}` holds only the plan — which beat each day is, when it opens, and the
+night it was given once it has one — and `openArcDay` builds that day's night through the same
+`buildExperience` as every other night, at the moment the day is opened.
+
+Three reasons. Boundaries move: a night built today for day eleven would be filtered against
+limits that may not be theirs by then, and the chokepoint is the one place that decides what a
+couple may see (D-048). Most arcs will not be finished, and content generated for a day nobody
+reaches is a night's worth of writing that leaks nothing only because nobody asked for it. And an
+arc is a sequence, not a menu: a day opens on the clock *and* only once the day before it has been
+played, which is a fact the server checks against the experience's own status rather than
+something a phone reports.
+
+One arc runs at a time, so "where are we" has one answer.
+
+---
+
+## D-087 — The first day of an arc does not wait for the phone's clock
+**Phase 16.** Each day's `unlockAt` is a server timestamp, and day one's is the moment the arc
+started. The phone decides what to offer by comparing those against its own clock — and on a
+device whose clock sits a second or two behind the server's, the arc they just started says
+"nothing due yet" until the phone catches up. The emulator showed exactly that.
+
+So `Arc.dayDue` treats the first day as due whenever it has not been played: starting an arc *is*
+opening its first day, and that needs no clock. Later days still wait for their time, and the
+screen asks again every five seconds so a day that comes round while the screen is open says so
+without being reopened. The server's own check is unchanged — it refuses a day it has not reached
+— and day one always passes it, because its unlock time is the moment the server wrote it.

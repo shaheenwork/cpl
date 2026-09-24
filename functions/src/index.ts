@@ -21,6 +21,7 @@ import * as games from './experience/game';
 import * as plan from './experience/plan';
 import * as remix from './experience/remix';
 import * as surprise from './experience/surprise';
+import * as arcs from './surprises/arcs';
 import * as surprises from './surprises/surprises';
 import * as feedback from './feedback/affinity';
 import * as media from './media/media';
@@ -292,6 +293,21 @@ export const openWhen = onCall(options, (request) =>
 /** The partner opening what was delivered. */
 export const openSurprise = onCall(options, (request) =>
   guarded(() => surprises.openSurprise(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+/** A few days of this (section 13): one, three, seven or fourteen, a night each. */
+export const startArc = onCall(options, (request) =>
+  guarded(() => arcs.startArc(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+/** Today's day of an arc: built when it is opened, and only once the day before was played. */
+export const openArcDay = onCall(options, (request) =>
+  guarded(() => arcs.openArcDay(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+/** Ending an arc, whether it ran its course or not. */
+export const closeArc = onCall(options, (request) =>
+  guarded(() => arcs.closeArc(getFirestore(), callerUid(request), request.data, Date.now())),
 );
 
 /** Everything whose moment has come, delivered on the clock (section 13). */

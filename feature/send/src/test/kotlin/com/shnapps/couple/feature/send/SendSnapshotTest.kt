@@ -11,6 +11,9 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import com.google.common.truth.Truth.assertThat
 import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
+import com.shnapps.couple.core.model.Arc
+import com.shnapps.couple.core.model.ArcDay
+import com.shnapps.couple.core.model.ArcDayState
 import com.shnapps.couple.core.model.MediaItem
 import com.shnapps.couple.core.model.MediaKind
 import com.shnapps.couple.core.model.OpenWhenTrigger
@@ -156,8 +159,39 @@ class SendSnapshotTest {
         assertThat(composeRule.onAllNodesWithText("read this").fetchSemanticsNodes()).isEmpty()
     }
 
+    @Test
+    fun choosingHowManyDays() {
+        capture("arc-chooser") { ArcContent(ArcUiState(), due = null, actions = ArcActions()) }
+        composeRule.onNodeWithText("One night").assertIsDisplayed()
+        composeRule.onNodeWithText("7 days").assertIsDisplayed()
+        composeRule.onNodeWithText("14 days").assertIsDisplayed()
+    }
+
+    @Test
+    fun theWholePlanAndTodaysDay() {
+        val arc = Arc(
+            id = "a1",
+            title = "3 days",
+            lengthDays = 3,
+            active = true,
+            days = listOf(
+                ArcDay(0, "Curiosity", ArcDayState.DONE, SENT_AT, "n0"),
+                ArcDay(1, "Teasing", ArcDayState.READY, SENT_AT, null),
+                ArcDay(2, "The last night", ArcDayState.LOCKED, SENT_AT + DAY_MS, null),
+            ),
+        )
+        capture("arc-running") { ArcContent(ArcUiState(arc = arc), due = arc.days[1], actions = ArcActions()) }
+        composeRule.onNodeWithText("Day 2: teasing.").assertIsDisplayed()
+        composeRule.onNodeWithText("Open today").assertIsDisplayed()
+        composeRule.onNodeWithText("DAY 3 · LOCKED").assertIsDisplayed()
+        // The plan says which beat each day is, never what is in a night that has not been built.
+        composeRule.onNodeWithText("1 of 3 played. A day opens once the one before it has been.")
+            .assertIsDisplayed()
+    }
+
     private companion object {
         const val SETTLE_MS = 2_000L
+        const val DAY_MS = 24 * 60 * 60 * 1000L
         const val SENT_AT = 1_790_000_000_000L
     }
 }

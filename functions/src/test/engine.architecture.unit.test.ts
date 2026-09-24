@@ -108,7 +108,12 @@ describe('the chokepoint cannot be bypassed', () => {
 
   it('every night is built by the one builder, whoever had the idea', () => {
     const callers = files.filter((file) => /buildExperience\(/.test(file.text)).map((file) => file.path).sort();
-    assert.deepEqual(callers, ['experience/generate.ts', 'experience/plan.ts', 'experience/surprise.ts']);
+    assert.deepEqual(callers, [
+      'experience/generate.ts',
+      'experience/plan.ts',
+      'experience/surprise.ts',
+      'surprises/arcs.ts',
+    ]);
     // And a night's record is created in one place: a surprise reads the couple's habit there,
     // but writes nothing of its own.
     const creators = files

@@ -164,6 +164,13 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
 - Countdowns are the couple's own documents, held to their shape by the rules; no server logic.
 - `node functions/scripts/dev-couple.js leave|openwhen|deliver|waiting` plays the partner and the
   clock for a device check.
+- An arc is a plan, not content (D-086): `couples/{cid}/arcs/{id}` names each day's beat, and a
+  day's night is built by `buildExperience` the moment the day is opened — never before, so
+  nothing exists for a day they may never reach. One arc at a time; `openArcDay` refuses a day the
+  clock has not reached and one whose day before was not played.
+- The phone holds none of that. It shows the plan, asks for today's day, and says what the server
+  said. The first day is due the moment the arc starts, without waiting for the phone's clock to
+  agree with the server's (D-087).
 
 ### Games
 

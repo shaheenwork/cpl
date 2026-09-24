@@ -490,6 +490,10 @@ describe('couples/{coupleId}/experiences (§6.1, §10)', () => {
       await setDoc(doc(db, 'couples', 'e1', 'surprises', 's_delivered', 'payload', 'content'), {
         ownerUid: ALICE, text: 'no longer a secret', deliveredAt: Timestamp.now(),
       });
+      // A few days of this, as the server writes it (§13).
+      await setDoc(doc(db, 'couples', 'e1', 'arcs', 'a1'), {
+        title: '7 days', lengthDays: 7, state: 'ACTIVE', createdBy: ALICE, days: [],
+      });
       // A night Alice planned for Bob (§2.5 #2), and the plan both of them may see.
       await setDoc(doc(db, 'couples', 'e1', 'experiences', 'p1'), { ...night, plannedBy: ALICE, plannedFor: BOB });
       await setDoc(doc(db, 'couples', 'e1', 'plans', 'p1'), {
@@ -538,6 +542,15 @@ describe('couples/{coupleId}/experiences (§6.1, §10)', () => {
       }),
     );
     await assertFails(deleteDoc(doc(alice(), 'couples', 'e1', 'surprises', 's_waiting')));
+  });
+
+  it('lets both read an arc, and neither write one', async () => {
+    await assertSucceeds(getDoc(doc(bob(), 'couples', 'e1', 'arcs', 'a1')));
+    await assertSucceeds(getDocs(collection(alice(), 'couples', 'e1', 'arcs')));
+    await assertFails(getDoc(doc(mallory(), 'couples', 'e1', 'arcs', 'a1')));
+    // Which day is open is the server's to say (§13).
+    await assertFails(updateDoc(doc(alice(), 'couples', 'e1', 'arcs', 'a1'), { days: [{ state: 'READY' }] }));
+    await assertFails(setDoc(doc(bob(), 'couples', 'e1', 'arcs', 'forged'), { lengthDays: 14 }));
   });
 
   it('lets either partner keep a countdown, and holds it to its shape', async () => {

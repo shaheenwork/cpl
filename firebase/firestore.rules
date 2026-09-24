@@ -275,6 +275,14 @@ service cloud.firestore {
         }
       }
 
+      // A few days of this (§13): the plan, its days and where each one stands. The server
+      // writes every part of it — which day is open is a fact about the clock and about what
+      // they have played, not something a phone decides.
+      match /arcs/{arcId} {
+        allow get, list: if isActiveMember(coupleId);
+        allow write: if false;
+      }
+
       // A countdown to something they are both waiting for (§13). Either partner may make one
       // and either may remove it; there is nothing private in it.
       match /countdowns/{countdownId} {

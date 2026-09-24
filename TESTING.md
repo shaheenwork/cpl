@@ -187,6 +187,14 @@ surprise and is denied its payload, its author is not, and a delivered one is re
 `LaterViewModelTest` covers the screen against a fake that refuses an undelivered payload the way
 the rules do.
 
+`arcs.int.test.ts` covers multi-day arcs against the emulator: the plan is a day per beat with a
+last night at the end, a second arc is refused while one is running, no night exists until a day is
+opened, opening the same day twice gives the same night, a day is refused both before its time and
+before the day before it was played, each day is built inside the couple's own ceiling, and an
+ended arc opens nothing. `ArcTest` holds which day is due — including the first, which is due the
+moment the arc starts — and `ArcViewModelTest` drives the screen against a fake that refuses the
+way the server does.
+
 ### Voice notes and photos (Phase 15)
 
 `media.int.test.ts` drives the real Storage emulator: a path is reserved before anything exists,

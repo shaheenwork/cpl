@@ -72,6 +72,10 @@ object Route {
     @Serializable
     data object Later
 
+    /** A few days of this (§13): one, three, seven or fourteen, a night each. */
+    @Serializable
+    data object Arc
+
     /** A night being played — or waiting to be — on either partner's phone (§14.6). */
     @Serializable
     data class Night(val experienceId: String)

@@ -3,7 +3,7 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 16 in progress — surprises, Open When, capsules and countdowns are done; multi-day arcs are next.
+**Current position:** Phase 16 complete. Phase 17 (FCM + notification privacy) is next.
 
 ---
 
@@ -27,8 +27,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 | 13 | Together home + Surprise Us | ✅ **Complete** |
 | 14 | Apart mode + async | ✅ **Complete** |
 | 15 | Voice + photo | ✅ **Complete** |
-| 16 | Scheduled surprises + multi-day | ⬜ Next |
-| 17 | FCM + notification privacy | ⬜ |
+| 16 | Scheduled surprises + multi-day | ✅ **Complete** |
+| 17 | FCM + notification privacy | ⬜ Next |
 | 18 | Memories + library | ⬜ |
 | 19 | Subscription | ⬜ |
 | 20 | Settings, export, delete, reporting | ⬜ |
@@ -1227,9 +1227,7 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
 
 ---
 
-## Phase 16 — Things left for later (surprises, Open When, capsules, countdowns) 🟡
-
-Multi-day arcs are the remaining piece of this phase.
+## Phase 16 — Things left for later (surprises, Open When, capsules, countdowns, arcs) ✅
 
 ### Shipped
 - **One mechanism, three shapes** (§13): a **scheduled surprise** for a time, an **"Open when…"**
@@ -1248,23 +1246,46 @@ Multi-day arcs are the remaining piece of this phase.
   logic in it either.
 - **Home and the Later screen**: "Leave something for later" on the Apart surface; what has
   arrived is a card that opens it; what is still waiting says only that something is coming.
+- **A few days of this** (§13): one · three · seven · fourteen days, a night a day, over the seven
+  beats — curiosity, teasing, a secret, a challenge, a fantasy, a surprise, and a last night.
+  `couples/{cid}/arcs/{id}` is the plan and nothing else; a day's night is built by
+  `buildExperience` when the day is opened, at the couple's own ceiling, so nothing exists for a
+  day they may never reach (D-086). One arc at a time.
+- **A sequence, not a menu**: `openArcDay` refuses a day the clock has not reached, and one whose
+  day before was never played — checked against that night's own status, not against anything the
+  phone says. Opening the same day twice gives the same night. `closeArc` ends it; an ended arc
+  opens nothing, and another can begin.
+- **The arc screen** (`:feature:send`): the whole plan from the start — which beat each day is —
+  with today's day the only thing it offers to open. The first day is due the moment the arc
+  starts, and the screen asks again every five seconds so a day that comes round while it is open
+  says so (D-087). Arcs are client-read-only in the rules; every write is a callable.
 
-### Verified so far
+### Verified
 ```
 ./gradlew check assembleDevDebug            BUILD SUCCESSFUL
 :core:data      89
-:feature:send   20   (SendViewModelTest 6, LaterViewModelTest 8, SendSnapshotTest 6)
+:core:model     ArcTest 3
+:feature:send   29   (SendViewModelTest 6, LaterViewModelTest 8, ArcViewModelTest 4, SendSnapshotTest 8)
 npm --prefix tools test                     42/42
 npm --prefix functions run test:unit        111/111
-npm --prefix functions run test:int         122/122  (surprises 6)
-npm --prefix firebase/tests test            95/95    (row S, and countdowns held to their shape)
+npm --prefix functions run test:int         127/127  (surprises 6, arcs 5)
+npm --prefix firebase/tests test            96/96    (row S, countdowns held to their shape, arcs read-only)
 ```
 - **Exit criterion (first half) — the scheduled function delivers on time in the emulator, and
   rules test S passes**: `surprises.int.test.ts` shows nothing is delivered an hour early and
   everything due is delivered once; `rules.test.mjs` shows the partner can see the surprise and
   not read its payload, while its author can, and that a delivered one is readable by both.
-- **On the device**: the script left a surprise as Sam, due in a minute. Alex's Later screen said
-  "Something is coming" and nothing else. Running the sweep delivered it; the screen became
+- **Exit criterion (second half) — an arc runs day by day**: `arcs.int.test.ts` shows the plan, the
+  refusals (too early, and the day before unplayed), the ceiling, and that a night appears only
+  when a day is opened.
+- **On the device**: Alex started a three-day arc from Apart. The plan appeared at once — DAY 1 ·
+  OPEN Curiosity, DAY 2 · LOCKED Teasing, DAY 3 · LOCKED The last night — with only "Open today"
+  offered. Opening day one built a real night (4 chapters, ~27 minutes, rising to WILD, their own
+  ceiling) and the arc kept its id; days two and three still had none. Ending the arc left nothing
+  running and the chooser back. The first render said "Nothing due yet" until the phone's clock
+  passed the server's — the reason for D-087.
+- **On the device (first half)**: the script left a surprise as Sam, due in a minute. Alex's Later
+  screen said "Something is coming" and nothing else. Running the sweep delivered it; the screen became
   "🎁 IT'S HERE — For you", opening it showed the line inside, and the server marked it OPENED.
   An "Open when you miss me" left the same way appeared as a moment to pull, and pulling it
   delivered and opened exactly that one. A countdown was added from the same screen.

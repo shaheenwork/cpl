@@ -20,6 +20,8 @@ import com.shnapps.couple.core.data.night.DefaultNightRepository
 import com.shnapps.couple.core.data.night.NightRepository
 import com.shnapps.couple.core.data.preferences.DefaultPreferenceRepository
 import com.shnapps.couple.core.data.preferences.PreferenceRepository
+import com.shnapps.couple.core.data.surprise.ArcRepository
+import com.shnapps.couple.core.data.surprise.DefaultArcRepository
 import com.shnapps.couple.core.data.surprise.DefaultSurpriseRepository
 import com.shnapps.couple.core.data.surprise.SurpriseRepository
 import com.shnapps.couple.core.data.taxonomy.ContentTaxonomyRepository
@@ -79,4 +81,7 @@ abstract class DataModule {
 
     @Binds
     abstract fun bindSurpriseRepository(impl: DefaultSurpriseRepository): SurpriseRepository
+
+    @Binds
+    abstract fun bindArcRepository(impl: DefaultArcRepository): ArcRepository
 }

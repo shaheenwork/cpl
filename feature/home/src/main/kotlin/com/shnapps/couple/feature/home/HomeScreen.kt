@@ -72,6 +72,7 @@ data class HomeActions(
     val onPlanForThem: () -> Unit = {},
     val onSend: () -> Unit = {},
     val onLater: () -> Unit = {},
+    val onArc: () -> Unit = {},
     val onCuriosities: () -> Unit = {},
     val onMutual: () -> Unit = {},
     val onLimits: () -> Unit = {},
@@ -241,6 +242,13 @@ private fun ApartHome(state: HomeUiState, actions: HomeActions) {
             onClick = actions.onLater,
             style = GlowButtonStyle.Secondary,
             leadingEmoji = "🎁",
+            modifier = Modifier.fillMaxWidth(),
+        )
+        GlowButton(
+            text = "A few days of this",
+            onClick = actions.onArc,
+            style = GlowButtonStyle.Secondary,
+            leadingEmoji = "🌙",
             modifier = Modifier.fillMaxWidth(),
         )
     }
