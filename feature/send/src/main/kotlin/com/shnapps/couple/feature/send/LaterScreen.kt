@@ -21,11 +21,13 @@ import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.Countdown
+import com.shnapps.couple.core.model.Gate
 import com.shnapps.couple.core.model.OpenWhenTrigger
 import com.shnapps.couple.core.model.Surprise
 import com.shnapps.couple.core.model.SurpriseState
 import com.shnapps.couple.core.ui.BackRow
 import com.shnapps.couple.core.ui.ErrorBanner
+import com.shnapps.couple.core.ui.PremiumNudge
 import com.shnapps.couple.core.ui.ScreenColumn
 import com.shnapps.couple.core.ui.ScreenHeading
 import com.shnapps.couple.core.ui.SecureScreen
@@ -39,6 +41,7 @@ import com.shnapps.couple.core.ui.SecureScreen
  */
 @Composable
 fun LaterScreen(
+    onPaywall: (Gate) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LaterViewModel = hiltViewModel(),
@@ -60,6 +63,8 @@ fun LaterScreen(
             onRemoveCountdown = viewModel::removeCountdown,
             onDismissLeft = viewModel::dismissLeft,
             onDismissError = viewModel::dismissError,
+            onDismissGate = viewModel::dismissGate,
+            onPaywall = onPaywall,
             onBack = onBack,
         ),
         modifier = modifier,
@@ -69,6 +74,8 @@ fun LaterScreen(
 /** Everything this screen can do, gathered so the content stays easy to preview. */
 internal data class LaterActions(
     val onTitle: (String) -> Unit = {},
+    val onPaywall: (Gate) -> Unit = {},
+    val onDismissGate: () -> Unit = {},
     val onText: (String) -> Unit = {},
     val onWhen: (LeaveWhen) -> Unit = {},
     val onTrigger: (OpenWhenTrigger) -> Unit = {},
@@ -99,6 +106,13 @@ internal fun LaterContent(state: LaterUiState, actions: LaterActions, modifier: 
                 body = "They'll know something is waiting. What's in it stays yours until it's time.",
             )
             state.error?.let { ErrorBanner(message = it.message(), onDismiss = actions.onDismissError) }
+            state.gate?.let { gate ->
+                PremiumNudge(
+                    gate = gate,
+                    onSeeWhatsIncluded = { actions.onPaywall(gate) },
+                    onDismiss = actions.onDismissGate,
+                )
+            }
             state.arrived.forEach { surprise -> Arrived(surprise, actions.onOpen) }
             if (state.leftIt) {
                 CinematicCard(modifier = Modifier.fillMaxWidth(), glowing = true) {

@@ -2,6 +2,8 @@ package com.shnapps.couple.core.data.di
 
 import com.shnapps.couple.core.data.auth.AuthRepository
 import com.shnapps.couple.core.data.auth.DefaultAuthRepository
+import com.shnapps.couple.core.data.billing.BillingRepository
+import com.shnapps.couple.core.data.billing.DefaultBillingRepository
 import com.shnapps.couple.core.data.boundaries.BoundaryRepository
 import com.shnapps.couple.core.data.boundaries.DefaultBoundaryRepository
 import com.shnapps.couple.core.data.content.AssetShippedContent
@@ -94,4 +96,7 @@ abstract class DataModule {
 
     @Binds
     abstract fun bindMemoryRepository(impl: DefaultMemoryRepository): MemoryRepository
+
+    @Binds
+    abstract fun bindBillingRepository(impl: DefaultBillingRepository): BillingRepository
 }

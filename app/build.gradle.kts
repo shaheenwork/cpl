@@ -70,6 +70,13 @@ android {
         compose = true
         buildConfig = true
     }
+
+    // The store this build talks to (§4.3, D-091). `dev` gets a fake one, so everything below
+    // billing can be exercised with no Play account; staging and prod share the real client.
+    sourceSets {
+        getByName("staging") { kotlin.srcDir("src/play/kotlin") }
+        getByName("prod") { kotlin.srcDir("src/play/kotlin") }
+    }
 }
 
 /**
@@ -124,6 +131,11 @@ dependencies {
     implementation(project(":feature:memories"))
     implementation(project(":feature:settings"))
     implementation(project(":core:notifications"))
+    implementation(project(":feature:paywall"))
+
+    // Only the builds that talk to Play: `dev` has a fake client and never loads the library.
+    "stagingImplementation"(libs.play.billing)
+    "prodImplementation"(libs.play.billing)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

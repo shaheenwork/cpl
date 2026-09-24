@@ -22,8 +22,10 @@ import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.Arc
 import com.shnapps.couple.core.model.ArcDay
 import com.shnapps.couple.core.model.ArcDayState
+import com.shnapps.couple.core.model.Gate
 import com.shnapps.couple.core.ui.BackRow
 import com.shnapps.couple.core.ui.ErrorBanner
+import com.shnapps.couple.core.ui.PremiumNudge
 import com.shnapps.couple.core.ui.ScreenColumn
 import com.shnapps.couple.core.ui.ScreenHeading
 import com.shnapps.couple.core.ui.SecureScreen
@@ -39,6 +41,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun ArcScreen(
     onNight: (experienceId: String) -> Unit,
+    onPaywall: (Gate) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ArcViewModel = hiltViewModel(),
@@ -67,6 +70,8 @@ fun ArcScreen(
             onOpenDay = viewModel::openDay,
             onEnd = viewModel::end,
             onDismissError = viewModel::dismissError,
+            onDismissGate = viewModel::dismissGate,
+            onPaywall = onPaywall,
             onBack = onBack,
         ),
         modifier = modifier,
@@ -76,6 +81,8 @@ fun ArcScreen(
 /** Everything this screen can do, gathered so the content stays easy to preview. */
 internal data class ArcActions(
     val onStart: (Int) -> Unit = {},
+    val onPaywall: (Gate) -> Unit = {},
+    val onDismissGate: () -> Unit = {},
     val onOpenDay: (ArcDay) -> Unit = {},
     val onEnd: () -> Unit = {},
     val onDismissError: () -> Unit = {},
@@ -99,6 +106,13 @@ internal fun ArcContent(
                 Running(arc, due, state, actions)
             }
             state.error?.let { ErrorBanner(message = it.message(), onDismiss = actions.onDismissError) }
+            state.gate?.let { gate ->
+                PremiumNudge(
+                    gate = gate,
+                    onSeeWhatsIncluded = { actions.onPaywall(gate) },
+                    onDismiss = actions.onDismissGate,
+                )
+            }
         }
     }
 }

@@ -15,6 +15,7 @@ import { beforeEach, describe, it } from 'node:test';
 import { initializeApp } from 'firebase-admin/app';
 import { Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { recomputeCouple } from '../couple/recompute';
+import { grantPremium } from './support';
 import { loadCatalogue, resetCatalogueCache } from '../engine/catalogue';
 import { DEFAULT_WEIGHTS } from '../engine/types';
 import type { GenerateDeps } from '../experience/generate';
@@ -82,6 +83,7 @@ async function pair(a: string, b: string, recorder: Sender): Promise<string> {
   await requestPairing(db, b, code, NOW, recorder);
   const { coupleId } = await respondToPairing(db, a, true, NOW, recorder);
   assert.ok(coupleId);
+  await grantPremium(db, a, NOW);
   await recomputeCouple(db, coupleId, NOW);
   return coupleId;
 }

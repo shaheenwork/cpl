@@ -106,6 +106,26 @@ describe('the chokepoint cannot be bypassed', () => {
     assert.match(body, /samplePool\(permitted,/);
   });
 
+  it('no gate stands inside a night that has started (section 19)', () => {
+    // A session that has begun finishes, whatever anyone's subscription did in the meantime.
+    // Nothing that moves a night on may so much as ask what a couple is entitled to.
+    const asks = /guardNewNight\(|guardArc\(|guardSurprise\(|premiumRequired\(|isPremium\(|coupleEntitlement\(/;
+    const underWay = files.filter((file) => file.path.startsWith('session/')
+      || ['experience/remix.ts', 'experience/game.ts', 'memories/memories.ts', 'media/media.ts'].includes(file.path));
+    assert.ok(underWay.length >= 5, 'found the files a night runs through');
+    for (const file of underWay) {
+      assert.ok(!asks.test(file.text), `${file.path} gates something a night already under way needs`);
+    }
+    // And the gates that do exist are only in the places that start something.
+    const gated = files.filter((file) => /guard(NewNight|Arc|Surprise)\(/.test(file.text)).map((file) => file.path).sort();
+    assert.deepEqual(gated, [
+      'billing/limits.ts',
+      'experience/generate.ts',
+      'surprises/arcs.ts',
+      'surprises/surprises.ts',
+    ]);
+  });
+
   it('every night is built by the one builder, whoever had the idea', () => {
     const callers = files.filter((file) => /buildExperience\(/.test(file.text)).map((file) => file.path).sort();
     assert.deepEqual(callers, [

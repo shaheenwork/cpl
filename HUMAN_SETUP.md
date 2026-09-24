@@ -221,6 +221,13 @@ Create the app, then the subscription products the paywall expects. Until then t
 flavor uses a fake `BillingRepository` and entitlement can be set directly in the
 emulator.
 
+Phase 19 needs one **subscription** product, id `afterhours.premium.monthly`, and the app's
+service account granted "View financial data" so Cloud Functions can call `androidpublisher`.
+Nothing about the real purchase flow has been run: `dev` uses a fake store (DECISIONS.md D-091),
+and the first real purchase can only be made on an internal-test track build. Also enable
+**Real-time developer notifications** with a Pub/Sub topic, and point it at the function that
+applies them.
+
 ### ⬜ 3.2 Content rating and policy
 
 BUILD_PROMPT.md §3.6 — **read it before submitting.** Google Play prohibits apps whose

@@ -1261,3 +1261,61 @@ Pages of twenty, newest first. A library is one of the few things here that only
 screen that read it whole would cost a read per night every time it opened. The Room cache of the
 first page (§6.3) is deliberately not built yet; it belongs with the cost work in Phase 22.
 
+---
+
+## D-091 — The store is a flavour; what a purchase is worth is the server's
+**Phase 19.** Play Billing cannot run against the Emulator Suite, and `androidpublisher` needs a
+real Play account, a real package and a real purchase — none of which exist locally. The brief
+already says what to do about that (§4.3: `dev` uses fake billing), so the split is by flavour:
+`app/src/dev` binds a `FakeBillingClient` that returns a token beginning `dev-`, and
+`app/src/play` — shared by `staging` and `prod` — binds the real `PlayBillingClient`. The Play
+Billing library is a `stagingImplementation`/`prodImplementation` dependency, so a `dev` build
+never loads it at all.
+
+What makes the fake safe is that it is *only* a token. Everything under it is the production
+path: the `verifyPurchase` callable, the server's verifier, the record on the user document, the
+couple's derived tier, and every gate. The dev verifier accepts a `dev-` token **and refuses to
+run at all outside the Emulator Suite** — `FUNCTIONS_EMULATOR !== 'true'` throws
+`billing-not-configured` — so the fake cannot become a way in if it is ever deployed by mistake.
+
+A phone never decides entitlement, and never writes one: §7.3 row I denies a client write to
+`users/{uid}.entitlement`, the couple's copy lives on the couple document which no client may
+write at all, and neither carries a purchase token. Play's later changes — renewal, grace period,
+on hold, cancellation, a refund — arrive as notifications and go through the same
+`applyPlayNotification`; a six-hourly sweep writes back terms that have simply run out, so a
+missed notification cannot leave anyone premium for ever.
+
+The library is pinned at 7.1.1, which is what resolves offline here. Nothing about the real
+purchase flow has been exercised: there is no Play account, and the staging and prod variants are
+disabled on this machine for want of a `google-services.json`, so `PlayBillingClient` is not even
+compiled by a local build. That is recorded in PROGRESS.md and HUMAN_SETUP.md §3.1 rather than
+implied to work — the first thing to do once a Play account exists is compile it.
+
+---
+
+## D-092 — Free is worth using, and a gate never stands inside a night
+**Phase 19.** §19's free/premium table is a shape, not a specification, and the two rules that go
+with it are hard: never paywall inside an active experience, and gate at selection time with the
+limit said before anyone invests effort.
+
+So the gates are four, and each sits at the one chokepoint its feature already has:
+`guardNewNight` inside `buildExperience` (three built nights a week on free, and Mystery Nights
+premium — every night in the app goes through that function, so a surprise, a planned night and a
+day of an arc are all counted the same way), `guardArc` in `startArc`, and `guardSurprise` in
+`createSurprise` (three waiting at once). Nothing else is gated: every game, voice notes and
+photos, the library, planning a night for a partner, feedback and boundaries are all free, and a
+free couple can use this app for a long time without meeting a limit.
+
+Nothing that moves a night on calls any of them — consent, advance, submit, reveal, remix, end —
+and `billing.int.test.ts` proves it by spending a free couple's whole week, watching the fourth
+build be refused, and then playing the night they already have from start to chapter one.
+
+A refusal is `premium-required:GATE`, one shape the phone reads everywhere. It becomes
+`PremiumNudge` where the tap happened, with the limit in plain words, "See what's included" and
+"Not now" — and the paywall itself states what is included, what it costs and that everything
+they already have stays theirs. No countdown, no scarcity, no disguised close: the screenshot test
+asserts the absence of exactly those words.
+
+Gating games by id was considered and refused: code must never name a game (D-072), so "limited
+games" is a count if it is ever needed at all, never a list.
+

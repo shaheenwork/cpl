@@ -1,5 +1,7 @@
 package com.shnapps.couple.core.firebase.di
 
+import com.shnapps.couple.core.firebase.billing.BillingRemoteDataSource
+import com.shnapps.couple.core.firebase.billing.FirebaseBillingRemoteDataSource
 import com.shnapps.couple.core.firebase.content.ContentRemoteDataSource
 import com.shnapps.couple.core.firebase.content.FirebaseContentRemoteDataSource
 import com.shnapps.couple.core.firebase.game.FirebaseGameRemoteDataSource
@@ -46,6 +48,9 @@ abstract class DataSourceModule {
 
     @Binds
     abstract fun bindMemoryRemoteDataSource(impl: FirebaseMemoryRemoteDataSource): MemoryRemoteDataSource
+
+    @Binds
+    abstract fun bindBillingRemoteDataSource(impl: FirebaseBillingRemoteDataSource): BillingRemoteDataSource
 
     @Binds
     abstract fun bindGameRemoteDataSource(impl: FirebaseGameRemoteDataSource): GameRemoteDataSource

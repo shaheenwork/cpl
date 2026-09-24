@@ -24,6 +24,7 @@ import * as surprise from './experience/surprise';
 import * as arcs from './surprises/arcs';
 import * as surprises from './surprises/surprises';
 import * as feedback from './feedback/affinity';
+import * as billing from './billing/billing';
 import * as media from './media/media';
 import * as memories from './memories/memories';
 import { revealTiming } from './discovery/timing';
@@ -309,6 +310,28 @@ export const openArcDay = onCall(options, (request) =>
 /** Ending an arc, whether it ran its course or not. */
 export const closeArc = onCall(options, (request) =>
   guarded(() => arcs.closeArc(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+// ---------------------------------------------------------------------------
+// Subscription (section 19): the client hands over a token, the server decides what it is worth
+// ---------------------------------------------------------------------------
+
+/** A purchase, as the phone saw it. Verified with Google before anything is written. */
+export const verifyPurchase = onCall(options, (request) =>
+  guarded(() => billing.verifyPurchase(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+/** What this account is entitled to, as the server holds it: for a restore, or a reinstall. */
+export const currentEntitlement = onCall(options, (request) =>
+  guarded(() => billing.currentEntitlement(getFirestore(), callerUid(request), Date.now())),
+);
+
+/** A term that has run out, written back — so a missed notification cannot leave anyone premium. */
+export const expireEntitlements = onSchedule(
+  { schedule: 'every 6 hours', retryCount: 3, maxInstances: 1 },
+  async () => {
+    await billing.expireEntitlements(getFirestore(), Date.now());
+  },
 );
 
 // ---------------------------------------------------------------------------

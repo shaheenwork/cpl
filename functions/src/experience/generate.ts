@@ -34,6 +34,7 @@ import {
   type Weights,
 } from '../engine/types';
 import { engineWeights } from '../engine/weights';
+import { guardNewNight } from '../billing/limits';
 import { ServiceError } from '../shared/errors';
 import { consumeRateLimit } from '../shared/rateLimit';
 
@@ -278,6 +279,8 @@ export async function buildExperience(
   // Whose night it is to play: the caller's, or the partner's when it was planned for them.
   const playerUid = shape.plannedFor ?? uid;
   if (shape.plannedFor !== undefined && !members.includes(shape.plannedFor)) invalid('plannedFor');
+  // Selection time, before anything is built, and never once a night is under way (section 19).
+  await guardNewNight(db, coupleId, members, shape.mystery, nowMs);
   await consumeRateLimit(db, uid, 'generateExperience', GENERATE_LIMIT, GENERATE_WINDOW_MS, nowMs);
 
   const couplePath = `couples/${coupleId}`;

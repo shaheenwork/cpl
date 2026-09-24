@@ -13,6 +13,7 @@
  * and delegate.
  */
 import { FieldValue, Timestamp, type DocumentData, type Firestore } from 'firebase-admin/firestore';
+import { guardSurprise } from '../billing/limits';
 import { activeCoupleOf } from '../experience/generate';
 import { fcmSender, notifyUser, type Sender } from '../notify/notify';
 import { ServiceError } from '../shared/errors';
@@ -124,6 +125,8 @@ export async function createSurprise(
   const { coupleId, members } = await activeCoupleOf(db, uid);
   const partner = members.find((member) => member !== uid);
   if (partner === undefined) throw new ServiceError('failed-precondition', 'not-paired');
+  // How many may be waiting at once is a free-tier limit; opening them never is (section 19).
+  await guardSurprise(db, coupleId, members, nowMs);
   await consumeRateLimit(db, uid, 'createSurprise', CREATE_LIMIT, CREATE_WINDOW_MS, nowMs);
 
   // Media is only ever referenced by id: the bytes stay where the media rules guard them (5.8).

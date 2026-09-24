@@ -6,9 +6,11 @@ import com.shnapps.couple.core.analytics.AnalyticsEvent
 import com.shnapps.couple.core.analytics.AnalyticsLogger
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
+import com.shnapps.couple.core.data.billing.gate
 import com.shnapps.couple.core.data.media.MediaRepository
 import com.shnapps.couple.core.data.night.NightRepository
 import com.shnapps.couple.core.datastore.AppPreferencesStore
+import com.shnapps.couple.core.model.Gate
 import com.shnapps.couple.core.model.MediaItem
 import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightPlan
@@ -43,6 +45,8 @@ data class HomeUiState(
     /** A voice note or a photo they sent that nobody has opened (§13). */
     val unopenedMedia: MediaItem? = null,
     val error: HomeError? = null,
+    /** A limit they reached: the screen offers what premium includes, and nothing is lost (§19). */
+    val gate: Gate? = null,
 ) {
     /** Nothing else can start while the couple already has something under way (D-059). */
     val canStart: Boolean get() = active == null && !making
@@ -101,7 +105,14 @@ class HomeViewModel @Inject constructor(
                     analytics.log(AnalyticsEvent.SurpriseCreated)
                     local.update { it.copy(making = false, startedExperienceId = result.value.experienceId) }
                 }
-                is Outcome.Failure -> local.update { it.copy(making = false, error = result.error.toHomeError()) }
+                is Outcome.Failure -> local.update {
+                    val gate = result.error.gate()
+                    it.copy(
+                        making = false,
+                        gate = gate,
+                        error = if (gate == null) result.error.toHomeError() else null,
+                    )
+                }
             }
         }
     }
@@ -119,7 +130,14 @@ class HomeViewModel @Inject constructor(
                 is Outcome.Success -> local.update {
                     it.copy(making = false, startedExperienceId = plan.experienceId)
                 }
-                is Outcome.Failure -> local.update { it.copy(making = false, error = result.error.toHomeError()) }
+                is Outcome.Failure -> local.update {
+                    val gate = result.error.gate()
+                    it.copy(
+                        making = false,
+                        gate = gate,
+                        error = if (gate == null) result.error.toHomeError() else null,
+                    )
+                }
             }
         }
     }
@@ -128,6 +146,8 @@ class HomeViewModel @Inject constructor(
     fun onShown() = local.update { it.copy(startedExperienceId = null) }
 
     fun dismissError() = local.update { it.copy(error = null) }
+
+    fun dismissGate() = local.update { it.copy(gate = null) }
 
     companion object {
         private const val STOP_TIMEOUT_MS = 5_000L

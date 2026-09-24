@@ -13,6 +13,7 @@ import { beforeEach, describe, it } from 'node:test';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, type DocumentData } from 'firebase-admin/firestore';
 import { recomputeCouple } from '../couple/recompute';
+import { grantPremium } from './support';
 import { createPairingCode, requestPairing, respondToPairing } from '../pairing/pairing';
 import { ServiceError } from '../shared/errors';
 import {
@@ -48,6 +49,7 @@ async function couple() {
   await requestPairing(db, b, code, NOW);
   const { coupleId } = await respondToPairing(db, a, true, NOW);
   assert.ok(coupleId);
+  await grantPremium(db, a, NOW);
   await recomputeCouple(db, coupleId, NOW);
   return { a, b, coupleId };
 }

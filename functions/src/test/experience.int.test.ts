@@ -13,6 +13,7 @@ import { beforeEach, describe, it } from 'node:test';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { recomputeCouple } from '../couple/recompute';
+import { grantPremium } from './support';
 import { loadCatalogue, resetCatalogueCache } from '../engine/catalogue';
 import { chapterRange } from '../engine/plan';
 import { DEFAULT_WEIGHTS, ENGINE_VERSION, type EngineItem } from '../engine/types';
@@ -63,6 +64,7 @@ async function couple(levels: [number, number] = [5, 5]) {
   await requestPairing(db, b, code, NOW);
   const { coupleId } = await respondToPairing(db, a, true, NOW);
   assert.ok(coupleId);
+  await grantPremium(db, a, NOW);
   await recomputeCouple(db, coupleId, NOW);
   return { a, b, coupleId };
 }

@@ -172,6 +172,24 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   said. The first day is due the moment the arc starts, without waiting for the phone's clock to
   agree with the server's (D-087).
 
+### Subscription
+
+- The client never decides entitlement. A phone hands `verifyPurchase` a token; the server asks
+  the store what it is worth and writes `users/{uid}.entitlement` — which no client may write
+  (§7.3 row I) — then publishes the couple's derived tier onto the couple document (D-091).
+- Entitlement is couple-scoped: `coupleEntitlement` takes the better of the two members' records.
+  A grace period still entitles; on hold, paused, revoked and expired do not.
+- The store is a flavour: `app/src/dev` binds `FakeBillingClient` (tokens beginning `dev-`),
+  `app/src/play` binds the real one for staging and prod. The dev verifier refuses to run outside
+  the Emulator Suite.
+- Four gates, each at the chokepoint its feature already has (D-092): `guardNewNight` inside
+  `buildExperience`, `guardArc` in `startArc`, `guardSurprise` in `createSurprise`. **Nothing that
+  moves a night on may ever call one.**
+- A refusal is `premium-required:GATE`; `AppError.gate()` turns it into a `Gate`, and the screen
+  shows `PremiumNudge` where the tap happened.
+- `node functions/scripts/dev-couple.js tier` shows what the couple is entitled to and how much of
+  the free tier they have used; `free` takes premium away again for checking a gate.
+
 ### Memories
 
 - A memory is the shape of an evening plus their own words — never a content id (D-090), which is

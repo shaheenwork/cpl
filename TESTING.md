@@ -195,6 +195,20 @@ ended arc opens nothing. `ArcTest` holds which day is due — including the firs
 moment the arc starts — and `ArcViewModelTest` drives the screen against a fake that refuses the
 way the server does.
 
+### Subscription (Phase 19)
+
+`billing.unit.test.ts` reads a stored record the way the server does: a term that has run out is
+free whatever it says, a grace period still entitles, on hold and paused do not, the better of two
+members' records is the couple's, and the couple's published copy never carries a purchase token.
+`billing.int.test.ts` is the rest: a dev token verified and written, the free tier's four limits
+(three nights a week, Mystery Nights, arcs, three surprises waiting), every one of them lifted by
+a purchase, the whole Play notification cycle (grace → on hold → recovered, and a refund ending it
+at once), and the sweep that writes back a term nobody told us about. Its centre is the exit
+criterion: a free couple who have spent their week are refused a *new* night and can still play,
+ready and advance the one they have. `PaywallViewModelTest` covers the screen — a cancelled
+purchase is not an error — and `PaywallSnapshotTest` asserts the absence of countdowns and
+scarcity words, not just the presence of the price.
+
 ### Memories (Phase 18)
 
 `memories.int.test.ts` keeps a played night and reads it back: their words, the evening's shape

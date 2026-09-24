@@ -18,6 +18,7 @@ import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.ExperienceType
+import com.shnapps.couple.core.model.Gate
 import com.shnapps.couple.core.model.MediaItem
 import com.shnapps.couple.core.model.MediaKind
 import com.shnapps.couple.core.model.Mode
@@ -25,6 +26,7 @@ import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionState
 import com.shnapps.couple.core.ui.ErrorBanner
+import com.shnapps.couple.core.ui.PremiumNudge
 import com.shnapps.couple.core.ui.ScreenColumn
 import com.shnapps.couple.core.ui.ScreenHeading
 import com.shnapps.couple.core.ui.SecureScreen
@@ -58,6 +60,7 @@ fun HomeScreen(
             onMode = viewModel::setMode,
             onOpenWaiting = viewModel::openWaiting,
             onDismissError = viewModel::dismissError,
+            onDismissGate = viewModel::dismissGate,
         ),
         modifier = modifier,
     )
@@ -78,6 +81,8 @@ data class HomeActions(
     val onLimits: () -> Unit = {},
     val onNotifications: () -> Unit = {},
     val onMemories: () -> Unit = {},
+    val onPaywall: (Gate) -> Unit = {},
+    val onDismissGate: () -> Unit = {},
     val onAppLock: () -> Unit = {},
     val onSignOut: () -> Unit = {},
     val onUnpair: () -> Unit = {},
@@ -98,6 +103,14 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
             ScreenHeading(eyebrow = "Tonight", headline = "Tonight could get interesting.")
             ModeSwitch(mode = state.mode, onMode = actions.onMode)
             state.error?.let { error -> ErrorBanner(message = error.message(), onDismiss = actions.onDismissError) }
+            // A limit, said where the tap happened — never over a night that has started (§19).
+            state.gate?.let { gate ->
+                PremiumNudge(
+                    gate = gate,
+                    onSeeWhatsIncluded = { actions.onPaywall(gate) },
+                    onDismiss = actions.onDismissGate,
+                )
+            }
             state.active?.let { session -> UnderWay(session, actions.onOpen) }
             // The strongest thing on this screen when it is there (§2.5 #2).
             state.waitingForMe?.let { plan -> SomethingWaiting(plan, state.canStart, actions.onOpenWaiting) }

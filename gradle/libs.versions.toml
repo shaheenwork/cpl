@@ -49,6 +49,9 @@ turbine = "1.2.1"
 mockk = "1.14.11"
 truth = "1.4.5"
 robolectric = "4.17"
+# Play Billing. 7.1.1 is what resolves offline here; the Play Console setup that makes it
+# testable at all is HUMAN_SETUP.md section 3.1 (DECISIONS.md D-091).
+playBilling = "7.1.1"
 roborazzi = "1.74.0"
 
 [libraries]
@@ -122,6 +125,7 @@ mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 mockk-android = { group = "io.mockk", name = "mockk-android", version.ref = "mockk" }
 truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+play-billing = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "playBilling" }
 konsist = { group = "com.lemonappdev", name = "konsist", version.ref = "konsist" }
 roborazzi = { group = "io.github.takahirom.roborazzi", name = "roborazzi", version.ref = "roborazzi" }
 roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi-compose", version.ref = "roborazzi" }

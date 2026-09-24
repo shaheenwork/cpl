@@ -5,9 +5,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
+import com.shnapps.couple.core.data.billing.gate
 import com.shnapps.couple.core.data.night.DefaultNightRepository
 import com.shnapps.couple.core.data.night.NightRepository
 import com.shnapps.couple.core.data.taxonomy.TaxonomyRepository
+import com.shnapps.couple.core.model.Gate
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Leadership
 import com.shnapps.couple.core.model.Mode
@@ -48,6 +50,8 @@ data class BuildNightUiState(
     /** Set once a night is built: the screen moves on to it and calls [BuildNightViewModel.onShown]. */
     val builtExperienceId: String? = null,
     val error: BuildError? = null,
+    /** A limit they reached: the screen offers what premium includes, and nothing is lost (§19). */
+    val gate: Gate? = null,
 )
 
 /**
@@ -118,7 +122,11 @@ class BuildNightViewModel @Inject constructor(
             local.update { state ->
                 when (result) {
                     is Outcome.Success -> state.copy(building = false, builtExperienceId = result.value.experienceId)
-                    is Outcome.Failure -> state.copy(building = false, error = result.error.toBuildError())
+                    is Outcome.Failure -> state.copy(
+                        building = false,
+                        gate = result.error.gate(),
+                        error = if (result.error.gate() == null) result.error.toBuildError() else null,
+                    )
                 }
             }
         }
@@ -137,7 +145,11 @@ class BuildNightViewModel @Inject constructor(
             local.update { state ->
                 when (result) {
                     is Outcome.Success -> state.copy(building = false, plannedChapters = result.value)
-                    is Outcome.Failure -> state.copy(building = false, error = result.error.toBuildError())
+                    is Outcome.Failure -> state.copy(
+                        building = false,
+                        gate = result.error.gate(),
+                        error = if (result.error.gate() == null) result.error.toBuildError() else null,
+                    )
                 }
             }
         }
@@ -161,6 +173,8 @@ class BuildNightViewModel @Inject constructor(
     fun onShown() = local.update { it.copy(builtExperienceId = null) }
 
     fun dismissError() = local.update { it.copy(error = null) }
+
+    fun dismissGate() = local.update { it.copy(gate = null) }
 
     private fun edit(change: NightSettings.() -> NightSettings) =
         local.update { it.copy(settings = it.settings.change()) }

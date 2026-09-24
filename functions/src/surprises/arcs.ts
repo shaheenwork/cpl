@@ -13,6 +13,7 @@
 import { Timestamp, type DocumentData, type Firestore } from 'firebase-admin/firestore';
 import { MOODS, type Mood } from '../engine/types';
 import { activeCoupleOf, buildExperience, currentFilters, defaultDeps, type GenerateDeps } from '../experience/generate';
+import { guardArc } from '../billing/limits';
 import { fcmSender, notifyPartner, type Sender } from '../notify/notify';
 import { ServiceError } from '../shared/errors';
 
@@ -86,7 +87,9 @@ export function parseStart(input: unknown): ArcLength {
 /** Starts an arc. One at a time: a couple already in one is told so rather than given a second. */
 export async function startArc(db: Firestore, uid: string, input: unknown, nowMs: number): Promise<ArcView> {
   const lengthDays = parseStart(input);
-  const { coupleId } = await activeCoupleOf(db, uid);
+  const { coupleId, members } = await activeCoupleOf(db, uid);
+  // A few days of this is premium (section 19), refused before a plan exists rather than part-way.
+  await guardArc(db, members, nowMs);
 
   const running = await db.collection(`couples/${coupleId}/arcs`).where('state', '==', 'ACTIVE').limit(1).get();
   if (!running.empty) throw new ServiceError('failed-precondition', 'arc-in-progress');

@@ -3,7 +3,7 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 18 complete. Phase 19 (subscription) is next.
+**Current position:** Phase 19 complete. Phase 20 (settings, export, delete, reporting) is next.
 
 ---
 
@@ -30,8 +30,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 | 16 | Scheduled surprises + multi-day | ✅ **Complete** |
 | 17 | FCM + notification privacy | ✅ **Complete** |
 | 18 | Memories + library | ✅ **Complete** |
-| 19 | Subscription | ⬜ Next |
-| 20 | Settings, export, delete, reporting | ⬜ |
+| 19 | Subscription | ✅ **Complete** |
+| 20 | Settings, export, delete, reporting | ⬜ Next |
 | 21 | Security hardening | ⬜ |
 | 22 | Performance, cost, a11y, polish | ⬜ |
 
@@ -1224,6 +1224,58 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Phase 19 — Subscription, and a gate that never stands in the way ✅
+
+### Shipped
+- **The client never decides.** A phone hands `verifyPurchase` a token and nothing else; the
+  server asks the store what it is worth, writes `users/{uid}.entitlement` — which §7.3 row I
+  denies to every client — and publishes the couple's derived tier onto the couple document,
+  without a purchase token in it.
+- **Couple-scoped** (§19): `coupleEntitlement` takes the better of the two members' own records,
+  so one subscription covers both partners with nothing copied between accounts.
+- **The store is a flavour** (D-091): `app/src/dev` binds a fake client whose tokens begin `dev-`,
+  `app/src/play` binds the real Play Billing client for staging and prod, and the dev verifier
+  refuses to run outside the Emulator Suite. Everything under the token is the production path.
+- **The whole subscription lifecycle**: purchase, renewal, grace (still in), on hold (out),
+  paused, cancelled (runs to the end of its term), expired, and a refund that ends it at once —
+  applied from Play's notifications, with a six-hourly sweep for the ones that never arrive.
+- **Four gates, each at the chokepoint its feature already has** (D-092): three built nights a
+  week and Mystery Nights inside `buildExperience`, multi-day arcs in `startArc`, three surprises
+  waiting in `createSurprise`. Everything else is free — every game, voice notes and photos, the
+  library, planning a night for a partner.
+- **Never inside a night.** Nothing that moves a night on calls a gate, and the integration suite
+  proves it by spending a free couple's week, watching the fourth build refused, and playing the
+  night they already have anyway.
+- **The paywall** (`:feature:paywall`, new) says what is included, what it costs and that
+  everything they have stays theirs. A refusal becomes `PremiumNudge` where the tap happened.
+
+### Verified
+```
+./gradlew check assembleDevDebug            BUILD SUCCESSFUL
+:feature:paywall    10   (PaywallViewModelTest 7, PaywallSnapshotTest 3)
+npm --prefix functions run test:unit        132/132  (billing 12)
+npm --prefix functions run test:int         149/149  (billing 11)
+npm --prefix firebase/tests test            101/101
+```
+- **Exit criterion — fake billing entitles in `dev`; no paywall interrupts an active session**:
+  `billing.int.test.ts` buys with a `dev-` token and watches every limit lift, and its centre is a
+  free couple who have spent their week being refused a *new* night while starting, readying and
+  advancing the one they have.
+- **On the device**: a free couple tapped MYSTERY NIGHT and got "Mystery Nights are premium." with
+  "See what's included" and "Not now" — nothing built, nothing lost. The paywall showed what is
+  included and the dev price; "Go premium" bought with a `dev-` token, and the server wrote the
+  entitlement **on the buyer's account only** (`source: DEV`), published the couple's copy, and the
+  screen said "Premium, for both of you." The same tap then built and opened a Mystery Night.
+  Dropped back to free with `dev-couple.js free`, a fourth night that week was refused with
+  "That's this week's nights."
+- **Not verifiable locally**: the real Play purchase flow. There is no Play account, Play Billing
+  has no emulator, and the `staging`/`prod` variants are disabled here for want of a
+  `google-services.json` — so `PlayBillingClient` has not been compiled or run at all. It is
+  written against Billing 7.1.1 and reviewed by eye only; the console steps that make it testable
+  are HUMAN_SETUP.md §3.1.
 
 ---
 

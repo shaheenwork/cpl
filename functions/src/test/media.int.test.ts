@@ -15,6 +15,7 @@ import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, type DocumentData } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { recomputeCouple } from '../couple/recompute';
+import { grantPremium } from './support';
 import {
   DEFAULT_TTL_MS,
   MAX_NOTE,
@@ -52,6 +53,7 @@ async function couple() {
   await requestPairing(db, b, code, NOW);
   const { coupleId } = await respondToPairing(db, a, true, NOW);
   assert.ok(coupleId);
+  await grantPremium(db, a, NOW);
   await recomputeCouple(db, coupleId, NOW);
   return { a, b, coupleId };
 }

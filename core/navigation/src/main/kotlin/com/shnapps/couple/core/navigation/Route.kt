@@ -80,6 +80,13 @@ object Route {
     @Serializable
     data object NotificationSettings
 
+    /**
+     * What premium includes (§19). [gate] names the limit they reached, when they arrived from
+     * one — it is a name from `Gate`, never anything about what they were building.
+     */
+    @Serializable
+    data class Paywall(val gate: String? = null)
+
     /** The couple's own library of the nights they kept (§14.8). */
     @Serializable
     data object Memories

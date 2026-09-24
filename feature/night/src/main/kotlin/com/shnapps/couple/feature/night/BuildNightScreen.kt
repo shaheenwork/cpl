@@ -25,12 +25,14 @@ import com.shnapps.couple.core.designsystem.component.MoodChipRow
 import com.shnapps.couple.core.designsystem.component.WaitingForPartner
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
+import com.shnapps.couple.core.model.Gate
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Leadership
 import com.shnapps.couple.core.model.Mood
 import com.shnapps.couple.core.model.Novelty
 import com.shnapps.couple.core.ui.BackRow
 import com.shnapps.couple.core.ui.ErrorBanner
+import com.shnapps.couple.core.ui.PremiumNudge
 import com.shnapps.couple.core.ui.ScreenColumn
 import com.shnapps.couple.core.ui.ScreenHeading
 import com.shnapps.couple.core.ui.SecureScreen
@@ -41,6 +43,7 @@ import com.shnapps.couple.core.ui.SecureScreen
  */
 @Composable
 fun BuildNightScreen(
+    onPaywall: (Gate) -> Unit,
     onBuilt: (experienceId: String) -> Unit,
     onOpenNight: (experienceId: String) -> Unit,
     onBack: () -> Unit,
@@ -66,6 +69,8 @@ fun BuildNightScreen(
             onBuild = viewModel::build,
             onExpress = viewModel::buildExpress,
             onDismissError = viewModel::dismissError,
+            onDismissGate = viewModel::dismissGate,
+            onPaywall = onPaywall,
             onOpenNight = onOpenNight,
             onBack = onBack,
         ),
@@ -75,6 +80,8 @@ fun BuildNightScreen(
 
 /** Everything the builder can ask for, gathered so the content stays easy to preview. */
 internal data class BuildNightActions(
+    val onPaywall: (Gate) -> Unit = {},
+    val onDismissGate: () -> Unit = {},
     val onDuration: (Int) -> Unit = {},
     val onMood: (Mood) -> Unit = {},
     val onIntensity: (Intensity) -> Unit = {},
@@ -156,6 +163,14 @@ internal fun BuildNightContent(state: BuildNightUiState, actions: BuildNightActi
             }
 
             state.error?.let { ErrorBanner(message = it.message(), onDismiss = actions.onDismissError) }
+            // Before anything is built: the one place a limit may be mentioned at all (§19).
+            state.gate?.let { gate ->
+                PremiumNudge(
+                    gate = gate,
+                    onSeeWhatsIncluded = { actions.onPaywall(gate) },
+                    onDismiss = actions.onDismissGate,
+                )
+            }
 
             if (state.building) {
                 WaitingForPartner(
@@ -225,6 +240,14 @@ private fun ExpressContent(state: BuildNightUiState, actions: BuildNightActions,
                 )
             }
             state.error?.let { ErrorBanner(message = it.message(), onDismiss = actions.onDismissError) }
+            // Before anything is built: the one place a limit may be mentioned at all (§19).
+            state.gate?.let { gate ->
+                PremiumNudge(
+                    gate = gate,
+                    onSeeWhatsIncluded = { actions.onPaywall(gate) },
+                    onDismiss = actions.onDismissGate,
+                )
+            }
             if (state.building) {
                 WaitingForPartner(
                     message = "Building your night…",

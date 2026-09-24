@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Clock
 import com.shnapps.couple.core.common.Outcome
+import com.shnapps.couple.core.data.billing.gate
 import com.shnapps.couple.core.data.surprise.SurpriseRepository
 import com.shnapps.couple.core.model.Countdown
+import com.shnapps.couple.core.model.Gate
 import com.shnapps.couple.core.model.OpenWhenTrigger
 import com.shnapps.couple.core.model.Surprise
 import com.shnapps.couple.core.model.SurpriseContent
@@ -47,6 +49,8 @@ data class LaterUiState(
     /** What is open right now, once it may be read. */
     val open: Pair<Surprise, SurpriseContent>? = null,
     val error: LaterError? = null,
+    /** A limit they reached: the screen offers what premium includes, and nothing is lost (§19). */
+    val gate: Gate? = null,
 ) {
     val canLeave: Boolean get() = title.isNotBlank() && text.isNotBlank() && !busy
 
@@ -112,7 +116,14 @@ class LaterViewModel @Inject constructor(
             local.update { current ->
                 when (result) {
                     is Outcome.Success -> LaterUiState(leftIt = true)
-                    is Outcome.Failure -> current.copy(busy = false, error = result.error.toLaterError())
+                    is Outcome.Failure -> {
+                        val gate = result.error.gate()
+                        current.copy(
+                            busy = false,
+                            gate = gate,
+                            error = if (gate == null) result.error.toLaterError() else null,
+                        )
+                    }
                 }
             }
         }
@@ -144,6 +155,8 @@ class LaterViewModel @Inject constructor(
     fun dismissLeft() = local.update { it.copy(leftIt = false) }
 
     fun dismissError() = local.update { it.copy(error = null) }
+
+    fun dismissGate() = local.update { it.copy(gate = null) }
 
     fun addCountdown(title: String, daysAhead: Int) = act {
         surprises.addCountdown(title.trim(), clock.nowMillis() + daysAhead * DAY_MS)

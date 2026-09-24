@@ -39,6 +39,7 @@ import com.shnapps.couple.feature.onboarding.StartDestination
 import com.shnapps.couple.feature.onboarding.WelcomeScreen
 import com.shnapps.couple.feature.pairing.PairingScreen
 import com.shnapps.couple.feature.pairing.UnpairViewModel
+import com.shnapps.couple.feature.paywall.PaywallScreen
 import com.shnapps.couple.feature.preferences.PreferenceDiscoveryScreen
 import com.shnapps.couple.feature.send.ArcScreen
 import com.shnapps.couple.feature.send.LaterScreen
@@ -175,6 +176,7 @@ fun CplNavHost(
 
         composable<Route.BuildNight> {
             BuildNightScreen(
+                onPaywall = { gate -> navController.navigate(Route.Paywall(gate.name)) },
                 // The builder has done its job once a night exists: back from the night is home.
                 onBuilt = { experienceId ->
                     navController.navigate(Route.Night(experienceId)) {
@@ -203,7 +205,14 @@ fun CplNavHost(
         }
 
         composable<Route.Later> {
-            LaterScreen(onBack = { navController.popBackStack() })
+            LaterScreen(
+                onPaywall = { gate -> navController.navigate(Route.Paywall(gate.name)) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable<Route.Paywall> {
+            PaywallScreen(onBack = { navController.popBackStack() })
         }
 
         composable<Route.Memories> {
@@ -229,6 +238,7 @@ fun CplNavHost(
         composable<Route.Arc> {
             ArcScreen(
                 onNight = { experienceId -> navController.navigate(Route.Night(experienceId)) },
+                onPaywall = { gate -> navController.navigate(Route.Paywall(gate.name)) },
                 onBack = { navController.popBackStack() },
             )
         }
@@ -309,6 +319,7 @@ private fun Home(
             onArc = { navController.navigate(Route.Arc) },
             onNotifications = { navController.navigate(Route.NotificationSettings) },
             onMemories = { navController.navigate(Route.Memories) },
+            onPaywall = { gate -> navController.navigate(Route.Paywall(gate.name)) },
             onCuriosities = { navController.navigate(Route.PreferenceDiscovery) },
             onMutual = { navController.navigate(Route.MutualDiscovery) },
             onLimits = { navController.navigate(Route.Boundaries) },

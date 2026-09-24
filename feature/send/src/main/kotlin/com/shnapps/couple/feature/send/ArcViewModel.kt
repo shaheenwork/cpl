@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Clock
 import com.shnapps.couple.core.common.Outcome
+import com.shnapps.couple.core.data.billing.gate
 import com.shnapps.couple.core.data.surprise.ArcRepository
 import com.shnapps.couple.core.model.Arc
 import com.shnapps.couple.core.model.ArcDay
+import com.shnapps.couple.core.model.Gate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -29,6 +31,8 @@ data class ArcUiState(
     /** Set once a day has been opened: the screen goes to its night. */
     val openedExperienceId: String? = null,
     val error: ArcError? = null,
+    /** A limit they reached: the screen offers what premium includes, and nothing is lost (§19). */
+    val gate: Gate? = null,
     /** The lengths an arc can run for (§13). */
     val lengths: List<Int> = Arc.LENGTHS,
 )
@@ -64,8 +68,17 @@ class ArcViewModel @Inject constructor(
                 when (result) {
                     is Outcome.Success ->
                         state.copy(busy = false, opening = false, openedExperienceId = result.value)
-                    is Outcome.Failure ->
-                        state.copy(busy = false, opening = false, error = result.error.toArcError())
+                    is Outcome.Failure -> {
+                        // A subscription that lapsed mid-arc: the day's night is a new night, so
+                        // it is refused like any other — and said in the same words (§19).
+                        val gate = result.error.gate()
+                        state.copy(
+                            busy = false,
+                            opening = false,
+                            gate = gate,
+                            error = if (gate == null) result.error.toArcError() else null,
+                        )
+                    }
                 }
             }
         }
@@ -81,6 +94,8 @@ class ArcViewModel @Inject constructor(
 
     fun dismissError() = local.update { it.copy(error = null) }
 
+    fun dismissGate() = local.update { it.copy(gate = null) }
+
     private fun act(work: suspend () -> Outcome<*>) {
         if (local.value.busy) return
         local.update { it.copy(busy = true, error = null) }
@@ -89,7 +104,14 @@ class ArcViewModel @Inject constructor(
             local.update { state ->
                 when (result) {
                     is Outcome.Success -> state.copy(busy = false)
-                    is Outcome.Failure -> state.copy(busy = false, error = result.error.toArcError())
+                    is Outcome.Failure -> {
+                        val gate = result.error.gate()
+                        state.copy(
+                            busy = false,
+                            gate = gate,
+                            error = if (gate == null) result.error.toArcError() else null,
+                        )
+                    }
                 }
             }
         }

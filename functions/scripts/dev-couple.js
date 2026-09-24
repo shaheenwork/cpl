@@ -22,7 +22,7 @@ process.env.FIRESTORE_EMULATOR_HOST ??= '127.0.0.1:8080';
 process.env.STORAGE_EMULATOR_HOST ??= 'http://127.0.0.1:9199';
 const { join } = require('node:path');
 const { initializeApp } = require('firebase-admin/app');
-const { getFirestore, Timestamp } = require('firebase-admin/firestore');
+const { FieldValue, getFirestore, Timestamp } = require('firebase-admin/firestore');
 const { getStorage } = require('firebase-admin/storage');
 const pairing = require(join(__dirname, '..', 'lib', 'pairing', 'pairing'));
 const { recomputeCouple } = require(join(__dirname, '..', 'lib', 'couple', 'recompute'));
@@ -166,6 +166,27 @@ async function call(name, data, user) {
         object: there ? 'there' : 'gone',
       }));
     }
+  } else if (cmd === 'tier') {
+    // What the couple is entitled to, and how many nights they have left this week (section 19).
+    const week = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const built = (await db.collection(`couples/${coupleId}/experiences`).get()).docs
+      .filter((d) => (d.get('createdAt')?.toMillis() ?? 0) >= week).length;
+    const waiting = (await db.collection(`couples/${coupleId}/surprises`).get()).docs
+      .filter((d) => d.get('state') === 'SCHEDULED').length;
+    console.log(JSON.stringify({
+      couple: couple.entitlement ?? null,
+      alex: (await db.doc(`users/${alex.uid}`).get()).get('entitlement') ?? null,
+      sam: (await db.doc(`users/${sam.uid}`).get()).get('entitlement') ?? null,
+      nightsThisWeek: built,
+      surprisesWaiting: waiting,
+    }, null, 1));
+  } else if (cmd === 'free') {
+    // Back to the free tier, for checking a gate again without making a new couple.
+    for (const who of [alex, sam]) {
+      await db.doc(`users/${who.uid}`).set({ entitlement: FieldValue.delete() }, { merge: true });
+    }
+    await db.doc(`couples/${coupleId}`).set({ entitlement: FieldValue.delete() }, { merge: true });
+    console.log('free');
   } else if (cmd === 'state') {
     const sessions = await db.collection(`couples/${coupleId}/sessions`).get();
     const experiences = await db.collection(`couples/${coupleId}/experiences`).get();
