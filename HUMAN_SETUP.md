@@ -254,7 +254,17 @@ the actual architecture in `SECURITY.md` — in particular that individual prefe
 boundary answers are never shared with the partner, and that no private content is sent
 to analytics.
 
+**Drafts are written**, from the architecture rather than from a template:
+`legal/PRIVACY_POLICY.md` and `legal/TERMS.md`. Both have `[bracketed]` gaps — the entity,
+the address, the region, the jurisdiction, the contact addresses — and both need a lawyer
+to read them before they go up. Then publish each at a stable URL and put the privacy URL
+in Play Console and in the app's Settings screen.
+
 ### ⬜ 4.2 Data safety form
 
 Play's Data Safety declaration must match what the app really collects. `:core:analytics`
 is a closed allowlist precisely so this stays answerable and honest.
+
+**The answers are written out** in `legal/DATA_SAFETY.md`, row by row in the order Play asks
+them, including the account-deletion declaration. Read it against the code if you want to
+check it, then type it into the console — nothing there is a guess.

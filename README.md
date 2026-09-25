@@ -9,8 +9,8 @@ builds personalised nights around what they are both actually curious about, whe
 they are in the same room or a continent apart.
 
 > **18+.** Age-gated, consent-gated, and built so that neither partner can ever see the
-> other's private answers. See [SECURITY.md](SECURITY.md) once Phase 21 lands, and
-> [BUILD_PROMPT.md §3](BUILD_PROMPT.md) for the safety architecture.
+> other's private answers. See [SECURITY.md](SECURITY.md) for the threat model and where each
+> promise is enforced, and [BUILD_PROMPT.md §3](BUILD_PROMPT.md) for the safety architecture.
 
 ---
 
@@ -77,7 +77,12 @@ See [CLAUDE.md](CLAUDE.md) for the module map and conventions.
 | [PROGRESS.md](PROGRESS.md) | Live phase status — start here |
 | [CLAUDE.md](CLAUDE.md) | Build commands, module map, conventions, gotchas |
 | [DECISIONS.md](DECISIONS.md) | Every non-obvious call, and why |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Module graph, layering, data flow, the engine on both sides |
+| [SECURITY.md](SECURITY.md) | Threat model, what holds each promise, residual risks, the §7.3 matrix |
+| [CONTENT_GUIDE.md](CONTENT_GUIDE.md) | Content schema, voice, authoring rules, prohibited themes |
 | [TESTING.md](TESTING.md) | How to run every test tier |
+| [ACCEPTANCE.md](ACCEPTANCE.md) | The two-device acceptance script, and what has been walked |
+| [COST.md](COST.md) | What one couple costs on Firebase, counted from the code |
 | [engine/SPEC.md](engine/SPEC.md) | The experience engine's algorithm, exactly |
 | [HUMAN_SETUP.md](HUMAN_SETUP.md) | Firebase, Play Console and toolchain steps only a human can do |
 

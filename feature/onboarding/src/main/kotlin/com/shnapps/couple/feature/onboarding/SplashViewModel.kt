@@ -52,15 +52,24 @@ class SplashViewModel @Inject constructor(
     /**
      * Resolution order matters, and it is the order of the guarantees.
      *
-     * The age gate is checked against the **server** record, not the local hint. The hint
-     * exists only to avoid a blank screen; it can never let someone past the gate, because
-     * a device-local flag is exactly what an attacker or a curious teenager would clear or
-     * forge.
+     * The session is checked before anything else, because everything after it assumes a
+     * session that works. The age gate is then checked against the **server** record, not the
+     * local hint. The hint exists only to avoid a blank screen; it can never let someone past
+     * the gate, because a device-local flag is exactly what an attacker or a curious teenager
+     * would clear or forge.
      */
     private fun resolve() {
         viewModelScope.launch {
             val user = authRepository.authState.first()
             if (user == null) {
+                _uiState.value = SplashUiState(StartDestination.Auth)
+                return@launch
+            }
+
+            // A stored session that is no longer real: the account went, the password changed
+            // elsewhere, or the session was revoked. It is signed out here rather than carried
+            // into the app, where every call would fail and a queued write would never land.
+            if (!authRepository.validateSession()) {
                 _uiState.value = SplashUiState(StartDestination.Auth)
                 return@launch
             }

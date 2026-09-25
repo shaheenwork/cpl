@@ -296,6 +296,26 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
 
 ---
 
+## Performance, cost and accessibility
+
+- A stored session is checked on open: `validateSession()` refreshes the token and signs out one
+  that is definitively dead (deleted, disabled, revoked, password changed elsewhere, or the `dev`
+  Auth emulator restarted). Offline keeps the session. Without this the app holds a signed-in user
+  whose every call fails `UNAUTHENTICATED`, and a queued Firestore write never lands — D-098.
+- **A Firestore write is queued offline and retried for ever**, so a screen that waits on one waits
+  for ever. `confirmAge` is bounded at ten seconds for that reason; bound any write a screen blocks on.
+- The accessibility audit is `AccessibilityTest` in `:core:designsystem` (200% type with goldens,
+  48 dp targets, a label on everything clickable) plus `ContrastTest`. Add to it when a component
+  lands — D-096.
+- Listeners are proved released by `ListenerReleaseTest` in `:core:data`, which counts registrations
+  at the data-source seam. LeakCanary is in debug builds only — D-097.
+- R8 is on for release with `app/proguard-rules.pro`; the release build is signed with the debug key
+  locally, and the real upload key is HUMAN_SETUP.md §3.3 — D-095.
+- `COST.md` holds the per-night read/write/invocation counts and the three cost drivers.
+  `ACCEPTANCE.md` is the two-device script, with a run log that says what was actually walked.
+
+---
+
 ## Security
 
 - SECURITY.md is the map: threat model, where each promise is enforced, the residual risks, and the

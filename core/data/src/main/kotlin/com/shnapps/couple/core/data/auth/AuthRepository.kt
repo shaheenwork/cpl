@@ -29,6 +29,17 @@ interface AuthRepository {
     suspend fun signOut()
 
     /**
+     * Whether the stored session is still real, signing out if it is definitively not.
+     *
+     * Called on open, before anything is routed. A session that no longer exists — the
+     * account was deleted or disabled, the password changed elsewhere, or the `dev` Auth
+     * emulator restarted — leaves the SDK reporting a signed-in user whose every call fails,
+     * and an offline write queued behind it never lands. Starting offline is not that case
+     * and keeps the session.
+     */
+    suspend fun validateSession(): Boolean
+
+    /**
      * Sets the user's own content level (BUILD_PROMPT.md Appendix A) — how far they are
      * willing to go. Only ever their own: the couple's ceiling is the lower of the two
      * partners' levels, computed by the server, so nobody can raise it alone.

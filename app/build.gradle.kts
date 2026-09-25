@@ -53,11 +53,20 @@ android {
 
     buildTypes {
         release {
-            // R8 is switched on in Phase 22 together with the keep rules and the
-            // Crashlytics mapping upload. See PROGRESS.md.
+            // R8 on, with the keep rules in proguard-rules.pro (§18). Most of this app needs
+            // none: documents are mapped by hand, and Hilt, Room and Compose generate code R8
+            // understands. What is kept is named there, with why.
             optimization {
-                enable = false
+                enable = true
             }
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                file("proguard-rules.pro"),
+            )
+            // Local verification only: a release build has to be signable to be installed and
+            // run at all (the Phase 22 exit criterion). The real upload key is a human step —
+            // HUMAN_SETUP.md §3.3 — and replaces this.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -154,6 +163,9 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.hilt.work)
 
+    // §18 asks for a full run-through with no retained objects. Debug builds only: LeakCanary
+    // installs itself from its own content provider, so nothing in this app references it.
+    debugImplementation(libs.leakcanary)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 

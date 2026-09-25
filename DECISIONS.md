@@ -1367,3 +1367,96 @@ account's own documents and its Auth user are deleted whatever happened to the c
 count comes back as `failures` for the log, and because every step is idempotent the next call
 finishes whatever was left. `deleteAccount` returning is the promise that the account is gone.
 
+
+---
+
+## D-095 — R8 is on, and the keep list is short on purpose
+**Phase 22.** §18 asks for "R8 enabled with a verified-shrunk release build", so the release build
+type now enables optimization and carries `app/proguard-rules.pro`. The shrink is real: 31.9 MB
+debug against 5.5 MB release, with `mapping.txt` produced for Crashlytics.
+
+Almost nothing needed keeping, and that is a consequence of earlier decisions rather than luck.
+Documents are mapped field by field in `:core:firebase` rather than reflected into data classes, so
+R8 renaming a model cannot break a read. Hilt, Room and Compose all generate code R8 understands.
+What is kept is named in the file with the reason:
+
+- the `kotlinx.serialization` generated serializers and their companions, because the content
+  bundle and the taxonomy are parsed reflectively by the library's own lookup;
+- `CplMessagingService`, because the manifest names it and nothing in Kotlin references it;
+- `SourceFile` and `LineNumberTable`, so a deobfuscated stack trace still has line numbers.
+
+The release build is signed with the debug key here. That is deliberate and local: a release APK
+has to be signable to be installed and run at all, which is what the exit criterion asks for, and
+the real upload key is a human step (HUMAN_SETUP.md §3.3). The alternative — a release variant that
+cannot be verified on a device until someone generates a keystore — would have left the exit
+criterion untestable.
+
+---
+
+## D-096 — The accessibility audit is a test suite, not a walkthrough
+**Phase 22.** §20 lists seven accessibility requirements. Three of them are arithmetic on the
+tokens and already had `ContrastTest`. The rest were checked by eye in earlier phases, which is
+exactly the kind of check that stops happening.
+
+So they are tests now (`AccessibilityTest` in `:core:designsystem`): the specimens composed at
+`fontScale = 2.0` with the 200% goldens recorded, every clickable node asserted at 48 dp or more in
+both directions, and every clickable node asserted to carry text or a content description. The
+goldens matter more than the assertions — a change that starts clipping at the largest type shows
+up as an image diff, which is the failure mode §20 actually worries about.
+
+`fontScale` is provided through `LocalDensity`, not through Robolectric qualifiers, because the
+qualifier applies to the device configuration and the composition reads the density local; setting
+the local is what a real user's font-size setting ends up doing anyway.
+
+What this does not cover, and what remains a human check: TalkBack's actual reading order, and
+switch navigation. A semantics assertion proves a label exists, not that the order it is read in
+makes sense.
+
+---
+
+## D-097 — The leak test counts listeners at the seam
+**Phase 22.** §18 says "every listener is lifecycle-scoped and verified released (write a leak
+test)". LeakCanary answers a different question — whether an `Activity` is retained — and it cannot
+be asserted in CI.
+
+The leak that matters here is a Firestore snapshot listener that outlives the screen collecting it:
+it keeps costing reads, and on a shared phone it keeps a live view of a document open. So
+`ListenerReleaseTest` counts registrations at the seam where they are created — a data source whose
+`callbackFlow` increments on subscribe and decrements in `awaitClose` — and asserts the count
+returns to zero when the collector goes away, that two collectors are two listeners and not a
+shared one, and that nothing registers at all before something collects or while signed out.
+
+A repository that cached a flow in a scope of its own, or held a `stateIn` on anything but the
+caller's scope, fails it. LeakCanary still runs in debug builds for the run-through §18 asks for;
+the test is what keeps holding after the run-through is over.
+
+---
+
+## D-098 — A session that is gone is signed out on open, and no write waits for ever
+**Phase 22.** The device check found this one, and it is the failure a person actually hits first.
+
+After the Firebase emulators were restarted, the app still held Alex's session. Firebase kept
+reporting a signed-in user while every Firestore call came back
+`UNAUTHENTICATED ... [ INVALID_REFRESH_TOKEN ]`, and the age gate — whose attestation is a Firestore
+write — sat on "One moment…" for ever, because an offline Firestore write is queued and retried
+rather than failed. There was no way forward and no way back: no error, no sign-in screen, no tap.
+
+That is not only a `dev` problem. A refresh token stops working in production too: the account is
+deleted, it is disabled, the password is changed on another device, or the session is revoked. In
+every one of those cases the app would behave exactly as it did here.
+
+Two changes, because there are two faults:
+
+- **The session is checked on open.** `AuthDataSource.checkSession()` refreshes the stored token and
+  reports `VALID`, `SIGNED_OUT`, `DEAD` or `UNVERIFIABLE`; `validateSession()` signs out only on
+  `DEAD`, and the splash routes to sign-in. A failure that means "not now" — no network — keeps the
+  session, because signing someone out for being on a train is worse than asking again later. Dead
+  is read from the reasons Firebase actually reports (`INVALID_REFRESH_TOKEN`, `TOKEN_EXPIRED`,
+  `USER_DISABLED`, `USER_NOT_FOUND`, `CREDENTIAL_TOO_OLD_LOGIN_AGAIN`), and anything unrecognised is
+  treated as "could not tell".
+- **The attestation write is bounded.** `confirmAge` gives the write ten seconds and then reports
+  `AppError.Network`, so the gate says "That didn't save. Try again." and shows the button again
+  instead of a spinner with nothing behind it.
+
+The gate still refuses to advance optimistically. The point is not to let someone through when the
+record did not save; it is to stop pretending the save is still in progress when it is not.

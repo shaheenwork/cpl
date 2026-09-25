@@ -6,6 +6,7 @@ import com.shnapps.couple.core.common.Clock
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.datastore.AppPreferencesStore
 import com.shnapps.couple.core.firebase.auth.AuthDataSource
+import com.shnapps.couple.core.firebase.auth.SessionCheck
 import com.shnapps.couple.core.firebase.user.UserProfileDataSource
 import com.shnapps.couple.core.model.AuthUser
 import com.shnapps.couple.core.model.Intensity
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.TimeZone
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -80,6 +82,22 @@ class DefaultAuthRepository @Inject constructor(
         appPreferences.clear()
     }
 
+    /**
+     * Checks the stored session on open, and signs out one that is gone for good.
+     *
+     * Only [SessionCheck.DEAD] ends the session. Being unable to tell — offline, most often —
+     * keeps it, because signing someone out for being on a train would be worse than asking
+     * again later.
+     */
+    override suspend fun validateSession(): Boolean = when (authDataSource.checkSession()) {
+        SessionCheck.VALID, SessionCheck.UNVERIFIABLE -> true
+        SessionCheck.SIGNED_OUT -> false
+        SessionCheck.DEAD -> {
+            signOut()
+            false
+        }
+    }
+
     override suspend fun setContentLevel(level: Intensity): Outcome<Unit> {
         val uid = authDataSource.currentUser?.uid
             ?: return Outcome.Failure(AppError.Unauthenticated())
@@ -96,8 +114,14 @@ class DefaultAuthRepository @Inject constructor(
         val uid = authDataSource.currentUser?.uid
             ?: return Outcome.Failure(AppError.Unauthenticated())
 
-        return userProfileDataSource.confirmAge(uid).also { result ->
-            if (result is Outcome.Success) appPreferences.setAgeConfirmedHint(true)
+        // Bounded on purpose. A Firestore write is queued offline and retried for ever, so
+        // without this the gate could hold someone on a spinner with nothing to tap. Saying
+        // "that didn't save" and offering the button again is the honest failure.
+        val result = withTimeoutOrNull(WRITE_TIMEOUT_MS) { userProfileDataSource.confirmAge(uid) }
+            ?: return Outcome.Failure(AppError.Network())
+
+        return result.also {
+            if (it is Outcome.Success) appPreferences.setAgeConfirmedHint(true)
         }
     }
 
@@ -127,5 +151,6 @@ class DefaultAuthRepository @Inject constructor(
 
     private companion object {
         const val PROFILE_STOP_TIMEOUT_MS = 5_000L
+        const val WRITE_TIMEOUT_MS = 10_000L
     }
 }

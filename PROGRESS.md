@@ -3,7 +3,8 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 21 complete. Phase 22 (performance, cost, accessibility, polish) is next — the last one.
+**Current position:** Phase 22 complete. Every phase in BUILD_PROMPT.md §22 is built and verified;
+what remains before a public release is human setup, not code (HUMAN_SETUP.md).
 
 ---
 
@@ -33,7 +34,7 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 | 19 | Subscription | ✅ **Complete** |
 | 20 | Settings, export, delete, reporting | ✅ **Complete** |
 | 21 | Security hardening | ✅ **Complete** |
-| 22 | Performance, cost, a11y, polish | ⬜ Next |
+| 22 | Performance, cost, a11y, polish | ✅ **Complete** |
 
 ---
 
@@ -1224,6 +1225,71 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Phase 22 — Performance, cost, accessibility, polish ✅
+
+### Shipped
+- **R8, on and verified** (D-095): the release build shrinks to **5.5 MB** from a 31.3 MB debug
+  build, with `mapping.txt` for Crashlytics. The keep list in `app/proguard-rules.pro` is three
+  entries long and each says why — kotlinx.serialization's generated serializers, the messaging
+  service the manifest names, and line numbers in stack traces. The release APK installs, launches
+  and plays a night with nothing missing at runtime.
+- **The accessibility audit as tests** (D-096): `AccessibilityTest` composes the specimens at
+  `fontScale = 2.0` and records four 200% goldens, asserts every clickable node is at least 48 dp
+  in both directions, and asserts every clickable node carries text or a content description.
+  `ContrastTest` already held WCAG AA against the dark palette.
+- **A leak test that counts listeners** (D-097): `ListenerReleaseTest` proves a Firestore listener
+  lasts exactly as long as its collector, that two collectors are two listeners, and that nothing
+  registers before something collects or while signed out. LeakCanary rides along in debug builds
+  for the run-through §18 asks for.
+- **`COST.md`**: reads, writes and invocations per night counted from the code — ~70/150/20 on one
+  phone, ~120/300/30 on two — with the three drivers (the 20-second presence heartbeat, five
+  scheduled sweeps, live-session listeners), what already holds each one down, and what would
+  change the numbers.
+- **`ACCEPTANCE.md`**: the two-device script, fifteen sections, each step saying what to do and what
+  you should see, with a run log that states plainly which sections were walked and which were not.
+- **A session that is gone is signed out on open** (D-098) — found by the device check, and the
+  first thing a person actually hits: after the Auth emulator restarted, the app still held a
+  session, every Firestore call failed `UNAUTHENTICATED [ INVALID_REFRESH_TOKEN ]`, and the age
+  gate's write — queued offline, retried for ever — left "One moment…" on screen with no way out.
+  The splash now refreshes the token before routing and signs out a session that is definitively
+  dead (deleted, disabled, revoked, password changed elsewhere); being unable to tell, offline,
+  keeps the session. `confirmAge` is bounded at ten seconds so no write can hold a spinner for ever.
+
+### Verified
+```
+./gradlew check assembleDevDebug             BUILD SUCCESSFUL
+npm --prefix functions run test:unit         133/133
+npm --prefix functions run test:int          158/158
+npm --prefix firebase/tests test             121/121
+unit tests, every module                     559 tests, 0 failures
+:core:designsystem AccessibilityTest         6    (four 200% goldens recorded)
+:core:data ListenerReleaseTest               4
+:feature:onboarding SplashViewModelTest      10   (2 new: a dead session, and the order)
+:app:assembleDevRelease                      BUILD SUCCESSFUL — 5.5 MB, mapping.txt written
+```
+- **Exit criterion — `COST.md`, a11y audit clean, no leaks, R8 release build installs and runs,
+  `ACCEPTANCE.md` executed**: the first four are above and in the file list; the fifth is executed
+  as far as one machine can take it, and `ACCEPTANCE.md`'s run log says exactly which parts were
+  not — section 8 on two physical devices, notification delivery, and the Play purchase flow.
+- **On the device (release APK)**: the shrunk APK installed on the AVD, passed the age gate, signed
+  in, and built a real night — "Tonight has 4 chapters. About 36 minutes, rising to FLIRTY" — with
+  **no** `FATAL EXCEPTION`, `ClassNotFoundException`, `NoSuchMethodError`, `NoClassDefFoundError` or
+  serialization failure in logcat, which is what R8 breaks when it breaks.
+- **On the device (LeakCanary)**: a walk through build-a-night, games and send-something, then seven
+  activity recreations by rotation. LeakCanary watched all seven `MainActivity` instances and
+  reported **no retained objects** — no heap dump, no leak trace.
+- **On the device (the session fix)**: with the app signed in, every Auth account was deleted under
+  it. A cold start reached the sign-in screen in 8 seconds instead of hanging on "One moment…",
+  and nothing crashed.
+- **Cold start**, measured on the headless AVD with `am start -S -W`: **1.9 s and 2.4 s for the
+  release build**, 5.5 s for the debug build — which is what a debug build costs: not shrunk, not
+  optimised, and installing LeakCanary on the way up. §18’s target is under 2 s to first frame on a
+  mid-range device; a software-rendered emulator on a 7.4 GB machine is not that device, so the
+  release numbers are recorded as encouraging rather than as proof. The target stays unverified
+  until it runs on real hardware — `ACCEPTANCE.md` says so too.
 
 ---
 

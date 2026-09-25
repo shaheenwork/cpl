@@ -37,6 +37,29 @@ class SplashViewModelTest {
     }
 
     @Test
+    fun `a session that is gone for good goes to auth, signed out`() = runTest(mainDispatcherRule.testDispatcher) {
+        // The account was deleted, the password changed elsewhere, or the dev Auth emulator
+        // restarted: the SDK still reports a user, and nothing it does will work.
+        auth.user.value = FakeAuthRepository.DEFAULT_USER
+        auth.serverAgeConfirmed = true
+        auth.sessionValid = false
+
+        assertThat(resolve()).isEqualTo(StartDestination.Auth)
+        assertThat(auth.signedOut).isTrue()
+    }
+
+    @Test
+    fun `the session is checked before anything is routed`() = runTest(mainDispatcherRule.testDispatcher) {
+        auth.user.value = FakeAuthRepository.DEFAULT_USER
+        auth.serverAgeConfirmed = true
+
+        resolve()
+
+        assertThat(auth.validateSessionCalls).isEqualTo(1)
+        assertThat(auth.signedOut).isFalse()
+    }
+
+    @Test
     fun `signed in without an attestation goes to the age gate`() = runTest(mainDispatcherRule.testDispatcher) {
         auth.user.value = FakeAuthRepository.DEFAULT_USER
         auth.serverAgeConfirmed = false

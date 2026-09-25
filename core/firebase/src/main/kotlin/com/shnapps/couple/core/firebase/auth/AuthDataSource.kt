@@ -1,5 +1,6 @@
 package com.shnapps.couple.core.firebase.auth
 
+import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
@@ -15,6 +16,21 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/** What a stored session turned out to be worth (see [AuthDataSource.checkSession]). */
+enum class SessionCheck {
+    /** The session refreshed: it is real. */
+    VALID,
+
+    /** There was no session to check. */
+    SIGNED_OUT,
+
+    /** The session is gone for good: deleted, disabled, revoked, or an emulator restart. */
+    DEAD,
+
+    /** Could not tell — offline, or a failure that says nothing about the session. */
+    UNVERIFIABLE,
+}
 
 /**
  * Firebase Authentication, wrapped so that nothing above :core:firebase ever sees a
@@ -55,6 +71,39 @@ class AuthDataSource @Inject constructor(
     fun signOut() = auth.signOut()
 
     /**
+     * Asks Firebase to refresh the stored session, so a session that is no longer real is
+     * discovered on open rather than by a call that never completes.
+     *
+     * A refresh token stops working when the account is deleted or disabled, when the
+     * password changes on another device, when the session is revoked — and, in `dev`,
+     * whenever the Auth emulator restarts. The SDK keeps the signed-in user in that state
+     * and every Firestore call fails `UNAUTHENTICATED` while an offline write simply queues,
+     * so a screen can wait for ever on a write that will never land.
+     *
+     * A failure that only means "not now" — no network — leaves the session alone: starting
+     * offline must not sign anyone out.
+     */
+    // Classifying a failure is the whole job here: the exception's type and message are the input,
+    // and the category is the output, so a broad catch is correct and nothing is lost by not
+    // rethrowing. Cancellation is still rethrown first.
+    @Suppress("TooGenericExceptionCaught", "SwallowedException")
+    suspend fun checkSession(): SessionCheck {
+        val user = auth.currentUser ?: return SessionCheck.SIGNED_OUT
+        return try {
+            user.getIdToken(true).await()
+            SessionCheck.VALID
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (error: FirebaseNetworkException) {
+            SessionCheck.UNVERIFIABLE
+        } catch (error: FirebaseAuthInvalidUserException) {
+            SessionCheck.DEAD
+        } catch (error: Exception) {
+            if (error.isRevokedSession()) SessionCheck.DEAD else SessionCheck.UNVERIFIABLE
+        }
+    }
+
+    /**
      * Maps Firebase's exception zoo onto the app's typed errors.
      *
      * Note what is NOT distinguished: "no such account" and "wrong password" both become
@@ -82,8 +131,25 @@ class AuthDataSource @Inject constructor(
         Outcome.Failure(AppError.Unknown(error))
     }
 
+    /**
+     * Firebase reports a dead refresh token as a generic [com.google.firebase.FirebaseException]
+     * with the reason in its message, so the reason is what has to be read. Anything not on
+     * this list is treated as "could not tell", because wrongly signing someone out is worse
+     * than checking again next time.
+     */
+    private fun Exception.isRevokedSession(): Boolean =
+        REVOKED.any { reason -> message?.contains(reason) == true }
+
     private companion object {
         const val WEAK_PASSWORD = "weak_password"
+
+        val REVOKED = listOf(
+            "INVALID_REFRESH_TOKEN",
+            "TOKEN_EXPIRED",
+            "USER_DISABLED",
+            "USER_NOT_FOUND",
+            "CREDENTIAL_TOO_OLD_LOGIN_AGAIN",
+        )
     }
 }
 

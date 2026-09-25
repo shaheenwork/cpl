@@ -34,11 +34,16 @@ class FakeAuthRepository : AuthRepository {
     var confirmAgeResult: Outcome<Unit> = Outcome.Success(Unit)
     var contentLevelResult: Outcome<Unit> = Outcome.Success(Unit)
 
+    /** What [validateSession] finds. False stands for a session that is gone for good. */
+    var sessionValid = true
+
     var confirmAgeCalls = 0
         private set
     var resetCalls = 0
         private set
     var signedOut = false
+        private set
+    var validateSessionCalls = 0
         private set
 
     override val authState: Flow<AuthUser?> = user
@@ -53,6 +58,16 @@ class FakeAuthRepository : AuthRepository {
     override suspend fun sendPasswordReset(email: String): Outcome<Unit> {
         resetCalls++
         return resetResult
+    }
+
+    override suspend fun validateSession(): Boolean {
+        validateSessionCalls++
+        if (user.value == null) return false
+        if (!sessionValid) {
+            signOut()
+            return false
+        }
+        return true
     }
 
     override suspend fun signOut() {
