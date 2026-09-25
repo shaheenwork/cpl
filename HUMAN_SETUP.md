@@ -254,6 +254,9 @@ the actual architecture in `SECURITY.md` — in particular that individual prefe
 boundary answers are never shared with the partner, and that no private content is sent
 to analytics.
 
+`RELEASE.md` puts every step in this file into the order it has to happen, with the gates
+between them.
+
 **Drafts are written**, from the architecture rather than from a template:
 `legal/PRIVACY_POLICY.md` and `legal/TERMS.md`. Both have `[bracketed]` gaps — the entity,
 the address, the region, the jurisdiction, the contact addresses — and both need a lawyer

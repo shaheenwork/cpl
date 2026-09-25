@@ -85,6 +85,8 @@ See [CLAUDE.md](CLAUDE.md) for the module map and conventions.
 | [COST.md](COST.md) | What one couple costs on Firebase, counted from the code |
 | [engine/SPEC.md](engine/SPEC.md) | The experience engine's algorithm, exactly |
 | [HUMAN_SETUP.md](HUMAN_SETUP.md) | Firebase, Play Console and toolchain steps only a human can do |
+| [RELEASE.md](RELEASE.md) | The first release, in the order it has to happen |
+| [legal/](legal) | Privacy policy, terms and Play data-safety answers — drafts, pending review |
 
 ---
 

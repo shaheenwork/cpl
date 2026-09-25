@@ -3,8 +3,10 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 22 complete. Every phase in BUILD_PROMPT.md §22 is built and verified;
-what remains before a public release is human setup, not code (HUMAN_SETUP.md).
+**Current position:** Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
+and every §23 deliverable is written. What remains before a public release is setup and review, not
+code: `RELEASE.md` is the ordered runbook, `HUMAN_SETUP.md` the console detail, and `legal/` holds
+drafts of the privacy policy, the terms and the Play data-safety answers, pending a lawyer.
 
 ---
 

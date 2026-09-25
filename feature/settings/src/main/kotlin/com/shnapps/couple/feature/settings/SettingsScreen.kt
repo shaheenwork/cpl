@@ -1,5 +1,8 @@
 package com.shnapps.couple.feature.settings
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,6 +26,7 @@ import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.ui.BackRow
 import com.shnapps.couple.core.ui.ErrorBanner
+import com.shnapps.couple.core.ui.LegalUrls
 import com.shnapps.couple.core.ui.ScreenColumn
 import com.shnapps.couple.core.ui.ScreenHeading
 import com.shnapps.couple.core.ui.SecureScreen
@@ -129,6 +133,21 @@ internal fun SettingsContent(
                 Row("Sign out", "On this phone.", routes.onSignOut)
             }
 
+            // Only when they exist: a row here that opens nothing would be worse than no row.
+            if (LegalUrls.published) {
+                Group("The small print") {
+                    val context = LocalContext.current
+                    if (LegalUrls.PRIVACY_POLICY.isNotBlank()) {
+                        Row("Privacy policy", "What this app holds, and what it never shares.") {
+                            context.open(LegalUrls.PRIVACY_POLICY)
+                        }
+                    }
+                    if (LegalUrls.TERMS.isNotBlank()) {
+                        Row("Terms of use", "The agreement between us.") { context.open(LegalUrls.TERMS) }
+                    }
+                }
+            }
+
             state.export?.let { Exported(it, actions.onDismissExport) }
             state.error?.let { ErrorBanner(message = it.message(), onDismiss = actions.onDismissError) }
         }
@@ -178,6 +197,11 @@ private fun Exported(export: ExportSummary, onDismiss: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
         )
     }
+}
+
+/** Opens a published page in whatever the phone uses for the web. Nothing is passed in the URL. */
+private fun Context.open(url: String) {
+    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
 }
 
 private fun SettingsError.message(): String = when (this) {
