@@ -898,6 +898,185 @@ describe('content deltas (§9.2, §9.6)', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// The mandatory matrix (BUILD_PROMPT.md §7.3), row by row
+// ---------------------------------------------------------------------------
+//
+// Every other suite in this file tests a collection. This one tests the *table*: twenty rows,
+// twenty test names, each one the scenario as the brief words it. The rows are covered in more
+// depth above — this is the list a human reads to be sure none of them is missing (§21.1), and
+// rows O and P live in storage.test.mjs, where the objects are.
+describe('§7.3 — the mandatory matrix', () => {
+  const MALLORY = 'uid_mallory';
+  const CID = 'm7';
+  const mallory = () => testEnv.authenticatedContext(MALLORY).firestore();
+  const ours = (db, ...path) => doc(db, 'couples', CID, ...path);
+
+  before(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'users', ALICE), { coupleId: CID, contentLevel: 4 });
+      await setDoc(doc(db, 'users', BOB), { coupleId: CID, contentLevel: 3 });
+      await setDoc(doc(db, 'users', BOB, 'preferences', 'roleplay_strangers'), {
+        value: 'YES', secret: false, updatedAt: Timestamp.now(), taxonomyVersion: 1,
+      });
+      await setDoc(doc(db, 'users', BOB, 'boundaries', 'sensory_blindfold'), {
+        level: 'NEVER', updatedAt: Timestamp.now(),
+      });
+      await setDoc(doc(db, 'couples', CID), {
+        status: 'ACTIVE',
+        memberUids: [ALICE, BOB],
+        contentLevelEffective: 3,
+        entitlement: { tier: 'FREE', state: null, expiresAt: null },
+      });
+      await setDoc(ours(db, 'members', ALICE), { role: 'CREATOR', status: 'ACTIVE' });
+      await setDoc(ours(db, 'engineFilters', 'current'), { maxIntensity: 3, excludedThemes: ['sensory_blindfold'] });
+      await setDoc(ours(db, 'mutualPreferences', 'roleplay_strangers'), { prefId: 'roleplay_strangers', seenBy: {} });
+      await setDoc(ours(db, 'sessions', 'live'), {
+        experienceId: 'n1', kind: 'TWO_DEVICE', hostUid: ALICE, state: 'CHAPTER_ACTIVE',
+        currentChapter: 1, chapterCount: 3, consentAcks: {}, submittedBy: {}, seenBy: {},
+      });
+      await setDoc(ours(db, 'sessions', 'live', 'submissions', '1_' + BOB), {
+        chapter: 1, byUid: BOB, answer: 'what Bob wrote', at: Timestamp.now(),
+      });
+      await setDoc(ours(db, 'sessions', 'live', 'submissions', '0_' + BOB), {
+        chapter: 0, byUid: BOB, answer: 'theirs', at: Timestamp.now(),
+      });
+      await setDoc(ours(db, 'sessions', 'live', 'rounds', '0'), {
+        chapter: 0, answers: { [ALICE]: 'mine', [BOB]: 'theirs' }, at: Timestamp.now(),
+      });
+      await setDoc(ours(db, 'surprises', 's_waiting'), {
+        type: 'SCHEDULED', title: 'For Friday', createdBy: ALICE, forUid: BOB,
+        state: 'SCHEDULED', deliveredAt: null,
+      });
+      await setDoc(ours(db, 'surprises', 's_waiting', 'payload', 'content'), {
+        ownerUid: ALICE, text: 'the inside of it', deliveredAt: null,
+      });
+      // A pairing code that has been used up, and one that ran out of time (§8).
+      await setDoc(doc(db, 'pairingCodes', '111111'), { status: 'CONSUMED', creatorUid: ALICE });
+      await setDoc(doc(db, 'pairingCodes', '222222'), {
+        status: 'ACTIVE', creatorUid: ALICE, expiresAt: Timestamp.fromMillis(1),
+      });
+      await setDoc(doc(db, 'reports', 'r1'), { target: 'CONTENT', reason: 'BROKEN', reportedBy: BOB });
+    });
+  });
+
+  it("A: partner A reads B's preferences — DENIED", async () => {
+    await assertFails(getDoc(doc(alice(), 'users', BOB, 'preferences', 'roleplay_strangers')));
+    await assertFails(getDocs(collection(alice(), 'users', BOB, 'preferences')));
+  });
+
+  it("B: partner A reads B's boundaries — DENIED", async () => {
+    await assertFails(getDoc(doc(alice(), 'users', BOB, 'boundaries', 'sensory_blindfold')));
+    await assertFails(getDocs(collection(alice(), 'users', BOB, 'boundaries')));
+  });
+
+  it('C: A writes a different coupleId onto their own user doc — DENIED', async () => {
+    await assertFails(updateDoc(doc(alice(), 'users', ALICE), { coupleId: 'someone_elses' }));
+  });
+
+  it("D: A writes to B's submission doc — DENIED", async () => {
+    await assertFails(setDoc(ours(alice(), 'sessions', 'live', 'submissions', '1_' + BOB), {
+      chapter: 1, byUid: BOB, answer: 'forged', at: serverTimestamp(),
+    }));
+  });
+
+  it("E: A reads B's submission before the reveal — DENIED", async () => {
+    await assertFails(getDoc(ours(alice(), 'sessions', 'live', 'submissions', '1_' + BOB)));
+  });
+
+  it("F: A reads B's submission after the reveal — DENIED (the reveal doc is the only way)", async () => {
+    // Chapter 0 is revealed: the reveal is readable, the submission behind it never is.
+    await assertSucceeds(getDoc(ours(alice(), 'sessions', 'live', 'rounds', '0')));
+    await assertFails(getDoc(ours(alice(), 'sessions', 'live', 'submissions', '0_' + BOB)));
+  });
+
+  it('G: A sets a round to REVEAL from the client — DENIED', async () => {
+    await assertFails(setDoc(ours(alice(), 'sessions', 'live', 'rounds', '1'), {
+      chapter: 1, answers: { [ALICE]: 'mine' }, at: serverTimestamp(),
+    }));
+    await assertFails(updateDoc(ours(alice(), 'sessions', 'live'), { state: 'REVEAL' }));
+  });
+
+  it('H: A writes the couple contentLevelEffective — DENIED', async () => {
+    await assertFails(updateDoc(ours(alice()), { contentLevelEffective: 5 }));
+  });
+
+  it('I: A writes their own entitlement — DENIED', async () => {
+    await assertFails(updateDoc(doc(alice(), 'users', ALICE), {
+      entitlement: { tier: 'PREMIUM', state: 'ACTIVE' },
+    }));
+    // Nor the couple's copy of it, which is derived from the members' own records (§19).
+    await assertFails(updateDoc(ours(alice()), { entitlement: { tier: 'PREMIUM' } }));
+  });
+
+  it('J: an unauthenticated read of anything under couples — DENIED', async () => {
+    await assertFails(getDoc(doc(anon(), 'couples', CID)));
+    await assertFails(getDoc(doc(anon(), 'couples', CID, 'sessions', 'live')));
+    await assertFails(getDocs(collection(anon(), 'couples', CID, 'memories')));
+  });
+
+  it('K: a third user reads the couple — DENIED', async () => {
+    await assertFails(getDoc(doc(mallory(), 'couples', CID)));
+    await assertFails(getDoc(doc(mallory(), 'couples', CID, 'sessions', 'live')));
+    await assertFails(getDocs(collection(mallory(), 'couples', CID, 'surprises')));
+  });
+
+  it('L: any client read of engineFilters — DENIED, to both members', async () => {
+    await assertFails(getDoc(ours(alice(), 'engineFilters', 'current')));
+    await assertFails(getDoc(ours(bob(), 'engineFilters', 'current')));
+  });
+
+  it('M: joining a couple that already has two members — DENIED', async () => {
+    await assertFails(updateDoc(ours(mallory()), { memberUids: [ALICE, BOB, MALLORY] }));
+    await assertFails(setDoc(ours(mallory(), 'members', MALLORY), { role: 'PARTNER', status: 'ACTIVE' }));
+    await assertFails(updateDoc(doc(mallory(), 'users', MALLORY), { coupleId: CID }));
+  });
+
+  it('N: a consumed or expired pairing code — DENIED to every client', async () => {
+    // Not even readable: a client that could read a code could hunt for live ones (§8).
+    await assertFails(getDoc(doc(mallory(), 'pairingCodes', '111111')));
+    await assertFails(getDoc(doc(mallory(), 'pairingCodes', '222222')));
+    await assertFails(updateDoc(doc(mallory(), 'pairingCodes', '111111'), { status: 'ACTIVE' }));
+  });
+
+  it('O and P: Storage objects — covered where the objects are (storage.test.mjs)', () => {
+    // Rows O and P are about bytes, not documents: another couple's object, and a burned path.
+    // They are asserted in firebase/tests/storage.test.mjs against the Storage emulator.
+  });
+
+  it('Q: A writes to reports — DENIED, and cannot read them either', async () => {
+    await assertFails(setDoc(doc(alice(), 'reports', 'forged'), { target: 'CONTENT', reason: 'BROKEN' }));
+    await assertFails(getDoc(doc(alice(), 'reports', 'r1')));
+    await assertFails(getDocs(collection(alice(), 'reports')));
+  });
+
+  it('R: A creates a mutualPreferences doc directly — DENIED', async () => {
+    await assertFails(setDoc(ours(alice(), 'mutualPreferences', 'forged'), { prefId: 'forged', seenBy: {} }));
+    await assertFails(deleteDoc(ours(alice(), 'mutualPreferences', 'roleplay_strangers')));
+  });
+
+  it('S: A reads a surprise payload before it is delivered — DENIED', async () => {
+    // Bob is the one it is for, and he cannot read it until the server delivers it (§5.7).
+    await assertFails(getDoc(ours(bob(), 'surprises', 's_waiting', 'payload', 'content')));
+    // That something is waiting is readable; the inside of it is not.
+    await assertSucceeds(getDoc(ours(bob(), 'surprises', 's_waiting')));
+  });
+
+  it('T: the happy path — both members read and write their own permitted paths', async () => {
+    await assertSucceeds(getDoc(doc(alice(), 'users', ALICE)));
+    await assertSucceeds(setDoc(doc(bob(), 'users', BOB, 'preferences', 'teasing_instructions'), answer('CURIOUS', true)));
+    await assertSucceeds(setDoc(doc(alice(), 'users', ALICE, 'boundaries', 'roleplay_characters'), limit('ASK_FIRST')));
+    await assertSucceeds(getDoc(ours(alice())));
+    await assertSucceeds(getDoc(ours(bob(), 'members', ALICE)));
+    await assertSucceeds(getDocs(collection(alice(), 'couples', CID, 'memories')));
+    await assertSucceeds(setDoc(ours(alice(), 'sessions', 'live', 'presence', ALICE), { at: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ours(bob(), 'mutualPreferences', 'roleplay_strangers'), {
+      ['seenBy.' + BOB]: true,
+    }));
+  });
+});
+
 describe('default deny', () => {
   it('denies an unknown collection', async () => {
     await assertFails(getDoc(doc(alice(), 'somethingUnplanned', 'x')));

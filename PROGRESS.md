@@ -3,7 +3,7 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 19 complete. Phase 20 (settings, export, delete, reporting) is next.
+**Current position:** Phase 20 complete. Phase 21 (security hardening) is next.
 
 ---
 
@@ -31,8 +31,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 | 17 | FCM + notification privacy | ✅ **Complete** |
 | 18 | Memories + library | ✅ **Complete** |
 | 19 | Subscription | ✅ **Complete** |
-| 20 | Settings, export, delete, reporting | ⬜ Next |
-| 21 | Security hardening | ⬜ |
+| 20 | Settings, export, delete, reporting | ✅ **Complete** |
+| 21 | Security hardening | ⬜ Next |
 | 22 | Performance, cost, a11y, polish | ⬜ |
 
 ---
@@ -1224,6 +1224,51 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Phase 20 — Settings, an export, and an ending ✅
+
+### Shipped
+- **Settings** (`:feature:settings`, §14.9): one hub for everything about this account and this
+  couple — private answers, limits, notifications, app lock, memories, premium, unpair, export,
+  delete, sign out. Home keeps only memories, limits and a way in.
+- **Reporting** (§3.5): four reasons, no free-text box, on any chapter they played and on anything
+  the partner sent. A report lands in `reports/{id}`, which **no client may read**, and the
+  partner is never told. The same `ReportSheet` in both places, saying so.
+- **A data export that is a real file**: the server assembles it and writes it to
+  `users/{uid}/exports/…` — readable by that person alone, writable by no client — and the app
+  fetches it with their own credentials. It holds their own documents and what the couple shares;
+  never a field of the partner's private record, and never the inside of a surprise that has not
+  been delivered (D-093).
+- **Deleting an account ends the couple** (D-093), because almost nothing here belongs to one
+  person: the cascade takes every document under the user and under the couple, both Storage
+  prefixes, everything scheduled, and the Auth user last. The partner keeps their own account,
+  their own answers and their own limits — and nothing the two of them made. The screen says all
+  of it before the first tap, and the real button sits behind a second one.
+
+### Verified
+```
+./gradlew check assembleDevDebug            BUILD SUCCESSFUL
+:feature:settings   16   (SettingsViewModelTest 6, NotificationSettingsViewModelTest 4, snapshots 6)
+npm --prefix functions run test:int         158/158  (account 9)
+npm --prefix firebase/tests test            102/102  (an export is read by its owner alone)
+```
+- **Exit criterion — delete cascades across Auth/Firestore/Storage/schedules; export produces a
+  real file**: `account.int.test.ts` asserts both directly — the cascade across all four, twice
+  over, and an export written, downloaded back and parsed.
+- **On the device**: the export came back as a real file — 606 bytes at
+  `cache/exports/afterhours-1790345807995.json`, holding Alex's own account, his couple's shared
+  record and nothing of Sam's. A photo Sam sent was reported as "This feels unsafe": the sheet
+  said "It goes to us, not to them", and the report landed in `reports/{id}` with `state: OPEN`.
+  Then the account was deleted from the screen that says what goes: afterwards Alex's user
+  document, preferences, tokens, Storage objects and **Auth user** were all gone, the couple and
+  every object under it were gone, and Sam still had their account with `coupleId: null`. The app
+  returned to the sign-in screen.
+- **Found on the device** (D-094): the first attempt stopped half-way — deleting documents the
+  phone was still watching threw `CANCELLED` from the listen stream, and the account survived its
+  own deletion. Every delete is now retried and stepped over rather than abandoning the cascade,
+  and the account's own removal no longer depends on the couple's data going cleanly.
 
 ---
 

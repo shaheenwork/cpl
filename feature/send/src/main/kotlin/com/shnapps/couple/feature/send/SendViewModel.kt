@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
+import com.shnapps.couple.core.data.account.AccountRepository
 import com.shnapps.couple.core.data.media.MediaRepository
 import com.shnapps.couple.core.model.MediaItem
 import com.shnapps.couple.core.model.MediaKind
+import com.shnapps.couple.core.model.ReportReason
+import com.shnapps.couple.core.model.ReportTarget
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -36,6 +39,9 @@ data class SendUiState(
     /** What is open right now: the file on this phone, and whether opening it burned it. */
     val open: OpenItem? = null,
     val error: SendError? = null,
+    /** The item they are reporting, if any (§3.5). The partner is never told. */
+    val reporting: MediaItem? = null,
+    val reported: Boolean = false,
 ) {
     val canSend: Boolean get() = ready != null && !sending && !recording
 
@@ -58,6 +64,7 @@ data class OpenItem(val item: MediaItem, val file: File, val burned: Boolean)
 class SendViewModel @Inject constructor(
     private val media: MediaRepository,
     private val recorder: VoiceRecorder,
+    private val account: AccountRepository,
 ) : ViewModel() {
 
     private val local = MutableStateFlow(SendUiState())
@@ -128,6 +135,19 @@ class SendViewModel @Inject constructor(
     fun close() = local.update { it.copy(open = null) }
 
     fun dismissSent() = local.update { it.copy(sent = false) }
+
+    /** "Report this" on something the partner sent (§3.5). They are never told. */
+    fun report(item: MediaItem) = local.update { it.copy(reporting = item, reported = false) }
+
+    fun dismissReport() = local.update { it.copy(reporting = null, reported = false) }
+
+    fun sendReport(reason: ReportReason) {
+        val item = local.value.reporting ?: return
+        viewModelScope.launch {
+            account.report(ReportTarget.MEDIA, item.id, reason)
+            local.update { it.copy(reported = true) }
+        }
+    }
 
     fun dismissError() = local.update { it.copy(error = null) }
 

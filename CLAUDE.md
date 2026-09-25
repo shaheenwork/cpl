@@ -172,6 +172,23 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   said. The first day is due the moment the arc starts, without waiting for the phone's clock to
   agree with the server's (D-087).
 
+### The account itself
+
+- Reporting writes `reports/{id}`, which **no client may read** (§3.5). Four reasons, no free text,
+  and the partner is never told. `ReportSheet` in `:core:ui` is the same card everywhere.
+- An export is written by the server into `users/{uid}/exports/…` — readable by that user alone,
+  never writable by a client — and holds their own documents plus what the couple shares. Never a
+  field of the partner's private record, and never an undelivered surprise (D-093).
+- `deleteAccount` ends the couple and takes everything under it, both Storage prefixes, every
+  document under the user, and the Auth user last (D-093). The screen says so before the first tap,
+  and the real button is behind a second one.
+- Every delete in that cascade is retried and, if it still will not go, **stepped over** — deleting
+  documents a phone is watching throws `CANCELLED`, and an account must not survive its own
+  deletion because a listener dropped (D-094). `failures` comes back for the log; the next call
+  finishes what was left.
+- Settings (`:feature:settings`) is the hub for all of it (§14.9); home keeps only memories, limits
+  and a way in.
+
 ### Subscription
 
 - The client never decides entitlement. A phone hands `verifyPurchase` a token; the server asks

@@ -195,6 +195,19 @@ ended arc opens nothing. `ArcTest` holds which day is due — including the firs
 moment the arc starts — and `ArcViewModelTest` drives the screen against a fake that refuses the
 way the server does.
 
+### The account itself (Phase 20)
+
+`account.int.test.ts` covers the three things this phase exits on. Reporting: a report lands in a
+collection neither partner can read, a media report must be about this couple's own item, and a
+free-text field is refused. The export: it holds their own answers and not one field of the
+partner's, an undelivered surprise stays closed even in its author's export, and
+`requestDataExport` writes **a real file** that is downloaded back and parsed in the test. The
+deletion: nothing happens without `confirm: true`, and then the cascade is asserted across Auth,
+Firestore (the user, the couple and everything under both, sessions included), Storage (both
+prefixes) and the scheduled things — plus that it is safe to run twice and that the partner keeps
+their own account. `storage.test.mjs` holds the export path itself: its owner reads it, the partner
+and a stranger cannot, and no client may write one. `SettingsViewModelTest` covers the screen.
+
 ### Subscription (Phase 19)
 
 `billing.unit.test.ts` reads a stored record the way the server does: a term that has run out is

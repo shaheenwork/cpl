@@ -10,6 +10,7 @@
  */
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 import { getStorage } from 'firebase-admin/storage';
 import { onDocumentCreated, onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/https';
@@ -24,6 +25,9 @@ import * as surprise from './experience/surprise';
 import * as arcs from './surprises/arcs';
 import * as surprises from './surprises/surprises';
 import * as feedback from './feedback/affinity';
+import * as accountDelete from './account/delete';
+import * as accountExport from './account/export';
+import * as report from './account/report';
 import * as billing from './billing/billing';
 import * as media from './media/media';
 import * as memories from './memories/memories';
@@ -310,6 +314,35 @@ export const openArcDay = onCall(options, (request) =>
 /** Ending an arc, whether it ran its course or not. */
 export const closeArc = onCall(options, (request) =>
   guarded(() => arcs.closeArc(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+// ---------------------------------------------------------------------------
+// The account itself (sections 3.5, 8, 14.9): reporting, an export, and deletion
+// ---------------------------------------------------------------------------
+
+/** Reporting something the app showed, or something a partner sent (section 3.5). */
+export const reportContent = onCall(options, (request) =>
+  guarded(() => report.reportContent(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+/** Everything this app holds about the person asking, as one file only they can read. */
+export const requestDataExport = onCall(options, (request) =>
+  guarded(() => accountExport.requestDataExport(getFirestore(), getStorage(), callerUid(request), Date.now())),
+);
+
+/**
+ * Deleting an account, and the couple with it (D-093). Auth, Firestore, Storage and everything
+ * scheduled — the whole cascade, in one call the client cannot half-finish.
+ */
+export const deleteAccount = onCall(options, (request) =>
+  guarded(() => accountDelete.deleteAccount(
+    getFirestore(),
+    getAuth(),
+    getStorage(),
+    callerUid(request),
+    request.data,
+    Date.now(),
+  )),
 );
 
 // ---------------------------------------------------------------------------

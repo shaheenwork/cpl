@@ -33,6 +33,7 @@ import com.shnapps.couple.core.engine.RemixModifier
 import com.shnapps.couple.core.model.BoundaryLevel
 import com.shnapps.couple.core.model.ChapterReaction
 import com.shnapps.couple.core.model.CloseCheckIn
+import com.shnapps.couple.core.model.ReportReason
 import com.shnapps.couple.core.ui.ErrorBanner
 import com.shnapps.couple.core.ui.SecureScreen
 
@@ -76,6 +77,9 @@ fun NightScreen(
             onReact = viewModel::react,
             onSaveFeedback = viewModel::saveFeedback,
             onSkipFeedback = viewModel::skipFeedback,
+            onReport = viewModel::report,
+            onSendReport = viewModel::sendReport,
+            onDismissReport = viewModel::dismissReport,
             onDismissError = viewModel::dismissError,
             onHome = onHome,
             onAdjustLimits = onAdjustLimits,
@@ -108,6 +112,9 @@ internal data class NightActions(
     val onReact: (Int, ChapterReaction) -> Unit = { _, _ -> },
     val onSaveFeedback: () -> Unit = {},
     val onSkipFeedback: () -> Unit = {},
+    val onReport: (Int) -> Unit = {},
+    val onSendReport: (ReportReason) -> Unit = {},
+    val onDismissReport: () -> Unit = {},
     val onDismissError: () -> Unit = {},
     val onHome: () -> Unit = {},
     val onAdjustLimits: () -> Unit = {},

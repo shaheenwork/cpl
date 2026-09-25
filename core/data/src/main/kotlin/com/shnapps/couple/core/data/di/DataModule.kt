@@ -1,5 +1,7 @@
 package com.shnapps.couple.core.data.di
 
+import com.shnapps.couple.core.data.account.AccountRepository
+import com.shnapps.couple.core.data.account.DefaultAccountRepository
 import com.shnapps.couple.core.data.auth.AuthRepository
 import com.shnapps.couple.core.data.auth.DefaultAuthRepository
 import com.shnapps.couple.core.data.billing.BillingRepository
@@ -99,4 +101,7 @@ abstract class DataModule {
 
     @Binds
     abstract fun bindBillingRepository(impl: DefaultBillingRepository): BillingRepository
+
+    @Binds
+    abstract fun bindAccountRepository(impl: DefaultAccountRepository): AccountRepository
 }

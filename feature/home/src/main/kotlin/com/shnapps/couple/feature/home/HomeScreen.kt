@@ -81,6 +81,7 @@ data class HomeActions(
     val onLimits: () -> Unit = {},
     val onNotifications: () -> Unit = {},
     val onMemories: () -> Unit = {},
+    val onSettings: () -> Unit = {},
     val onPaywall: (Gate) -> Unit = {},
     val onDismissGate: () -> Unit = {},
     val onAppLock: () -> Unit = {},
@@ -125,12 +126,10 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
                 Column(verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm)) {
                     Quiet("Our memories", actions.onMemories)
                     Quiet("Your limits", actions.onLimits)
-                    Quiet("Notifications", actions.onNotifications)
-                    Quiet("Set up app lock", actions.onAppLock)
+                    // Everything else about the account and the couple lives in one place (§14.9).
+                    Quiet("Settings", actions.onSettings)
                     actions.onGallery?.let { Quiet("Component gallery", it) }
                     actions.onInspector?.let { Quiet("Content inspector", it) }
-                    Quiet("Sign out", actions.onSignOut)
-                    Quiet("Unpair", actions.onUnpair)
                 }
             }
         }

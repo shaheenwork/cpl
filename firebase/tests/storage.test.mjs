@@ -71,6 +71,10 @@ before(async () => {
     await setDoc(doc(db, 'couples', THEIRS, 'media', 'theirs'), media(MALLORY, 'SENT'));
 
     const storage = ctx.storage();
+    // A data export the server wrote for Alice (§14.9).
+    await uploadBytes(ref(storage, `users/${ALICE}/exports/afterhours-1.json`), new Uint8Array([123, 125]), {
+      contentType: 'application/json',
+    });
     await uploadBytes(ref(storage, `couples/${OURS}/voice/sent/note`), audio(), AUDIO);
     await uploadBytes(ref(storage, `couples/${OURS}/voice/burned/note`), audio(), AUDIO);
     await uploadBytes(ref(storage, `couples/${THEIRS}/voice/theirs/note`), audio(), AUDIO);
@@ -120,6 +124,17 @@ describe('Storage: voice notes and photos (§5.8, §7.3 O, P)', () => {
 
     await assertFails(getBytes(ref(bob(), `couples/${OURS}/voice/burned/note`)));
     await assertFails(getBytes(ref(alice(), `couples/${OURS}/voice/burned/note`)));
+  });
+
+  it('serves a data export to the person it is about, and to nobody else', async () => {
+    await assertSucceeds(getBytes(ref(alice(), `users/${ALICE}/exports/afterhours-1.json`)));
+    // Not the partner, and not a stranger: an export is one person's whole record (§14.9).
+    await assertFails(getBytes(ref(bob(), `users/${ALICE}/exports/afterhours-1.json`)));
+    await assertFails(getBytes(ref(mallory(), `users/${ALICE}/exports/afterhours-1.json`)));
+    // And no client writes one — an export a phone could write is a file a phone could forge.
+    await assertFails(uploadBytes(ref(alice(), `users/${ALICE}/exports/forged.json`), new Uint8Array([1]), {
+      contentType: 'application/json',
+    }));
   });
 
   it("denies a client overwriting or reaching past what it was given", async () => {

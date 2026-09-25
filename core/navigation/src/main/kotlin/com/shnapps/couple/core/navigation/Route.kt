@@ -76,6 +76,14 @@ object Route {
     @Serializable
     data object Arc
 
+    /** Everything about this account and this couple, in one place (§14.9). */
+    @Serializable
+    data object Settings
+
+    /** The end of an account, and of the couple with it (§14.9, D-093). */
+    @Serializable
+    data object DeleteAccount
+
     /** What this phone may say out loud (§16.2). */
     @Serializable
     data object NotificationSettings

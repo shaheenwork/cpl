@@ -51,7 +51,7 @@ function invalid(reason: string): never {
  * while the app's google-services.json uses `<project>.firebasestorage.app` — so without this,
  * the server would look for every upload in a bucket nothing was ever uploaded to (D-084).
  */
-function bucketOf(storage: Storage): Bucket {
+export function bucketOf(storage: Storage): Bucket {
   if (process.env.FUNCTIONS_EMULATOR !== 'true') return storage.bucket();
   return storage.bucket(`${process.env.GCLOUD_PROJECT ?? ''}.firebasestorage.app`);
 }

@@ -1319,3 +1319,51 @@ asserts the absence of exactly those words.
 Gating games by id was considered and refused: code must never name a game (D-072), so "limited
 games" is a count if it is ever needed at all, never a list.
 
+---
+
+## D-093 — Deleting an account takes the couple with it
+**Phase 20.** The obvious reading of "delete my account" is that one person's row disappears and
+the other's stays. It does not work here, because almost nothing in this app belongs to one
+person. A memory is what the two of them wrote about a night they played together. A reveal holds
+both their answers side by side. A voice note is one partner's words sitting in the other's hands.
+A surprise is something one of them left for the other to find.
+
+One person cannot consent on the other's behalf to keeping any of that, and a "deleted" account
+whose words survive inside a shared document is not deleted. So `deleteAccount` ends the couple
+and removes everything under it — experiences, memories, media, surprises, countdowns, arcs,
+plans, feedback, sessions with their submissions, rounds and presence — along with every object in
+Storage beneath both prefixes, every document under the user, and the Auth user last, so a phone
+cannot be left signed in to records it can no longer reach.
+
+The partner keeps what was only ever theirs: their account, their own private answers, their own
+limits, their own affinity. They are simply not in a couple any more.
+
+The screen says all of this before the first tap, and the button that does it sits behind a second
+one. "If you only want to leave the couple, unpair instead — that keeps your account" is on the
+same screen, because that is what most people asking this question actually want.
+
+An export is the other half of the same promise, and is bound by §5.1 in the opposite direction:
+it holds the requester's own documents and the things the two of them share and can both already
+see — never a field of the partner's private record, and never the inside of a surprise that has
+not been delivered, not even to the person who wrote it.
+
+---
+
+## D-094 — A cascade that cannot finish still finishes the account
+**Phase 20.** The device check found this one. Deleting an account while the phone was still on
+screen threw `CANCELLED: call already cancelled` part-way through: the app had live snapshot
+listeners on the couple's documents, and deleting what a listener is watching made the emulator's
+listen stream fail the write that caused it. The couple's data went; the account itself did not.
+Alex's user document, his objects in Storage and his Auth user were all still there, and the
+screen simply said it had not worked.
+
+That is the wrong failure mode for this operation. Somebody who asks for their account to be
+deleted must not be left with a half-deleted one because a listener dropped at the wrong moment.
+
+So every delete in the cascade is attempted up to three times, transient gRPC failures
+(`CANCELLED`, `ABORTED`, `UNAVAILABLE`, `DEADLINE_EXCEEDED`) are retried rather than raised, and a
+delete that still will not go is **counted and stepped over** instead of abandoning the rest. The
+account's own documents and its Auth user are deleted whatever happened to the couple's data, the
+count comes back as `failures` for the log, and because every step is idempotent the next call
+finishes whatever was left. `deleteAccount` returning is the promise that the account is gone.
+

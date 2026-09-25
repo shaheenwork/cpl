@@ -18,6 +18,7 @@ import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.ChapterReaction
 import com.shnapps.couple.core.model.CloseCheckIn
+import com.shnapps.couple.core.ui.ReportSheet
 import com.shnapps.couple.core.ui.ScreenColumn
 import com.shnapps.couple.core.ui.ScreenHeading
 
@@ -111,7 +112,21 @@ internal fun FeedbackStage(state: NightUiState, actions: NightActions) {
                         )
                     }
                 }
+                // Reporting is here rather than mid-chapter: nothing interrupts a night (§3.5).
+                GlowButton(
+                    text = "Report this",
+                    onClick = { actions.onReport(index) },
+                    style = GlowButtonStyle.Quiet,
+                )
             }
+        }
+        state.reportingChapter?.let { index ->
+            ReportSheet(
+                title = night.chapters.getOrNull(index)?.item?.title.orEmpty(),
+                onReport = actions.onSendReport,
+                onDismiss = actions.onDismissReport,
+                sent = state.reported,
+            )
         }
         GlowButton(
             text = "Save",

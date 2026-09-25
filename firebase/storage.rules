@@ -51,6 +51,14 @@ service firebase.storage {
       allow write: if isSelf(uid) && isImage();
     }
 
+    // A data export (§14.9): everything this app holds about one person, written by the server
+    // and readable by that person alone. A client never writes one — an export a phone could
+    // write is a file a phone could put anything in, including someone else's name.
+    match /users/{uid}/exports/{file} {
+      allow read: if isSelf(uid);
+      allow write: if false;
+    }
+
     // Content staged before delivery stays private to its author until the server
     // marks the surprise delivered (§5.7).
     match /users/{uid}/outbox/{itemId}/{file} {

@@ -5,12 +5,10 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.FirebaseStorage
-import com.google.firebase.storage.StorageException
 import com.google.firebase.storage.StorageMetadata
-import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.firebase.callFunction
-import kotlinx.coroutines.CancellationException
+import com.shnapps.couple.core.firebase.storageCall
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -119,25 +117,6 @@ class FirebaseMediaRemoteDataSource @Inject constructor(
                 trySend(snapshot?.documents.orEmpty().mapNotNull { it.toMedia() })
             }
         awaitClose { registration.remove() }
-    }
-
-    /** The Storage boundary: every failure becomes an AppError, and nothing throws past it. */
-    @Suppress("TooGenericExceptionCaught")
-    private inline fun <T> storageCall(work: () -> T): Outcome<T> = try {
-        Outcome.Success(work())
-    } catch (cancellation: CancellationException) {
-        throw cancellation
-    } catch (error: StorageException) {
-        Outcome.Failure(
-            when (error.errorCode) {
-                StorageException.ERROR_OBJECT_NOT_FOUND -> AppError.NotFound(error)
-                StorageException.ERROR_NOT_AUTHENTICATED -> AppError.Unauthenticated(error)
-                StorageException.ERROR_NOT_AUTHORIZED -> AppError.PermissionDenied(error)
-                else -> AppError.Network(error)
-            },
-        )
-    } catch (error: Throwable) {
-        Outcome.Failure(AppError.Unknown(error))
     }
 }
 

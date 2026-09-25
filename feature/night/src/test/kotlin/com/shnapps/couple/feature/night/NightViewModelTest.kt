@@ -14,6 +14,7 @@ import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.PlannedNight
 import com.shnapps.couple.core.model.SessionEndReason
 import com.shnapps.couple.core.model.SessionState
+import com.shnapps.couple.core.testing.FakeAccountRepository
 import com.shnapps.couple.core.testing.FakeNightRepository
 import com.shnapps.couple.core.testing.FakeTaxonomyRepository
 import com.shnapps.couple.core.testing.MainDispatcherRule
@@ -43,6 +44,8 @@ class NightViewModelTest {
 
     private val logged = mutableListOf<AnalyticsEvent>()
 
+    private val account = FakeAccountRepository()
+
     /** A night that never checks in unprompted, so chapters open straight onto their cards. */
     private val quiet: PlannedNight = TestNights.gentle.let { night ->
         val seed = (1L..1000L).first { seed ->
@@ -57,6 +60,7 @@ class NightViewModelTest {
             nights = nights,
             taxonomy = FakeTaxonomyRepository(),
             analytics = AnalyticsLogger { logged += it },
+            account = account,
         ).also { vm ->
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
             advanceUntilIdle()

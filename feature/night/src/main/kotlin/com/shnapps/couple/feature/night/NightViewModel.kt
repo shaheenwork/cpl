@@ -7,6 +7,7 @@ import com.shnapps.couple.core.analytics.AnalyticsEvent
 import com.shnapps.couple.core.analytics.AnalyticsLogger
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
+import com.shnapps.couple.core.data.account.AccountRepository
 import com.shnapps.couple.core.data.night.NightRepository
 import com.shnapps.couple.core.data.taxonomy.TaxonomyRepository
 import com.shnapps.couple.core.engine.RemixModifier
@@ -15,6 +16,8 @@ import com.shnapps.couple.core.model.ChapterReaction
 import com.shnapps.couple.core.model.CloseCheckIn
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.PlannedNight
+import com.shnapps.couple.core.model.ReportReason
+import com.shnapps.couple.core.model.ReportTarget
 import com.shnapps.couple.core.model.SessionEndReason
 import com.shnapps.couple.core.model.SessionState
 import com.shnapps.couple.core.model.Taxonomy
@@ -92,6 +95,9 @@ data class NightUiState(
     val remixFailed: Boolean = false,
     val closeAnswer: CloseCheckIn? = null,
     val reactions: Map<Int, ChapterReaction> = emptyMap(),
+    /** The chapter they are reporting, if any (§3.5). */
+    val reportingChapter: Int? = null,
+    val reported: Boolean = false,
 ) {
     val chapterCount: Int get() = night?.chapters?.size ?: session?.chapterCount ?: 0
 
@@ -120,6 +126,7 @@ class NightViewModel @Inject constructor(
     private val nights: NightRepository,
     private val taxonomy: TaxonomyRepository,
     private val analytics: AnalyticsLogger,
+    private val account: AccountRepository,
 ) : ViewModel() {
 
     // Type-safe routes keep each argument under its property's name (Route.Night).
@@ -346,6 +353,22 @@ class NightViewModel @Inject constructor(
     }
 
     fun skipFeedback() = step.update { PlayerStep.Done }
+
+    /** "Report this" on a chapter they played (§3.5). The partner is never told. */
+    fun report(chapterIndex: Int) = local.update { it.copy(reportingChapter = chapterIndex, reported = false) }
+
+    fun dismissReport() = local.update { it.copy(reportingChapter = null, reported = false) }
+
+    fun sendReport(reason: ReportReason) {
+        val index = local.value.reportingChapter ?: return
+        val contentId = local.value.night?.chapters?.getOrNull(index)?.item?.id ?: return
+        viewModelScope.launch {
+            account.report(ReportTarget.CONTENT, contentId, reason)
+            // Whether it reached us or not, the same words: a report is not a thing to argue with
+            // someone about on a screen like this.
+            local.update { it.copy(reported = true) }
+        }
+    }
 
     fun dismissError() = local.update { it.copy(error = null) }
 

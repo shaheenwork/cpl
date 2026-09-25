@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.model.MediaKind
+import com.shnapps.couple.core.testing.FakeAccountRepository
 import com.shnapps.couple.core.testing.FakeMediaRepository
 import com.shnapps.couple.core.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -32,7 +33,9 @@ class SendViewModelTest {
     private val media = FakeMediaRepository()
     private val recorder = FakeVoiceRecorder()
 
-    private fun TestScope.screen() = SendViewModel(media, recorder).also { vm ->
+    private val account = FakeAccountRepository()
+
+    private fun TestScope.screen() = SendViewModel(media, recorder, account).also { vm ->
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         advanceUntilIdle()
     }

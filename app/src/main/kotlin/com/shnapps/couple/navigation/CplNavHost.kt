@@ -44,7 +44,10 @@ import com.shnapps.couple.feature.preferences.PreferenceDiscoveryScreen
 import com.shnapps.couple.feature.send.ArcScreen
 import com.shnapps.couple.feature.send.LaterScreen
 import com.shnapps.couple.feature.send.SendScreen
+import com.shnapps.couple.feature.settings.DeleteAccountScreen
 import com.shnapps.couple.feature.settings.NotificationSettingsScreen
+import com.shnapps.couple.feature.settings.SettingsRoutes
+import com.shnapps.couple.feature.settings.SettingsScreen
 
 /**
  * The app's navigation graph.
@@ -231,6 +234,38 @@ fun CplNavHost(
             )
         }
 
+        composable<Route.Settings> {
+            val signOutViewModel: SignOutViewModel = hiltViewModel()
+            val leave: () -> Unit = {
+                signOutViewModel.signOut {
+                    navController.navigate(Route.Auth) { popUpTo(0) { inclusive = true } }
+                }
+            }
+            SettingsScreen(
+                routes = SettingsRoutes(
+                    onPreferences = { navController.navigate(Route.PreferenceDiscovery) },
+                    onBoundaries = { navController.navigate(Route.Boundaries) },
+                    onNotifications = { navController.navigate(Route.NotificationSettings) },
+                    onAppLock = { navController.navigate(Route.AppLockSetup) },
+                    onMemories = { navController.navigate(Route.Memories) },
+                    onPremium = { navController.navigate(Route.Paywall()) },
+                    onDeleteAccount = { navController.navigate(Route.DeleteAccount) },
+                    onSignOut = leave,
+                    onBack = { navController.popBackStack() },
+                ),
+                onSignedOut = leave,
+            )
+        }
+
+        composable<Route.DeleteAccount> {
+            DeleteAccountScreen(
+                // Nothing left to sign out of: the account is gone, and the repository has already
+                // cleared this phone. All that remains is to go back to the beginning.
+                onDeleted = { navController.navigate(Route.Auth) { popUpTo(0) { inclusive = true } } },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
         composable<Route.NotificationSettings> {
             NotificationSettingsScreen(onBack = { navController.popBackStack() })
         }
@@ -324,6 +359,7 @@ private fun Home(
             onMutual = { navController.navigate(Route.MutualDiscovery) },
             onLimits = { navController.navigate(Route.Boundaries) },
             onAppLock = { navController.navigate(Route.AppLockSetup) },
+            onSettings = { navController.navigate(Route.Settings) },
             onOpen = { experienceId, type -> navController.navigate(experienceRoute(experienceId, type)) },
             onSignOut = {
                 signOutViewModel.signOut {

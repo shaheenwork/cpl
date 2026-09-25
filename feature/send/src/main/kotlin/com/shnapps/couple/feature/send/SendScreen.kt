@@ -33,8 +33,10 @@ import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.MediaItem
 import com.shnapps.couple.core.model.MediaKind
+import com.shnapps.couple.core.model.ReportReason
 import com.shnapps.couple.core.ui.BackRow
 import com.shnapps.couple.core.ui.ErrorBanner
+import com.shnapps.couple.core.ui.ReportSheet
 import com.shnapps.couple.core.ui.ScreenColumn
 import com.shnapps.couple.core.ui.ScreenHeading
 import com.shnapps.couple.core.ui.SecureScreen
@@ -86,6 +88,9 @@ fun SendScreen(
             onClose = viewModel::close,
             onDismissSent = viewModel::dismissSent,
             onDismissError = viewModel::dismissError,
+            onReport = viewModel::report,
+            onSendReport = viewModel::sendReport,
+            onDismissReport = viewModel::dismissReport,
             onBack = onBack,
         ),
         modifier = modifier,
@@ -94,6 +99,9 @@ fun SendScreen(
 
 /** Everything this screen can do, gathered so the content stays easy to preview. */
 internal data class SendActions(
+    val onReport: (MediaItem) -> Unit = {},
+    val onSendReport: (ReportReason) -> Unit = {},
+    val onDismissReport: () -> Unit = {},
     val onRecord: () -> Unit = {},
     val onStopRecording: () -> Unit = {},
     val onPickPhoto: () -> Unit = {},
@@ -257,7 +265,23 @@ private fun Inbox(state: SendUiState, actions: SendActions) {
                         color = AfterhoursTheme.colors.textMuted,
                     )
                 }
+                // Anything a partner sent can be reported, and they are never told (§3.5).
+                if (!item.mine) {
+                    GlowButton(
+                        text = "Report this",
+                        onClick = { actions.onReport(item) },
+                        style = GlowButtonStyle.Quiet,
+                    )
+                }
             }
+        }
+        state.reporting?.let { item ->
+            ReportSheet(
+                title = if (item.kind == MediaKind.VOICE) "A voice note from them" else "A photo from them",
+                onReport = actions.onSendReport,
+                onDismiss = actions.onDismissReport,
+                sent = state.reported,
+            )
         }
     }
 }
