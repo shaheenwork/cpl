@@ -195,6 +195,27 @@ ended arc opens nothing. `ArcTest` holds which day is due — including the firs
 moment the arc starts — and `ArcViewModelTest` drives the screen against a fake that refuses the
 way the server does.
 
+### Security (Phase 21)
+
+`rules.test.mjs` ends with a suite named **"§7.3 — the mandatory matrix"**: one test per row, A to
+T, named as the brief words the scenario, so the table in SECURITY.md maps one-to-one onto test
+names. The deeper coverage stays in the per-collection suites above it; rows O and P live in
+`storage.test.mjs`, where the objects are.
+
+`security.e2e.test.ts` is the other half — the server's own doors. It reads the callable surface
+out of `index.ts` rather than from a list somebody has to maintain, so a callable added in a later
+phase is tested the moment it exists: every one refuses a caller with no token and one with a
+forged token, none of them says anything about itself while refusing, all of them are declared with
+the shared options (App Check included), and identity comes only from `callerUid`. It found two
+real flaws on its first run — `respondToPairing` and `unpairCouple` validated their payloads before
+checking who was calling, so an unauthenticated caller learned the payload shape.
+
+Two notes on making these repeatable, both learned the hard way: the submissions suite takes **its
+own session id per run** and resets it before each test, because with the functions emulator running
+`onSubmissionCreated` moves the real session on as the tests write to it; and the matrix uses its
+own uids and couple, because the emulator keeps state between runs and the suites above it create
+their fixtures through the rules.
+
 ### The account itself (Phase 20)
 
 `account.int.test.ts` covers the three things this phase exits on. Reporting: a report lands in a

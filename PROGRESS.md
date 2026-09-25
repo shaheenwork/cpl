@@ -3,7 +3,7 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 20 complete. Phase 21 (security hardening) is next.
+**Current position:** Phase 21 complete. Phase 22 (performance, cost, accessibility, polish) is next — the last one.
 
 ---
 
@@ -32,8 +32,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 | 18 | Memories + library | ✅ **Complete** |
 | 19 | Subscription | ✅ **Complete** |
 | 20 | Settings, export, delete, reporting | ✅ **Complete** |
-| 21 | Security hardening | ⬜ Next |
-| 22 | Performance, cost, a11y, polish | ⬜ |
+| 21 | Security hardening | ✅ **Complete** |
+| 22 | Performance, cost, a11y, polish | ⬜ Next |
 
 ---
 
@@ -1224,6 +1224,44 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Phase 21 — Security hardening ✅
+
+### Shipped
+- **The §7.3 matrix, row by row**: a suite named "§7.3 — the mandatory matrix" with one test per
+  row, A to T, named as the brief words each scenario — so the table and the test names map
+  one-to-one. Rows O and P stay in `storage.test.mjs`, where the objects are.
+- **The server's own doors**: `security.e2e.test.ts` reads the callable surface out of `index.ts`
+  rather than a hand-kept list, so a callable added later is swept the moment it exists. Every one
+  refuses a caller with no token and one with a forged token, says nothing about itself while
+  refusing, is declared with the shared options (App Check included), and takes identity only from
+  `callerUid`.
+- **Two real flaws found and fixed** by that sweep on its first run: `respondToPairing` and
+  `unpairCouple` validated their payloads *before* checking who was calling, so an unauthenticated
+  caller learned the shape of a request it was never allowed to make. Identity comes first now.
+- **Two flaky suites made repeatable**: the submissions suite takes its own session id per run and
+  resets it before each test (with the functions emulator running, `onSubmissionCreated` moves the
+  real session on as the tests write to it), and the matrix uses its own uids and couple so it
+  cannot disturb fixtures the suites above it create through the rules.
+- **`SECURITY.md` written**: who this defends against and who it does not, what each promise rests
+  on and where, how the layers fit together, ten residual risks stated plainly — including the
+  sampled-alternates inference §5.5 asks to be honest about — and the matrix with its tests.
+- **The e2e tier caught up**: Phase 19's free-tier gates had broken two e2e tests that were never
+  run at the time. The e2e fixtures now buy premium the way the app does, with a `dev-` purchase
+  token only the emulator's verifier accepts.
+
+### Verified
+```
+npm --prefix firebase/tests test            121/121  (the matrix: 20 rows, A–T) — twice in a row
+npm --prefix functions run test:unit        132/132
+npm --prefix functions run test:int         158/158
+npm --prefix functions run test:e2e          35/35   (security 6)
+./gradlew check                             BUILD SUCCESSFUL
+```
+- **Exit criterion — every row of §7.3 passes; `SECURITY.md` written**: the matrix suite is the
+  table, and it is green twice in succession from a cleared emulator.
 
 ---
 

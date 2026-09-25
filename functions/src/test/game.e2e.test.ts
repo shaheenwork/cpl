@@ -73,6 +73,7 @@ describe('a game, end to end', () => {
     await ok('requestPairing', { code }, partner);
     coupleId = (await ok('respondToPairing', { approve: true }, host)).coupleId as string;
     assert.ok(coupleId);
+    await ok('verifyPurchase', { purchaseToken: 'dev-e2e-game' }, host);
   });
 
   it('refuses a signed-out caller, and anyone not in a couple', async () => {

@@ -296,6 +296,19 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
 
 ---
 
+## Security
+
+- SECURITY.md is the map: threat model, where each promise is enforced, the residual risks, and the
+  §7.3 matrix with the test that holds each row.
+- Every row of §7.3 has a named test in the suite **"§7.3 — the mandatory matrix"** in
+  `firebase/tests/rules.test.mjs` (rows O and P in `storage.test.mjs`). Add a row there when a
+  phase adds a collection.
+- `security.e2e.test.ts` reads the callable surface out of `index.ts`: a new callable is swept
+  automatically. **Authenticate before validating a payload** — `callerUid(request)` first, always,
+  or an unauthenticated caller learns the shape of a request it was never allowed to make.
+- App Check is enforced outside the Emulator Suite (`enforceAppCheck`), and every callable uses the
+  shared `options` — the sweep fails if one declares its own.
+
 ## Rules the build enforces for you
 
 `:architecture` (Konsist) fails the build on:

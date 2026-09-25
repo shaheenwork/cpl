@@ -101,6 +101,9 @@ describe('playing a night, end to end', () => {
     const code = (await ok('createPairingCode', null, host)).code;
     await ok('requestPairing', { code }, partner);
     coupleId = (await ok('respondToPairing', { approve: true }, host)).coupleId as string;
+    // More nights than the free tier allows, so this suite buys premium the way the app does: a
+    // dev purchase token, which only the emulator's verifier accepts (section 19).
+    await ok('verifyPurchase', { purchaseToken: 'dev-e2e-session' }, host);
     assert.ok(coupleId);
   });
 

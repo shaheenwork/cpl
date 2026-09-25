@@ -68,9 +68,12 @@ export const requestPairing = onCall(options, (request) =>
 
 export const respondToPairing = onCall(options, (request) =>
   guarded(() => {
+    // Identity first, then the payload: a caller with no token learns nothing about the shape of
+    // a request it was never allowed to make (section 7.2).
+    const uid = callerUid(request);
     const approve = request.data?.approve;
     if (typeof approve !== 'boolean') throw new HttpsError('invalid-argument', 'approve must be a boolean');
-    return pairing.respondToPairing(getFirestore(), callerUid(request), approve, Date.now());
+    return pairing.respondToPairing(getFirestore(), uid, approve, Date.now());
   }),
 );
 
@@ -80,10 +83,11 @@ export const cancelPairing = onCall(options, (request) =>
 
 export const unpairCouple = onCall(options, (request) =>
   guarded(() => {
-    // An explicit confirmation flag, so an accidental or replayed empty call cannot end a
-    // couple.
+    // Identity first (section 7.2), then the explicit confirmation flag, so an accidental or
+    // replayed empty call cannot end a couple.
+    const uid = callerUid(request);
     if (request.data?.confirm !== true) throw new HttpsError('invalid-argument', 'confirm must be true');
-    return pairing.unpairCouple(getFirestore(), callerUid(request), Date.now());
+    return pairing.unpairCouple(getFirestore(), uid, Date.now());
   }),
 );
 

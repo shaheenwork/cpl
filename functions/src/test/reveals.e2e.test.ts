@@ -15,6 +15,7 @@ import { initializeApp } from 'firebase-admin/app';
 import { Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { mutualRef, queueRef } from '../discovery/reveals';
 import { createPairingCode, requestPairing, respondToPairing } from '../pairing/pairing';
+import { grantPremium } from './support';
 
 const PROJECT = 'afterhours-dev-emulator';
 const FUNCTIONS = `http://127.0.0.1:5001/${PROJECT}/us-central1`;
@@ -57,6 +58,7 @@ async function pairUsers(a: string, b: string): Promise<string> {
   const { code } = await createPairingCode(db, a, now);
   await requestPairing(db, b, code, now);
   const { coupleId } = await respondToPairing(db, a, true, now);
+  await grantPremium(db, a, now);
   assert.ok(coupleId);
   return coupleId;
 }

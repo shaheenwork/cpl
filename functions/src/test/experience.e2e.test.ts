@@ -59,6 +59,9 @@ describe('generateExperience, end to end', () => {
     await call('requestPairing', { code }, bob.idToken);
     coupleId = (await call('respondToPairing', { approve: true }, alice.idToken)).result?.coupleId as string;
     assert.ok(coupleId, 'the couple formed');
+    // These suites build more nights than the free tier allows, so they buy premium the way the
+    // app does: a dev purchase token, which only the emulator's verifier accepts (section 19).
+    await call('verifyPurchase', { purchaseToken: 'dev-e2e-experience' }, alice.idToken);
   });
 
   it('refuses an unauthenticated caller', async () => {

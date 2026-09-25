@@ -15,6 +15,7 @@ import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { filtersRef } from '../couple/recompute';
 import { createPairingCode, requestPairing, respondToPairing, unpairCouple } from '../pairing/pairing';
+import { grantPremium } from './support';
 
 const PROJECT = 'afterhours-dev-emulator';
 const db = getFirestore(initializeApp({ projectId: PROJECT }, 'triggers-e2e-test'));
@@ -43,6 +44,7 @@ async function pairFresh(): Promise<{ a: string; b: string; coupleId: string }> 
   const { code } = await createPairingCode(db, a, now);
   await requestPairing(db, b, code, now);
   const { coupleId } = await respondToPairing(db, a, true, now);
+  await grantPremium(db, a, now);
   assert.ok(coupleId);
   return { a, b, coupleId };
 }

@@ -10,7 +10,7 @@
  *   firebase emulators:start --only auth,firestore,storage --project afterhours-dev-emulator
  */
 
-import { after, before, describe, it } from 'node:test';
+import { after, before, beforeEach, describe, it } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
@@ -657,8 +657,17 @@ describe('couples/{coupleId}/experiences (§6.1, §10)', () => {
 describe('couples/{coupleId}/sessions/{id}/submissions, rounds and presence (§7.3 D–G, §12)', () => {
   const MALLORY = 'uid_mallory';
   const mallory = () => testEnv.authenticatedContext(MALLORY).firestore();
-  const live = (db) => doc(db, 'couples', 'rt1', 'sessions', 'live');
-  const submission = (db, id) => doc(db, 'couples', 'rt1', 'sessions', 'live', 'submissions', id);
+  /**
+   * A session of its own, per run.
+   *
+   * The submissions these tests write are real ones: with the functions emulator running,
+   * `onSubmissionCreated` fires and moves the session on exactly as it would in the app. A fixed
+   * session id would mean asserting against whatever the trigger left behind last time, so each
+   * run gets its own — and `beforeEach` puts it back to the chapter under test.
+   */
+  const SESSION = `live_${Date.now()}`;
+  const live = (db) => doc(db, 'couples', 'rt1', 'sessions', SESSION);
+  const submission = (db, id) => doc(db, 'couples', 'rt1', 'sessions', SESSION, 'submissions', id);
   const answerFor = (uid, chapter = 1, overrides = {}) => ({
     chapter,
     byUid: uid,
@@ -670,7 +679,7 @@ describe('couples/{coupleId}/sessions/{id}/submissions, rounds and presence (§7
   before(async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       const db = ctx.firestore();
-      await setDoc(doc(db, 'couples', 'rt1'), { status: 'ACTIVE', memberUids: [ALICE, BOB], activeSessionId: 'live' });
+      await setDoc(doc(db, 'couples', 'rt1'), { status: 'ACTIVE', memberUids: [ALICE, BOB], activeSessionId: SESSION });
       await setDoc(live(db), {
         experienceId: 'game1',
         experienceType: 'GAME',
@@ -684,18 +693,42 @@ describe('couples/{coupleId}/sessions/{id}/submissions, rounds and presence (§7
         seenBy: {},
       });
       // What the server writes once both have answered, and what Bob wrote to get there.
-      await setDoc(doc(db, 'couples', 'rt1', 'sessions', 'live', 'rounds', '0'), {
+      await setDoc(doc(db, 'couples', 'rt1', 'sessions', SESSION, 'rounds', '0'), {
         chapter: 0,
         answers: { [ALICE]: 'stay in', [BOB]: 'go out' },
         at: Timestamp.now(),
       });
-      await setDoc(doc(db, 'couples', 'rt1', 'sessions', 'live', 'submissions', `0_${BOB}`), {
+      await setDoc(doc(db, 'couples', 'rt1', 'sessions', SESSION, 'submissions', `0_${BOB}`), {
         chapter: 0, byUid: BOB, answer: 'go out', at: Timestamp.now(),
       });
-      // Chapter 1 starts unanswered by both, so "written once" is tested on a fresh document
-      // however many times the suite has run before against this emulator.
-      await deleteDoc(doc(db, 'couples', 'rt1', 'sessions', 'live', 'submissions', `1_${ALICE}`));
-      await deleteDoc(doc(db, 'couples', 'rt1', 'sessions', 'live', 'submissions', `1_${BOB}`));
+    });
+  });
+
+  /**
+   * Chapter 1 starts unanswered by both, before every test — not just once.
+   *
+   * These are rules tests, but the submissions they write are real: with the functions emulator
+   * running, `onSubmissionCreated` fires and moves the session on exactly as it would in the app.
+   * A suite that seeded once would then be asserting against whatever the trigger left behind,
+   * and would pass or fail depending on whether functions happened to be running.
+   */
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await deleteDoc(doc(db, 'couples', 'rt1', 'sessions', SESSION, 'submissions', `1_${ALICE}`));
+      await deleteDoc(doc(db, 'couples', 'rt1', 'sessions', SESSION, 'submissions', `1_${BOB}`));
+      await setDoc(live(db), {
+        experienceId: 'game1',
+        experienceType: 'GAME',
+        kind: 'TWO_DEVICE',
+        hostUid: ALICE,
+        state: 'CHAPTER_ACTIVE',
+        currentChapter: 1,
+        chapterCount: 4,
+        consentAcks: {},
+        submittedBy: {},
+        seenBy: {},
+      });
     });
   });
 
@@ -712,11 +745,11 @@ describe('couples/{coupleId}/sessions/{id}/submissions, rounds and presence (§7
   it('E and F: denies reading a submission — the other\'s or their own, before or after the reveal', async () => {
     await assertFails(getDoc(submission(alice(), `0_${BOB}`)));
     await assertFails(getDoc(submission(bob(), `0_${BOB}`)));
-    await assertFails(getDocs(collection(alice(), 'couples', 'rt1', 'sessions', 'live', 'submissions')));
+    await assertFails(getDocs(collection(alice(), 'couples', 'rt1', 'sessions', SESSION, 'submissions')));
   });
 
   it('G: denies setting the reveal, or any other state, from a client', async () => {
-    await assertFails(setDoc(doc(alice(), 'couples', 'rt1', 'sessions', 'live', 'rounds', '1'), {
+    await assertFails(setDoc(doc(alice(), 'couples', 'rt1', 'sessions', SESSION, 'rounds', '1'), {
       chapter: 1, answers: { [ALICE]: 'mine', [BOB]: 'theirs' }, at: serverTimestamp(),
     }));
     await assertFails(updateDoc(live(alice()), { state: 'REVEAL' }));
@@ -725,9 +758,9 @@ describe('couples/{coupleId}/sessions/{id}/submissions, rounds and presence (§7
   });
 
   it('lets both partners read a reveal the server wrote, and no one else', async () => {
-    await assertSucceeds(getDoc(doc(alice(), 'couples', 'rt1', 'sessions', 'live', 'rounds', '0')));
-    await assertSucceeds(getDoc(doc(bob(), 'couples', 'rt1', 'sessions', 'live', 'rounds', '0')));
-    await assertFails(getDoc(doc(mallory(), 'couples', 'rt1', 'sessions', 'live', 'rounds', '0')));
+    await assertSucceeds(getDoc(doc(alice(), 'couples', 'rt1', 'sessions', SESSION, 'rounds', '0')));
+    await assertSucceeds(getDoc(doc(bob(), 'couples', 'rt1', 'sessions', SESSION, 'rounds', '0')));
+    await assertFails(getDoc(doc(mallory(), 'couples', 'rt1', 'sessions', SESSION, 'rounds', '0')));
   });
 
   it('refuses an answer to another chapter, a malformed one, or a second one', async () => {
@@ -743,15 +776,15 @@ describe('couples/{coupleId}/sessions/{id}/submissions, rounds and presence (§7
   });
 
   it('lets each phone say it is still there, and read the other, but not speak for it', async () => {
-    await assertSucceeds(setDoc(doc(alice(), 'couples', 'rt1', 'sessions', 'live', 'presence', ALICE), { at: serverTimestamp() }));
-    await assertSucceeds(getDoc(doc(bob(), 'couples', 'rt1', 'sessions', 'live', 'presence', ALICE)));
-    await assertFails(setDoc(doc(alice(), 'couples', 'rt1', 'sessions', 'live', 'presence', BOB), { at: serverTimestamp() }));
-    await assertFails(setDoc(doc(alice(), 'couples', 'rt1', 'sessions', 'live', 'presence', ALICE), { at: Timestamp.now() }));
-    await assertFails(setDoc(doc(alice(), 'couples', 'rt1', 'sessions', 'live', 'presence', ALICE), {
+    await assertSucceeds(setDoc(doc(alice(), 'couples', 'rt1', 'sessions', SESSION, 'presence', ALICE), { at: serverTimestamp() }));
+    await assertSucceeds(getDoc(doc(bob(), 'couples', 'rt1', 'sessions', SESSION, 'presence', ALICE)));
+    await assertFails(setDoc(doc(alice(), 'couples', 'rt1', 'sessions', SESSION, 'presence', BOB), { at: serverTimestamp() }));
+    await assertFails(setDoc(doc(alice(), 'couples', 'rt1', 'sessions', SESSION, 'presence', ALICE), { at: Timestamp.now() }));
+    await assertFails(setDoc(doc(alice(), 'couples', 'rt1', 'sessions', SESSION, 'presence', ALICE), {
       at: serverTimestamp(), state: 'REVEAL',
     }));
-    await assertFails(getDoc(doc(mallory(), 'couples', 'rt1', 'sessions', 'live', 'presence', ALICE)));
-    await assertFails(deleteDoc(doc(alice(), 'couples', 'rt1', 'sessions', 'live', 'presence', ALICE)));
+    await assertFails(getDoc(doc(mallory(), 'couples', 'rt1', 'sessions', SESSION, 'presence', ALICE)));
+    await assertFails(deleteDoc(doc(alice(), 'couples', 'rt1', 'sessions', SESSION, 'presence', ALICE)));
   });
 });
 
@@ -907,107 +940,113 @@ describe('content deltas (§9.2, §9.6)', () => {
 // depth above — this is the list a human reads to be sure none of them is missing (§21.1), and
 // rows O and P live in storage.test.mjs, where the objects are.
 describe('§7.3 — the mandatory matrix', () => {
-  const MALLORY = 'uid_mallory';
-  const CID = 'm7';
+  // Its own people and its own couple: this suite writes documents from the admin side, and
+  // must not leave a trace on the fixtures the suites above create through the rules.
+  const A = 'uid_matrix_a';
+  const B = 'uid_matrix_b';
+  const MALLORY = 'uid_matrix_mallory';
+  const CID = 'matrix_couple';
+  const a = () => testEnv.authenticatedContext(A).firestore();
+  const b = () => testEnv.authenticatedContext(B).firestore();
   const mallory = () => testEnv.authenticatedContext(MALLORY).firestore();
   const ours = (db, ...path) => doc(db, 'couples', CID, ...path);
 
   before(async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       const db = ctx.firestore();
-      await setDoc(doc(db, 'users', ALICE), { coupleId: CID, contentLevel: 4 });
-      await setDoc(doc(db, 'users', BOB), { coupleId: CID, contentLevel: 3 });
-      await setDoc(doc(db, 'users', BOB, 'preferences', 'roleplay_strangers'), {
+      await setDoc(doc(db, 'users', A), { coupleId: CID, contentLevel: 4 });
+      await setDoc(doc(db, 'users', B), { coupleId: CID, contentLevel: 3 });
+      await setDoc(doc(db, 'users', B, 'preferences', 'roleplay_strangers'), {
         value: 'YES', secret: false, updatedAt: Timestamp.now(), taxonomyVersion: 1,
       });
-      await setDoc(doc(db, 'users', BOB, 'boundaries', 'sensory_blindfold'), {
+      await setDoc(doc(db, 'users', B, 'boundaries', 'sensory_blindfold'), {
         level: 'NEVER', updatedAt: Timestamp.now(),
       });
       await setDoc(doc(db, 'couples', CID), {
         status: 'ACTIVE',
-        memberUids: [ALICE, BOB],
+        memberUids: [A, B],
         contentLevelEffective: 3,
         entitlement: { tier: 'FREE', state: null, expiresAt: null },
       });
-      await setDoc(ours(db, 'members', ALICE), { role: 'CREATOR', status: 'ACTIVE' });
+      await setDoc(ours(db, 'members', A), { role: 'CREATOR', status: 'ACTIVE' });
       await setDoc(ours(db, 'engineFilters', 'current'), { maxIntensity: 3, excludedThemes: ['sensory_blindfold'] });
       await setDoc(ours(db, 'mutualPreferences', 'roleplay_strangers'), { prefId: 'roleplay_strangers', seenBy: {} });
       await setDoc(ours(db, 'sessions', 'live'), {
-        experienceId: 'n1', kind: 'TWO_DEVICE', hostUid: ALICE, state: 'CHAPTER_ACTIVE',
+        experienceId: 'n1', kind: 'TWO_DEVICE', hostUid: A, state: 'CHAPTER_ACTIVE',
         currentChapter: 1, chapterCount: 3, consentAcks: {}, submittedBy: {}, seenBy: {},
       });
-      await setDoc(ours(db, 'sessions', 'live', 'submissions', '1_' + BOB), {
-        chapter: 1, byUid: BOB, answer: 'what Bob wrote', at: Timestamp.now(),
+      await setDoc(ours(db, 'sessions', 'live', 'submissions', '1_' + B), {
+        chapter: 1, byUid: B, answer: 'what Bob wrote', at: Timestamp.now(),
       });
-      await setDoc(ours(db, 'sessions', 'live', 'submissions', '0_' + BOB), {
-        chapter: 0, byUid: BOB, answer: 'theirs', at: Timestamp.now(),
+      await setDoc(ours(db, 'sessions', 'live', 'submissions', '0_' + B), {
+        chapter: 0, byUid: B, answer: 'theirs', at: Timestamp.now(),
       });
       await setDoc(ours(db, 'sessions', 'live', 'rounds', '0'), {
-        chapter: 0, answers: { [ALICE]: 'mine', [BOB]: 'theirs' }, at: Timestamp.now(),
+        chapter: 0, answers: { [A]: 'mine', [B]: 'theirs' }, at: Timestamp.now(),
       });
       await setDoc(ours(db, 'surprises', 's_waiting'), {
-        type: 'SCHEDULED', title: 'For Friday', createdBy: ALICE, forUid: BOB,
+        type: 'SCHEDULED', title: 'For Friday', createdBy: A, forUid: B,
         state: 'SCHEDULED', deliveredAt: null,
       });
       await setDoc(ours(db, 'surprises', 's_waiting', 'payload', 'content'), {
-        ownerUid: ALICE, text: 'the inside of it', deliveredAt: null,
+        ownerUid: A, text: 'the inside of it', deliveredAt: null,
       });
       // A pairing code that has been used up, and one that ran out of time (§8).
-      await setDoc(doc(db, 'pairingCodes', '111111'), { status: 'CONSUMED', creatorUid: ALICE });
+      await setDoc(doc(db, 'pairingCodes', '111111'), { status: 'CONSUMED', creatorUid: A });
       await setDoc(doc(db, 'pairingCodes', '222222'), {
-        status: 'ACTIVE', creatorUid: ALICE, expiresAt: Timestamp.fromMillis(1),
+        status: 'ACTIVE', creatorUid: A, expiresAt: Timestamp.fromMillis(1),
       });
-      await setDoc(doc(db, 'reports', 'r1'), { target: 'CONTENT', reason: 'BROKEN', reportedBy: BOB });
+      await setDoc(doc(db, 'reports', 'r1'), { target: 'CONTENT', reason: 'BROKEN', reportedBy: B });
     });
   });
 
   it("A: partner A reads B's preferences — DENIED", async () => {
-    await assertFails(getDoc(doc(alice(), 'users', BOB, 'preferences', 'roleplay_strangers')));
-    await assertFails(getDocs(collection(alice(), 'users', BOB, 'preferences')));
+    await assertFails(getDoc(doc(a(), 'users', B, 'preferences', 'roleplay_strangers')));
+    await assertFails(getDocs(collection(a(), 'users', B, 'preferences')));
   });
 
   it("B: partner A reads B's boundaries — DENIED", async () => {
-    await assertFails(getDoc(doc(alice(), 'users', BOB, 'boundaries', 'sensory_blindfold')));
-    await assertFails(getDocs(collection(alice(), 'users', BOB, 'boundaries')));
+    await assertFails(getDoc(doc(a(), 'users', B, 'boundaries', 'sensory_blindfold')));
+    await assertFails(getDocs(collection(a(), 'users', B, 'boundaries')));
   });
 
   it('C: A writes a different coupleId onto their own user doc — DENIED', async () => {
-    await assertFails(updateDoc(doc(alice(), 'users', ALICE), { coupleId: 'someone_elses' }));
+    await assertFails(updateDoc(doc(a(), 'users', A), { coupleId: 'someone_elses' }));
   });
 
   it("D: A writes to B's submission doc — DENIED", async () => {
-    await assertFails(setDoc(ours(alice(), 'sessions', 'live', 'submissions', '1_' + BOB), {
-      chapter: 1, byUid: BOB, answer: 'forged', at: serverTimestamp(),
+    await assertFails(setDoc(ours(a(), 'sessions', 'live', 'submissions', '1_' + B), {
+      chapter: 1, byUid: B, answer: 'forged', at: serverTimestamp(),
     }));
   });
 
   it("E: A reads B's submission before the reveal — DENIED", async () => {
-    await assertFails(getDoc(ours(alice(), 'sessions', 'live', 'submissions', '1_' + BOB)));
+    await assertFails(getDoc(ours(a(), 'sessions', 'live', 'submissions', '1_' + B)));
   });
 
   it("F: A reads B's submission after the reveal — DENIED (the reveal doc is the only way)", async () => {
     // Chapter 0 is revealed: the reveal is readable, the submission behind it never is.
-    await assertSucceeds(getDoc(ours(alice(), 'sessions', 'live', 'rounds', '0')));
-    await assertFails(getDoc(ours(alice(), 'sessions', 'live', 'submissions', '0_' + BOB)));
+    await assertSucceeds(getDoc(ours(a(), 'sessions', 'live', 'rounds', '0')));
+    await assertFails(getDoc(ours(a(), 'sessions', 'live', 'submissions', '0_' + B)));
   });
 
   it('G: A sets a round to REVEAL from the client — DENIED', async () => {
-    await assertFails(setDoc(ours(alice(), 'sessions', 'live', 'rounds', '1'), {
-      chapter: 1, answers: { [ALICE]: 'mine' }, at: serverTimestamp(),
+    await assertFails(setDoc(ours(a(), 'sessions', 'live', 'rounds', '1'), {
+      chapter: 1, answers: { [A]: 'mine' }, at: serverTimestamp(),
     }));
-    await assertFails(updateDoc(ours(alice(), 'sessions', 'live'), { state: 'REVEAL' }));
+    await assertFails(updateDoc(ours(a(), 'sessions', 'live'), { state: 'REVEAL' }));
   });
 
   it('H: A writes the couple contentLevelEffective — DENIED', async () => {
-    await assertFails(updateDoc(ours(alice()), { contentLevelEffective: 5 }));
+    await assertFails(updateDoc(ours(a()), { contentLevelEffective: 5 }));
   });
 
   it('I: A writes their own entitlement — DENIED', async () => {
-    await assertFails(updateDoc(doc(alice(), 'users', ALICE), {
+    await assertFails(updateDoc(doc(a(), 'users', A), {
       entitlement: { tier: 'PREMIUM', state: 'ACTIVE' },
     }));
     // Nor the couple's copy of it, which is derived from the members' own records (§19).
-    await assertFails(updateDoc(ours(alice()), { entitlement: { tier: 'PREMIUM' } }));
+    await assertFails(updateDoc(ours(a()), { entitlement: { tier: 'PREMIUM' } }));
   });
 
   it('J: an unauthenticated read of anything under couples — DENIED', async () => {
@@ -1023,12 +1062,12 @@ describe('§7.3 — the mandatory matrix', () => {
   });
 
   it('L: any client read of engineFilters — DENIED, to both members', async () => {
-    await assertFails(getDoc(ours(alice(), 'engineFilters', 'current')));
-    await assertFails(getDoc(ours(bob(), 'engineFilters', 'current')));
+    await assertFails(getDoc(ours(a(), 'engineFilters', 'current')));
+    await assertFails(getDoc(ours(b(), 'engineFilters', 'current')));
   });
 
   it('M: joining a couple that already has two members — DENIED', async () => {
-    await assertFails(updateDoc(ours(mallory()), { memberUids: [ALICE, BOB, MALLORY] }));
+    await assertFails(updateDoc(ours(mallory()), { memberUids: [A, B, MALLORY] }));
     await assertFails(setDoc(ours(mallory(), 'members', MALLORY), { role: 'PARTNER', status: 'ACTIVE' }));
     await assertFails(updateDoc(doc(mallory(), 'users', MALLORY), { coupleId: CID }));
   });
@@ -1046,33 +1085,33 @@ describe('§7.3 — the mandatory matrix', () => {
   });
 
   it('Q: A writes to reports — DENIED, and cannot read them either', async () => {
-    await assertFails(setDoc(doc(alice(), 'reports', 'forged'), { target: 'CONTENT', reason: 'BROKEN' }));
-    await assertFails(getDoc(doc(alice(), 'reports', 'r1')));
-    await assertFails(getDocs(collection(alice(), 'reports')));
+    await assertFails(setDoc(doc(a(), 'reports', 'forged'), { target: 'CONTENT', reason: 'BROKEN' }));
+    await assertFails(getDoc(doc(a(), 'reports', 'r1')));
+    await assertFails(getDocs(collection(a(), 'reports')));
   });
 
   it('R: A creates a mutualPreferences doc directly — DENIED', async () => {
-    await assertFails(setDoc(ours(alice(), 'mutualPreferences', 'forged'), { prefId: 'forged', seenBy: {} }));
-    await assertFails(deleteDoc(ours(alice(), 'mutualPreferences', 'roleplay_strangers')));
+    await assertFails(setDoc(ours(a(), 'mutualPreferences', 'forged'), { prefId: 'forged', seenBy: {} }));
+    await assertFails(deleteDoc(ours(a(), 'mutualPreferences', 'roleplay_strangers')));
   });
 
   it('S: A reads a surprise payload before it is delivered — DENIED', async () => {
     // Bob is the one it is for, and he cannot read it until the server delivers it (§5.7).
-    await assertFails(getDoc(ours(bob(), 'surprises', 's_waiting', 'payload', 'content')));
+    await assertFails(getDoc(ours(b(), 'surprises', 's_waiting', 'payload', 'content')));
     // That something is waiting is readable; the inside of it is not.
-    await assertSucceeds(getDoc(ours(bob(), 'surprises', 's_waiting')));
+    await assertSucceeds(getDoc(ours(b(), 'surprises', 's_waiting')));
   });
 
   it('T: the happy path — both members read and write their own permitted paths', async () => {
-    await assertSucceeds(getDoc(doc(alice(), 'users', ALICE)));
-    await assertSucceeds(setDoc(doc(bob(), 'users', BOB, 'preferences', 'teasing_instructions'), answer('CURIOUS', true)));
-    await assertSucceeds(setDoc(doc(alice(), 'users', ALICE, 'boundaries', 'roleplay_characters'), limit('ASK_FIRST')));
-    await assertSucceeds(getDoc(ours(alice())));
-    await assertSucceeds(getDoc(ours(bob(), 'members', ALICE)));
-    await assertSucceeds(getDocs(collection(alice(), 'couples', CID, 'memories')));
-    await assertSucceeds(setDoc(ours(alice(), 'sessions', 'live', 'presence', ALICE), { at: serverTimestamp() }));
-    await assertSucceeds(updateDoc(ours(bob(), 'mutualPreferences', 'roleplay_strangers'), {
-      ['seenBy.' + BOB]: true,
+    await assertSucceeds(getDoc(doc(a(), 'users', A)));
+    await assertSucceeds(setDoc(doc(b(), 'users', B, 'preferences', 'teasing_instructions'), answer('CURIOUS', true)));
+    await assertSucceeds(setDoc(doc(a(), 'users', A, 'boundaries', 'roleplay_characters'), limit('ASK_FIRST')));
+    await assertSucceeds(getDoc(ours(a())));
+    await assertSucceeds(getDoc(ours(b(), 'members', A)));
+    await assertSucceeds(getDocs(collection(a(), 'couples', CID, 'memories')));
+    await assertSucceeds(setDoc(ours(a(), 'sessions', 'live', 'presence', A), { at: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ours(b(), 'mutualPreferences', 'roleplay_strangers'), {
+      ['seenBy.' + B]: true,
     }));
   });
 });

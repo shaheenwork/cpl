@@ -102,6 +102,7 @@ describe('two phones, one session, end to end', () => {
     await ok('requestPairing', { code }, sam);
     coupleId = (await ok('respondToPairing', { approve: true }, alex)).coupleId as string;
     assert.ok(coupleId);
+    await ok('verifyPurchase', { purchaseToken: 'dev-e2e-realtime' }, alex);
   });
 
   it('plays a round from both phones: each answers its own, the reveal comes from the server', async () => {
