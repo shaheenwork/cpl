@@ -12,10 +12,13 @@ import com.google.common.truth.Truth.assertThat
 import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.model.ExperienceType
+import com.shnapps.couple.core.model.MediaKind
 import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionState
+import com.shnapps.couple.core.model.SurpriseState
+import com.shnapps.couple.core.model.ThreadEntry
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -64,6 +67,40 @@ class HomeSnapshotTest {
     }
 
     @Test
+    fun apartIsAThread() {
+        // What they left, what was sent, what is still sealed (REDESIGN_PROMPT.md §5.4).
+        val state = HomeUiState(
+            mode = Mode.APART,
+            thread = listOf(
+                ThreadEntry.Media(
+                    id = "m1",
+                    atMillis = NOW,
+                    mine = false,
+                    kind = MediaKind.VOICE,
+                    note = "listen when you're alone",
+                    burnAfterView = true,
+                    opened = false,
+                ),
+                ThreadEntry.Left(
+                    id = "s1",
+                    atMillis = NOW - 1,
+                    mine = false,
+                    title = null,
+                    state = SurpriseState.SCHEDULED,
+                    forMoment = null,
+                ),
+                ThreadEntry.Counting(id = "c1", atMillis = NOW + 1, title = "Friday"),
+            ),
+        )
+
+        capture("home-apart-thread") { HomeContent(state, HomeActions()) }
+
+        composeRule.onNodeWithText("A voice note, waiting. It goes when you open it.").assertIsDisplayed()
+        // The one that matters: a surprise before its moment says only that it exists.
+        composeRule.onNodeWithText("Something is coming.").assertIsDisplayed()
+    }
+
+    @Test
     fun somethingIsWaiting() {
         val state = HomeUiState(
             waitingForMe = NightPlan(experienceId = "planned", mine = false, chapterCount = 5, opened = false),
@@ -100,3 +137,6 @@ class HomeSnapshotTest {
         const val SETTLE_MS = 2_000L
     }
 }
+
+/** A fixed moment: a golden must not change with the clock. */
+private const val NOW = 1_800_000_000_000L

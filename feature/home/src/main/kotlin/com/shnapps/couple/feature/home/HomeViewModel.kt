@@ -5,16 +5,20 @@ import androidx.lifecycle.viewModelScope
 import com.shnapps.couple.core.analytics.AnalyticsEvent
 import com.shnapps.couple.core.analytics.AnalyticsLogger
 import com.shnapps.couple.core.common.AppError
+import com.shnapps.couple.core.common.Clock
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.billing.gate
 import com.shnapps.couple.core.data.media.MediaRepository
 import com.shnapps.couple.core.data.night.NightRepository
+import com.shnapps.couple.core.data.surprise.SurpriseRepository
 import com.shnapps.couple.core.datastore.AppPreferencesStore
 import com.shnapps.couple.core.model.Gate
 import com.shnapps.couple.core.model.MediaItem
 import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
+import com.shnapps.couple.core.model.ThreadEntry
+import com.shnapps.couple.core.model.threadOf
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -44,12 +48,23 @@ data class HomeUiState(
     val plannedByMe: NightPlan? = null,
     /** A voice note or a photo they sent that nobody has opened (§13). */
     val unopenedMedia: MediaItem? = null,
+    /**
+     * Being apart, as one thread (REDESIGN_PROMPT.md §5.4): what they left, what was sent, what is
+     * still sealed. Ordered newest first, and saying nothing about anything undelivered.
+     */
+    val thread: List<ThreadEntry> = emptyList(),
     val error: HomeError? = null,
     /** A limit they reached: the screen offers what premium includes, and nothing is lost (§19). */
     val gate: Gate? = null,
 ) {
     /** Nothing else can start while the couple already has something under way (D-059). */
     val canStart: Boolean get() = active == null && !making
+
+    /** What is actually waiting for this person in the thread: the only thing worth a nudge. */
+    val threadWaiting: Int
+        get() = thread.count { entry ->
+            (entry is ThreadEntry.Media && entry.waiting) || (entry is ThreadEntry.Left && entry.readyForMe)
+        }
 }
 
 /**
@@ -68,18 +83,34 @@ class HomeViewModel @Inject constructor(
     private val nights: NightRepository,
     private val preferences: AppPreferencesStore,
     private val analytics: AnalyticsLogger,
+    private val clock: Clock,
     media: MediaRepository,
+    surprises: SurpriseRepository,
 ) : ViewModel() {
 
     private val local = MutableStateFlow(HomeUiState())
+
+    /**
+     * What being apart looks like, in one flow: the inbox, and the thread built from it.
+     *
+     * Composed here because `combine` takes five, and because the inbox is wanted twice — once for
+     * the one unopened thing the home nudges about, and once as part of the thread.
+     */
+    private val apart = combine(
+        media.inbox,
+        surprises.surprises,
+        surprises.countdowns,
+    ) { inbox, left, counting ->
+        inbox to threadOf(inbox, left, counting, clock.nowMillis())
+    }
 
     val uiState: StateFlow<HomeUiState> = combine(
         local,
         nights.activeSession,
         preferences.preferences.map { it.mode },
         nights.plans,
-        media.inbox,
-    ) { state, active, mode, plans, inbox ->
+        apart,
+    ) { state, active, mode, plans, (inbox, thread) ->
         state.copy(
             active = active,
             mode = mode,
@@ -87,6 +118,7 @@ class HomeViewModel @Inject constructor(
             waitingForMe = plans.firstOrNull { !it.mine },
             plannedByMe = plans.firstOrNull { it.mine },
             unopenedMedia = inbox.firstOrNull { it.unopened },
+            thread = thread,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), HomeUiState())
 

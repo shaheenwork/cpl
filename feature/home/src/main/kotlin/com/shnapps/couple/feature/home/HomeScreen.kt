@@ -25,6 +25,7 @@ import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionState
+import com.shnapps.couple.core.ui.ApartThread
 import com.shnapps.couple.core.ui.ErrorBanner
 import com.shnapps.couple.core.ui.PremiumNudge
 import com.shnapps.couple.core.ui.ScreenColumn
@@ -268,6 +269,12 @@ private fun ApartHome(state: HomeUiState, actions: HomeActions) {
             modifier = Modifier.fillMaxWidth(),
         )
     }
+    // Apart is a thread, not a list of buttons (REDESIGN_PROMPT.md §5.4): what they left you, what
+    // you sent, what is still sealed — under the things you can do about it.
+    Section(if (state.threadWaiting > 0) "Waiting for you" else "Between you") {
+        ApartThread(entries = state.thread, onOpen = { actions.onLater() })
+    }
+
     Section("For them") {
         CinematicCard(
             modifier = Modifier.fillMaxWidth(),

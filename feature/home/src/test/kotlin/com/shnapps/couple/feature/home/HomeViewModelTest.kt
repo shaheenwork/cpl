@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.shnapps.couple.core.analytics.AnalyticsEvent
 import com.shnapps.couple.core.analytics.AnalyticsLogger
 import com.shnapps.couple.core.common.AppError
+import com.shnapps.couple.core.common.Clock
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.MediaKind
@@ -14,6 +15,7 @@ import com.shnapps.couple.core.model.SessionState
 import com.shnapps.couple.core.testing.FakeAppPreferencesStore
 import com.shnapps.couple.core.testing.FakeMediaRepository
 import com.shnapps.couple.core.testing.FakeNightRepository
+import com.shnapps.couple.core.testing.FakeSurpriseRepository
 import com.shnapps.couple.core.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -42,12 +44,15 @@ class HomeViewModelTest {
     private val nights = FakeNightRepository()
     private val preferences = FakeAppPreferencesStore()
     private val media = FakeMediaRepository()
+    private val surprises = FakeSurpriseRepository()
 
     private fun TestScope.home() = HomeViewModel(
         nights = nights,
         preferences = preferences,
         analytics = AnalyticsLogger { logged += it },
+        clock = Clock { NOW },
         media = media,
+        surprises = surprises,
     ).also { vm ->
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         advanceUntilIdle()
@@ -177,3 +182,6 @@ class HomeViewModelTest {
         assertThat(vm.uiState.value.unopenedMedia).isNull()
     }
 }
+
+/** A fixed clock: the thread orders by time, and a test must not race a real one. */
+private const val NOW = 1_800_000_000_000L

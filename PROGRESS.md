@@ -7,8 +7,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 `REDESIGN_PROMPT.md` has begun — R1 (chance, desire and six new games) and R2 (two taps to a card,
 with no account and no network), R3 (the player whole) and R4 (home, and fourteen games playable
 with no account) and R5 (an account offered when it buys something, carrying the local refusals into
-the person's real limits) are done; R6 (apart as a thread, pairing moved and skippable) is next — it
-needs the `MEDIA` primitive that R1 deferred. Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
+the person's real limits) and R6 (apart as one thread) are done; R7 (preferences as an optional
+game) is next. The `MEDIA` primitive, for games played apart, is still to come. Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
 and every §23 deliverable is written. What remains before a public release is setup and review, not
 code: `RELEASE.md` is the ordered runbook, `HUMAN_SETUP.md` the console detail, and `legal/` holds
 drafts of the privacy policy, the terms and the Play data-safety answers, pending a lawyer.
@@ -1232,6 +1232,39 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Redesign R6 — Apart, as one thread ✅
+
+Everything here already existed — voice notes, photos, scheduled surprises, "Open when…",
+countdowns — as five buttons and a settings page. What two people apart want is one list.
+
+### Shipped
+- **`threadOf`** (`:core:model`): a pure function over what the repositories already give, so what
+  the thread hides is testable without a device. Newest first, with a scheduled surprise ordered by
+  the moment it is due rather than when it was made.
+- **It says what happened, never what is inside.** A surprise before delivery is "Something is
+  coming" — to everyone except the person who left it, who always knows (D-085). An "Open when…"
+  says which moment it is kept for and nothing else. A burned voice note says it is gone rather than
+  quietly disappearing.
+- **The thread is on the Apart surface**, under the things you can do about it, with the heading
+  changing to "Waiting for you" when something actually is.
+- The view lives in `:core:ui` and the model in `:core:model`, because a feature may not import
+  another feature and this is shared UI over shared data.
+
+### Verified
+```
+./gradlew check                                BUILD SUCCESSFUL
+:core:model ThreadEntryTest                     7/7
+:feature:home HomeSnapshotTest                  5/5  (a golden for the thread)
+```
+- The thread's golden shows the three shapes together: a waiting voice note that glows, an
+  undelivered surprise saying only that it exists, and a countdown.
+- **Not yet walked on two devices.** The exit criterion in `REDESIGN_PROMPT.md` is "an apart
+  exchange end to end on two devices", and this machine has one emulator and one phone on a
+  different flavour. What is proven is the thread's rules and its rendering; the exchange itself
+  was walked in Phases 14–16 and is unchanged by this.
 
 ---
 
