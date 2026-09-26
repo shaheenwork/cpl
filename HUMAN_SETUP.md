@@ -160,8 +160,26 @@ builds, run the app once and copy the debug token it logs into
 
 ### ⬜ 2.5 SHA certificate fingerprints
 
-Needed for Google Sign-In and Play Integrity. Add the debug and upload-key SHA-1 and
-SHA-256 to each Firebase app registration.
+Needed for **Play Integrity**, which is how App Check attests a real install. This app has
+no Google Sign-In — `AuthDataSource` is email and password only — so that is the only
+reason these matter here.
+
+There are three keys, and the checklist used to read as if there were one:
+
+| Key | Where its SHA comes from | When |
+|---|---|---|
+| Debug | `./gradlew :app:signingReport` (store `~/.android/debug.keystore`) | any time; optional, since `dev` uses the emulators and the App Check debug provider |
+| Upload | `keytool -list -v -keystore afterhours-upload.jks -alias upload` | once §3.3 has created it |
+| Play App Signing | Play Console → Setup → App signing. **Google's key, not yours** | after the first upload |
+
+Play re-signs your upload with its own key, so the **Play App Signing** fingerprint is the
+one Play Integrity checks on a real install. Leaving it out is the failure that works
+perfectly on your machine and fails for everyone who installs from Play.
+
+Paste each SHA-1 and SHA-256 into Firebase Console → Project settings → Your apps → the
+Android app → Add fingerprint, in **both** projects. Then re-download each
+`google-services.json` into `app/src/staging/` and `app/src/prod/` — the fingerprints are
+embedded in that file, so an old copy silently keeps the old set.
 
 ```bash
 ./gradlew signingReport
