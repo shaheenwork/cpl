@@ -7,9 +7,11 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.shnapps.couple.core.model.AppLockMode
 import com.shnapps.couple.core.model.GamePlayers
+import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.Mode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -22,7 +24,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 @Singleton
 class AppPreferencesDataSource @Inject constructor(
     @ApplicationContext private val context: Context,
-) : AppPreferencesStore {
+) : AppPreferencesStore, PlaySettingsStore {
     override val preferences: Flow<AppPreferences> = context.dataStore.data.map { prefs ->
         AppPreferences(
             lockMode = prefs[Keys.LOCK_MODE]
@@ -39,6 +41,9 @@ class AppPreferencesDataSource @Inject constructor(
             },
             mode = prefs[Keys.MODE]?.let { name -> Mode.entries.firstOrNull { it.name == name } } ?: Mode.TOGETHER,
             showNotificationContent = prefs[Keys.SHOW_NOTIFICATION_CONTENT] ?: false,
+            heat = prefs[Keys.HEAT]?.let { name -> Heat.entries.firstOrNull { it.name == name } } ?: Heat.DEFAULT,
+            refusedCardIds = prefs[Keys.REFUSED_CARDS].orEmpty(),
+            refusedThemes = prefs[Keys.REFUSED_THEMES].orEmpty(),
         )
     }
 
@@ -93,6 +98,17 @@ class AppPreferencesDataSource @Inject constructor(
         context.dataStore.edit { it[Keys.MODE] = mode.name }
     }
 
+    override suspend fun setHeat(heat: Heat) {
+        context.dataStore.edit { it[Keys.HEAT] = heat.name }
+    }
+
+    override suspend fun refuse(cardId: String, themes: Set<String>) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.REFUSED_CARDS] = prefs[Keys.REFUSED_CARDS].orEmpty() + cardId
+            if (themes.isNotEmpty()) prefs[Keys.REFUSED_THEMES] = prefs[Keys.REFUSED_THEMES].orEmpty() + themes
+        }
+    }
+
     override suspend fun clear() {
         context.dataStore.edit { it.clear() }
     }
@@ -108,5 +124,8 @@ class AppPreferencesDataSource @Inject constructor(
         val SECOND_PLAYER = stringPreferencesKey("game_second_player")
         val MODE = stringPreferencesKey("home_mode")
         val SHOW_NOTIFICATION_CONTENT = booleanPreferencesKey("show_notification_content")
+        val HEAT = stringPreferencesKey("heat")
+        val REFUSED_CARDS = stringSetPreferencesKey("refused_card_ids")
+        val REFUSED_THEMES = stringSetPreferencesKey("refused_themes")
     }
 }

@@ -29,6 +29,8 @@ import com.shnapps.couple.feature.games.GameScreen
 import com.shnapps.couple.feature.games.GamesScreen
 import com.shnapps.couple.feature.home.HomeActions
 import com.shnapps.couple.feature.home.HomeScreen
+import com.shnapps.couple.feature.instant.InstantPlayScreen
+import com.shnapps.couple.feature.instant.StartScreen
 import com.shnapps.couple.feature.memories.MemoriesScreen
 import com.shnapps.couple.feature.memories.SaveMemoryScreen
 import com.shnapps.couple.feature.night.BuildNightScreen
@@ -78,6 +80,29 @@ fun CplNavHost(
                     }
                 },
             )
+        }
+
+        // First launch with no account: age and heat on one screen, then a card
+        // (REDESIGN_PROMPT.md §5.1). The signed-in path still goes through Route.AgeGate,
+        // where the attestation is written to the person's own record.
+        composable<Route.Start> {
+            StartScreen(
+                onStarted = {
+                    navController.navigate(Route.InstantPlay) {
+                        popUpTo(Route.Start) { inclusive = true }
+                    }
+                },
+                onNotOldEnough = {
+                    navController.navigate(Route.Auth) {
+                        popUpTo(Route.Start) { inclusive = true }
+                    }
+                },
+                onPairInstead = { navController.navigate(Route.Auth) },
+            )
+        }
+
+        composable<Route.InstantPlay> {
+            InstantPlayScreen(onBack = { navController.navigate(Route.Start) })
         }
 
         composable<Route.AgeGate> {
@@ -325,6 +350,8 @@ private fun experienceRoute(experienceId: String, type: ExperienceType): Any = w
 
 private fun StartDestination.toRoute(): Any = when (this) {
     StartDestination.Auth -> Route.Auth
+    StartDestination.Start -> Route.Start
+    StartDestination.InstantPlay -> Route.InstantPlay
     StartDestination.AgeGate -> Route.AgeGate
     StartDestination.Welcome -> Route.Welcome
     StartDestination.CoupleSetup -> Route.CoupleSetup

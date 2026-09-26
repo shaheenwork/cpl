@@ -20,7 +20,13 @@ import javax.inject.Inject
 sealed interface StartDestination {
     data object Loading : StartDestination
 
-    /** Not signed in. */
+    /** Not signed in, and nothing set up: age and heat, then a card (REDESIGN_PROMPT.md §5.1). */
+    data object Start : StartDestination
+
+    /** Not signed in, but already through the gate: straight back to playing. */
+    data object InstantPlay : StartDestination
+
+    /** Not signed in, and asking to be: the sign-in screen. */
     data object Auth : StartDestination
 
     /** Signed in, but with no 18+ record. Always re-prompted rather than assumed (§3.1). */
@@ -62,7 +68,12 @@ class SplashViewModel @Inject constructor(
         viewModelScope.launch {
             val user = authRepository.authState.first()
             if (user == null) {
-                _uiState.value = SplashUiState(StartDestination.Auth)
+                // No account is no longer a dead end. Someone who has already said they are 18
+                // goes back to where they were; someone new gets the one screen that asks.
+                val confirmed = authRepository.ageConfirmedHint()
+                _uiState.value = SplashUiState(
+                    if (confirmed) StartDestination.InstantPlay else StartDestination.Start,
+                )
                 return@launch
             }
 

@@ -22,6 +22,18 @@ object Route {
     @Serializable
     data object AgeGate
 
+    /**
+     * The whole of first launch (REDESIGN_PROMPT.md §5.1): 18+ and how far tonight goes, on one
+     * screen, with no account behind it. [AgeGate] stays for the signed-in path, where the
+     * attestation is written to the person's own record.
+     */
+    @Serializable
+    data object Start
+
+    /** Playing with nothing set up: the card, and the two taps that move it on. */
+    @Serializable
+    data object InstantPlay
+
     @Serializable
     data object Auth
 

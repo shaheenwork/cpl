@@ -2,14 +2,16 @@ package com.shnapps.couple.core.testing
 
 import com.shnapps.couple.core.datastore.AppPreferences
 import com.shnapps.couple.core.datastore.AppPreferencesStore
+import com.shnapps.couple.core.datastore.PlaySettingsStore
 import com.shnapps.couple.core.model.AppLockMode
 import com.shnapps.couple.core.model.GamePlayers
+import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.Mode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 
 /** In-memory [AppPreferencesStore] that really keeps what is written to it. */
-class FakeAppPreferencesStore(initial: AppPreferences = AppPreferences()) : AppPreferencesStore {
+class FakeAppPreferencesStore(initial: AppPreferences = AppPreferences()) : AppPreferencesStore, PlaySettingsStore {
 
     val state = MutableStateFlow(initial)
 
@@ -37,6 +39,17 @@ class FakeAppPreferencesStore(initial: AppPreferences = AppPreferences()) : AppP
 
     override suspend fun setShowNotificationContent(show: Boolean) =
         state.update { it.copy(showNotificationContent = show) }
+
+    override suspend fun setHeat(heat: Heat) {
+        state.value = state.value.copy(heat = heat)
+    }
+
+    override suspend fun refuse(cardId: String, themes: Set<String>) {
+        state.value = state.value.copy(
+            refusedCardIds = state.value.refusedCardIds + cardId,
+            refusedThemes = state.value.refusedThemes + themes,
+        )
+    }
 
     override suspend fun clear() {
         state.value = AppPreferences()

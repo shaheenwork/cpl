@@ -31,9 +31,21 @@ class SplashViewModelTest {
     }
 
     @Test
-    fun `signed out goes to auth`() = runTest(mainDispatcherRule.testDispatcher) {
+    fun `signed out and new goes to the one screen that asks`() = runTest(mainDispatcherRule.testDispatcher) {
+        // No account is not a dead end any more (REDESIGN_PROMPT.md §5.1): a first launch asks
+        // for an age and a heat, and then plays.
         auth.user.value = null
-        assertThat(resolve()).isEqualTo(StartDestination.Auth)
+        auth.ageHint = false
+
+        assertThat(resolve()).isEqualTo(StartDestination.Start)
+    }
+
+    @Test
+    fun `signed out but already through the gate goes back to playing`() = runTest(mainDispatcherRule.testDispatcher) {
+        auth.user.value = null
+        auth.ageHint = true
+
+        assertThat(resolve()).isEqualTo(StartDestination.InstantPlay)
     }
 
     @Test

@@ -1487,3 +1487,37 @@ of zero is the interesting result and reads as a match; every other gap is symme
 `MEDIA` — a voice note or photo inside a round — is the third primitive the apart games need. It is
 deliberately not here: the media pipeline is server-side and asynchronous (D-083), and wiring it
 into a round belongs with the apart games rather than with two pure additions to the interpreter.
+
+---
+
+## D-100 — Playing without an account, and why that is not a hole in §5
+**Redesign R2.** The app's architecture assumes two accounts: a night is filtered on the server from
+both partners' private limits, and the device only ever plays what it was handed
+(`PermittedPool.fromServer`, D-048). That is right, and none of it changes. But it cannot produce a
+card for two people who installed the app four minutes ago, and making them sign up, pair and answer
+twenty questions first is what made the app unusable.
+
+So there is a second path, `InstantDeck`, and its safety rests on a different fact rather than on a
+weaker rule: **there is no partner yet.** Everything it reads belongs to the person holding the
+phone — the heat they chose, and the cards they have refused. No private document is consulted
+because none exists, so nothing about anyone can leak through it. The §5 promises are about what one
+partner can learn about the other; with one account and one phone there is no other.
+
+What the deck may contain is bounded rather than filtered: published items only, at or below this
+phone's heat, in `TOGETHER` mode, needing no media and no mutual match. The last two matter — an
+item that needs a recording needs someone to send it to, and an item that needs a mutual match needs
+two people who have answered something.
+
+The moment a couple is paired and signed in, this stops being the source. The deck comes from the
+server through the chokepoint as it always has, and what is here becomes a second, **narrower** gate
+on top of it. `InstantDeck.narrow` can only ever remove, and `InstantDeckTest` asserts exactly that,
+because it is the property that keeps this from becoming a way around the filter.
+
+**The attestation still gates the app.** It is recorded locally when there is no account and
+reconciled when one appears; on a signed-in device the splash still checks the **server** record, so
+a local flag has never been enough to pass the gate (§3.1, unchanged).
+
+**A refusal is kept where it can be honoured.** "Never show me these again" writes the card's
+boundary themes to this phone immediately, so the next card already respects it. When an account
+exists those themes belong in the person's real limits — that reconciliation is R5's, and until then
+the local copy is the only record and the only thing consulted.

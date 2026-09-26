@@ -33,6 +33,20 @@ class ContentChokepointTest {
         assertTrue(pool.size == 1) { "expected exactly one PermittedPool, found ${pool.size}" }
     }
 
+    /**
+     * The deck a phone builds for itself (D-100) is bounded the same way the night's pool is: it
+     * can only be made by the factory that applies the heat and the refusals, never assembled by a
+     * screen from a list of its own choosing.
+     */
+    @Test
+    fun `an instant deck can only be built through its factory`() {
+        val deck = Konsist.scopeFromProject().classes().filter { it.name == "InstantDeck" }
+        deck.assertTrue(testName = "InstantDeck constructor must be private") { declaration ->
+            declaration.primaryConstructor?.hasPrivateModifier == true
+        }
+        assertTrue(deck.size == 1) { "expected exactly one InstantDeck, found ${deck.size}" }
+    }
+
     @Test
     fun `the engine's planner and assembler are not reachable from app code`() {
         Konsist.scopeFromProject()
@@ -51,12 +65,19 @@ class ContentChokepointTest {
          * (DECISIONS.md D-048), and the game repository only a server's game's, through
          * ReleasedGame.fromServer (D-070); the debug inspector lists it on purpose (D-042); the
          * fake stands in for it in tests.
+         *
+         * The instant repository is the one addition the rebuild makes, and it is a deliberate
+         * one (D-100): a phone with no account has no partner whose limits could be leaked, so
+         * it may build a deck from the shipped catalogue bounded by its own heat and refusals.
+         * The rule below keeps that from widening — a deck can only be made through
+         * InstantDeck.of, and narrowing it can only ever remove.
          */
         val CATALOGUE_READERS = listOf(
             "core/data/src/main/kotlin/com/shnapps/couple/core/data/di/DataModule.kt",
             "core/data/src/main/kotlin/com/shnapps/couple/core/data/night/NightRepository.kt",
             "core/data/src/main/kotlin/com/shnapps/couple/core/data/game/GameRepository.kt",
             "core/data/src/main/kotlin/com/shnapps/couple/core/data/taxonomy/TaxonomyRepository.kt",
+            "core/data/src/main/kotlin/com/shnapps/couple/core/data/instant/InstantPlayRepository.kt",
             "app/src/debug/kotlin/com/shnapps/couple/debug/ContentInspector.kt",
             "core/testing/src/main/kotlin/com/shnapps/couple/core/testing/FakeContentRepository.kt",
         )

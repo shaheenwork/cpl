@@ -4,8 +4,9 @@ Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
 **Current position:** The 23 phases of BUILD_PROMPT.md are complete, and the rebuild in
-`REDESIGN_PROMPT.md` has begun — R1 (chance, desire and six new games) is done; R2 (first open, one
-screen) is next. Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
+`REDESIGN_PROMPT.md` has begun — R1 (chance, desire and six new games) and R2 (two taps to a card,
+with no account and no network) are done; R3 (the card player in full: timers, progress, and the
+games reachable from it) is next. Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
 and every §23 deliverable is written. What remains before a public release is setup and review, not
 code: `RELEASE.md` is the ordered runbook, `HUMAN_SETUP.md` the console detail, and `legal/` holds
 drafts of the privacy policy, the terms and the Play data-safety answers, pending a lawyer.
@@ -1229,6 +1230,51 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Redesign R2 — Two taps, and you are playing ✅
+
+The wall came down. What used to be eleven screens and about ten minutes before the first card is
+one screen and two taps, with no account, no partner and — as the device check proved — no network.
+
+### Shipped
+- **`Heat`**: three levels where the engine has five. A person meets Playful, Hot and Wild and can
+  change them mid-card with one thumb; `Intensity` still runs the engine underneath. Each heat names
+  a **ceiling**, never a promise.
+- **`InstantDeck`** (D-100): a device-side deck over the content that shipped in the APK. Its safety
+  rests on there being no partner yet — everything it reads belongs to the person holding the phone.
+  Bounded to published, `TOGETHER`, at or below this phone's heat, needing no media and no mutual
+  match. `narrow` can only ever remove, which is what will keep it a second gate rather than a way
+  round the server's filter when a couple does sign in.
+- **One screen for first launch**: 18+ and how far tonight goes, together, with "My partner isn't
+  here" as the quiet second action. The attestation is still the gate §3.1 requires — recorded
+  locally while there is no account, and still checked against the **server** record on a signed-in
+  device, so a local flag has never been enough.
+- **The card player**: one instruction, `Skip` and `Done`, and `Too far` beneath. Skip asks nothing
+  and records nothing. "Too far" asks one question — just this one, or never again — and writes the
+  card's own boundary themes to this phone, which is how a limit is set now: one tap, during play,
+  instead of a twenty-card wizard at midnight.
+- **A heat ramp that asks**: after five yeses in a row the app offers to turn it up. Offered, never
+  applied.
+- **Signed out is no longer a dead end**: the splash sends someone new to that one screen, and
+  someone who has already been through it straight back to playing.
+
+### Verified
+```
+./gradlew check                                BUILD SUCCESSFUL
+:core:engine InstantDeckTest                    9/9
+:feature:instant InstantPlayViewModelTest      10/10
+:feature:onboarding SplashViewModelTest        11/11  (2 rewritten for the new routing)
+```
+- **On the device, with Wi-Fi and mobile data switched off**, from a cleared install: notification
+  prompt, then the one screen, then **two taps to a real card** — "HOT · 5 MIN · Opposite Corners".
+- Skip moved on with nothing recorded. Five Dones offered "Turn it up?", and taking it moved the
+  deck to WILD. "Too far" → "Never show me these again" moved to the next card, and a cold restart
+  came back **straight to playing** at the heat that had been chosen, which is the local record
+  doing its job. No `FATAL EXCEPTION` in logcat.
+- The exit criterion in `REDESIGN_PROMPT.md` was "cold install to first card in two taps, on a
+  device". It is met with the network off, which is a stronger claim than the phase asked for.
 
 ---
 

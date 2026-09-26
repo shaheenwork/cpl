@@ -2,6 +2,7 @@ package com.shnapps.couple.core.datastore
 
 import com.shnapps.couple.core.model.AppLockMode
 import com.shnapps.couple.core.model.GamePlayers
+import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.Mode
 
 /**
@@ -45,6 +46,26 @@ data class AppPreferences(
      * message arrives before anything has loaded. Hidden until told otherwise.
      */
     val showNotificationContent: Boolean = false,
+
+    /**
+     * How far tonight goes, as this phone last set it (REDESIGN_PROMPT.md §2).
+     *
+     * Device-local on purpose: before a couple has signed in there is nowhere else to keep it, and
+     * afterwards the couple's real ceiling is still the server's — this only ever narrows what that
+     * allows, never widens it.
+     */
+    val heat: Heat = Heat.DEFAULT,
+
+    /**
+     * Cards this phone has been told never to show again, and the kinds of thing they belong to
+     * (REDESIGN_PROMPT.md §5.3).
+     *
+     * Captured by one tap during play rather than by a wizard beforehand. They are kept here while
+     * there is no account, and written to the person's real limits the moment there is one — until
+     * then they are the only record, so a refusal is honoured from the next card onwards.
+     */
+    val refusedCardIds: Set<String> = emptySet(),
+    val refusedThemes: Set<String> = emptySet(),
 ) {
     companion object {
         const val DEFAULT_LOCK_TIMEOUT_MILLIS: Long = 60_000L

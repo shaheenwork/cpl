@@ -16,6 +16,8 @@ import com.shnapps.couple.core.data.couple.CoupleRepository
 import com.shnapps.couple.core.data.couple.DefaultCoupleRepository
 import com.shnapps.couple.core.data.game.DefaultGameRepository
 import com.shnapps.couple.core.data.game.GameRepository
+import com.shnapps.couple.core.data.instant.DefaultInstantPlayRepository
+import com.shnapps.couple.core.data.instant.InstantPlayRepository
 import com.shnapps.couple.core.data.media.DefaultMediaRepository
 import com.shnapps.couple.core.data.media.MediaRepository
 import com.shnapps.couple.core.data.memories.DefaultMemoryRepository
@@ -104,4 +106,8 @@ abstract class DataModule {
 
     @Binds
     abstract fun bindAccountRepository(impl: DefaultAccountRepository): AccountRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindInstantPlayRepository(impl: DefaultInstantPlayRepository): InstantPlayRepository
 }

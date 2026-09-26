@@ -2,6 +2,7 @@ package com.shnapps.couple.core.datastore.di
 
 import com.shnapps.couple.core.datastore.AppPreferencesDataSource
 import com.shnapps.couple.core.datastore.AppPreferencesStore
+import com.shnapps.couple.core.datastore.PlaySettingsStore
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -15,4 +16,9 @@ abstract class DataStoreModule {
     @Binds
     @Singleton
     abstract fun bindAppPreferencesStore(impl: AppPreferencesDataSource): AppPreferencesStore
+
+    /** The same object, under the name the play screens ask for. */
+    @Binds
+    @Singleton
+    abstract fun bindPlaySettingsStore(impl: AppPreferencesDataSource): PlaySettingsStore
 }

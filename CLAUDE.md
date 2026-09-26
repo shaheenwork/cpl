@@ -300,6 +300,24 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
 
 ---
 
+## Playing with no account (the rebuild)
+
+- `REDESIGN_PROMPT.md` is the brief for the front half; `BUILD_PROMPT.md` still governs everything
+  it does not cover, and §3, §5, §7 and §10.3 are not up for renegotiation.
+- `Heat` (three levels) is what a person sets; `Intensity` (five) is what the engine runs on. A heat
+  is a **ceiling**, and the couple's real ceiling is still the server's once they are paired.
+- `InstantDeck` (`:core:engine`) is the deck for a phone with no account — shipped content only,
+  bounded by this phone's heat and refusals. It is safe because there is no partner yet, not because
+  it filters (D-100). `narrow` may only ever remove, and a test holds that.
+- A refusal is captured mid-play by `Too far`, written to DataStore (`refusedCardIds`,
+  `refusedThemes`), and honoured from the next card. Reconciling those into the person's real limits
+  when they sign up is R5's job.
+- The splash sends a signed-out person to `Route.Start` (new) or `Route.InstantPlay` (already through
+  the gate). `Route.AgeGate` is still the signed-in path, where the attestation is written to their
+  own record.
+
+---
+
 ## Performance, cost and accessibility
 
 - A stored session is checked on open: `validateSession()` refreshes the token and signs out one
