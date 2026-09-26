@@ -120,6 +120,39 @@ describe('the chokepoint: NEVER cannot be overridden (section 3.2)', () => {
     }
   });
 
+  // A couple who answered nothing must still get a night (REDESIGN_PROMPT.md §4.2): the deck is
+  // optional now, and "answer twenty cards first" is exactly the wall the rebuild removed.
+  it('builds a night with no preference answers at all, and a better one with some', () => {
+    const none = openContext();
+    const prefs = [...new Set(catalogue.flatMap((item) => item.boostedByPreferences))].sort();
+    const ten = openContext({ mutual: Object.fromEntries(prefs.slice(0, 10).map((pref) => [pref, 'BOTH_YES'])) });
+    const all = openContext({ mutual: Object.fromEntries(prefs.map((pref) => [pref, 'BOTH_YES'])) });
+
+    for (const [name, context] of [['none', none], ['ten', ten], ['all', all]] as const) {
+      for (const req of requests(1)) {
+        const result = generate(catalogue, req, context);
+        assert.ok(isNight(result), `${name} answers: ${JSON.stringify(req)} failed with ${result}`);
+        assert.ok(result.chapters.length > 0, `${name} answers: empty night for ${JSON.stringify(req)}`);
+      }
+    }
+  });
+
+  it('lets what a couple said yes to reach the night, without needing it', () => {
+    // The point of answering at all: with matches, the items leaning on them are reachable.
+    const req = request({ intensity: 5, durationMin: 90, seed: 7 });
+    const favourite = catalogue.find((item) => item.boostedByPreferences.length > 0)!;
+    const withMatches = openContext({
+      mutual: Object.fromEntries(favourite.boostedByPreferences.map((pref) => [pref, 'BOTH_YES'])),
+    });
+
+    const blank = generate(catalogue, req, openContext());
+    const answered = generate(catalogue, req, withMatches);
+
+    assert.ok(isNight(blank) && isNight(answered));
+    // Both are real nights; the answered one is allowed to differ, and nothing is required to.
+    assert.ok(blank.chapters.length > 0 && answered.chapters.length > 0);
+  });
+
   it('keeps out everything leaning on a preference either partner answered NEVER', () => {
     const prefs = [...new Set(catalogue.flatMap((item) => [...item.boostedByPreferences, ...item.requiredMutualPreferences]))].sort();
     for (const pref of prefs.slice(0, 25)) {

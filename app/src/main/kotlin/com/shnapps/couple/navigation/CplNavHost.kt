@@ -182,9 +182,11 @@ fun CplNavHost(
         // reachable on a device rather than only in tests.
         composable<Route.CoupleSetup> {
             PairingScreen(
-                // First run continues straight into private discovery (§14.1).
+                // Straight to the app (REDESIGN_PROMPT.md §4.2). Pairing used to hand people
+                // twenty preference cards before they had done anything together; the deck is
+                // offered from home now, once they have.
                 onPaired = {
-                    navController.navigate(Route.PreferenceDiscovery) {
+                    navController.navigate(Route.Home) {
                         popUpTo(Route.CoupleSetup) { inclusive = true }
                     }
                 },

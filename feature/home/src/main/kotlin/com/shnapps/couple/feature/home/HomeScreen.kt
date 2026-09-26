@@ -219,7 +219,7 @@ private fun TogetherHome(state: HomeUiState, actions: HomeActions) {
     }
     Section("Between the two of you") {
         Column(verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm)) {
-            Quiet("Your private curiosities", actions.onCuriosities, "👀")
+            Curiosities(answered = state.answered, onPlay = actions.onCuriosities)
             Quiet("What you both chose", actions.onMutual)
         }
     }
@@ -230,6 +230,39 @@ private fun TogetherHome(state: HomeUiState, actions: HomeActions) {
  * for being apart, and one partner planning a night the other finds later (§2.5 #2). Voice,
  * photos, countdowns and multi-day arcs come in the phases that build them.
  */
+/**
+ * The private deck, offered rather than demanded (REDESIGN_PROMPT.md §4.2).
+ *
+ * It used to run straight after pairing: twenty cards before a couple had done anything together.
+ * The engine builds a night with none of them answered and a better one with some, so this is a
+ * thing to play when they feel like it — and it says where they are rather than how far they have
+ * to go, because there is no end anyone has to reach.
+ */
+@Composable
+private fun Curiosities(answered: Int, onPlay: () -> Unit) {
+    CinematicCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onPlay,
+        contentDescription = "What are you curious about? Answered in private, and never shown to them.",
+    ) {
+        Text(text = "👀 JUST FOR YOU", style = EyebrowTextStyle, color = AfterhoursTheme.colors.brass)
+        Text(
+            text = if (answered == 0) "What are you curious about?" else "More you might be curious about",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = when (answered) {
+                0 -> "A few cards, in private. They never see them — only what you both said yes to."
+                1 -> "One answered so far. Every one makes tonight a little more yours."
+                else -> "$answered answered so far. Every one makes tonight a little more yours."
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = AfterhoursTheme.colors.textMuted,
+        )
+    }
+}
+
 @Composable
 private fun ApartHome(state: HomeUiState, actions: HomeActions) {
     Column(verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm)) {

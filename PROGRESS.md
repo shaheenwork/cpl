@@ -7,8 +7,9 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 `REDESIGN_PROMPT.md` has begun — R1 (chance, desire and six new games) and R2 (two taps to a card,
 with no account and no network), R3 (the player whole) and R4 (home, and fourteen games playable
 with no account) and R5 (an account offered when it buys something, carrying the local refusals into
-the person's real limits) and R6 (apart as one thread) are done; R7 (preferences as an optional
-game) is next. The `MEDIA` primitive, for games played apart, is still to come. Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
+the person's real limits), R6 (apart as one thread) and R7 (the deck offered rather than demanded)
+are done; R8 (polish, and the accessibility suites re-run) is next. The `MEDIA` primitive, for games
+played apart, and the rest of the game catalogue are still to come. Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
 and every §23 deliverable is written. What remains before a public release is setup and review, not
 code: `RELEASE.md` is the ordered runbook, `HUMAN_SETUP.md` the console detail, and `legal/` holds
 drafts of the privacy policy, the terms and the Play data-safety answers, pending a lawyer.
@@ -1232,6 +1233,36 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Redesign R7 — The deck, offered rather than demanded ✅
+
+Pairing used to hand a couple twenty preference cards before they had done anything together. It
+does not any more.
+
+### Shipped
+- **Pairing goes to home.** The deck is a card there instead: "What are you curious about?", saying
+  how many they have answered rather than how many are left — there is no end anyone has to reach.
+- **The engine was already fine with that, and now it is proven**: a night builds with **zero**
+  answers, with **ten**, and with **all of them**, across the full request spread — both modes,
+  every length, every level, every leadership and novelty. That is the exit criterion, as a test
+  rather than a claim.
+- Answers still never leave the private path: home counts them, and the count is all it sees.
+
+### Verified
+```
+npm --prefix functions run test:unit           135/135  (2 new: zero/ten/all answers)
+./gradlew check                                BUILD SUCCESSFUL
+:feature:home HomeSnapshotTest                  7/7     (2 goldens for the offer)
+```
+
+### One mistake worth recording
+A script of mine truncated `HomeScreen.kt` to zero bytes: it opened the file for writing, then threw
+while encoding, leaving nothing behind. The file was restored from the last commit and the edit
+redone by a script that builds the whole text first and only then writes, through a temporary file.
+Nothing was lost beyond the few minutes — R6 was already committed — but the near miss is the
+argument for committing each phase as it lands.
 
 ---
 

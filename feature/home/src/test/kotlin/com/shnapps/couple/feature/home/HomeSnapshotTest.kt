@@ -101,6 +101,26 @@ class HomeSnapshotTest {
     }
 
     @Test
+    fun curiositiesAreOfferedNotDemanded() {
+        // The deck used to run straight after pairing (REDESIGN_PROMPT.md §4.2). Now it is a card
+        // on home, and nothing makes anyone finish it.
+        capture("home-curiosities-none") { HomeContent(HomeUiState(answered = 0), HomeActions()) }
+
+        composeRule.onNodeWithText("What are you curious about?").assertIsDisplayed()
+        composeRule.onNodeWithText("A few cards, in private. They never see them — only what you both said yes to.")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun curiositiesSayWhereYouAre() {
+        capture("home-curiosities-some") { HomeContent(HomeUiState(answered = 12), HomeActions()) }
+
+        // Where they are, never how far they have to go: there is no end anyone has to reach.
+        composeRule.onNodeWithText("12 answered so far. Every one makes tonight a little more yours.")
+            .assertIsDisplayed()
+    }
+
+    @Test
     fun somethingIsWaiting() {
         val state = HomeUiState(
             waitingForMe = NightPlan(experienceId = "planned", mine = false, chapterCount = 5, opened = false),

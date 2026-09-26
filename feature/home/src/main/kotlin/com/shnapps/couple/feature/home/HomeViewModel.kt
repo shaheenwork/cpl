@@ -10,6 +10,7 @@ import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.billing.gate
 import com.shnapps.couple.core.data.media.MediaRepository
 import com.shnapps.couple.core.data.night.NightRepository
+import com.shnapps.couple.core.data.preferences.PreferenceRepository
 import com.shnapps.couple.core.data.surprise.SurpriseRepository
 import com.shnapps.couple.core.datastore.AppPreferencesStore
 import com.shnapps.couple.core.model.Gate
@@ -53,6 +54,13 @@ data class HomeUiState(
      * still sealed. Ordered newest first, and saying nothing about anything undelivered.
      */
     val thread: List<ThreadEntry> = emptyList(),
+    /**
+     * How many private curiosities this person has answered (REDESIGN_PROMPT.md §4.2).
+     *
+     * The deck is optional and re-entrant: the engine builds a night with none of them, a better
+     * one with some, and home offers it as something to play rather than a form to complete.
+     */
+    val answered: Int = 0,
     val error: HomeError? = null,
     /** A limit they reached: the screen offers what premium includes, and nothing is lost (§19). */
     val gate: Gate? = null,
@@ -82,6 +90,7 @@ data class HomeUiState(
 class HomeViewModel @Inject constructor(
     private val nights: NightRepository,
     private val preferences: AppPreferencesStore,
+    private val curiosities: PreferenceRepository,
     private val analytics: AnalyticsLogger,
     private val clock: Clock,
     media: MediaRepository,
@@ -96,6 +105,9 @@ class HomeViewModel @Inject constructor(
      * Composed here because `combine` takes five, and because the inbox is wanted twice — once for
      * the one unopened thing the home nudges about, and once as part of the thread.
      */
+    /** Their own answers, counted. The answers themselves never leave the private path (§5.1). */
+    private val answered = curiosities.answers.map { it.size }
+
     private val apart = combine(
         media.inbox,
         surprises.surprises,
@@ -108,9 +120,9 @@ class HomeViewModel @Inject constructor(
         local,
         nights.activeSession,
         preferences.preferences.map { it.mode },
-        nights.plans,
+        combine(nights.plans, answered) { plans, count -> plans to count },
         apart,
-    ) { state, active, mode, plans, (inbox, thread) ->
+    ) { state, active, mode, (plans, count), (inbox, thread) ->
         state.copy(
             active = active,
             mode = mode,
@@ -119,6 +131,7 @@ class HomeViewModel @Inject constructor(
             plannedByMe = plans.firstOrNull { it.mine },
             unopenedMedia = inbox.firstOrNull { it.unopened },
             thread = thread,
+            answered = count,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), HomeUiState())
 

@@ -15,6 +15,7 @@ import com.shnapps.couple.core.model.SessionState
 import com.shnapps.couple.core.testing.FakeAppPreferencesStore
 import com.shnapps.couple.core.testing.FakeMediaRepository
 import com.shnapps.couple.core.testing.FakeNightRepository
+import com.shnapps.couple.core.testing.FakePreferenceRepository
 import com.shnapps.couple.core.testing.FakeSurpriseRepository
 import com.shnapps.couple.core.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -45,10 +46,12 @@ class HomeViewModelTest {
     private val preferences = FakeAppPreferencesStore()
     private val media = FakeMediaRepository()
     private val surprises = FakeSurpriseRepository()
+    private val curiosities = FakePreferenceRepository()
 
     private fun TestScope.home() = HomeViewModel(
         nights = nights,
         preferences = preferences,
+        curiosities = curiosities,
         analytics = AnalyticsLogger { logged += it },
         clock = Clock { NOW },
         media = media,
