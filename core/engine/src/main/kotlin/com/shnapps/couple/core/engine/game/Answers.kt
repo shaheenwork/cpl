@@ -14,6 +14,7 @@ private const val PICKED = "P"
 private const val TEXT = "T"
 private const val STATEMENTS = "S"
 private const val REACTED = "R"
+private const val DIALED = "D"
 
 /** Separates the parts of an answer: a control character no one types. */
 private const val SEPARATOR = ""
@@ -25,6 +26,7 @@ fun Answer.encode(): String? = when (this) {
     is Answer.Statements -> (listOf(STATEMENTS, lie.toString()) + statements.map { it.clean() })
         .joinToString(SEPARATOR)
     is Answer.Reacted -> "$REACTED$SEPARATOR${reaction.name}"
+    is Answer.Dialed -> "$DIALED$SEPARATOR$value"
     Answer.Done, is Answer.Judged -> null
 }
 
@@ -34,6 +36,7 @@ fun decodeAnswer(text: String): Answer? {
     val rest = parts.drop(1)
     return when (parts.firstOrNull()) {
         PICKED -> rest.firstOrNull()?.let { Answer.Picked(it) }
+        DIALED -> rest.firstOrNull()?.toIntOrNull()?.takeIf { it in RoundPrimitive.RANGE }?.let { Answer.Dialed(it) }
         TEXT -> rest.firstOrNull()?.let { Answer.Text(it) }
         STATEMENTS -> {
             val lie = rest.firstOrNull()?.toIntOrNull()

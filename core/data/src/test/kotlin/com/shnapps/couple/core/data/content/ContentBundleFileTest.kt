@@ -184,8 +184,10 @@ class ContentBundleFileTest {
             val verdicts = run.results.map { it.verdict }
             when (game.scoring) {
                 Scoring.NONE -> assertWithMessage("${game.id} scores nothing").that(verdicts).isEmpty()
+                // A game that counts matches compares two answers a round: the same choice, or
+                // two dials and the gap between them.
                 Scoring.MATCHES -> assertWithMessage("${game.id} compares every round")
-                    .that(verdicts.all { it is Verdict.Matched }).isTrue()
+                    .that(verdicts.all { it is Verdict.Matched || it is Verdict.Apart }).isTrue()
                 Scoring.POINTS -> assertWithMessage("${game.id} awards points")
                     .that(verdicts.all { it is Verdict.Point }).isTrue()
             }
@@ -228,11 +230,7 @@ class ContentBundleFileTest {
     }
 
     private fun answerFor(primitive: RoundPrimitive): Answer = when (primitive) {
-        is RoundPrimitive.Question -> when (primitive.answer) {
-            AnswerKind.SPOKEN -> Answer.Done
-            AnswerKind.TEXT -> Answer.Text("An answer")
-            AnswerKind.STATEMENTS -> Answer.Statements(listOf("One", "Two", "Three"), lie = 1)
-        }
+        is RoundPrimitive.Question -> answerForQuestion(primitive.answer)
         is RoundPrimitive.Choice -> Answer.Picked(primitive.options.first().id)
         is RoundPrimitive.Prediction -> primitive.options
             ?.let { Answer.Picked(it.first().id) }
@@ -240,8 +238,15 @@ class ContentBundleFileTest {
         is RoundPrimitive.Vote -> Answer.Picked(primitive.options.first().id)
         is RoundPrimitive.Reveal ->
             if (primitive.verdict == Verdict.AwaitingJudge) Answer.Judged(close = true) else Answer.Done
-        is RoundPrimitive.Timer, is RoundPrimitive.Challenge -> Answer.Done
+        is RoundPrimitive.Timer, is RoundPrimitive.Challenge, is RoundPrimitive.Draw -> Answer.Done
+        is RoundPrimitive.Dial -> Answer.Dialed(RoundPrimitive.RANGE.first)
         is RoundPrimitive.Reaction -> Answer.Reacted(ChapterReaction.LOVED)
+    }
+
+    private fun answerForQuestion(kind: AnswerKind): Answer = when (kind) {
+        AnswerKind.SPOKEN -> Answer.Done
+        AnswerKind.TEXT -> Answer.Text("An answer")
+        AnswerKind.STATEMENTS -> Answer.Statements(listOf("One", "Two", "Three"), lie = 1)
     }
 
     private companion object {

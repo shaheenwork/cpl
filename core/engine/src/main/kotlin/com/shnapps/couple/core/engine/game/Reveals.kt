@@ -18,9 +18,28 @@ internal fun RoundReading.reveal(take: Slot.Take, step: GameStep): RoundPrimitiv
         RevealOutcome.JUDGED -> judged(first, second, answerOf(take.step, take.seat) as? Answer.Judged)
         RevealOutcome.LIE_FOUND -> lieFound(first, second)
         RevealOutcome.WINNER -> won(first)
+        RevealOutcome.DISTANCE -> apart(first)
     }
     return RoundPrimitive.Reveal(take.step, take.seat, outcome, shown, verdict)
 }
+
+/**
+ * Both left a dial somewhere: how far apart, and nothing else.
+ *
+ * Neither number is attributed and neither is called higher. A couple learns whether they want the
+ * same thing to the same degree, which is the useful half, without learning who wanted it more —
+ * which is the half that makes people lie to the dial.
+ */
+private fun RoundReading.apart(step: Int): Pair<List<Shown>, Verdict> {
+    val mine = (answerOf(step, active) as? Answer.Dialed)?.value
+    val theirs = (answerOf(step, other) as? Answer.Dialed)?.value
+    val gap = if (mine == null || theirs == null) NO_GAP else kotlin.math.abs(mine - theirs)
+    val both = if (mine == null || theirs == null) "" else "${kotlin.math.min(mine, theirs)}+"
+    return listOf(Shown(null, both)) to Verdict.Apart(gap)
+}
+
+/** No dial, no gap to report. */
+private const val NO_GAP = -1
 
 /** Both chose, each in turn: the same, or not. */
 private fun RoundReading.matched(step: Int): Pair<List<Shown>, Verdict> {

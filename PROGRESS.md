@@ -3,7 +3,9 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
+**Current position:** The 23 phases of BUILD_PROMPT.md are complete, and the rebuild in
+`REDESIGN_PROMPT.md` has begun — R1 (chance, desire and six new games) is done; R2 (first open, one
+screen) is next. Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
 and every §23 deliverable is written. What remains before a public release is setup and review, not
 code: `RELEASE.md` is the ordered runbook, `HUMAN_SETUP.md` the console detail, and `legal/` holds
 drafts of the privacy policy, the terms and the Play data-safety answers, pending a lawyer.
@@ -1227,6 +1229,44 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Redesign R1 — Chance, desire, and six games that are not quizzes ✅
+
+The first phase of `REDESIGN_PROMPT.md`: the device walk said the app looks basic, and half the
+reason was the games. All eight were talk — guess, predict, confess. Nothing physical, nothing
+where chance decides, nothing that escalates.
+
+### Shipped
+- **Two new primitives**, each one vocabulary entry, one model enum, one interpreter case and one
+  renderer, as the rule requires: `DRAW` (chance picks from the prompt's own pool) and `DIAL` (how
+  much, on a scale nobody says out loud), plus the `DISTANCE` reveal that compares two dials.
+- **A draw that is not a roll** (D-099): the landing is computed from the round —
+  `hash("gameId|round|step|promptId")` through `mulberry32` — so a test can assert it, two phones
+  agree without exchanging anything, and a restarted phone lands where it did before. The screen
+  animates towards a decision already taken. `engine/SPEC.md` §10 now states it.
+- **A dial with no direction**: `DISTANCE` publishes the gap and the lower number as a floor, never
+  who wanted it more — because that is what would teach someone to answer dishonestly next time.
+- **Six games, as content**: Spin, Dirty Dice, Yes No Maybe, Rate It, Three Minutes Yours and Strip
+  Round — 114 prompts across five intensity levels, all authored under the same rules as items, all
+  refusable through their own boundary themes. No new screen, and no code that names a game.
+
+### Verified
+```
+npm --prefix tools run validate              content OK, 14 games
+npm --prefix tools test                       42/42
+npm --prefix functions run test:unit         133/133 — every new game fills every round at every level
+:core:engine DrawAndDialTest                  10/10
+./gradlew check                               BUILD SUCCESSFUL
+```
+- **The interpreter plays all fourteen**: `ContentBundleFileTest` walks every shipped game from its
+  first round to its last through `GameRun`, so a game that cannot be played cannot be shipped.
+- **The server can fill them**: `game.unit.test.ts` releases every round of every game at intensity
+  1 to 5, under the ceiling, from that game's own prompts.
+- Three tests had to be taught the new shapes, and each was a real assertion rather than a
+  formality: the primitive-to-renderer map (one renderer each), the interpreter walk (a gap counts
+  as a comparison), and the game list (named server-side, counted in the tools).
 
 ---
 

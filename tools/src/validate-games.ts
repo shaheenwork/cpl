@@ -187,7 +187,7 @@ function validateSteps(game: GameInfo, vocab: ContentRepo['vocabulary']['games']
     const refs = step.of ?? [];
     check(Array.isArray(refs) && refs.every((ref) => Number.isInteger(ref) && ref >= 0 && ref < index), `${s}: "of" may only name earlier steps`);
     const earlier = (ref: number) => game.steps[ref];
-    const answering = ['QUESTION', 'CHOICE', 'PREDICTION', 'VOTE'];
+    const answering = ['QUESTION', 'CHOICE', 'PREDICTION', 'VOTE', 'DIAL'];
     switch (step.primitive) {
       case 'CHOICE':
       case 'VOTE':
@@ -217,6 +217,20 @@ function validateSteps(game: GameInfo, vocab: ContentRepo['vocabulary']['games']
       case 'REVEAL':
         check(vocab.outcomes.includes(step.outcome ?? ''), `${s}: outcome must be one of ${vocab.outcomes.join(', ')}`);
         check(refs.length >= 1 && refs.every((ref) => answering.includes(earlier(ref)?.primitive ?? '')), `${s}: reveals earlier answers`);
+        if (step.outcome === 'DISTANCE') {
+          check(refs.every((ref) => earlier(ref)?.primitive === 'DIAL'), `${s}: a DISTANCE reveal compares dials`);
+          check(refs.every((ref) => earlier(ref)?.who === 'EACH'), `${s}: a gap needs a dial from each of them`);
+        }
+        break;
+      case 'DRAW':
+        // Chance needs something to choose between, and the pool is the round's own prompt: a
+        // fixed list in the game would be the same spin every round.
+        check(step.options === 'PROMPT', `${s}: a draw takes its pool from the prompt`);
+        check(game.promptOptions[0] >= 2, `${s}: a draw needs prompts carrying at least 2 options`);
+        break;
+      case 'DIAL':
+        check(step.options === undefined, `${s}: a dial has no options — it is a number`);
+        check(step.text !== undefined, `${s}: a dial must say what it is asking about`);
         break;
       case 'TIMER':
         check(step.seconds === 'PROMPT' || (Number.isInteger(step.seconds) && (step.seconds as number) >= LIMITS.seconds[0]), `${s}: seconds must be PROMPT or a number`);

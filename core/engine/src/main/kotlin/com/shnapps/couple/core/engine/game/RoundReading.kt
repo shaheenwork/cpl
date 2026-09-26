@@ -1,5 +1,6 @@
 package com.shnapps.couple.core.engine.game
 
+import com.shnapps.couple.core.engine.Rng
 import com.shnapps.couple.core.model.AnswerKind
 import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.GamePrimitive
@@ -19,6 +20,10 @@ import com.shnapps.couple.core.model.VoteOption
 internal class RoundReading(private val state: RunState) {
 
     private val game: Game get() = state.game
+
+    /** What the draw seeds itself from: which game this is, and which round of it. */
+    val gameId: String get() = game.id
+    val roundIndex: Int get() = state.round
     val active: Int = state.activeSeat(state.round)
     val other: Int = 1 - active
 
@@ -125,6 +130,8 @@ internal class RoundReading(private val state: RunState) {
             }
             GamePrimitive.CHALLENGE -> RoundPrimitive.Challenge(take.step, seat, text, promptInPlay()?.kind)
             GamePrimitive.REACTION -> RoundPrimitive.Reaction(take.step, seat, text)
+            GamePrimitive.DRAW -> draw(take, step, seat, text)
+            GamePrimitive.DIAL -> RoundPrimitive.Dial(take.step, seat, text, DIAL_LOW, DIAL_HIGH)
         }
     }
 
@@ -212,4 +219,37 @@ internal class RoundReading(private val state: RunState) {
     }
 
     fun name(seat: Int): String = state.players.name(seat)
+}
+
+/** What a dial's ends say. The words are the same in every game, so no game has to supply them. */
+private const val DIAL_LOW = "Not at all"
+private const val DIAL_HIGH = "Very much"
+
+/**
+ * A seed from what the round already is, so a draw needs no stored randomness.
+ *
+ * Kotlin's `String.hashCode` is specified rather than platform-dependent, so this gives the same
+ * number on every device, every run, for the same round (engine/SPEC.md §2).
+ */
+private fun seedOf(game: String, round: Int, step: Int, prompt: String): Long {
+    val text = "$game|$round|$step|$prompt"
+    return text.hashCode().toLong() and THIRTY_TWO_BITS
+}
+
+/** mulberry32 is a 32-bit generator, so the seed is taken unsigned in that width (SPEC §2). */
+private const val THIRTY_TWO_BITS = 0xFFFFFFFFL
+
+/**
+ * Where chance lands, decided here rather than on screen.
+ *
+ * The seed is the round's own: the game, the round number, the step and the prompt being played. So
+ * the same round always lands the same way — a test can assert it, both phones of a two-phone game
+ * agree without sending anything, and a reopened phone lands where it did before (D-047, D-075).
+ * The screen spins towards a decision that was already made.
+ */
+internal fun RoundReading.draw(take: Slot.Take, step: GameStep, seat: Int?, text: String): RoundPrimitive.Draw {
+    val pool = options(step, seat)
+    val seed = seedOf(gameId, roundIndex, take.step, promptInPlay()?.id.orEmpty())
+    val landed = if (pool.isEmpty()) Option("", "") else pool[Rng(seed).nextInt(pool.size)]
+    return RoundPrimitive.Draw(take.step, seat, text, pool, landed)
 }

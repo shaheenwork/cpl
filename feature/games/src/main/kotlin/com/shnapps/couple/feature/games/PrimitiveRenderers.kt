@@ -10,6 +10,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,6 +24,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import com.shnapps.couple.core.designsystem.component.CinematicCard
 import com.shnapps.couple.core.designsystem.component.CountdownRing
@@ -32,6 +35,7 @@ import com.shnapps.couple.core.designsystem.component.RevealCard
 import com.shnapps.couple.core.designsystem.component.RevealState
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
+import com.shnapps.couple.core.designsystem.theme.LocalReduceMotion
 import com.shnapps.couple.core.engine.game.Answer
 import com.shnapps.couple.core.engine.game.Option
 import com.shnapps.couple.core.engine.game.RoundPrimitive
@@ -58,6 +62,8 @@ internal fun PrimitiveRenderer(primitive: RoundPrimitive, players: GamePlayers, 
         is RoundPrimitive.Timer -> TimerRenderer(primitive, players, onSubmit)
         is RoundPrimitive.Challenge -> ChallengeRenderer(primitive, players, onSubmit)
         is RoundPrimitive.Reaction -> ReactionRenderer(primitive, players, onSubmit)
+        is RoundPrimitive.Draw -> DrawRenderer(primitive, players, onSubmit)
+        is RoundPrimitive.Dial -> DialRenderer(primitive, players, onSubmit)
     }
 }
 
@@ -203,6 +209,83 @@ internal fun ReactionRenderer(reaction: RoundPrimitive.Reaction, players: GamePl
     }
 }
 
+/**
+ * Chance, landing.
+ *
+ * The result is already decided before this composes — the interpreter chose it from the round
+ * itself — so the spin is honest animation rather than a draw of its own. It cycles the pool for a
+ * moment, slowing down, and stops on what was decided.
+ */
+@Composable
+internal fun DrawRenderer(draw: RoundPrimitive.Draw, players: GamePlayers, onSubmit: (Answer) -> Unit) {
+    val reduceMotion = LocalReduceMotion.current
+    var showing by remember(draw.step) { mutableStateOf(if (reduceMotion) draw.landed else draw.options.first()) }
+    var settled by rememberSaveable(draw.step) { mutableStateOf(reduceMotion) }
+
+    LaunchedEffect(draw.step) {
+        if (settled) return@LaunchedEffect
+        var wait = SPIN_START_MS
+        while (wait < SPIN_END_MS) {
+            showing = draw.options.random()
+            delay(wait)
+            wait = (wait * SPIN_EASING).toLong()
+        }
+        showing = draw.landed
+        settled = true
+    }
+
+    Asked(whoFor(draw.seat, players), draw.caption)
+    CinematicCard(modifier = Modifier.fillMaxWidth(), glowing = settled) {
+        Text(
+            text = if (settled) "IT SAYS" else "SPINNING",
+            style = EyebrowTextStyle,
+            color = AfterhoursTheme.colors.brass,
+        )
+        Text(
+            text = (if (settled) draw.landed else showing).label,
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+    GlowButton(
+        text = if (settled) "Done" else "Spinning…",
+        onClick = { onSubmit(Answer.Done) },
+        enabled = settled,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+/**
+ * How much, without saying it.
+ *
+ * The number is never shown to the other partner and never leaves the phone as a number: only a
+ * reveal's gap is shared, which is why the dial can be answered honestly.
+ */
+@Composable
+internal fun DialRenderer(dial: RoundPrimitive.Dial, players: GamePlayers, onSubmit: (Answer) -> Unit) {
+    var value by rememberSaveable(dial.step) { mutableIntStateOf(DIAL_START) }
+
+    Asked(whoFor(dial.seat, players), dial.text)
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm)) {
+        Slider(
+            value = value.toFloat(),
+            onValueChange = { value = it.toInt() },
+            valueRange = RoundPrimitive.RANGE.first.toFloat()..RoundPrimitive.RANGE.last.toFloat(),
+            steps = RoundPrimitive.RANGE.last - RoundPrimitive.RANGE.first - 1,
+            modifier = Modifier.fillMaxWidth().semantics { contentDescription = dial.text },
+        )
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(text = dial.low, style = MaterialTheme.typography.bodySmall, color = AfterhoursTheme.colors.textMuted)
+            Text(text = dial.high, style = MaterialTheme.typography.bodySmall, color = AfterhoursTheme.colors.textMuted)
+        }
+    }
+    GlowButton(
+        text = "That's my answer",
+        onClick = { onSubmit(Answer.Dialed(value)) },
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
 // ---- pieces the renderers share ------------------------------------------------------------------
 
 /** Whose turn a primitive is: a name, or both of them. */
@@ -310,8 +393,31 @@ private fun verdictLine(
             else -> "${players.name(seat)} scores."
         }
     }
+    is Verdict.Apart -> gapLine(verdict.gap)
     Verdict.AwaitingJudge -> "Close enough?"
 }
+
+/** Where a dial starts: the middle, so neither end is the default answer. */
+/** A gap this small reads as agreement rather than a difference. */
+private const val NEAR_GAP = 2
+
+/**
+ * The gap, never who was higher: the direction is the part that would make someone answer the dial
+ * dishonestly next time.
+ */
+private fun gapLine(gap: Int): String = when {
+    gap < 0 -> "Waiting on you both."
+    gap == 0 -> "Exactly the same number."
+    gap <= NEAR_GAP -> "Close — $gap apart."
+    else -> "$gap apart."
+}
+
+private const val DIAL_START = 5
+
+/** A spin that slows: each step waits longer than the last, until it stops. */
+private const val SPIN_START_MS = 60L
+private const val SPIN_END_MS = 420L
+private const val SPIN_EASING = 1.35
 
 private const val SECOND_MS = 1_000L
 private const val REVEAL_BEAT_MS = 700L

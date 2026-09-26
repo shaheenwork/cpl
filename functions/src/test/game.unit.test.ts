@@ -34,9 +34,13 @@ function game(id: string): GameDefinition {
 }
 
 describe('every game can be played', () => {
-  it('ships the eight core games', () => {
+  it('ships every game the app offers', () => {
+    // Named rather than counted: a game disappearing from the bundle is a content mistake that
+    // no other test would notice, because everything else here loops over whatever is there.
     assert.deepEqual(games.map((each) => each.id).sort(), [
-      'COUPLE_BATTLE', 'DEEP_TALK', 'ME_OR_YOU', 'PREDICT_MY_ANSWER', 'TRUTH_OR_DARE', 'TWO_TRUTHS_AND_A_LIE', 'WHO_KNOWS_WHO', 'WOULD_YOU_RATHER',
+      'COUPLE_BATTLE', 'DEEP_TALK', 'DIRTY_DICE', 'ME_OR_YOU', 'PREDICT_MY_ANSWER', 'RATE_IT', 'SPIN',
+      'STRIP_ROUND', 'THREE_MINUTES', 'TRUTH_OR_DARE', 'TWO_TRUTHS_AND_A_LIE', 'WHO_KNOWS_WHO',
+      'WOULD_YOU_RATHER', 'YES_NO_MAYBE',
     ]);
   });
 

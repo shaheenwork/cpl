@@ -293,6 +293,22 @@ where asking anyone would show the other a limit exists.
 5. Fewer than 3 rounds fails with `NOT_ENOUGH_CONTENT`.
 6. Alternates: for each kind, the best 3 unused (score, then id). If rounds and alternates
    would release every permitted prompt, the lowest-scored alternate is dropped (§6's rule).
+
+**Playing a round: where a `DRAW` lands.** A `DRAW` step picks one of the prompt's own options,
+and the pick is made by the interpreter on the device rather than by the server, because it
+happens as the round is played. It is still not free randomness. The seed is
+`hash("gameId|round|step|promptId")` masked to 32 bits, where `hash` is Kotlin's specified
+`String.hashCode`, and the option is `options[nextInt(options.size)]` with one `next()` from §2.
+
+So the landing is a function of the round, which gives three properties the app relies on: a test
+can assert it, two phones playing the same round agree without exchanging anything (§12.2 sends
+answers, never draws), and a phone restarted mid-round comes back to the same result rather than
+re-spinning (DECISIONS.md D-075). Nothing else in a game draws a random number on the device.
+
+**`DIAL` and `DISTANCE`.** A dial is a number in 0..10 that never leaves the phone as a number. A
+`DISTANCE` reveal publishes `|a − b|` and the lower of the two as a floor ("3+"), never either
+number on its own and never which partner was higher — the direction of the gap is the part that
+would teach someone to answer dishonestly next time.
 7. The hard filter again over everything released; any failure fails the game.
 
 **Cooldowns give way.** When the game cannot be filled with all `R` rounds, it is chosen again

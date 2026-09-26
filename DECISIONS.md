@@ -1460,3 +1460,30 @@ Two changes, because there are two faults:
 
 The gate still refuses to advance optimistically. The point is not to let someone through when the
 record did not save; it is to stop pretending the save is still in progress when it is not.
+
+---
+
+## D-099 — Chance is seeded, and a dial has no direction
+**Redesign R1.** The rebuild needs games where nobody has to ask for anything — a wheel, a roll,
+a pool of six — and games that ask "how much" without making anyone say a number out loud. Two new
+primitives, and each raised a question worth answering properly.
+
+**`DRAW` does not roll a die.** The obvious implementation is `Random.nextInt(options.size)` in the
+renderer, and it breaks three things this app already promises. A test could not assert where a
+round lands, so nothing would hold the feature. Two phones playing the same round would land
+differently, and §12.2 sends answers between phones, never draws. A phone restarted mid-round would
+re-spin, which contradicts D-075's rule that nothing about a round lives on the phone.
+
+So the interpreter decides, from the round itself: the seed is
+`hash("gameId|round|step|promptId")`, the pick is `mulberry32`'s, and the screen animates towards a
+result that was already taken. `engine/SPEC.md` §10 states it, because the spec governs every random
+number in this engine (D-047). The spin is honest — it is just not the thing doing the choosing.
+
+**A `DIAL` reveals a gap, never a direction.** `DISTANCE` publishes `|a − b|` and the lower of the
+two numbers as a floor, and nothing else. Showing who wanted it more would teach the partner who
+wanted it less to answer differently next time, which destroys the only thing the dial is for. A gap
+of zero is the interesting result and reads as a match; every other gap is symmetrical.
+
+`MEDIA` — a voice note or photo inside a round — is the third primitive the apart games need. It is
+deliberately not here: the media pipeline is server-side and asynchronous (D-083), and wiring it
+into a round belongs with the apart games rather than with two pure additions to the interpreter.

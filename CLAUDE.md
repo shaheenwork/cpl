@@ -239,6 +239,10 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   `content/prompts/<game>.json`. A new game, or a changed one, is a content edit plus
   `npm --prefix tools run bundle` — never a new screen or a branch. `GameLogicTest` fails the
   build if code names a game (D-072).
+- Chance is not free: a `DRAW` lands on a seed made from the round itself (`engine/SPEC.md` §10), so
+  a test can assert it, two phones agree without sending anything, and a restarted phone lands the
+  same way. A `DIAL` is a number that never leaves the phone — only a `DISTANCE` reveal's gap is
+  shared, and a gap has no direction.
 - `GameRun` (`:core:engine`) is the only interpreter. `:feature:games` renders primitives —
   one renderer each, in `PrimitiveRenderers.kt` — and only ever sees what the interpreter hands
   it. A new primitive changes the vocabulary, `GamePrimitive`, `RoundPrimitive` and gets exactly

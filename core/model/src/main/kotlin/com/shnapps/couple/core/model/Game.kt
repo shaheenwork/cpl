@@ -84,6 +84,16 @@ enum class GamePrimitive {
     TIMER,
     CHALLENGE,
     REACTION,
+
+    /**
+     * Chance picks, not a person. The prompt carries the pool; the interpreter lands on one of
+     * them, and the screen only animates towards what was already decided — so a draw is as
+     * reproducible as everything else in the engine (DECISIONS.md D-047).
+     */
+    DRAW,
+
+    /** How much, from nothing to everything: a number nobody has to say out loud. */
+    DIAL,
 }
 
 /** Who takes a step: whose turn it is, the other partner, both in turn, or both at once. */
@@ -120,6 +130,9 @@ enum class RevealOutcome {
 
     /** The couple named a winner, or called it a tie. */
     WINNER,
+
+    /** How far apart two dials landed. Shows the gap, never a ranking. */
+    DISTANCE,
 }
 
 /** Whether every round belongs to both partners, or turns alternate between them. */

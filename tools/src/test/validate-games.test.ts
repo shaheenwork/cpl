@@ -45,7 +45,9 @@ function withPrompt(gameId: string, index: number, edit: (prompt: GamePrompt) =>
 
 test('every game ships with a playable definition and enough prompts', () => {
   assert.deepEqual([...baseline], []);
-  assert.equal(repo.games.length, 8);
+  // A count rather than a list: the names are asserted server-side, and what matters here is
+  // that no game ships without prompts enough to play it.
+  assert.ok(repo.games.length >= 8, `only ${repo.games.length} games`);
   for (const each of repo.games) assert.ok((repo.promptsByGame.get(each.id) ?? []).length >= each.minPrompts, each.id);
 });
 

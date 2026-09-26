@@ -103,6 +103,35 @@ sealed interface RoundPrimitive {
         override fun accepts(answer: Answer): Boolean = answer == Answer.Done
     }
 
+    /**
+     * Chance picking for them: the pool, and the one it landed on.
+     *
+     * [landed] is decided here, before the screen draws anything, from the game, the round and
+     * the prompt — never from a random number the device makes up. The spin is animation over a
+     * decision already taken, which is what keeps a draw reproducible in a test and identical on
+     * two phones playing the same round (DECISIONS.md D-047).
+     */
+    data class Draw(
+        override val step: Int,
+        override val seat: Int?,
+        val caption: String,
+        val options: List<Option>,
+        val landed: Option,
+    ) : RoundPrimitive {
+        override fun accepts(answer: Answer): Boolean = answer == Answer.Done
+    }
+
+    /** How much, on a scale nobody has to say out loud. */
+    data class Dial(
+        override val step: Int,
+        override val seat: Int?,
+        val text: String,
+        val low: String,
+        val high: String,
+    ) : RoundPrimitive {
+        override fun accepts(answer: Answer): Boolean = answer is Answer.Dialed && answer.value in RANGE
+    }
+
     /** How it landed. Stays on the phone. */
     data class Reaction(
         override val step: Int,
@@ -114,6 +143,9 @@ sealed interface RoundPrimitive {
 
     companion object {
         const val STATEMENTS = 3
+
+        /** What a dial can say: nothing at all, through to everything. */
+        val RANGE = 0..10
     }
 }
 
@@ -130,6 +162,9 @@ sealed interface Answer {
 
     /** Said out loud, done, or seen. */
     data object Done : Answer
+
+    /** Where the dial was left, in [RoundPrimitive.RANGE]. */
+    data class Dialed(val value: Int) : Answer
 
     /** Whether a guess came close enough, as the one it was about judges. */
     data class Judged(val close: Boolean) : Answer
@@ -157,4 +192,10 @@ sealed interface Verdict {
 
     /** The one the guess was about decides whether it came close. */
     data object AwaitingJudge : Verdict
+
+    /**
+     * How far apart two dials landed, and nothing else: no higher, no lower, no winner. A gap of
+     * zero is the interesting answer, and the direction of a gap is nobody's business.
+     */
+    data class Apart(val gap: Int) : Verdict
 }

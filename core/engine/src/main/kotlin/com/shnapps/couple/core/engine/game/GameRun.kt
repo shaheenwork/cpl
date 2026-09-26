@@ -274,6 +274,12 @@ internal fun scoreOf(results: List<RoundResult>): Score {
                 if (verdict.matched) matches += 1
             }
             is Verdict.Point -> verdict.seat?.let { points[it] += 1 }
+            // A gap counts as a round compared, and as a match when they landed on the same
+            // number. Nobody scores a point for wanting something more than their partner.
+            is Verdict.Apart -> {
+                compared += 1
+                if (verdict.gap == 0) matches += 1
+            }
             Verdict.AwaitingJudge -> Unit
         }
     }
