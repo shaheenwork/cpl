@@ -16,6 +16,7 @@ import com.shnapps.couple.core.data.couple.CoupleRepository
 import com.shnapps.couple.core.data.couple.DefaultCoupleRepository
 import com.shnapps.couple.core.data.game.DefaultGameRepository
 import com.shnapps.couple.core.data.game.GameRepository
+import com.shnapps.couple.core.data.instant.ContentLevelWriter
 import com.shnapps.couple.core.data.instant.DefaultInstantPlayRepository
 import com.shnapps.couple.core.data.instant.InstantPlayRepository
 import com.shnapps.couple.core.data.media.DefaultMediaRepository
@@ -110,4 +111,9 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindInstantPlayRepository(impl: DefaultInstantPlayRepository): InstantPlayRepository
+
+    /** The one method the reconciler needs, rather than the whole of auth. */
+    @Binds
+    @Singleton
+    abstract fun bindContentLevelWriter(impl: DefaultAuthRepository): ContentLevelWriter
 }

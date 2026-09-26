@@ -104,7 +104,10 @@ fun CplNavHost(
         }
 
         composable<Route.InstantPlay> {
-            InstantPlayScreen(onBack = { navController.navigate(Route.InstantHome) })
+            InstantPlayScreen(
+                onBack = { navController.navigate(Route.InstantHome) },
+                onKeepThis = { navController.navigate(Route.Auth) },
+            )
         }
 
         // Home for a couple with no account: what to play, and how far (REDESIGN_PROMPT.md §5.2).

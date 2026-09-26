@@ -5,7 +5,11 @@ import com.shnapps.couple.core.analytics.AnalyticsEvent
 import com.shnapps.couple.core.analytics.AnalyticsLogger
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
+import com.shnapps.couple.core.data.instant.LocalPlayReconciler
+import com.shnapps.couple.core.model.BoundaryLevel
+import com.shnapps.couple.core.testing.FakeAppPreferencesStore
 import com.shnapps.couple.core.testing.FakeAuthRepository
+import com.shnapps.couple.core.testing.FakeBoundaryRepository
 import com.shnapps.couple.core.testing.MainDispatcherRule
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -29,7 +33,29 @@ class AuthViewModelTest {
     private val logged = mutableListOf<AnalyticsEvent>()
     private val analytics = AnalyticsLogger { logged += it }
 
-    private fun viewModel() = AuthViewModel(auth, analytics)
+    private val preferences = FakeAppPreferencesStore()
+    private val boundaries = FakeBoundaryRepository()
+    private val reconciler = LocalPlayReconciler(preferences, boundaries, auth)
+
+    private fun viewModel() = AuthViewModel(auth, reconciler, analytics)
+
+    @Test
+    fun `signing up carries what this phone already refused`() = runTest(mainDispatcherRule.testDispatcher) {
+        // Someone played for a week and said "never show me these again" (REDESIGN_PROMPT.md §4.2).
+        // The account is the first place that can hold it, so signing up is when it moves.
+        preferences.state.value = preferences.state.value.copy(refusedThemes = setOf("power_yielding"))
+        val vm = viewModel()
+        vm.onEmailChange("a@b.co")
+        vm.onPasswordChange("a-long-enough-password")
+        vm.toggleMode()
+
+        vm.submit()
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+
+        assertThat(vm.uiState.value.signedIn).isTrue()
+        assertThat(boundaries.writes.map { it.first }).containsExactly("power_yielding")
+        assertThat(boundaries.writes.single().second.level).isEqualTo(BoundaryLevel.NEVER)
+    }
 
     @Test
     fun `cannot submit with a short password`() {

@@ -1521,3 +1521,37 @@ a local flag has never been enough to pass the gate (§3.1, unchanged).
 boundary themes to this phone immediately, so the next card already respects it. When an account
 exists those themes belong in the person's real limits — that reconciliation is R5's, and until then
 the local copy is the only record and the only thing consulted.
+
+---
+
+## D-101 — What a phone learned before the account, and why it only tightens
+**Redesign R5.** Someone can play for a week before they make an account. In that week they will
+have tapped "never show me these again" to things they meant, and the app kept those refusals on the
+phone because there was nowhere else to put them (D-100). The moment there is an account, they
+belong in the person's real limits — otherwise the app forgets what it was told at exactly the
+moment a couple pairs, which is the worst possible moment to forget it.
+
+`LocalPlayReconciler` runs after a successful sign-in or sign-up, and two rules keep it honest.
+
+**It only ever tightens.** A refused theme becomes `NEVER`. A theme the person has already set
+themselves is left exactly as it is — including when their own setting is *more permissive*. What
+somebody chose deliberately on a limits screen outranks what a tap during play implied, and silently
+hardening a deliberate `ASK_FIRST` into a `NEVER` would be the app overruling them. That also makes
+it idempotent: a second run writes nothing.
+
+**It carries no content.** A refusal travels as a boundary theme, never as the card that prompted
+it. The refused card ids stay on the phone. A content id on a server-readable path is precisely what
+§5 forbids, and the test asserts that nothing but the theme is written.
+
+The heat comes across as the person's own content level, which is the same quantity in the engine's
+units. It is a ceiling for them alone; the couple's is still the lower of the two, computed on the
+server (§3.2).
+
+**The account is offered where it first buys something**, not on the way in: at the end of a run
+("keep tonight, and find each other"), and at Apart and "plan a whole evening", which genuinely
+cannot work without a partner. The line under the button says what it buys, including that what they
+have said no to comes with them.
+
+The seam is `ContentLevelWriter`, one method, which `AuthRepository` implements. The reconciler has
+no business being able to sign anyone in or out, and the call happens in the view model that signs
+people in rather than inside the repository, so nothing has to depend on anything circularly.

@@ -7,6 +7,7 @@ import com.shnapps.couple.core.analytics.AnalyticsLogger
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.auth.AuthRepository
+import com.shnapps.couple.core.data.instant.LocalPlayReconciler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,6 +38,7 @@ data class AuthUiState(
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val reconciler: LocalPlayReconciler,
     private val analytics: AnalyticsLogger,
 ) : ViewModel() {
 
@@ -69,6 +71,11 @@ class AuthViewModel @Inject constructor(
 
             when (result) {
                 is Outcome.Success -> {
+                    // Whatever this phone learned while nobody was signed in — the refusals made
+                    // during play, and the heat it was set to — now has somewhere real to live
+                    // (REDESIGN_PROMPT.md §4.2). It only ever tightens, so a failure here cannot
+                    // widen anything, and there is no reason to keep someone waiting on it.
+                    reconciler.reconcile()
                     // Count only. The email address is never an analytics parameter (§17.3).
                     analytics.log(AnalyticsEvent.AppOpen)
                     _uiState.update { it.copy(isSubmitting = false, signedIn = true) }

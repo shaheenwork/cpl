@@ -6,8 +6,9 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 **Current position:** The 23 phases of BUILD_PROMPT.md are complete, and the rebuild in
 `REDESIGN_PROMPT.md` has begun — R1 (chance, desire and six new games) and R2 (two taps to a card,
 with no account and no network), R3 (the player whole) and R4 (home, and fourteen games playable
-with no account) are done; R5 (an account offered when it buys something, carrying the local
-refusals into the person's real limits) is next. Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
+with no account) and R5 (an account offered when it buys something, carrying the local refusals into
+the person's real limits) are done; R6 (apart as a thread, pairing moved and skippable) is next — it
+needs the `MEDIA` primitive that R1 deferred. Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
 and every §23 deliverable is written. What remains before a public release is setup and review, not
 code: `RELEASE.md` is the ordered runbook, `HUMAN_SETUP.md` the console detail, and `legal/` holds
 drafts of the privacy policy, the terms and the Play data-safety answers, pending a lawyer.
@@ -1231,6 +1232,41 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Redesign R5 — What the phone learned, carried into the account ✅
+
+R2 left a loose end on purpose: a refusal made before signing up lived only on the phone. This
+closes it.
+
+### Shipped
+- **`LocalPlayReconciler`** (D-101), run after a successful sign-in or sign-up. A refused theme
+  becomes a real `NEVER`; the heat becomes the person's own content level.
+- **It only ever tightens.** A theme the person set themselves is left exactly as it is — including
+  when their own setting is more permissive, because a deliberate choice on a limits screen outranks
+  a tap during play. That also makes a second run write nothing.
+- **It carries no content.** A refusal travels as a boundary theme; the refused card ids stay on the
+  phone. A content id on a server-readable path is what §5 forbids.
+- **The account is offered where it first buys something**: at the end of a run — "Keep tonight, and
+  find each other" — with a line saying what it buys, including that what they have said no to comes
+  with them. Apart and "plan a whole evening" already ask at the point they are wanted.
+
+### Verified
+```
+./gradlew check                                BUILD SUCCESSFUL
+:core:data LocalPlayReconcilerTest              7/7
+:feature:auth AuthViewModelTest                11/11  (1 new: signing up carries the refusals)
+```
+- **On the device, against the emulators**: played with no account, said "never show me these again"
+  to a card, reached the end of a run, took the offer, and created an account. The server then held
+  `contentLevel: 4` (Hot) and two boundaries — `mood_charged` and `teasing_words`, both `NEVER` —
+  and nothing else. Read back through the Firestore emulator with the admin token, so it is the
+  stored record rather than the app's view of it.
+- The age gate reappeared after sign-up, which is correct: a signed-in device checks the **server**
+  record, and a local flag has never been enough to pass it (§3.1).
+- Incidentally confirmed while the device was open: LeakCanary's own screen reported **0 distinct
+  leaks** after the walk.
 
 ---
 

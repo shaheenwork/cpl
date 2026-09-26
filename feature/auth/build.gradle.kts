@@ -7,3 +7,7 @@ android {
     namespace = "com.shnapps.couple.feature.auth"
 }
 
+dependencies {
+    // The reconciler reads what this phone learned before anyone signed in.
+    testImplementation(project(":core:datastore"))
+}

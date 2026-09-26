@@ -35,6 +35,7 @@ import com.shnapps.couple.core.ui.SecureScreen
 @Composable
 fun InstantPlayScreen(
     onBack: () -> Unit,
+    onKeepThis: () -> Unit,
     viewModel: InstantPlayViewModel = hiltViewModel(),
 ) {
     SecureScreen()
@@ -53,6 +54,7 @@ fun InstantPlayScreen(
         onStartTimer = viewModel::startTimer,
         onStopTimer = viewModel::stopTimer,
         onKeepGoing = viewModel::keepGoing,
+        onKeepThis = onKeepThis,
     )
 }
 
@@ -71,6 +73,7 @@ internal fun InstantPlayContent(
     onStartTimer: () -> Unit,
     onStopTimer: () -> Unit,
     onKeepGoing: () -> Unit,
+    onKeepThis: () -> Unit,
 ) {
     ScreenColumn {
         BackRow(label = "Back", onBack = onBack)
@@ -82,7 +85,12 @@ internal fun InstantPlayContent(
                 onTurnUp = onTurnUp,
                 onKeep = onKeepHeat,
             )
-            state.runComplete -> RunComplete(played = state.played, onKeepGoing = onKeepGoing, onBack = onBack)
+            state.runComplete -> RunComplete(
+                played = state.played,
+                onKeepGoing = onKeepGoing,
+                onKeepThis = onKeepThis,
+                onBack = onBack,
+            )
             state.card != null -> Playing(
                 card = state.card,
                 heat = state.heat,
@@ -206,9 +214,12 @@ private fun Progress(position: Int, runLength: Int) {
     )
 }
 
-/** An evening does not end on its own. It asks. */
+/**
+ * An evening does not end on its own. It asks — and this is the first moment an account is worth
+ * anything, so it is the first moment one is offered (REDESIGN_PROMPT.md §4.2).
+ */
 @Composable
-private fun RunComplete(played: Int, onKeepGoing: () -> Unit, onBack: () -> Unit) {
+private fun RunComplete(played: Int, onKeepGoing: () -> Unit, onKeepThis: () -> Unit, onBack: () -> Unit) {
     CinematicCard(modifier = Modifier.fillMaxWidth(), glowing = true) {
         Text(
             text = "That's $played.",
@@ -223,9 +234,21 @@ private fun RunComplete(played: Int, onKeepGoing: () -> Unit, onBack: () -> Unit
     }
     GlowButton(text = "Keep going", onClick = onKeepGoing, modifier = Modifier.fillMaxWidth())
     GlowButton(
+        text = "Keep tonight, and find each other",
+        onClick = onKeepThis,
+        style = GlowButtonStyle.Secondary,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Text(
+        text = "An account keeps what you saved and lets you play when you're apart. " +
+            "What you've said no to comes with you.",
+        style = MaterialTheme.typography.bodySmall,
+        color = AfterhoursTheme.colors.textMuted,
+    )
+    GlowButton(
         text = "That's us for tonight",
         onClick = onBack,
-        style = GlowButtonStyle.Secondary,
+        style = GlowButtonStyle.Quiet,
         modifier = Modifier.fillMaxWidth(),
     )
 }

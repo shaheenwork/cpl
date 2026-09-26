@@ -1,6 +1,7 @@
 package com.shnapps.couple.core.data.auth
 
 import com.shnapps.couple.core.common.Outcome
+import com.shnapps.couple.core.data.instant.ContentLevelWriter
 import com.shnapps.couple.core.model.AuthUser
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.UserProfile
@@ -13,7 +14,7 @@ import kotlinx.coroutines.flow.Flow
  * implementation, and so tests can use a real fake instead of mocking suspend functions —
  * which in this repo once hung a single test for an hour (DECISIONS.md D-013).
  */
-interface AuthRepository {
+interface AuthRepository : ContentLevelWriter {
     val authState: Flow<AuthUser?>
 
     /** The signed-in user's profile, or null when signed out. Re-subscribes on sign-in. */
@@ -43,8 +44,11 @@ interface AuthRepository {
      * Sets the user's own content level (BUILD_PROMPT.md Appendix A) — how far they are
      * willing to go. Only ever their own: the couple's ceiling is the lower of the two
      * partners' levels, computed by the server, so nobody can raise it alone.
+     *
+     * Declared by [ContentLevelWriter], which is the narrow seam the reconciler depends on so
+     * that carrying a phone's state into an account does not depend on the whole of auth.
      */
-    suspend fun setContentLevel(level: Intensity): Outcome<Unit>
+    override suspend fun setContentLevel(level: Intensity): Outcome<Unit>
 
     /** Records the 18+ attestation (BUILD_PROMPT.md §3.1). The server record is the truth. */
     suspend fun confirmAge(): Outcome<Unit>
