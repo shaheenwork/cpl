@@ -1,7 +1,7 @@
 {
   "projects": {
     "default": "afterhours-dev-emulator",
-    "staging": "afterhours-staging",
-    "prod": "afterhours-prod"
+    "staging": "copl-staging",
+    "prod": "cplg-d4b26"
   }
 }

@@ -41,7 +41,15 @@ All green, from a clean tree, before a release branch exists.
 - [ ] App Check: Play Integrity for staging and prod, enforcement **on** for Firestore, Storage and
       Functions (§2.4).
 - [ ] Deploy the rules and the functions to staging first:
-      `firebase deploy --only firestore:rules,storage:rules,functions --project <staging>`
+      ```bash
+      firebase deploy --only firestore:rules,storage,functions --project staging
+      ```
+      Note `storage`, not `storage:rules`: for Storage, `storage:<name>` means a deploy
+      *target* (a bucket alias), so `storage:rules` fails with "Could not find rules for the
+      following storage targets: rules". Firestore is the one that takes `firestore:rules`.
+      Functions need the project on **Blaze**; on Spark the rules deploy and the functions do
+      not. Check with `firebase functions:list --project staging` rather than trusting the
+      exit code.
 - [ ] Publish the content bundle and set Remote Config's `content_version` (§2.9).
 - [ ] Gate: run the two-device script (`ACCEPTANCE.md`) against **staging**, on real devices, with
       the real project. This is the first time notifications and App Check are exercised for real.
