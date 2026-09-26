@@ -415,6 +415,12 @@ Wi-Fi returns in stages; until `adb shell ping -c 1 10.0.2.2` answers, the app c
 the server, fails closed on the age check and shows the age gate, and WorkManager stops any
 running sync. Neither is a bug.
 
+**The Firestore emulator builds indexes on demand; a real project does not.** Every
+`collectionGroup` query needs an entry in `firebase/firestore.indexes.json`, and
+`firebase deploy` needs `firestore:indexes` alongside `firestore:rules` — deploying rules alone
+leaves the five scheduled sweeps failing with `9 FAILED_PRECONDITION: The query requires an
+index`, which no test and no screen ever shows. Add the index in the same commit as the query.
+
 **The functions e2e suite wipes the dev emulator project.** Seed manual device checks again
 after running it. Integration tests use their own project and touch nothing (D-037).
 

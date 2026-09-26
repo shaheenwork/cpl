@@ -42,9 +42,12 @@ All green, from a clean tree, before a release branch exists.
       Functions (§2.4).
 - [ ] Deploy the rules and the functions to staging first:
       ```bash
-      firebase deploy --only firestore:rules,storage,functions --project staging
+      firebase deploy --only firestore:rules,firestore:indexes,storage,functions --project staging
       ```
-      Note `storage`, not `storage:rules`: for Storage, `storage:<name>` means a deploy
+      `firestore:indexes` is not optional. The Firestore emulator builds indexes on demand,
+      so a missing one shows up for the first time on a real project — as scheduled sweeps
+      failing with `9 FAILED_PRECONDITION: The query requires an index`, which nothing in the
+      app surfaces. Note `storage`, not `storage:rules`: for Storage, `storage:<name>` means a deploy
       *target* (a bucket alias), so `storage:rules` fails with "Could not find rules for the
       following storage targets: rules". Firestore is the one that takes `firestore:rules`.
       Functions need the project on **Blaze**; on Spark the rules deploy and the functions do
