@@ -1,0 +1,957 @@
+<title>Afterhours Instant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap">
+
+<style>
+  :root {
+    color-scheme: dark;
+
+    --ink:      #120A10;
+    --ink-2:    #1C1018;
+    --ink-3:    #271722;
+    --blush:    #F6E7E3;
+    --muted:    #B79AA1;
+    --gold:     #E9B44C;
+    --rose:     #FF3D68;
+    --ember:    #FF7A59;
+    --line:     rgba(246, 231, 227, 0.10);
+    --line-2:   rgba(246, 231, 227, 0.18);
+
+    --display: "Fraunces", "Iowan Old Style", Georgia, serif;
+    --body: "Manrope", "Segoe UI", system-ui, sans-serif;
+
+    --r-card: 20px;
+    --r-pill: 999px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1100px 620px at 12% -8%, #2A1220 0%, transparent 60%),
+      radial-gradient(900px 500px at 92% 8%, #23111C 0%, transparent 55%),
+      var(--ink);
+    color: var(--blush);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding-block: 40px 64px;
+    padding-inline: 20px;
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead { display: grid; gap: 14px; margin-bottom: 34px; }
+
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(34px, 6vw, 58px);
+    line-height: 1.02;
+    margin: 0;
+    text-wrap: balance;
+    font-variation-settings: "SOFT" 40, "WONK" 1;
+  }
+
+  h1 em { font-style: italic; color: var(--gold); }
+
+  .standfirst {
+    max-width: 62ch;
+    color: var(--muted);
+    font-size: 16px;
+    margin: 0;
+  }
+
+  /* ---------- the count strip ---------- */
+
+  .counts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+
+  .count { background: var(--ink-2); padding: 14px 16px; }
+  .count dt {
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 4px;
+  }
+  .count dd {
+    margin: 0;
+    font-family: var(--display);
+    font-size: 24px;
+    font-variant-numeric: tabular-nums;
+  }
+  .count dd s { color: var(--muted); text-decoration-color: var(--rose); font-size: 17px; }
+  .count dd b { font-weight: 600; color: var(--gold); }
+
+  /* ---------- stage ---------- */
+
+  .stage {
+    display: grid;
+    grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+    gap: 40px;
+    align-items: start;
+    margin-top: 40px;
+  }
+
+  @media (max-width: 1040px) {
+    .stage { grid-template-columns: 1fr; gap: 28px; }
+    .phone-hold { position: static; }
+  }
+
+  /* ---------- phone ---------- */
+
+  .phone-hold { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 20px); }
+
+  .phone {
+    width: 100%;
+    max-width: 392px;
+    margin-inline: auto;
+    aspect-ratio: 392 / 800;
+    background: var(--ink);
+    border: 9px solid #241620;
+    border-radius: 44px;
+    box-shadow:
+      0 0 0 1px rgba(246, 231, 227, 0.08),
+      0 40px 80px -30px rgba(0, 0, 0, 0.9);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .notch {
+    position: absolute;
+    top: 8px; left: 50%;
+    translate: -50% 0;
+    width: 104px; height: 22px;
+    background: #241620;
+    border-radius: var(--r-pill);
+    z-index: 5;
+  }
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 46px 18px 18px;
+    gap: 14px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .screen[hidden] { display: none !important; }
+
+  /* ---------- phone-level pieces ---------- */
+
+  .kicker {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .screen h2 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 27px;
+    line-height: 1.12;
+    margin: 0;
+    text-wrap: balance;
+    font-variation-settings: "SOFT" 30;
+  }
+
+  .sub { color: var(--muted); font-size: 13.5px; margin: 0; }
+
+  .btn {
+    appearance: none;
+    border: 0;
+    font-family: var(--body);
+    font-weight: 700;
+    font-size: 15px;
+    padding: 15px 18px;
+    border-radius: var(--r-pill);
+    background: var(--gold);
+    color: #1A0E08;
+    cursor: pointer;
+    width: 100%;
+    transition: transform 120ms ease, filter 120ms ease;
+  }
+
+  .btn:active { transform: scale(0.98); }
+  .btn:hover { filter: brightness(1.06); }
+
+  .btn.ghost {
+    background: transparent;
+    color: var(--blush);
+    border: 1px solid var(--line-2);
+  }
+
+  .btn.quiet {
+    background: transparent;
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 13.5px;
+    padding: 10px;
+  }
+
+  .btn.hot { background: var(--rose); color: #fff; }
+
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+
+  .spacer { flex: 1; min-height: 6px; }
+
+  /* heat selector */
+
+  .heat {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .heat button {
+    appearance: none;
+    cursor: pointer;
+    font-family: var(--body);
+    background: var(--ink-2);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    border-radius: 14px;
+    padding: 13px 8px;
+    display: grid;
+    gap: 3px;
+    justify-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
+  }
+
+  .heat button .dots { letter-spacing: 2px; font-size: 13px; }
+
+  .heat button[aria-pressed="true"] {
+    color: var(--blush);
+    background: var(--ink-3);
+    border-color: var(--heat-color, var(--gold));
+    box-shadow: inset 0 0 0 1px var(--heat-color, var(--gold));
+  }
+
+  /* tiles */
+
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .tile {
+    appearance: none;
+    cursor: pointer;
+    text-align: left;
+    font-family: var(--body);
+    background: var(--ink-2);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 14px;
+    color: var(--blush);
+    display: grid;
+    gap: 3px;
+    min-height: 86px;
+    align-content: center;
+    transition: border-color 140ms ease, background 140ms ease;
+  }
+
+  .tile:hover { border-color: var(--line-2); background: var(--ink-3); }
+  .tile b { font-size: 14.5px; font-weight: 700; }
+  .tile span { font-size: 11.5px; color: var(--muted); }
+  .tile.wide { grid-column: 1 / -1; min-height: 0; }
+
+  /* segmented */
+
+  .seg {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--ink-2);
+    border: 1px solid var(--line);
+    border-radius: var(--r-pill);
+    padding: 4px;
+    gap: 4px;
+  }
+
+  .seg button {
+    appearance: none;
+    cursor: pointer;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--body);
+    font-weight: 700;
+    font-size: 13px;
+    padding: 9px;
+    border-radius: var(--r-pill);
+  }
+
+  .seg button[aria-pressed="true"] { background: var(--ink-3); color: var(--blush); }
+
+  /* the play card */
+
+  .card {
+    background: linear-gradient(170deg, var(--ink-3), var(--ink-2));
+    border: 1px solid var(--line-2);
+    border-radius: var(--r-card);
+    padding: 20px;
+    display: grid;
+    gap: 12px;
+    align-content: start;
+    min-height: 246px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::after {
+    content: "";
+    position: absolute;
+    inset: -40% -30% auto auto;
+    width: 210px; height: 210px;
+    background: radial-gradient(circle, var(--heat-color, var(--gold)) 0%, transparent 70%);
+    opacity: 0.16;
+    pointer-events: none;
+  }
+
+  .card.turn { animation: deal 320ms ease; }
+
+  @keyframes deal {
+    from { opacity: 0; transform: translateY(14px) rotate(-1deg); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card.turn { animation: none; }
+    .btn { transition: none; }
+  }
+
+  .pill {
+    justify-self: start;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 5px 11px;
+    border-radius: var(--r-pill);
+    background: color-mix(in srgb, var(--heat-color, var(--gold)) 22%, transparent);
+    color: var(--heat-color, var(--gold));
+    border: 1px solid color-mix(in srgb, var(--heat-color, var(--gold)) 40%, transparent);
+  }
+
+  .card p.line {
+    font-family: var(--display);
+    font-size: 22px;
+    line-height: 1.26;
+    margin: 0;
+    font-variation-settings: "SOFT" 30;
+    text-wrap: pretty;
+  }
+
+  .card .who { font-size: 12.5px; color: var(--muted); }
+
+  .timer {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: var(--heat-color, var(--gold));
+    font-size: 12.5px;
+  }
+
+  .dots-row { display: flex; gap: 5px; justify-content: center; }
+  .dots-row i {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--line-2); display: block;
+  }
+  .dots-row i.on { background: var(--gold); }
+
+  /* thread (apart) */
+
+  .thread { display: grid; gap: 8px; }
+
+  .msg {
+    background: var(--ink-2);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 11px 13px;
+    font-size: 13px;
+    display: grid;
+    gap: 3px;
+  }
+
+  .msg .from { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .msg.mine { background: transparent; border-style: dashed; }
+  .msg .burn { color: var(--ember); font-size: 11px; }
+
+  /* sheet */
+
+  .sheet {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    background: var(--ink-3);
+    border-top: 1px solid var(--line-2);
+    border-radius: 22px 22px 0 0;
+    padding: 18px 18px 22px;
+    display: grid;
+    gap: 12px;
+    z-index: 6;
+    animation: rise 220ms ease;
+  }
+
+  @keyframes rise { from { transform: translateY(100%); } to { transform: none; } }
+
+  .sheet[hidden] { display: none !important; }
+  .grab { width: 38px; height: 4px; border-radius: 4px; background: var(--line-2); justify-self: center; }
+
+  /* qr */
+
+  .qr {
+    justify-self: center;
+    width: 148px; height: 148px;
+    border-radius: 16px;
+    background:
+      repeating-conic-gradient(var(--blush) 0 25%, transparent 0 50%) 0 0 / 18px 18px,
+      var(--ink-3);
+    border: 1px solid var(--line-2);
+  }
+
+  .code {
+    justify-self: center;
+    font-family: var(--display);
+    font-size: 34px;
+    letter-spacing: 0.24em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- notes column ---------- */
+
+  .notes { display: grid; gap: 18px; align-content: start; }
+
+  .note {
+    background: var(--ink-2);
+    border: 1px solid var(--line);
+    border-left: 2px solid var(--gold);
+    border-radius: 0 16px 16px 0;
+    padding: 18px 20px;
+    display: grid;
+    gap: 8px;
+  }
+
+  .note h3 {
+    font-family: var(--display);
+    font-size: 21px;
+    font-weight: 600;
+    margin: 0;
+    font-variation-settings: "SOFT" 30;
+  }
+
+  .note p { margin: 0; color: var(--muted); font-size: 14.5px; }
+  .note p strong { color: var(--blush); font-weight: 600; }
+
+  .swap {
+    display: grid;
+    gap: 6px;
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+    font-size: 13px;
+  }
+
+  .swap div { display: flex; gap: 10px; align-items: baseline; }
+  .swap span {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    min-width: 54px;
+    font-weight: 700;
+  }
+  .swap .was { color: var(--muted); }
+  .swap .now { color: var(--blush); }
+
+  .jump {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .jump button {
+    appearance: none;
+    cursor: pointer;
+    font-family: var(--body);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 8px 13px;
+    border-radius: var(--r-pill);
+    background: transparent;
+    border: 1px solid var(--line-2);
+    color: var(--muted);
+  }
+
+  .jump button[aria-current="true"] { background: var(--gold); border-color: var(--gold); color: #1A0E08; }
+
+  .principles {
+    display: grid;
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .principle { background: var(--ink-2); padding: 16px 18px; display: grid; gap: 4px; }
+  .principle b { font-family: var(--display); font-size: 17px; font-weight: 600; }
+  .principle span { color: var(--muted); font-size: 13.5px; }
+
+  footer {
+    margin-top: 52px;
+    border-top: 1px solid var(--line);
+    padding-top: 18px;
+    color: var(--muted);
+    font-size: 13px;
+    max-width: 70ch;
+  }
+
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">Afterhours · proposed rebuild</div>
+    <h1>Open it, and you're <em>already playing</em>.</h1>
+    <p class="standfirst">
+      The app that exists asks for an account, a partner code, twenty preference cards and a six-field
+      form before it shows anything. This is the same privacy engine with the wall taken out: two taps
+      to the first dare, and everything else arrives later, only when it earns its place.
+    </p>
+
+    <dl class="counts">
+      <div class="count">
+        <dt>Taps to first card</dt>
+        <dd><s>11</s> → <b>2</b></dd>
+      </div>
+      <div class="count">
+        <dt>Time to first card</dt>
+        <dd><s>~10 min</s> → <b>20 s</b></dd>
+      </div>
+      <div class="count">
+        <dt>Account needed</dt>
+        <dd><s>First screen</s> → <b>Never, to play</b></dd>
+      </div>
+      <div class="count">
+        <dt>Partner needed</dt>
+        <dd><s>Before anything</s> → <b>Only when apart</b></dd>
+      </div>
+    </dl>
+  </header>
+
+  <div class="stage">
+
+    <div class="phone-hold">
+      <div class="phone">
+        <div class="notch"></div>
+
+        <!-- 1. first open -->
+        <section class="screen" id="s-open">
+          <div class="spacer"></div>
+          <div class="kicker">Afterhours</div>
+          <h2>Two questions, then we start.</h2>
+          <p class="sub">No account. No setup. Nothing saved anywhere until you ask us to.</p>
+
+          <div style="height:10px"></div>
+
+          <div class="kicker">How far tonight?</div>
+          <div class="heat" id="heat-open">
+            <button type="button" data-heat="1" aria-pressed="true"><span class="dots">●○○</span>Playful</button>
+            <button type="button" data-heat="2" aria-pressed="false"><span class="dots">●●○</span>Hot</button>
+            <button type="button" data-heat="3" aria-pressed="false"><span class="dots">●●●</span>Wild</button>
+          </div>
+          <p class="sub">Change it any time, mid-game, with one thumb.</p>
+
+          <div class="spacer"></div>
+          <button class="btn" data-goto="s-home">We're both 18+ — start</button>
+          <button class="btn quiet" data-goto="s-connect">My partner isn't here</button>
+        </section>
+
+        <!-- 2. home -->
+        <section class="screen" id="s-home" hidden>
+          <div class="seg" id="seg-mode">
+            <button type="button" aria-pressed="true" data-mode="together">Together</button>
+            <button type="button" aria-pressed="false" data-goto="s-apart" data-mode="apart">Apart</button>
+          </div>
+
+          <div class="card" style="min-height:0">
+            <span class="pill" id="home-heat">Playful</span>
+            <p class="line">Pick something. Or let us pick.</p>
+            <span class="who">One phone between you, or one each.</span>
+          </div>
+
+          <button class="btn" data-goto="s-play">Start now</button>
+
+          <div class="kicker">Or choose a game</div>
+          <div class="tiles">
+            <button class="tile" data-goto="s-play"><b>Truth or Dare</b><span>The classic, sharpened</span></button>
+            <button class="tile" data-goto="s-play"><b>Never Have I&nbsp;Ever</b><span>Find out fast</span></button>
+            <button class="tile" data-goto="s-play"><b>Spin</b><span>It decides, not you</span></button>
+            <button class="tile" data-goto="s-play"><b>Hot Seat</b><span>Three minutes, no lying</span></button>
+            <button class="tile wide" data-goto="s-connect"><b>Connect your partner</b><span>For nights apart. Skip it for now if you like.</span></button>
+          </div>
+
+          <div class="spacer"></div>
+          <div class="heat" id="heat-home">
+            <button type="button" data-heat="1" aria-pressed="true"><span class="dots">●○○</span>Playful</button>
+            <button type="button" data-heat="2" aria-pressed="false"><span class="dots">●●○</span>Hot</button>
+            <button type="button" data-heat="3" aria-pressed="false"><span class="dots">●●●</span>Wild</button>
+          </div>
+        </section>
+
+        <!-- 3. play -->
+        <section class="screen" id="s-play" hidden>
+          <div style="display:flex; justify-content:space-between; align-items:center">
+            <button class="btn quiet" style="width:auto; padding:6px 0" data-goto="s-home">‹ Back</button>
+            <span class="timer" id="timer">00:30</span>
+          </div>
+
+          <div class="card turn" id="play-card">
+            <span class="pill" id="card-heat">Playful</span>
+            <p class="line" id="card-line">Kiss them somewhere you've never kissed them before.</p>
+            <span class="who" id="card-who">Whoever's holding the phone</span>
+          </div>
+
+          <div class="dots-row" id="progress">
+            <i class="on"></i><i></i><i></i><i></i><i></i>
+          </div>
+
+          <div class="spacer"></div>
+
+          <div class="row">
+            <button class="btn ghost" id="btn-skip">Skip</button>
+            <button class="btn" id="btn-done">Done ✓</button>
+          </div>
+          <button class="btn quiet" id="btn-toofar">Too far — not this kind of thing</button>
+
+          <div class="sheet" id="sheet-limit" hidden>
+            <div class="grab"></div>
+            <h2 style="font-size:21px">Skip this kind of thing?</h2>
+            <p class="sub">Nobody is told. Not tonight, not ever — your partner never sees this.</p>
+            <button class="btn" data-close-sheet>Just this one</button>
+            <button class="btn ghost" data-close-sheet>Never show me these again</button>
+          </div>
+
+          <div class="sheet" id="sheet-heat" hidden>
+            <div class="grab"></div>
+            <h2 style="font-size:21px">Turn it up?</h2>
+            <p class="sub">You've both said yes to five in a row.</p>
+            <button class="btn hot" data-heat-to="3" data-close-sheet>Much hotter</button>
+            <button class="btn" data-heat-to="2" data-close-sheet>A bit hotter</button>
+            <button class="btn ghost" data-close-sheet>Keep it here</button>
+          </div>
+        </section>
+
+        <!-- 4. apart -->
+        <section class="screen" id="s-apart" hidden>
+          <div class="seg">
+            <button type="button" aria-pressed="false" data-goto="s-home">Together</button>
+            <button type="button" aria-pressed="true">Apart</button>
+          </div>
+
+          <h2>Sam is 4,100 km away.</h2>
+          <p class="sub">And has opened nothing since this morning.</p>
+
+          <div class="tiles">
+            <button class="tile" data-goto="s-play"><b>Send a dare</b><span>They get 10 minutes</span></button>
+            <button class="tile"><b>Voice note</b><span>Gone after one listen</span></button>
+            <button class="tile"><b>A photo</b><span>Burns when opened</span></button>
+            <button class="tile"><b>Thinking of you</b><span>Just that. Nothing else</span></button>
+          </div>
+
+          <div class="kicker">Today</div>
+          <div class="thread">
+            <div class="msg">
+              <span class="from">Sam · 14:20</span>
+              Left you something. Open it when you're alone.
+              <span class="burn">🔥 Burns after you open it</span>
+            </div>
+            <div class="msg mine">
+              <span class="from">You · 14:32</span>
+              Dare sent — 10 minutes on the clock.
+            </div>
+          </div>
+
+          <div class="spacer"></div>
+          <button class="btn" data-goto="s-play">Open what Sam left</button>
+        </section>
+
+        <!-- 5. connect -->
+        <section class="screen" id="s-connect" hidden>
+          <button class="btn quiet" style="width:auto; padding:6px 0" data-goto="s-home">‹ Back</button>
+          <h2>Point their phone at this.</h2>
+          <p class="sub">Only needed for nights apart. Everything on this page works without it.</p>
+
+          <div class="spacer"></div>
+          <div class="qr"></div>
+          <div class="code">48 21</div>
+          <p class="sub" style="text-align:center">Or send a link — they tap it, you're paired.</p>
+          <div class="spacer"></div>
+
+          <button class="btn" data-goto="s-home">Send a link instead</button>
+          <button class="btn quiet" data-goto="s-home">Later — we're in the same room</button>
+        </section>
+
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="jump" id="jump">
+        <button type="button" data-goto="s-open" aria-current="true">First open</button>
+        <button type="button" data-goto="s-home">Home</button>
+        <button type="button" data-goto="s-play">Playing</button>
+        <button type="button" data-goto="s-apart">Apart</button>
+        <button type="button" data-goto="s-connect">Pairing</button>
+      </div>
+
+      <div class="note" id="note">
+        <h3 id="note-title">Loading</h3>
+        <p id="note-body"></p>
+        <div class="swap">
+          <div><span>Was</span><em class="was" id="note-was"></em></div>
+          <div><span>Now</span><em class="now" id="note-now"></em></div>
+        </div>
+      </div>
+
+      <div class="principles">
+        <div class="principle">
+          <b>Nothing is asked for until it pays for itself</b>
+          <span>An account buys saving and syncing, so it is asked for when they first save or go apart. A partner link buys distance, so it is asked for when they are apart. Limits buy safety, so they are captured the first time someone taps "too far" — not in a twenty-card wizard at midnight.</span>
+        </div>
+        <div class="principle">
+          <b>Heat is a thumb, not a form</b>
+          <span>Three levels, always on screen, changeable mid-card. The engine's five intensity levels stay underneath; the person never meets them.</span>
+        </div>
+        <div class="principle">
+          <b>The card is the product</b>
+          <span>One instruction, big, in a face with some warmth to it, with the heat showing in the colour. No shape screens, no chapter counts, no "what's inside stays sealed" — just the thing to do next.</span>
+        </div>
+        <div class="principle">
+          <b>Every no is silent and instant</b>
+          <span>Skip needs no reason. "Too far" needs no explanation and never reaches the partner. That is the existing privacy architecture, finally visible as a feature instead of a setup step.</span>
+        </div>
+        <div class="principle">
+          <b>What survives from the current build</b>
+          <span>The server engine, the boundary filter, the rules matrix, the data-only notifications, the burn-after-reading media, the couple-scoped entitlement. All of it stays. It moves behind the play instead of standing in front of it.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Tap through the phone — every button works. Content shown is sample copy at each heat level, written
+    to the same authoring rules as the real packs. The five games on Home map to the existing
+    <code>content/games.json</code> primitives, so adding one stays a content edit rather than a screen.
+  </footer>
+</div>
+
+<script>
+  (function () {
+    "use strict";
+
+    var HEAT = {
+      1: { name: "Playful", color: "#E9B44C" },
+      2: { name: "Hot",     color: "#FF7A59" },
+      3: { name: "Wild",    color: "#FF3D68" }
+    };
+
+    var DECK = {
+      1: [
+        { line: "Kiss them somewhere you've never kissed them before.", who: "Whoever's holding the phone", secs: 30 },
+        { line: "Say the thing you noticed about them today and never mentioned.", who: "Both, one at a time", secs: 0 },
+        { line: "Two minutes. Hands only. No talking.", who: "Together", secs: 120 },
+        { line: "Guess what they were thinking about last night. One guess.", who: "You first", secs: 0 },
+        { line: "Take one thing off. Their choice which.", who: "They choose", secs: 0 }
+      ],
+      2: [
+        { line: "Trace a slow line from their collarbone down. Stop where they tell you to.", who: "You lead", secs: 45 },
+        { line: "Whisper what you want to happen next. Only a whisper.", who: "Both", secs: 0 },
+        { line: "Blindfold them with whatever's nearest. Three minutes of your choosing.", who: "You lead", secs: 180 },
+        { line: "Name the thing you've been curious about and never said out loud.", who: "Both, together", secs: 0 },
+        { line: "They can't move for a minute. You can do anything you like.", who: "They stay still", secs: 60 }
+      ],
+      3: [
+        { line: "They set a rule for the next ten minutes. You don't get to negotiate it.", who: "They decide", secs: 600 },
+        { line: "Tell them the fantasy. All of it, out loud, no editing.", who: "One of you", secs: 0 },
+        { line: "Hands behind their back. Five minutes. Nothing they can do about it.", who: "You lead", secs: 300 },
+        { line: "Pick the thing you both said yes to and have never done.", who: "Together", secs: 0 },
+        { line: "Whoever loses the next round does whatever the winner says.", who: "Together", secs: 0 }
+      ]
+    };
+
+    var NOTES = {
+      "s-open": {
+        title: "One screen, not five",
+        body: "Age, heat, start. Nothing is written to a server, so nothing needs an account. The 18+ confirmation is still recorded and still gates the app, exactly as §3.1 requires — it just shares a screen with the only other question that matters tonight.",
+        was: "Age gate → welcome → sign up → email → verify → 20 preference cards → limits",
+        now: "One screen, two taps"
+      },
+      "s-home": {
+        title: "Games first, configuration never",
+        body: "Five named games and one big Start. No mood picker, no length picker, no leadership picker, no novelty slider. The engine still chooses using all of those — it infers them from the heat level and from what this couple actually said yes to last time.",
+        was: "A six-field form, then a shape screen that shows nothing",
+        now: "Tap a game, get a card"
+      },
+      "s-play": {
+        title: "One instruction at a time",
+        body: "The whole product is this card. Skip is silent and instant. Done moves on. 'Too far' opens the sheet that captures a boundary in two taps, mid-play, privately — the same data the twenty-card wizard was collecting, gathered where it costs nothing. After five yeses the heat sheet offers to turn it up.",
+        was: "Chapter 1 of 4 · 'Something interesting is coming…' · check-in · feedback",
+        now: "Card, skip, done, and a heat ramp that asks"
+      },
+      "s-apart": {
+        title: "Apart is a feed, not a mode",
+        body: "What they left you, what you sent, what's still waiting. Voice notes and photos still burn on open, still never mint a public URL, still sweep hourly — that architecture was already right. It just needed to look like a thread instead of a settings page.",
+        was: "Apart surface → Send something → pick a kind → record → confirm → sent",
+        now: "Four tiles and the thread underneath"
+      },
+      "s-connect": {
+        title: "Pairing, when it's actually needed",
+        body: "QR, a four-digit code, or a link. The verification symbols and the approval step stay for the security they give, but they belong here — at the moment two people decide to link — not in front of the first dare. 'Later' is a real button, not a dead end.",
+        was: "Code → partner enters it → symbols → approval → then the app opens",
+        now: "Only when they're apart, and skippable"
+      }
+    };
+
+    var heat = 1;
+    var index = 0;
+    var streak = 0;
+    var ticker = null;
+
+    var $ = function (id) { return document.getElementById(id); };
+
+    function applyHeat(level) {
+      heat = level;
+      var h = HEAT[level];
+      document.documentElement.style.setProperty("--heat-color", h.color);
+      $("home-heat").textContent = h.name;
+      $("card-heat").textContent = h.name;
+      Array.prototype.forEach.call(document.querySelectorAll("[data-heat]"), function (b) {
+        b.setAttribute("aria-pressed", String(Number(b.dataset.heat) === level));
+      });
+      index = 0;
+      render();
+    }
+
+    function render() {
+      var deck = DECK[heat];
+      var card = deck[index % deck.length];
+      $("card-line").textContent = card.line;
+      $("card-who").textContent = card.who;
+
+      var el = $("play-card");
+      el.classList.remove("turn");
+      void el.offsetWidth;
+      el.classList.add("turn");
+
+      Array.prototype.forEach.call($("progress").children, function (dot, i) {
+        dot.classList.toggle("on", i <= (index % deck.length));
+      });
+
+      startTimer(card.secs);
+    }
+
+    function startTimer(secs) {
+      if (ticker) { clearInterval(ticker); ticker = null; }
+      var el = $("timer");
+      if (!secs) { el.textContent = "no clock"; return; }
+      var left = secs;
+      var paint = function () {
+        var m = Math.floor(left / 60), s = left % 60;
+        el.textContent = (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+      };
+      paint();
+      ticker = setInterval(function () {
+        left -= 1;
+        if (left <= 0) { clearInterval(ticker); ticker = null; left = 0; }
+        paint();
+      }, 1000);
+    }
+
+    function show(id) {
+      Array.prototype.forEach.call(document.querySelectorAll(".screen"), function (s) {
+        s.hidden = s.id !== id;
+      });
+      Array.prototype.forEach.call(document.querySelectorAll(".sheet"), function (s) { s.hidden = true; });
+
+      var note = NOTES[id];
+      if (note) {
+        $("note-title").textContent = note.title;
+        $("note-body").textContent = note.body;
+        $("note-was").textContent = note.was;
+        $("note-now").textContent = note.now;
+      }
+
+      Array.prototype.forEach.call($("jump").children, function (b) {
+        b.setAttribute("aria-current", String(b.dataset.goto === id));
+      });
+
+      if (id === "s-play") { render(); } else if (ticker) { clearInterval(ticker); ticker = null; }
+    }
+
+    document.addEventListener("click", function (event) {
+      var goto = event.target.closest("[data-goto]");
+      if (goto) { show(goto.dataset.goto); return; }
+
+      var heatBtn = event.target.closest("[data-heat]");
+      if (heatBtn) { applyHeat(Number(heatBtn.dataset.heat)); return; }
+
+      var heatTo = event.target.closest("[data-heat-to]");
+      if (heatTo) { applyHeat(Number(heatTo.dataset.heatTo)); }
+
+      if (event.target.closest("[data-close-sheet]")) {
+        Array.prototype.forEach.call(document.querySelectorAll(".sheet"), function (s) { s.hidden = true; });
+      }
+    });
+
+    $("btn-done").addEventListener("click", function () {
+      streak += 1;
+      index += 1;
+      if (streak >= 5 && heat < 3) { streak = 0; $("sheet-heat").hidden = false; return; }
+      render();
+    });
+
+    $("btn-skip").addEventListener("click", function () {
+      streak = 0;
+      index += 1;
+      render();
+    });
+
+    $("btn-toofar").addEventListener("click", function () {
+      $("sheet-limit").hidden = false;
+    });
+
+    applyHeat(1);
+    show("s-open");
+  })();
+</script>
