@@ -135,6 +135,72 @@ class InstantPlayViewModelTest {
     }
 
     @Test
+    fun `no clock runs until someone starts one`() = runTest {
+        val viewModel = viewModel()
+
+        assertThat(viewModel.uiState.value.timer).isNull()
+
+        viewModel.startTimer()
+
+        assertThat(viewModel.uiState.value.timer?.remainingSeconds).isEqualTo(5 * 60)
+    }
+
+    @Test
+    fun `the clock counts down, and stops when it is stopped`() = runTest {
+        val viewModel = viewModel()
+        viewModel.startTimer()
+
+        mainDispatcherRule.testDispatcher.scheduler.advanceTimeBy(3_100)
+
+        assertThat(viewModel.uiState.value.timer?.remainingSeconds).isEqualTo(5 * 60 - 3)
+
+        viewModel.stopTimer()
+        mainDispatcherRule.testDispatcher.scheduler.advanceTimeBy(5_000)
+
+        assertThat(viewModel.uiState.value.timer).isNull()
+    }
+
+    @Test
+    fun `moving to the next card puts the clock away`() = runTest {
+        val viewModel = viewModel()
+        viewModel.startTimer()
+
+        viewModel.done()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.timer).isNull()
+    }
+
+    @Test
+    fun `a run of six asks whether to carry on, rather than ending`() = runTest {
+        val viewModel = viewModel()
+
+        repeat(4) { viewModel.skip() }
+        assertThat(viewModel.uiState.value.runComplete).isFalse()
+
+        repeat(2) { viewModel.skip() }
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.runComplete).isTrue()
+        assertThat(viewModel.uiState.value.position).isEqualTo(6)
+    }
+
+    @Test
+    fun `keeping going starts the count again and keeps the deck moving`() = runTest {
+        val viewModel = viewModel()
+        repeat(6) { viewModel.skip() }
+        advanceUntilIdle()
+        val card = viewModel.uiState.value.card
+
+        viewModel.keepGoing()
+
+        assertThat(viewModel.uiState.value.runComplete).isFalse()
+        assertThat(viewModel.uiState.value.position).isEqualTo(0)
+        assertThat(viewModel.uiState.value.card).isEqualTo(card)
+        assertThat(viewModel.uiState.value.played).isEqualTo(6)
+    }
+
+    @Test
     fun `a deck with nothing left says so instead of showing nothing`() = runTest {
         instant.deckState.value = InstantDeck.of(emptyList(), Heat.PLAYFUL)
         val viewModel = viewModel()

@@ -5,8 +5,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 
 **Current position:** The 23 phases of BUILD_PROMPT.md are complete, and the rebuild in
 `REDESIGN_PROMPT.md` has begun — R1 (chance, desire and six new games) and R2 (two taps to a card,
-with no account and no network) are done; R3 (the card player in full: timers, progress, and the
-games reachable from it) is next. Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
+with no account and no network) and R3 (the player whole: a clock, a run, an ending) are done; R4
+(home, with the fourteen games reachable from it) is next. Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
 and every §23 deliverable is written. What remains before a public release is setup and review, not
 code: `RELEASE.md` is the ordered runbook, `HUMAN_SETUP.md` the console detail, and `legal/` holds
 drafts of the privacy policy, the terms and the Play data-safety answers, pending a lawyer.
@@ -1230,6 +1230,41 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Redesign R3 — The player, whole ✅
+
+R2 got two taps to a card. R3 makes the card an evening: a clock for the cards that suggest one,
+a count through the run, and an ending that asks rather than decides.
+
+### Shipped
+- **A clock nobody started for them.** A card carrying a duration offers "Start the 5 minutes"; the
+  countdown runs only once somebody presses it, and stopping it takes one tap and no reason. A
+  countdown that began on its own would turn an invitation into an instruction, and several of these
+  cards are better with no clock at all.
+- **A run, counted**: "2 of 6 this run", under the card it counts.
+- **An ending that asks**: six cards in, "That's 6 — stop here, or keep going". *Keep going* resets
+  the count and carries straight on; *That's us for tonight* leaves. The app never decides the
+  evening is over.
+- **Six goldens** for the screens this rebuild is judged on: the first screen, the card, the card
+  with a clock running, the refusal question, the heat ramp, and the end of a run.
+
+### Verified
+```
+./gradlew check                                BUILD SUCCESSFUL
+:feature:instant InstantPlayViewModelTest      15/15  (5 new: the clock, the run, carrying on)
+:feature:instant InstantSnapshotTest            6/6   (goldens recorded)
+```
+- **On the device, network off, from a cleared install**: two taps to a card, then "Start the 5
+  minutes" → 4:55 → 4:47 six seconds later → "Stop the clock" put it away. Five Dones raised the
+  ramp; "Keep it here" held the heat at HOT; the sixth card ended the run with "That's 6."; carrying
+  on reset the counter to "0 of 6" and dealt the next card. A cold restart came back to a card. No
+  `FATAL EXCEPTION`, no ANR.
+- One scare that was not a bug: the driver script's substring search matched the sentence "Stop
+  here, or keep going…" instead of the *Keep going* button, so the first attempt appeared to do
+  nothing. Tapping the button itself worked. Worth recording because the same trap will catch the
+  next person driving this screen from a script.
 
 ---
 
