@@ -8,8 +8,9 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 with no account and no network), R3 (the player whole) and R4 (home, and fourteen games playable
 with no account) and R5 (an account offered when it buys something, carrying the local refusals into
 the person's real limits), R6 (apart as one thread) and R7 (the deck offered rather than demanded)
-are done; R8 (polish, and the accessibility suites re-run) is next. The `MEDIA` primitive, for games
-played apart, and the rest of the game catalogue are still to come. Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
+and R8 (polish, and the audit run against the new screens) are done — the whole of
+`REDESIGN_PROMPT.md` §7 is built. What remains of the rebuild is content and one primitive: the
+`MEDIA` step for games played apart, and the rest of the game catalogue. Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
 and every §23 deliverable is written. What remains before a public release is setup and review, not
 code: `RELEASE.md` is the ordered runbook, `HUMAN_SETUP.md` the console detail, and `legal/` holds
 drafts of the privacy policy, the terms and the Play data-safety answers, pending a lawyer.
@@ -1233,6 +1234,37 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Redesign R8 — Polish, and the audit run against what was built since ✅
+
+The accessibility suite was written in Phase 22, against the design system. Everything a person
+now meets first was written after it.
+
+### Shipped
+- **The audit covers the new screens**: `InstantAccessibilityTest` composes the first screen, the
+  card player and home at 200% type, and holds all three to the same rules — 48 dp targets, and a
+  label on everything interactive.
+- **A defect the goldens caught**: at 200% the heat picker broke "Playful" in half across two lines.
+  Three across is right at ordinary type and wrong at the largest, so past half again it stacks.
+  This is exactly what §20's "without clipping" is about, and it was invisible at normal type.
+- **A light haptic on every press that did something**, in one place so a Done in a game feels like
+  a Done on a card. The system's own setting governs whether anything is felt; a disabled button
+  says nothing, because nothing happened.
+- **Silence is a rule now, not a habit.** There is no "sounds off" setting because there is nothing
+  to turn off: the only audio in the app is a voice note, recorded because somebody held the button
+  and played because somebody pressed play. An architecture test fails the build if anything else
+  learns to make a noise.
+
+### Verified
+```
+./gradlew check                                BUILD SUCCESSFUL
+:feature:instant InstantAccessibilityTest       5/5   (3 goldens at 200%)
+:architecture                                  the silence rule, with the two voice files named
+```
+- Three goldens added, and **no existing golden moved**: haptics are not visual, and the picker
+  only changes above 1.5× type, which only the new goldens exercise.
 
 ---
 

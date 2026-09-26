@@ -24,6 +24,23 @@ class ContentChokepointTest {
             }
     }
 
+    /**
+     * The app makes no sound of its own (BUILD_PROMPT.md §20, REDESIGN_PROMPT.md §6).
+     *
+     * There is no "sounds off" setting because there is nothing to turn off: the only audio in the
+     * app is a voice note, played because somebody pressed play on it. A phone that chimed at the
+     * wrong moment is a worse failure here than in most apps, so this is a rule rather than a
+     * habit — anything that can make a noise has to justify itself in this list.
+     */
+    @Test
+    fun `nothing plays a sound except the voice notes someone asked for`() {
+        productionFiles()
+            .filter { file -> SOUND.containsMatchIn(file.text) }
+            .assertTrue(testName = "a sound played outside the voice-note player") { file ->
+                SOUND_MAKERS.any { file.unixPath.endsWith(it) }
+            }
+    }
+
     @Test
     fun `the engine assembles only with a pool built from the server's night`() {
         val pool = Konsist.scopeFromProject().classes().filter { it.name == "PermittedPool" }
@@ -57,6 +74,18 @@ class ContentChokepointTest {
 
     private companion object {
         const val CONTENT_REPOSITORY = "com.shnapps.couple.core.data.content.ContentRepository"
+
+        /** Anything that can make the phone audible on its own. */
+        val SOUND = Regex("MediaPlayer|SoundPool|RingtoneManager|ToneGenerator|MediaRecorder")
+
+        /**
+         * The only places allowed to: a voice note is recorded because somebody held the button,
+         * and played because somebody pressed play (§13).
+         */
+        val SOUND_MAKERS = listOf(
+            "feature/send/src/main/kotlin/com/shnapps/couple/feature/send/VoicePlayer.kt",
+            "feature/send/src/main/kotlin/com/shnapps/couple/feature/send/VoiceRecorder.kt",
+        )
 
         /**
          * Everything that may import the content repository. The content layer's own package

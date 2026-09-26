@@ -18,6 +18,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -45,7 +47,20 @@ fun GlowButton(
     val spacing = AfterhoursTheme.spacing
     val reduceMotion = AfterhoursTheme.reduceMotion
 
+    val haptics = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
+
+    /**
+     * A light tick on every press that did something (BUILD_PROMPT.md §20, REDESIGN_PROMPT.md §6).
+     *
+     * One place for the whole app, so a Done in a game feels like a Done on a card. The system's
+     * own haptic setting governs whether anything is felt at all — this asks, it does not insist,
+     * and it says nothing when the button is disabled because nothing happened.
+     */
+    val click: () -> Unit = {
+        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        onClick()
+    }
     val pressed by interactionSource.collectIsPressedAsState()
     val glowAlpha by animateFloatAsState(
         targetValue = when {
@@ -92,7 +107,7 @@ fun GlowButton(
 
     when (style) {
         GlowButtonStyle.Primary -> Button(
-            onClick = onClick,
+            onClick = click,
             modifier = buttonModifier,
             enabled = enabled,
             interactionSource = interactionSource,
@@ -100,7 +115,7 @@ fun GlowButton(
         ) { label() }
 
         GlowButtonStyle.Secondary -> OutlinedButton(
-            onClick = onClick,
+            onClick = click,
             modifier = buttonModifier,
             enabled = enabled,
             interactionSource = interactionSource,
@@ -109,7 +124,7 @@ fun GlowButton(
         ) { label() }
 
         GlowButtonStyle.Quiet -> TextButton(
-            onClick = onClick,
+            onClick = click,
             modifier = modifier
                 .defaultMinSize(minHeight = spacing.touchTarget)
                 .padding(horizontal = spacing.xxs),
