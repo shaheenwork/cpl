@@ -11,5 +11,6 @@ dependencies {
     // The heat and the refusals this phone holds before there is anywhere else to keep them.
     implementation(project(":core:datastore"))
     implementation(project(":core:engine"))
+    implementation(project(":core:navigation"))
     testImplementation(project(":core:datastore"))
 }

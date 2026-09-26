@@ -34,6 +34,14 @@ object Route {
     @Serializable
     data object InstantPlay
 
+    /** Where an evening starts when nobody has signed in: what to play, and how far. */
+    @Serializable
+    data object InstantHome
+
+    /** A game dealt on this phone, with no account and no session behind it. */
+    @Serializable
+    data class InstantGame(val gameId: String)
+
     @Serializable
     data object Auth
 

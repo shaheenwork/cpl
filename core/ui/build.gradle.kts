@@ -10,6 +10,9 @@ android {
 
 dependencies {
     implementation(project(":core:designsystem"))
+    // The primitives every game is played through: rendered here so both players — the session
+    // one and the local one — show the same thing (BUILD_PROMPT.md §11.1).
+    api(project(":core:engine"))
     // PremiumNudge says which limit was reached, in the words the model holds (§19).
     api(project(":core:model"))
 

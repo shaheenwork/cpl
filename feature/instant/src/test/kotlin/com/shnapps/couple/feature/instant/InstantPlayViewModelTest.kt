@@ -4,9 +4,11 @@ import com.google.common.truth.Truth.assertThat
 import com.shnapps.couple.core.data.instant.InstantPlayRepository
 import com.shnapps.couple.core.engine.InstantCard
 import com.shnapps.couple.core.engine.InstantDeck
+import com.shnapps.couple.core.engine.game.ReleasedGame
 import com.shnapps.couple.core.model.ChapterKind
 import com.shnapps.couple.core.model.ContentItem
 import com.shnapps.couple.core.model.ContentStatus
+import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.InteractionType
@@ -236,6 +238,11 @@ class InstantPlayViewModelTest {
         override suspend fun refuse(card: InstantCard, alsoItsKind: Boolean) {
             refusals += card to alsoItsKind
         }
+
+        // The card player never starts a game; these exist so the fake is the whole repository.
+        override val games: Flow<List<Game>> = MutableStateFlow(emptyList())
+
+        override suspend fun startGame(gameId: String): ReleasedGame? = null
     }
 
     private companion object {

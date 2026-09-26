@@ -5,8 +5,9 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 
 **Current position:** The 23 phases of BUILD_PROMPT.md are complete, and the rebuild in
 `REDESIGN_PROMPT.md` has begun — R1 (chance, desire and six new games) and R2 (two taps to a card,
-with no account and no network) and R3 (the player whole: a clock, a run, an ending) are done; R4
-(home, with the fourteen games reachable from it) is next. Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
+with no account and no network), R3 (the player whole) and R4 (home, and fourteen games playable
+with no account) are done; R5 (an account offered when it buys something, carrying the local
+refusals into the person's real limits) is next. Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
 and every §23 deliverable is written. What remains before a public release is setup and review, not
 code: `RELEASE.md` is the ordered runbook, `HUMAN_SETUP.md` the console detail, and `legal/` holds
 drafts of the privacy policy, the terms and the Play data-safety answers, pending a lawyer.
@@ -1230,6 +1231,44 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Redesign R4 — Home, and fourteen games with no account ✅
+
+The six-field build form is gone from the first-run path. Home is one Start and the games by name,
+and every one of them plays on a phone nobody has signed in to.
+
+### Shipped
+- **`ReleasedGame.forHeat`** (D-100, again): a game dealt on the device, inside this phone's heat
+  and its refusals, climbing towards the ceiling the way `engine/SPEC.md` §10 describes. It is not
+  the server's pipeline and does not pretend to be — there is no scoring, because scoring reads an
+  affinity that only exists once a couple has played together. The deal is seeded, so a reopened
+  phone deals the same game.
+- **The renderers moved to `:core:ui`.** Two players now draw the same primitives: the session
+  player, where a game is a night the server started, and the local one. A feature may not import
+  another feature, and a second renderer for a primitive is the one thing §11.1 forbids — so the
+  renderers belong to neither feature. The Konsist rule follows them rather than being relaxed.
+- **Home** (`InstantHomeScreen`): "Start now", then all fourteen games with their taglines, the
+  heat where a thumb reaches it, and the two things that genuinely need a partner — Apart and
+  "Plan a whole evening" — asking for an account at the moment they are wanted.
+- **The local game player**: hand-offs, every primitive, "Not this one", and an ending that offers
+  another deal. Leaving is leaving: there is no session to end and nobody waiting.
+
+### Verified
+```
+./gradlew check                                BUILD SUCCESSFUL
+:core:engine LocalGameTest                      9/9
+:feature:instant InstantGameViewModelTest       6/6
+:feature:instant InstantSnapshotTest            9/9   (home, a game, a finished game added)
+```
+- **On the device, network off, from a cleared install**: two taps to home, all fourteen games
+  listed. **Dirty Dice** played to the end — 28 steps, six rounds — with the `DRAW` primitive
+  landing ("IT SAYS · Undo a button"), its timer running, and its reaction step after each roll.
+  **Rate It** ran both dials and revealed "5+ · Exactly the same number", which is the gap without
+  either number attributed. No `FATAL EXCEPTION`.
+- **One real bug, found on the device**: the finished screen read "ROUND 7 OF 6", because the run
+  counts past its last round once it is over. Fixed, and a golden now holds it.
 
 ---
 

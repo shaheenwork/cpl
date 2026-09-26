@@ -49,9 +49,12 @@ class GameLogicTest {
             .toSet()
         assertTrue(primitives.size >= MIN_PRIMITIVES) { "expected RoundPrimitive's kinds, found $primitives" }
 
+        // The renderers live in :core:ui, because two players render the same primitives now: the
+        // session player, and the local one a phone with no account uses (REDESIGN_PROMPT.md §4.1).
+        // Anywhere else would mean a second renderer for a primitive, which is what §11.1 forbids.
         val renderers = Konsist.scopeFromProject()
             .functions()
-            .filter { "/feature/games/src/main/" in unix(it.path) && it.name.endsWith(RENDERER) }
+            .filter { it.name.endsWith(RENDERER) && "/src/main/" in unix(it.path) }
             .map { it.name }
         val expected = primitives.map { it + RENDERER } + DISPATCH
         assertTrue(renderers.sorted() == expected.sorted()) {

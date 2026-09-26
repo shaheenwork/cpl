@@ -29,6 +29,8 @@ import com.shnapps.couple.feature.games.GameScreen
 import com.shnapps.couple.feature.games.GamesScreen
 import com.shnapps.couple.feature.home.HomeActions
 import com.shnapps.couple.feature.home.HomeScreen
+import com.shnapps.couple.feature.instant.InstantGameScreen
+import com.shnapps.couple.feature.instant.InstantHomeScreen
 import com.shnapps.couple.feature.instant.InstantPlayScreen
 import com.shnapps.couple.feature.instant.StartScreen
 import com.shnapps.couple.feature.memories.MemoriesScreen
@@ -88,7 +90,7 @@ fun CplNavHost(
         composable<Route.Start> {
             StartScreen(
                 onStarted = {
-                    navController.navigate(Route.InstantPlay) {
+                    navController.navigate(Route.InstantHome) {
                         popUpTo(Route.Start) { inclusive = true }
                     }
                 },
@@ -102,7 +104,23 @@ fun CplNavHost(
         }
 
         composable<Route.InstantPlay> {
-            InstantPlayScreen(onBack = { navController.navigate(Route.Start) })
+            InstantPlayScreen(onBack = { navController.navigate(Route.InstantHome) })
+        }
+
+        // Home for a couple with no account: what to play, and how far (REDESIGN_PROMPT.md §5.2).
+        composable<Route.InstantHome> {
+            InstantHomeScreen(
+                onStartNow = { navController.navigate(Route.InstantPlay) },
+                onGame = { gameId -> navController.navigate(Route.InstantGame(gameId)) },
+                // Apart and a planned evening both need a partner, so both ask for an account at
+                // the moment it is wanted rather than before anything has happened.
+                onApart = { navController.navigate(Route.Auth) },
+                onPlanEvening = { navController.navigate(Route.Auth) },
+            )
+        }
+
+        composable<Route.InstantGame> {
+            InstantGameScreen(onBack = { navController.popBackStack() })
         }
 
         composable<Route.AgeGate> {
@@ -351,7 +369,7 @@ private fun experienceRoute(experienceId: String, type: ExperienceType): Any = w
 private fun StartDestination.toRoute(): Any = when (this) {
     StartDestination.Auth -> Route.Auth
     StartDestination.Start -> Route.Start
-    StartDestination.InstantPlay -> Route.InstantPlay
+    StartDestination.InstantPlay -> Route.InstantHome
     StartDestination.AgeGate -> Route.AgeGate
     StartDestination.Welcome -> Route.Welcome
     StartDestination.CoupleSetup -> Route.CoupleSetup

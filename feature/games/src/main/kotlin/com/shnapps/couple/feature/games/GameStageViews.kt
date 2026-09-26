@@ -24,6 +24,7 @@ import com.shnapps.couple.core.model.CloseCheckIn
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Scoring
 import com.shnapps.couple.core.model.SessionEndReason
+import com.shnapps.couple.core.ui.PrimitiveRenderer
 import com.shnapps.couple.core.ui.ScreenColumn
 import com.shnapps.couple.core.ui.ScreenHeading
 

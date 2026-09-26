@@ -312,9 +312,15 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
 - A refusal is captured mid-play by `Too far`, written to DataStore (`refusedCardIds`,
   `refusedThemes`), and honoured from the next card. Reconciling those into the person's real limits
   when they sign up is R5's job.
-- The splash sends a signed-out person to `Route.Start` (new) or `Route.InstantPlay` (already through
+- The splash sends a signed-out person to `Route.Start` (new) or `Route.InstantHome` (already through
   the gate). `Route.AgeGate` is still the signed-in path, where the attestation is written to their
   own record.
+- A game with no account is dealt by `ReleasedGame.forHeat`, not by the server. Same reasoning as the
+  deck, same bounds, and the deal is seeded so a reopened phone deals the same game. `fromServer`
+  remains the only way once a couple is signed in.
+- **The primitive renderers live in `:core:ui`**, not in `:feature:games`: two players draw them now,
+  and a feature may not import another feature. A second renderer for a primitive is what §11.1
+  forbids, so they belong to neither feature.
 
 ---
 

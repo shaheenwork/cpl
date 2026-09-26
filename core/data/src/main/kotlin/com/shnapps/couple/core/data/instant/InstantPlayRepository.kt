@@ -5,10 +5,13 @@ import com.shnapps.couple.core.datastore.AppPreferencesStore
 import com.shnapps.couple.core.datastore.PlaySettingsStore
 import com.shnapps.couple.core.engine.InstantCard
 import com.shnapps.couple.core.engine.InstantDeck
+import com.shnapps.couple.core.engine.game.ReleasedGame
+import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.Mode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -34,6 +37,16 @@ interface InstantPlayRepository {
 
     /** "Not this kind of thing." Silent, immediate, and never sent anywhere. */
     suspend fun refuse(card: InstantCard, alsoItsKind: Boolean)
+
+    /** Every game the app ships, whether or not anyone has signed in. */
+    val games: Flow<List<Game>>
+
+    /**
+     * A game dealt on this phone, inside its heat and its refusals (D-100), or null when the
+     * content has nothing for it. Nothing is sent and nothing is stored: the game exists for as
+     * long as it is being played.
+     */
+    suspend fun startGame(gameId: String): ReleasedGame?
 }
 
 @Singleton
@@ -55,6 +68,21 @@ class DefaultInstantPlayRepository @Inject constructor(
         }
 
     override val heat: Flow<Heat> = preferences.preferences.map { it.heat }
+
+    override val games: Flow<List<Game>> = content.games
+
+    override suspend fun startGame(gameId: String): ReleasedGame? {
+        val game = content.games.first().firstOrNull { it.id == gameId } ?: return null
+        val prefs = preferences.preferences.first()
+        return ReleasedGame.forHeat(
+            game = game,
+            prompts = content.prompts.first(),
+            ceiling = prefs.heat.ceiling.level,
+            refusedThemes = prefs.refusedThemes,
+            // A new deal each time it is started, and the same one for as long as it is played.
+            seed = System.currentTimeMillis(),
+        )
+    }
 
     override suspend fun setHeat(heat: Heat) = play.setHeat(heat)
 

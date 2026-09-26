@@ -10,8 +10,15 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.engine.InstantCard
+import com.shnapps.couple.core.engine.game.GameMoment
+import com.shnapps.couple.core.engine.game.RoundPrimitive
+import com.shnapps.couple.core.engine.game.Score
+import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.Intensity
+import com.shnapps.couple.core.model.Mode
+import com.shnapps.couple.core.model.Scoring
+import com.shnapps.couple.core.model.TurnOrder
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -89,6 +96,82 @@ class InstantSnapshotTest {
         composeRule.onNodeWithText("That's us for tonight").assertIsDisplayed()
     }
 
+    @Test
+    fun `home is games, not a form`() {
+        capture("instant-home") {
+            InstantHomeContent(
+                state = InstantHomeUiState(games = shippedGames, heat = Heat.HOT),
+                onStartNow = {},
+                onGame = {},
+                onApart = {},
+                onPlanEvening = {},
+                onHeat = {},
+            )
+        }
+
+        // What replaced the six-field build form: one Start, and the games by name.
+        composeRule.onNodeWithText("Start now").assertIsDisplayed()
+        composeRule.onNodeWithText("Spin").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a game dealt on this phone`() {
+        capture("instant-game") {
+            InstantGameContent(
+                state = InstantGameUiState(
+                    title = "Dirty Dice",
+                    moment = GameMoment.Turn(
+                        round = 0,
+                        primitive = RoundPrimitive.Challenge(
+                            step = 1,
+                            seat = 0,
+                            text = "Do it without using your hands at all.",
+                            kind = null,
+                        ),
+                        canSkip = true,
+                    ),
+                    round = 0,
+                    rounds = 6,
+                    loading = false,
+                ),
+                onBack = {},
+                onProceed = {},
+                onAnswer = {},
+                onSkipPrompt = {},
+                onNextRound = {},
+                onPlayAgain = {},
+            )
+        }
+
+        composeRule.onNodeWithText("DIRTY DICE · ROUND 1 OF 6").assertIsDisplayed()
+        composeRule.onNodeWithText("Not this one").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a finished game does not count past its last round`() {
+        capture("instant-game-finished") {
+            InstantGameContent(
+                state = InstantGameUiState(
+                    title = "Dirty Dice",
+                    moment = GameMoment.Finished(round = 6, score = Score()),
+                    round = 6,
+                    rounds = 6,
+                    loading = false,
+                ),
+                onBack = {},
+                onProceed = {},
+                onAnswer = {},
+                onSkipPrompt = {},
+                onNextRound = {},
+                onPlayAgain = {},
+            )
+        }
+
+        // Found on the device: the eyebrow read "ROUND 7 OF 6" once the game was over.
+        composeRule.onNodeWithText("DIRTY DICE").assertIsDisplayed()
+        composeRule.onNodeWithText("That's the game.").assertIsDisplayed()
+    }
+
     @Composable
     private fun play(state: InstantPlayUiState) {
         InstantPlayContent(
@@ -133,6 +216,25 @@ class InstantSnapshotTest {
 
     private companion object {
         const val SETTLE_MS = 1_000L
+
+        val shippedGames = listOf(
+            game("SPIN", "Spin", "It decides. You just do it."),
+            game("DIRTY_DICE", "Dirty Dice", "Roll, then run the clock."),
+            game("RATE_IT", "Rate It", "How much, without saying a number."),
+        )
+
+        fun game(id: String, title: String, tagline: String) = Game(
+            id = id,
+            title = title,
+            tagline = tagline,
+            description = "",
+            modes = setOf(Mode.TOGETHER),
+            rounds = 6,
+            turns = TurnOrder.ALTERNATE,
+            scoring = Scoring.NONE,
+            promptKinds = emptyList(),
+            steps = emptyList(),
+        )
 
         val card = InstantCard(
             id = "tease_opposite_corners",

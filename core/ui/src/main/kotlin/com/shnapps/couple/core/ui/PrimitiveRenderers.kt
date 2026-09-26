@@ -1,4 +1,4 @@
-package com.shnapps.couple.feature.games
+package com.shnapps.couple.core.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -49,10 +49,15 @@ import kotlinx.coroutines.delay
 // One renderer per primitive (BUILD_PROMPT.md §11.1), and none for any game: a game is only
 // ever the order these appear in. The architecture test holds this file to exactly one
 // renderer for each kind of RoundPrimitive.
+//
+// Shared rather than owned by the games feature, because two players now render the same
+// primitives: the session player, where a game is a night the server started, and the local one,
+// where a game is dealt on a phone with no account (REDESIGN_PROMPT.md §4.1). A feature may not
+// import another feature, and duplicating a renderer would be the one thing §11.1 forbids.
 
 /** The one place a primitive is matched to its renderer. */
 @Composable
-internal fun PrimitiveRenderer(primitive: RoundPrimitive, players: GamePlayers, onSubmit: (Answer) -> Unit) {
+fun PrimitiveRenderer(primitive: RoundPrimitive, players: GamePlayers, onSubmit: (Answer) -> Unit) {
     when (primitive) {
         is RoundPrimitive.Question -> QuestionRenderer(primitive, players, onSubmit)
         is RoundPrimitive.Choice -> ChoiceRenderer(primitive, players, onSubmit)
