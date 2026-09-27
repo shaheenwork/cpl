@@ -2,6 +2,7 @@ package com.shnapps.couple.core.engine.game
 
 import com.shnapps.couple.core.model.AnswerKind
 import com.shnapps.couple.core.model.ChapterReaction
+import com.shnapps.couple.core.model.MediaKind
 import com.shnapps.couple.core.model.PromptKind
 import com.shnapps.couple.core.model.RevealOutcome
 
@@ -132,6 +133,21 @@ sealed interface RoundPrimitive {
         override fun accepts(answer: Answer): Boolean = answer is Answer.Dialed && answer.value in RANGE
     }
 
+    /**
+     * Said rather than typed: a recording made on this phone, for the other to hear.
+     *
+     * The file never leaves the device. This is a round's answer, not a voice note sent to a
+     * partner — the media pipeline (D-083) is for things that travel, and nothing here does.
+     */
+    data class Record(
+        override val step: Int,
+        override val seat: Int?,
+        val text: String,
+        val kind: MediaKind,
+    ) : RoundPrimitive {
+        override fun accepts(answer: Answer): Boolean = answer is Answer.Recorded && answer.path.isNotBlank()
+    }
+
     /** How it landed. Stays on the phone. */
     data class Reaction(
         override val step: Int,
@@ -165,6 +181,9 @@ sealed interface Answer {
 
     /** Where the dial was left, in [RoundPrimitive.RANGE]. */
     data class Dialed(val value: Int) : Answer
+
+    /** A file on this phone, and nowhere else. Never encoded, so it cannot cross to another. */
+    data class Recorded(val path: String) : Answer
 
     /** Whether a guess came close enough, as the one it was about judges. */
     data class Judged(val close: Boolean) : Answer

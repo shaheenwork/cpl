@@ -9,8 +9,8 @@ with no account and no network), R3 (the player whole) and R4 (home, and fourtee
 with no account) and R5 (an account offered when it buys something, carrying the local refusals into
 the person's real limits), R6 (apart as one thread) and R7 (the deck offered rather than demanded)
 and R8 (polish, and the audit run against the new screens) are done — the whole of
-`REDESIGN_PROMPT.md` §7 is built, and R9 added seven more games (21 in all). What remains of the
-rebuild is the `MEDIA` step and the games played apart that need it. Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
+`REDESIGN_PROMPT.md` §7 is built, R9 added seven more games and R10 the `MEDIA` step — 22 games,
+632 prompts. The rebuild is complete; what remains before release is human setup (`RELEASE.md`). Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
 and every §23 deliverable is written. What remains before a public release is setup and review, not
 code: `RELEASE.md` is the ordered runbook, `HUMAN_SETUP.md` the console detail, and `legal/` holds
 drafts of the privacy policy, the terms and the Play data-safety answers, pending a lawyer.
@@ -1234,6 +1234,47 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Redesign R10 — A recording as an answer, and what the apart games really were ✅
+
+The catalogue promised four games played apart. Three of them already exist under other names, and
+the fourth was a genuinely missing mechanic.
+
+### Shipped
+- **The `MEDIA` primitive** (D-102): a round answered by recording something rather than typing it.
+  The recording is an answer like any other — it stays on the phone that made it, plays back for the
+  people in the room, and goes with the app's cache. It is **not** the media pipeline: nothing is
+  reserved, uploaded or confirmed, and `Answer.Recorded` encodes to null in the two-phone exchange,
+  because sending a file path would say where something is without letting anyone hear it.
+- **A phone that will not record still finishes the round.** The microphone can be refused and a
+  preview has no recorder at all, so "say it out loud instead" is a first-class answer rather than a
+  failure path.
+- **Say It Out Loud**: nineteen prompts, recorded and handed over. Twenty-two games now, 632 prompts.
+- The recorder and the player moved to `:core:ui`, because two players draw these primitives and a
+  feature may not import another feature. The rule that keeps the app silent followed them.
+
+### What the apart games actually were
+- **Ten-Minute Dare** is a surprise with a timer, which exists.
+- **Voice Only** is voice notes, which exist and burn on listening.
+- **Unlock Me** is a surprise the server delivers, which exists.
+- **All Day Long** is an arc, which exists.
+
+Wrapping those as games would have added four names and no mechanics — the same reduction R9 made.
+A cross-device round that carries a recording *is* worth building one day, and it is session work
+(§12.2 sends answers, and a file is not an answer), not a primitive.
+
+### Verified
+```
+npm --prefix tools run validate                content OK, 22 games, 632 prompts
+npm --prefix functions run test:unit           135/135
+./gradlew check                                BUILD SUCCESSFUL
+```
+- `ContentBundleFileTest` walks all twenty-two games end to end, the new one included.
+- Two detekt limits were hit and answered by structure rather than suppression: the primitive
+  dispatch was split into the ones that ask for an answer and the ones that only show something, and
+  the second half moved out of the reading the way the reveal and the draw already had.
 
 ---
 

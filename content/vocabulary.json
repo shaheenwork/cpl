@@ -22,7 +22,7 @@
     "photo", "letter", "message", "storytelling", "desire", "checkIn", "aftercare"
   ],
   "games": {
-    "primitives": ["QUESTION", "CHOICE", "PREDICTION", "VOTE", "REVEAL", "TIMER", "CHALLENGE", "REACTION", "DRAW", "DIAL"],
+    "primitives": ["QUESTION", "CHOICE", "PREDICTION", "VOTE", "REVEAL", "TIMER", "CHALLENGE", "REACTION", "DRAW", "DIAL", "MEDIA"],
     "who": ["ACTIVE", "OTHER", "EACH", "TOGETHER"],
     "answers": ["SPOKEN", "TEXT", "STATEMENTS"],
     "outcomes": ["MATCH", "AGREEMENT", "PREDICTED", "JUDGED", "LIE_FOUND", "WINNER", "DISTANCE", "SHARED"],

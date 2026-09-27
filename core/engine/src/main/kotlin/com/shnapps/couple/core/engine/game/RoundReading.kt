@@ -6,6 +6,7 @@ import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.GamePrimitive
 import com.shnapps.couple.core.model.GamePrompt
 import com.shnapps.couple.core.model.GameStep
+import com.shnapps.couple.core.model.MediaKind
 import com.shnapps.couple.core.model.PromptKind
 import com.shnapps.couple.core.model.StepAudience
 import com.shnapps.couple.core.model.StepOptions
@@ -111,6 +112,11 @@ internal class RoundReading(private val state: RunState) {
 
     fun showsPrompt(step: GameStep): Boolean = step.text == StepText.Prompt || step.options == StepOptions.FromPrompt
 
+    /**
+     * The primitive a step comes to, in two halves: the ones that ask for an answer, and the ones
+     * that only show something. Split because the dispatch is the one place every primitive has to
+     * be named, and it grows by one branch each time the vocabulary does.
+     */
     fun primitive(take: Slot.Take): RoundPrimitive {
         val step = game.steps[take.step]
         val text = textOf(step)
@@ -124,14 +130,9 @@ internal class RoundReading(private val state: RunState) {
             }
             GamePrimitive.VOTE -> RoundPrimitive.Vote(take.step, seat, text, options(step, seat))
             GamePrimitive.REVEAL -> reveal(take, step)
-            GamePrimitive.TIMER -> {
-                val caption = promptInPlay()?.text.orEmpty()
-                RoundPrimitive.Timer(take.step, seat, caption, secondsOf(step))
-            }
-            GamePrimitive.CHALLENGE -> RoundPrimitive.Challenge(take.step, seat, text, promptInPlay()?.kind)
-            GamePrimitive.REACTION -> RoundPrimitive.Reaction(take.step, seat, text)
-            GamePrimitive.DRAW -> draw(take, step, seat, text)
             GamePrimitive.DIAL -> RoundPrimitive.Dial(take.step, seat, text, DIAL_LOW, DIAL_HIGH)
+            GamePrimitive.MEDIA -> RoundPrimitive.Record(take.step, seat, text, step.media ?: MediaKind.VOICE)
+            else -> shown(take, step, seat, text)
         }
     }
 
@@ -141,7 +142,7 @@ internal class RoundReading(private val state: RunState) {
         null -> ""
     }
 
-    private fun secondsOf(step: GameStep): Int = when (val seconds = step.seconds) {
+    fun secondsOf(step: GameStep): Int = when (val seconds = step.seconds) {
         StepSeconds.FromPrompt -> promptInPlay()?.seconds ?: GameRun.DEFAULT_SECONDS
         is StepSeconds.Fixed -> seconds.seconds
         null -> GameRun.DEFAULT_SECONDS
@@ -253,3 +254,18 @@ internal fun RoundReading.draw(take: Slot.Take, step: GameStep, seat: Int?, text
     val landed = if (pool.isEmpty()) Option("", "") else pool[Rng(seed).nextInt(pool.size)]
     return RoundPrimitive.Draw(take.step, seat, text, pool, landed)
 }
+
+/**
+ * The primitives that show something and move on: a clock, a dare, a reaction, a draw.
+ *
+ * A file-level extension, like the reveal and the draw, so the reading stays a reading rather than
+ * growing a method for every primitive the vocabulary gains.
+ */
+internal fun RoundReading.shown(take: Slot.Take, step: GameStep, seat: Int?, text: String): RoundPrimitive =
+    when (step.primitive) {
+        GamePrimitive.TIMER -> RoundPrimitive.Timer(take.step, seat, promptInPlay()?.text.orEmpty(), secondsOf(step))
+        GamePrimitive.CHALLENGE -> RoundPrimitive.Challenge(take.step, seat, text, promptInPlay()?.kind)
+        GamePrimitive.REACTION -> RoundPrimitive.Reaction(take.step, seat, text)
+        GamePrimitive.DRAW -> draw(take, step, seat, text)
+        else -> error("${step.primitive} is answered, not shown")
+    }

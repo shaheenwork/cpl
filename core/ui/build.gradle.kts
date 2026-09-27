@@ -2,6 +2,9 @@
 // scrolling column, the heading, the back row and the error banner.
 plugins {
     id("afterhours.android.library.compose")
+    // The voice recorder is bound here: both players record a round the same way, so the binding
+    // lives with the thing rather than with one of the features that uses it.
+    id("afterhours.android.hilt")
 }
 
 android {
@@ -13,6 +16,8 @@ dependencies {
     // The primitives every game is played through: rendered here so both players — the session
     // one and the local one — show the same thing (BUILD_PROMPT.md §11.1).
     api(project(":core:engine"))
+    // Outcome/AppError: a refusal to record is an error like any other.
+    implementation(project(":core:common"))
     // PremiumNudge says which limit was reached, in the words the model holds (§19).
     api(project(":core:model"))
 

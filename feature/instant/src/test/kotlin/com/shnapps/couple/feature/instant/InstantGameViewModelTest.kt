@@ -2,6 +2,8 @@ package com.shnapps.couple.feature.instant
 
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
+import com.shnapps.couple.core.common.AppError
+import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.instant.InstantPlayRepository
 import com.shnapps.couple.core.engine.InstantCard
 import com.shnapps.couple.core.engine.InstantDeck
@@ -23,12 +25,14 @@ import com.shnapps.couple.core.model.StepText
 import com.shnapps.couple.core.model.TurnOrder
 import com.shnapps.couple.core.navigation.Route
 import com.shnapps.couple.core.testing.MainDispatcherRule
+import com.shnapps.couple.core.ui.voice.VoiceRecorder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
+import java.io.File
 
 /**
  * A game dealt and played with nobody signed in (REDESIGN_PROMPT.md §5.2).
@@ -115,9 +119,18 @@ class InstantGameViewModelTest {
 
     private fun viewModel(): InstantGameViewModel {
         val handle = SavedStateHandle(mapOf(Route.InstantGame::gameId.name to game.id))
-        val viewModel = InstantGameViewModel(handle, instant)
+        val viewModel = InstantGameViewModel(handle, instant, NoRecorder)
         mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
         return viewModel
+    }
+
+    /** No microphone in a test, which is the same as a phone that refuses one. */
+    private object NoRecorder : VoiceRecorder {
+        override fun start(): Outcome<Unit> = Outcome.Failure(AppError.Unknown())
+
+        override fun stop(): Outcome<File> = Outcome.Failure(AppError.Unknown())
+
+        override fun cancel() = Unit
     }
 
     private class FakeInstantPlayRepository : InstantPlayRepository {

@@ -7,6 +7,7 @@ import com.shnapps.couple.core.model.GamePrimitive
 import com.shnapps.couple.core.model.GamePrompt
 import com.shnapps.couple.core.model.GameStep
 import com.shnapps.couple.core.model.Intensity
+import com.shnapps.couple.core.model.MediaKind
 import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.Mood
 import com.shnapps.couple.core.model.PromptKind
@@ -61,6 +62,7 @@ internal data class GameStepDto(
     val outcome: String? = null,
     val seconds: JsonElement? = null,
     val kindFrom: Int? = null,
+    val media: String? = null,
 )
 
 /**
@@ -123,6 +125,9 @@ private fun GameStepDto.toStep(index: Int): GameStep? {
     if (primitive == GamePrimitive.REVEAL && revealOutcome == null) return null
     // A step may only refer back: a forward reference cannot be played in order.
     if (of.any { it !in 0 until index } || (kindFrom != null && kindFrom !in 0 until index)) return null
+    val mediaKind = if (media == null) null else known<MediaKind>(media) ?: return null
+    // A step that records must say what it records; one that does not cannot be rendered.
+    if (primitive == GamePrimitive.MEDIA && mediaKind == null) return null
     val stepOptions = options?.let { parseOptions(it) ?: return null }
     val stepSeconds = seconds?.let { parseSeconds(it) ?: return null }
     return GameStep(
@@ -136,6 +141,7 @@ private fun GameStepDto.toStep(index: Int): GameStep? {
         outcome = revealOutcome,
         seconds = stepSeconds,
         kindFrom = kindFrom,
+        media = mediaKind,
     )
 }
 

@@ -1555,3 +1555,32 @@ have said no to comes with them.
 The seam is `ContentLevelWriter`, one method, which `AuthRepository` implements. The reconciler has
 no business being able to sign anyone in or out, and the call happens in the view model that signs
 people in rather than inside the repository, so nothing has to depend on anything circularly.
+
+---
+
+## D-102 — A recording is an answer, not a thing that travels
+**Redesign R10.** The catalogue promised games played apart, and the honest finding is that most of
+them already exist. "Send a dare with a clock" is a surprise and a timer. "Voice only" is voice
+notes. "Unlock me" is a surprise gated by questions. Wrapping those as games would add names, not
+mechanics — the same reduction R9 made for six other ideas.
+
+What was genuinely missing is a round answered by **recording something** rather than typing it, and
+that is worth having whether or not the couple is apart: two people on a sofa handing a phone back
+and forth is the app's main case.
+
+So `MEDIA` records into a round, and the recording is an answer like any other: it stays on the
+phone that made it, it is played back for the people in the room, and it goes with the app's cache.
+It is emphatically **not** the media pipeline. Nothing is reserved, uploaded or confirmed; no path
+crosses to another device. `Answer.Recorded` encodes to null in the two-phone exchange for the same
+reason the rest of §12.2 exists — sending a file path would say where something is without letting
+anyone hear it, which is the worst of both.
+
+A phone that will not record still finishes the round. The microphone can be refused, a preview has
+no recorder at all, and "say it out loud instead" is a first-class answer rather than a failure
+path. The recorder reaches the renderer through a composition local that is allowed to be null,
+because a renderer must not know which screen it is inside.
+
+The recorder and the player moved to `:core:ui` to make that possible: two players draw these
+primitives now, a feature may not import another feature, and duplicating either would put two
+MediaRecorders in the app. The architecture rule that keeps the app silent followed them, and still
+names every file allowed to make a noise.

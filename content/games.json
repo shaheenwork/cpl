@@ -866,6 +866,40 @@
           "text": "Where did that go?"
         }
       ]
+    },
+    {
+      "id": "SAY_IT_OUT_LOUD",
+      "prefix": "said",
+      "file": "say-it-out-loud.json",
+      "title": "Say It Out Loud",
+      "tagline": "Record it. Hand the phone over.",
+      "description": "You answer by recording it, they listen, and the recording never leaves this phone.",
+      "modes": [
+        "TOGETHER"
+      ],
+      "rounds": 6,
+      "turns": "ALTERNATE",
+      "scoring": "NONE",
+      "promptKinds": [],
+      "promptOptions": [
+        0,
+        0
+      ],
+      "minPrompts": 19,
+      "steps": [
+        {
+          "primitive": "MEDIA",
+          "who": "ACTIVE",
+          "private": true,
+          "text": "PROMPT",
+          "media": "VOICE"
+        },
+        {
+          "primitive": "REACTION",
+          "who": "OTHER",
+          "text": "How was that to hear?"
+        }
+      ]
     }
   ]
 }

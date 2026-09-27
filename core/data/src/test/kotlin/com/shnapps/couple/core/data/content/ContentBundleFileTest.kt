@@ -245,6 +245,9 @@ class ContentBundleFileTest {
         is RoundPrimitive.Timer, is RoundPrimitive.Challenge, is RoundPrimitive.Draw -> Answer.Done
         is RoundPrimitive.Dial -> Answer.Dialed(RoundPrimitive.RANGE.first)
         is RoundPrimitive.Reaction -> Answer.Reacted(ChapterReaction.LOVED)
+        // A recording, or the words said out loud when a phone will not record: either finishes
+        // the round, which is the point of the fallback.
+        is RoundPrimitive.Record -> Answer.Recorded("spoken")
     }
 
     private fun answerForQuestion(kind: AnswerKind): Answer = when (kind) {

@@ -40,6 +40,7 @@ import com.shnapps.couple.core.ui.ReportSheet
 import com.shnapps.couple.core.ui.ScreenColumn
 import com.shnapps.couple.core.ui.ScreenHeading
 import com.shnapps.couple.core.ui.SecureScreen
+import com.shnapps.couple.core.ui.voice.VoicePlayer
 import java.io.File
 
 /**

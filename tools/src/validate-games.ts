@@ -61,7 +61,7 @@ export function validateGames(repo: ContentRepo, shared: Shared, problems: strin
     const [minOptions, maxOptions] = Array.isArray(game.promptOptions) ? game.promptOptions : [NaN, NaN];
     check(Number.isInteger(minOptions) && Number.isInteger(maxOptions) && minOptions >= 0 && maxOptions <= 4 && minOptions <= maxOptions, 'promptOptions must be [min, max] within 0..4');
     check(Number.isInteger(game.minPrompts) && game.minPrompts >= game.rounds, 'minPrompts must be at least one game\'s worth of rounds');
-    validateSteps(game, vocab, check);
+    validateSteps(game, vocab, repo.vocabulary.media, check);
 
     // --- the game's prompts --------------------------------------------------------------
     const raw = repo.promptsByGame.get(game.id) ?? [];
@@ -170,7 +170,12 @@ export function validateGames(repo: ContentRepo, shared: Shared, problems: strin
 }
 
 /** A game's steps must be playable: each refers only to what came before, and makes sense. */
-function validateSteps(game: GameInfo, vocab: ContentRepo['vocabulary']['games'], check: (ok: boolean, message: string) => void): void {
+function validateSteps(
+  game: GameInfo,
+  vocab: ContentRepo['vocabulary']['games'],
+  media: string[],
+  check: (ok: boolean, message: string) => void,
+): void {
   if (!Array.isArray(game.steps) || game.steps.length === 0) {
     check(false, 'needs at least one step');
     return;
@@ -187,7 +192,7 @@ function validateSteps(game: GameInfo, vocab: ContentRepo['vocabulary']['games']
     const refs = step.of ?? [];
     check(Array.isArray(refs) && refs.every((ref) => Number.isInteger(ref) && ref >= 0 && ref < index), `${s}: "of" may only name earlier steps`);
     const earlier = (ref: number) => game.steps[ref];
-    const answering = ['QUESTION', 'CHOICE', 'PREDICTION', 'VOTE', 'DIAL'];
+    const answering = ['QUESTION', 'CHOICE', 'PREDICTION', 'VOTE', 'DIAL', 'MEDIA'];
     switch (step.primitive) {
       case 'CHOICE':
       case 'VOTE':
@@ -227,6 +232,12 @@ function validateSteps(game: GameInfo, vocab: ContentRepo['vocabulary']['games']
         // fixed list in the game would be the same spin every round.
         check(step.options === 'PROMPT', `${s}: a draw takes its pool from the prompt`);
         check(game.promptOptions[0] >= 2, `${s}: a draw needs prompts carrying at least 2 options`);
+        break;
+      case 'MEDIA':
+        // A recording answers the round and stays on the phone that made it; the step still has to
+        // say which kind, because the screen cannot guess.
+        check(typeof step.media === 'string' && media.includes(step.media), `${s}: media must be one of ${media.join(', ')}`);
+        check(step.text !== undefined, `${s}: a recording must say what it is answering`);
         break;
       case 'DIAL':
         check(step.options === undefined, `${s}: a dial has no options — it is a number`);

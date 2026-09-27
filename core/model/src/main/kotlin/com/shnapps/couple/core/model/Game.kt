@@ -46,6 +46,8 @@ data class GameStep(
     val seconds: StepSeconds?,
     /** The earlier CHOICE whose answer picks which of the round's prompts is played. */
     val kindFrom: Int?,
+    /** What a [GamePrimitive.MEDIA] step records. Null for every other primitive. */
+    val media: MediaKind? = null,
 )
 
 /** What a step shows: the round's prompt, or words of its own. */
@@ -94,6 +96,14 @@ enum class GamePrimitive {
 
     /** How much, from nothing to everything: a number nobody has to say out loud. */
     DIAL,
+
+    /**
+     * Answered by recording something rather than typing it.
+     *
+     * The recording stays on the phone that made it, like every other answer (D-069). It is not
+     * the media pipeline: nothing is uploaded, nothing is sent, and the file goes with the cache.
+     */
+    MEDIA,
 }
 
 /** Who takes a step: whose turn it is, the other partner, both in turn, or both at once. */

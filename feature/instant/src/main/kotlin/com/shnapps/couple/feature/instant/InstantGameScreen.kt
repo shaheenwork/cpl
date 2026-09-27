@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -20,6 +21,7 @@ import com.shnapps.couple.core.ui.BackRow
 import com.shnapps.couple.core.ui.PrimitiveRenderer
 import com.shnapps.couple.core.ui.ScreenColumn
 import com.shnapps.couple.core.ui.SecureScreen
+import com.shnapps.couple.core.ui.voice.LocalVoiceRecorder
 
 /**
  * A game, played on one phone by two people, with nobody signed in (REDESIGN_PROMPT.md §5.2).
@@ -36,15 +38,19 @@ fun InstantGameScreen(
     SecureScreen()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    InstantGameContent(
-        state = state,
-        onBack = onBack,
-        onProceed = viewModel::proceed,
-        onAnswer = viewModel::answer,
-        onSkipPrompt = viewModel::skipPrompt,
-        onNextRound = viewModel::nextRound,
-        onPlayAgain = viewModel::deal,
-    )
+    // A round that records needs something to record with. Provided here rather than reached for
+    // inside the renderer, so a screenshot test and a preview both draw the same screen without one.
+    CompositionLocalProvider(LocalVoiceRecorder provides viewModel.recorder) {
+        InstantGameContent(
+            state = state,
+            onBack = onBack,
+            onProceed = viewModel::proceed,
+            onAnswer = viewModel::answer,
+            onSkipPrompt = viewModel::skipPrompt,
+            onNextRound = viewModel::nextRound,
+            onPlayAgain = viewModel::deal,
+        )
+    }
 }
 
 @Suppress("LongParameterList") // A game screen: the moment, and every way past it.

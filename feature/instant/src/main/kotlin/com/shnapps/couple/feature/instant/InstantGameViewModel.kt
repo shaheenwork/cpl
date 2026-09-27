@@ -9,6 +9,7 @@ import com.shnapps.couple.core.engine.game.GameMoment
 import com.shnapps.couple.core.engine.game.GameRun
 import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.navigation.Route
+import com.shnapps.couple.core.ui.voice.VoiceRecorder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,6 +44,8 @@ data class InstantGameUiState(
 class InstantGameViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val instant: InstantPlayRepository,
+    /** Handed to the screen for a round that records. Nothing here uses it. */
+    val recorder: VoiceRecorder,
 ) : ViewModel() {
 
     private val gameId: String = checkNotNull(savedStateHandle.get<String>(Route.InstantGame::gameId.name)) {

@@ -7,6 +7,7 @@ import com.shnapps.couple.core.model.MediaKind
 import com.shnapps.couple.core.testing.FakeAccountRepository
 import com.shnapps.couple.core.testing.FakeMediaRepository
 import com.shnapps.couple.core.testing.MainDispatcherRule
+import com.shnapps.couple.core.ui.voice.VoiceRecorder
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope

@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.designsystem.component.CinematicCard
 import com.shnapps.couple.core.designsystem.component.CountdownRing
 import com.shnapps.couple.core.designsystem.component.GlowButton
@@ -44,7 +45,10 @@ import com.shnapps.couple.core.model.AnswerKind
 import com.shnapps.couple.core.model.ChapterReaction
 import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.RevealOutcome
+import com.shnapps.couple.core.ui.voice.LocalVoiceRecorder
+import com.shnapps.couple.core.ui.voice.VoicePlayer
 import kotlinx.coroutines.delay
+import java.io.File
 
 // One renderer per primitive (BUILD_PROMPT.md §11.1), and none for any game: a game is only
 // ever the order these appear in. The architecture test holds this file to exactly one
@@ -69,6 +73,7 @@ fun PrimitiveRenderer(primitive: RoundPrimitive, players: GamePlayers, onSubmit:
         is RoundPrimitive.Reaction -> ReactionRenderer(primitive, players, onSubmit)
         is RoundPrimitive.Draw -> DrawRenderer(primitive, players, onSubmit)
         is RoundPrimitive.Dial -> DialRenderer(primitive, players, onSubmit)
+        is RoundPrimitive.Record -> RecordRenderer(primitive, players, onSubmit)
     }
 }
 
@@ -290,6 +295,76 @@ internal fun DialRenderer(dial: RoundPrimitive.Dial, players: GamePlayers, onSub
         modifier = Modifier.fillMaxWidth(),
     )
 }
+
+/**
+ * Said out loud, and kept on this phone.
+ *
+ * The recording is this round's answer: it is played back here, for the two people in the room,
+ * and it goes with the app's cache. Nothing is uploaded and nothing is sent — a voice note that
+ * travels is a different thing entirely, and it has its own screen and its own rules (D-083).
+ */
+@Composable
+internal fun RecordRenderer(record: RoundPrimitive.Record, players: GamePlayers, onSubmit: (Answer) -> Unit) {
+    val recorder = LocalVoiceRecorder.current
+    var recording by remember(record.step) { mutableStateOf(false) }
+    var file by remember(record.step) { mutableStateOf<File?>(null) }
+    var refused by remember(record.step) { mutableStateOf(false) }
+
+    Asked(whoFor(record.seat, players), record.text)
+
+    val current = file
+    if (current != null) {
+        VoicePlayer(file = current, modifier = Modifier.fillMaxWidth())
+    }
+
+    if (refused) {
+        Text(
+            text = "This phone wouldn't record. Say it out loud instead — it counts the same.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = AfterhoursTheme.colors.textMuted,
+        )
+    }
+
+    GlowButton(
+        text = when {
+            recording -> "Stop"
+            current != null -> "Record it again"
+            else -> "Record"
+        },
+        onClick = {
+            if (recording) {
+                recording = false
+                when (val stopped = recorder?.stop()) {
+                    is Outcome.Success -> file = stopped.value
+                    else -> refused = true
+                }
+            } else {
+                refused = false
+                when (recorder?.start()) {
+                    is Outcome.Success -> recording = true
+                    else -> refused = true
+                }
+            }
+        },
+        style = if (recording) GlowButtonStyle.Primary else GlowButtonStyle.Secondary,
+        modifier = Modifier.fillMaxWidth(),
+    )
+
+    GlowButton(
+        text = if (current == null) "Say it out loud instead" else "Done",
+        onClick = { onSubmit(Answer.Recorded(current?.absolutePath ?: SPOKEN_ALOUD)) },
+        enabled = !recording,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+/**
+ * The answer when somebody just says it.
+ *
+ * A recording is a convenience, not a requirement: a phone with no microphone permission, or two
+ * people who would rather speak, must be able to finish the round.
+ */
+private const val SPOKEN_ALOUD = "spoken"
 
 // ---- pieces the renderers share ------------------------------------------------------------------
 

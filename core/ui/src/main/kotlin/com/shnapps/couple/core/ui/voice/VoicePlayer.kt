@@ -1,4 +1,4 @@
-package com.shnapps.couple.feature.send
+package com.shnapps.couple.core.ui.voice
 
 import android.media.MediaPlayer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,7 +22,7 @@ import java.io.File
  * screen goes.
  */
 @Composable
-internal fun VoicePlayer(file: File, modifier: Modifier = Modifier) {
+fun VoicePlayer(file: File, modifier: Modifier = Modifier) {
     // Screenshot tests render this without a media stack; they show the control, not the sound.
     val inspecting = LocalInspectionMode.current
     var playing by remember(file) { mutableStateOf(false) }

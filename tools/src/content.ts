@@ -51,6 +51,8 @@ export interface GameStep {
   seconds?: string | number;
   /** The earlier CHOICE whose answer picks the prompt's kind (truth or dare). */
   kindFrom?: number;
+  /** What a MEDIA step records: a kind from the vocabulary. */
+  media?: string;
 }
 
 /** A game (section 11.2): a declarative composition of primitives over its prompts. */

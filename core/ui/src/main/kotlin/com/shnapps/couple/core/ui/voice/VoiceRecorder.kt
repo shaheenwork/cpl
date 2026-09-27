@@ -1,4 +1,4 @@
-package com.shnapps.couple.feature.send
+package com.shnapps.couple.core.ui.voice
 
 import android.content.Context
 import android.media.MediaRecorder
@@ -104,3 +104,13 @@ class AndroidVoiceRecorder @Inject constructor(
         const val MAX_MILLIS = 2 * 60 * 1000
     }
 }
+
+/**
+ * The recorder a round can reach.
+ *
+ * A composable cannot be injected, and a renderer must not know which screen it is inside, so the
+ * one thing it needs is provided here. Null is a legitimate value: a preview, a screenshot test and
+ * a phone that refuses the microphone all render the same screen, and the round is finished by
+ * saying it out loud instead.
+ */
+val LocalVoiceRecorder = androidx.compose.runtime.staticCompositionLocalOf<VoiceRecorder?> { null }

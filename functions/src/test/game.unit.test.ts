@@ -50,7 +50,8 @@ describe('every game can be played', () => {
     // no other test would notice, because everything else here loops over whatever is there.
     assert.deepEqual(games.map((each) => each.id).sort(), [
       'BLIND_TASTE', 'BUILD_THE_FANTASY', 'COUPLE_BATTLE', 'DEEP_TALK', 'DIRTY_DICE', 'DONT_MOVE',
-      'EARN_IT', 'IN_YOUR_WORDS', 'ME_OR_YOU', 'PREDICT_MY_ANSWER', 'RATE_IT', 'RED_LIGHT', 'SPIN',
+      'EARN_IT', 'IN_YOUR_WORDS', 'ME_OR_YOU', 'PREDICT_MY_ANSWER', 'RATE_IT', 'RED_LIGHT',
+      'SAY_IT_OUT_LOUD', 'SPIN',
       'STRIP_ROUND', 'THE_BET', 'THREE_MINUTES', 'TRUTH_OR_DARE', 'TWO_TRUTHS_AND_A_LIE',
       'WHO_KNOWS_WHO', 'WOULD_YOU_RATHER', 'YES_NO_MAYBE',
     ]);

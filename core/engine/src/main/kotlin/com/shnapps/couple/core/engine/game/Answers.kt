@@ -27,7 +27,9 @@ fun Answer.encode(): String? = when (this) {
         .joinToString(SEPARATOR)
     is Answer.Reacted -> "$REACTED$SEPARATOR${reaction.name}"
     is Answer.Dialed -> "$DIALED$SEPARATOR$value"
-    Answer.Done, is Answer.Judged -> null
+    // A recording is a file on this phone. There is nothing to send, and sending a path would
+    // say where it is without letting anyone hear it (D-069).
+    Answer.Done, is Answer.Judged, is Answer.Recorded -> null
 }
 
 /** [text] as an answer again, or null if it is not one this version can read. */
