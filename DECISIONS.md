@@ -1724,3 +1724,135 @@ full list instead, which is what somebody who has kept nothing as a favourite ac
 The rule this leaves behind: **a screen that can be reached must be leavable, and a screen that asks
 for something must say what it is for.** `EmptyState`'s optional action exists precisely so the
 first half is one argument, not a new component.
+
+---
+
+## D-107 — The background is a scene, and a surface is lit rather than outlined
+
+The app looked like a prototype, and three quarters of the reason was not layout.
+
+**The ground was a colour.** `Palette.Ink` painted edge to edge, with nothing on it. A dark app
+is a light app with its colours inverted — flat panels, hairline borders, one gap between
+everything. A dim room has a source of light, things that catch it, texture, and shadow where the
+light does not reach. `Modifier.scene()` composes the second one once, in `AfterhoursSurface`,
+under every screen: a warm key wash off the top-left corner, a plum bounce off the bottom-right,
+a vignette, and grain.
+
+Two details of it are worth keeping:
+
+- **The grain is deterministic.** A seeded LCG rather than `Random()`, so the tile is byte-identical
+  on every run. `Random()` would have failed every Roborazzi comparison in the repo on noise, which
+  is a very expensive way to learn that lesson.
+- **Plum finally has a job.** It was in the palette from Phase 2 and used essentially nowhere, so
+  the app read as one pink on black. It is the bounce light now, at 20% alpha, off-screen.
+
+**Five grounds became three.** `Ink → InkRaised → InkElevated → InkHigh → InkHighest` spanned under
+five percent of luminance in total: in practice the app had one surface colour, and a card, a row
+and a chip were the same object. `Scene #0B0708`, `Raised #171115`, `Card #1F1820` are about seven
+percent apart each, which is the smallest step that survives an OLED at low brightness with grain
+over it. `ContrastTest` measures the steps rather than trusting them.
+
+**A border became a rim.** `Modifier.rim` draws a 1 dp *vertical gradient* — `Cream @ 16%` at the
+top edge, `@ 3%` at the bottom — instead of a uniform hairline. It is one modifier and it is most
+of the difference between a panel and an object, because it is what a lit thing looks like.
+`Modifier.raised` applies fill, rim and, from `floating` up, a contact shadow, so the three can
+never drift apart.
+
+### The halo, and why it banded
+
+`Modifier.glow` drew **ten** concentric rounded rectangles of equal alpha. At button size it
+passed. At card size the equal steps banded into a hard-edged pink rectangle, and three of them in
+a row — the heat picker — smeared into one continuous band across the bottom of the screen. Both
+are in the committed goldens.
+
+The fix was not fewer layers. It was the **falloff**: each ring's alpha now falls with the square
+of its distance, so the near rings carry nearly all the light and the far ones fade to nothing,
+which is how light behaves. Twelve layers with a quadratic falloff is smooth where three with a
+flat one is not.
+
+The first attempt at that was wrong in an instructive way: alphas *accumulate* where layers
+overlap, so summing twelve rings at the intended strength produced roughly three and a half times
+it — a solid pink band, worse than what it replaced. Dividing by the series total fixed it, and
+`FALLOFF_TOTAL` is computed rather than guessed.
+
+`Modifier.blur` is deliberately not used even on API 31+. It blurs a node's own content rather
+than painting light behind it, it is a no-op below 31, and a primitive that renders differently on
+different API levels would make every golden in the repo unstable.
+
+Two rules keep this from recurring: **at most one bloomed element per screen**, and **never one
+inside a row of siblings**. The heat picker is a segmented track now, and nothing in it blooms.
+
+---
+
+## D-108 — A heat is a colour, and Wild is as dark as contrast allows
+
+All three heats were the same burgundy, so the one thing this product is about — escalation — was
+invisible. A Playful card and a Wild card were the same object with different words.
+
+`heatColors(Heat)` gives each one an accent, a container, a rim and the two text tones it needs,
+and `LocalHeatColors` carries it, so a component asks `AfterhoursTheme.heat` rather than taking a
+colour as a parameter. A screen that knows the heat wraps its content in `ProvideHeat`, and
+changing the heat re-tints the card's rim, the primary action, the eyebrow and the bloom at once.
+
+Wild goes **deeper and redder** rather than brighter, because escalation here is intimacy, not
+volume. Two things fell out of that, and both are the honest consequence rather than a compromise:
+
+- **Oxblood cannot carry dark text.** At `#B02A42` a label in ink measures 2.73:1. Wild's filled
+  state takes cream instead, which is what a genuinely deep accent needs.
+- **Wild is as dark as the threshold allows.** The first choice, `#A3243B`, measured **2.74:1**
+  against the scene — a filled button a thumb could not find. `#B02A42` is the deepest red that
+  still clears 3:1. Contrast is the real constraint on how far Wild can go, and the test says so
+  rather than a preference.
+
+Burgundy needed a second tone for the same reason in reverse: `#C75C7A` as *text* on the card
+measures 4.29:1 and fails. `BurgundyBright` is the same hue lifted until it passes, and is used for
+accent text while the original stays the fill.
+
+---
+
+## D-109 — One gap for everything is why every screen looked unfinished
+
+`ScreenColumn` spaced every child by `spacing.md`. A section heading therefore sat exactly as far
+from its own content as from the section above it, so nothing on any screen was visibly grouped
+with anything else. It is the single highest-value change in the visual rebuild and the hardest to
+see in a screenshot of a screen — which is why there is a specimen for it.
+
+`Spacing` gains semantic gaps: `tight 4`, `item 12`, `group 20`, `section 36`. The rule is that a
+heading takes `section` above and `tight` below, never equal gaps on both sides.
+
+Type gained the three styles it was missing: `CardBodyTextStyle` (19/30 at zero tracking, for the
+one thing a couple actually reads, which had been using a 17/26 *list* style), `NumeralTextStyle`
+with `tnum` so a counting clock stops changing width under the reader, and `CARD_MEASURE` so body
+copy stops running 52 characters to the edge of the phone.
+
+Optical sizing is **not** wired, despite being in the brief: the shipped `playfair_display_variable`
+has a `wght` axis and no `opsz`. Claiming it in code would have been a lie in a comment.
+
+---
+
+## D-110 — Emoji were the icon set, and a rule now keeps them out
+
+🔥 🎲 🌙 💌 👀 📖 ⏱ ✨ ❤️ 😏 🎭 💬 🙂 🙅 📎 📷 🎙 — twenty-seven call sites and three domain enums.
+They render differently on every platform and OS version, cannot be coloured or sized to a grid,
+cannot be animated, and no two share an optical weight. They were the clearest signal the app had
+no designer.
+
+`AfterhoursIcons` is twenty-six vectors built by one private factory, so the 24 dp box, the 1.5 dp
+stroke and the round caps cannot drift between icons — which is how every hand-assembled icon set
+goes wrong. `GlowButton.leadingEmoji` became `leadingIcon`.
+
+`Mood`, `CloseCheckIn` and `ChapterReaction` each carried an emoji in `:core:model`, which put a
+presentation decision inside the domain. The id and the label stay, because content is tagged by
+them; `DomainIcons.kt` maps each to an icon, as an exhaustive `when`, so adding a case to any of
+those enums is a compile error until somebody decides what it looks like.
+
+`DesignLanguageTest` is the gate, and it caught two things review had not:
+
+- `"★".repeat(rating)` — a star rating built from a dingbat. It is `AfterhoursIcons.Star` now.
+- Two literal colours in `QrCode.kt`. They turned out to be legitimate: a camera reads a pairing
+  code, so its plate and modules cannot follow a theme. They are named tokens now (`codePlate`,
+  `codeModule`) and `ContrastTest` measures them, which is better than a comment saying why.
+
+The rule was proved by planting an emoji and watching the build fail, per the phase's own exit
+criterion. A second rule fails the build on a literal `Color(` outside `:core:designsystem` — the
+convention has been in CLAUDE.md since Phase 2 and was held by review alone until now.

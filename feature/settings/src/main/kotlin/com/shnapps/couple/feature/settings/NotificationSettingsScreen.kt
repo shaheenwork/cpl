@@ -86,7 +86,7 @@ internal fun NotificationSettingsContent(
             SettingRow(
                 title = "Say what kind of thing it was",
                 detail = if (state.settings.showContent) {
-                    "\"They left you something 👀\""
+                    "\"They left you something\""
                 } else {
                     "\"Something's waiting for you.\" — and nothing more."
                 },

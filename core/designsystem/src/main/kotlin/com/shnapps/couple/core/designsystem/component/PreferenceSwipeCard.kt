@@ -17,6 +17,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.PreferenceAnswer
@@ -186,11 +187,9 @@ private fun AnswerButton(
         onClick = { onAnswer(answer) },
         style = style,
         enabled = enabled,
-        leadingEmoji = if (answer.secret) SECRET_EMOJI else null,
+        leadingIcon = if (answer.secret) AfterhoursIcons.Eye else null,
         modifier = modifier
             .then(ring)
             .semantics { selected = isSelected },
     )
 }
-
-private const val SECRET_EMOJI = "👀"

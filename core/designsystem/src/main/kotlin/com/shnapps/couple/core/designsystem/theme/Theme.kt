@@ -8,6 +8,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
+import com.shnapps.couple.core.model.Heat
 
 /**
  * The app's theme (BUILD_PROMPT.md §15).
@@ -21,10 +22,16 @@ import androidx.compose.ui.platform.LocalInspectionMode
  *
  * Extras that Material has no slot for are reached through [AfterhoursTheme]:
  * ```
- * AfterhoursTheme.colors.glow
- * AfterhoursTheme.spacing.gutter
+ * AfterhoursTheme.colors.rimTop
+ * AfterhoursTheme.spacing.section
+ * AfterhoursTheme.heat.accent
  * AfterhoursTheme.motion.reveal
  * ```
+ *
+ * How far tonight goes is part of the theme (DESIGN_PROMPT.md §4.4): a heat owns the
+ * card's rim, the primary action, the picker's selected state and every accent on the
+ * screen, so a component asks [AfterhoursTheme.heat] rather than taking a colour as a
+ * parameter. [ProvideHeat] is how a screen that knows the heat sets it.
  */
 @Composable
 fun AfterhoursTheme(content: @Composable () -> Unit) {
@@ -37,6 +44,7 @@ fun AfterhoursTheme(content: @Composable () -> Unit) {
 
     CompositionLocalProvider(
         LocalAfterhoursColors provides afterhoursColors,
+        LocalHeatColors provides heatColors(Heat.DEFAULT),
         LocalSpacing provides Spacing(),
         LocalElevations provides Elevations(),
         LocalMotion provides Motion(),
@@ -51,12 +59,30 @@ fun AfterhoursTheme(content: @Composable () -> Unit) {
     }
 }
 
+/**
+ * Everything on this screen takes its accent from [heat].
+ *
+ * Wrapped around a screen's content by whatever knows how far tonight goes — home, a
+ * player, the planner. Everything else inherits the default, which is where a couple
+ * starts before they have said anything.
+ */
+@Composable
+fun ProvideHeat(heat: Heat, content: @Composable () -> Unit) {
+    CompositionLocalProvider(LocalHeatColors provides heatColors(heat), content = content)
+}
+
 /** Accessors for the tokens Material 3 has no slot for. */
 object AfterhoursTheme {
     val colors: AfterhoursColors
         @Composable
         @ReadOnlyComposable
         get() = LocalAfterhoursColors.current
+
+    /** How far tonight goes, as a colour (§4.4). */
+    val heat: HeatColors
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalHeatColors.current
 
     val spacing: Spacing
         @Composable
@@ -81,6 +107,9 @@ object AfterhoursTheme {
 
 internal val LocalAfterhoursColors =
     androidx.compose.runtime.staticCompositionLocalOf { afterhoursColors }
+
+internal val LocalHeatColors =
+    androidx.compose.runtime.staticCompositionLocalOf { heatColors(Heat.DEFAULT) }
 
 /**
  * Reads the system animator scale. Zero means the user has switched animation off, either

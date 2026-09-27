@@ -38,6 +38,7 @@ import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.component.LockedCard
 import com.shnapps.couple.core.designsystem.component.WaitingForPartner
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursEasing
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.DisplayFontFamily
@@ -127,7 +128,7 @@ internal fun ShapeStage(state: NightUiState, actions: NightActions) {
         GlowButton(
             text = "Begin",
             onClick = actions.onBegin,
-            leadingEmoji = "🔥",
+            leadingIcon = AfterhoursIcons.Flame,
             enabled = !state.busy,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -174,16 +175,16 @@ private fun MakeIt(state: NightUiState, actions: NightActions) {
 /** The word on the button for each "Make it…" (§14.6). */
 private val RemixModifier.label: String
     get() = when (this) {
-        RemixModifier.MORE_INTENSE -> "🔥 More intense"
-        RemixModifier.MORE_MYSTERIOUS -> "👀 More mysterious"
-        RemixModifier.MORE_TEASING -> "😏 More teasing"
-        RemixModifier.MORE_UNPREDICTABLE -> "🎲 More unpredictable"
-        RemixModifier.MORE_ROMANTIC -> "❤️ More romantic"
-        RemixModifier.MORE_ROLEPLAY -> "🎭 More roleplay"
-        RemixModifier.MORE_CONVERSATIONAL -> "💬 More talk"
-        RemixModifier.SHORTER -> "⚡ Shorter"
-        RemixModifier.SLOWER -> "🌙 Slower"
-        RemixModifier.MORE_ADVENTUROUS -> "✨ More adventurous"
+        RemixModifier.MORE_INTENSE -> "More intense"
+        RemixModifier.MORE_MYSTERIOUS -> "More mysterious"
+        RemixModifier.MORE_TEASING -> "More teasing"
+        RemixModifier.MORE_UNPREDICTABLE -> "More unpredictable"
+        RemixModifier.MORE_ROMANTIC -> "More romantic"
+        RemixModifier.MORE_ROLEPLAY -> "More roleplay"
+        RemixModifier.MORE_CONVERSATIONAL -> "More talk"
+        RemixModifier.SHORTER -> "Shorter"
+        RemixModifier.SLOWER -> "Slower"
+        RemixModifier.MORE_ADVENTUROUS -> "More adventurous"
     }
 
 /** Each partner's own "I'm in", on their own phone, before a BOLD or WILD night (§3.1). */
@@ -212,7 +213,7 @@ internal fun ConsentStage(state: NightUiState, actions: NightActions) {
             GlowButton(
                 text = "I'm in",
                 onClick = actions.onConsent,
-                leadingEmoji = "🔥",
+                leadingIcon = AfterhoursIcons.Flame,
                 enabled = !state.busy,
                 modifier = Modifier.fillMaxWidth(),
             )

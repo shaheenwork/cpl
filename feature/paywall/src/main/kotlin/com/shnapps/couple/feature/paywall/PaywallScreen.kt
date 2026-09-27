@@ -5,16 +5,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.CinematicCard
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.ui.BackRow
@@ -63,11 +68,11 @@ internal data class PaywallActions(
 
 /** What premium is, in the order it matters. Each line is a thing they can do, not a feeling. */
 private val INCLUDED = listOf(
-    "🌙" to "As many evenings as you want — planned, a surprise, or fifteen minutes.",
-    "👀" to "A mystery: you find out as you go.",
-    "📅" to "A few days of this — one, three, seven or fourteen, an evening each.",
-    "🎁" to "Leave as many surprises waiting as you like.",
-    "❤️" to "Everything free includes, unchanged.",
+    AfterhoursIcons.Moon to "As many evenings as you want — planned, a surprise, or fifteen minutes.",
+    AfterhoursIcons.Eye to "A mystery: you find out as you go.",
+    AfterhoursIcons.Calendar to "A few days of this — one, three, seven or fourteen, an evening each.",
+    AfterhoursIcons.Gift to "Leave as many surprises waiting as you like.",
+    AfterhoursIcons.Heart to "Everything free includes, unchanged.",
 )
 
 @Composable
@@ -88,9 +93,17 @@ internal fun PaywallContent(
             CinematicCard(modifier = Modifier.fillMaxWidth()) {
                 Text(text = "WHAT'S INCLUDED", style = EyebrowTextStyle, color = AfterhoursTheme.colors.brass)
                 Column(verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm)) {
-                    for ((emoji, line) in INCLUDED) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm)) {
-                            Text(text = emoji, style = MaterialTheme.typography.bodyLarge)
+                    for ((icon, line) in INCLUDED) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm),
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = AfterhoursTheme.colors.brass,
+                                modifier = Modifier.size(INCLUDED_ICON),
+                            )
                             Text(
                                 text = line,
                                 style = MaterialTheme.typography.bodyMedium,
@@ -122,7 +135,7 @@ private fun Buy(state: PaywallUiState, actions: PaywallActions) {
         text = if (state.busy) "One moment…" else "Go premium",
         onClick = actions.onSubscribe,
         enabled = !state.busy,
-        leadingEmoji = "✨",
+        leadingIcon = AfterhoursIcons.Spark,
         modifier = Modifier.fillMaxWidth(),
     )
     GlowButton(
@@ -165,3 +178,6 @@ private fun PaywallError.message(): String = when (this) {
     PaywallError.NOTHING_TO_RESTORE -> "Nothing to restore on this account."
     PaywallError.OTHER -> "That didn't work. Nothing was charged."
 }
+
+/** An icon beside a line of copy: one step down from a button's. */
+private val INCLUDED_ICON = 18.dp

@@ -34,6 +34,7 @@ import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.component.RevealCard
 import com.shnapps.couple.core.designsystem.component.RevealState
+import com.shnapps.couple.core.designsystem.icon.icon
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.designsystem.theme.LocalReduceMotion
@@ -212,7 +213,7 @@ internal fun ReactionRenderer(reaction: RoundPrimitive.Reaction, players: GamePl
         GlowButton(
             text = option.label,
             onClick = { onSubmit(Answer.Reacted(option)) },
-            leadingEmoji = option.emoji,
+            leadingIcon = option.icon(),
             style = GlowButtonStyle.Secondary,
             modifier = Modifier.fillMaxWidth(),
         )

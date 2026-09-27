@@ -29,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.CinematicCard
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.MediaItem
@@ -163,7 +164,7 @@ private fun Maker(state: SendUiState, actions: SendActions) {
             GlowButton(
                 text = "Stop recording",
                 onClick = actions.onStopRecording,
-                leadingEmoji = "⏹",
+                leadingIcon = AfterhoursIcons.Stop,
                 modifier = Modifier.fillMaxWidth(),
             )
         } else {
@@ -174,7 +175,7 @@ private fun Maker(state: SendUiState, actions: SendActions) {
                     "Record a voice note"
                 },
                 onClick = actions.onRecord,
-                leadingEmoji = "🎙",
+                leadingIcon = AfterhoursIcons.Mic,
                 modifier = Modifier.fillMaxWidth(),
             )
             GlowButton(
@@ -185,7 +186,7 @@ private fun Maker(state: SendUiState, actions: SendActions) {
                 },
                 onClick = actions.onPickPhoto,
                 style = GlowButtonStyle.Secondary,
-                leadingEmoji = "📸",
+                leadingIcon = AfterhoursIcons.Camera,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -225,7 +226,7 @@ private fun Maker(state: SendUiState, actions: SendActions) {
             text = if (state.sending) "Sending…" else "Send it",
             onClick = actions.onSend,
             enabled = state.canSend,
-            leadingEmoji = "💌",
+            leadingIcon = AfterhoursIcons.Send,
             modifier = Modifier.fillMaxWidth(),
         )
     }
@@ -252,7 +253,7 @@ private fun Inbox(state: SendUiState, actions: SendActions) {
                 contentDescription = "$line ${item.note.orEmpty()}",
             ) {
                 if (item.burnAfterView) {
-                    Text(text = "🔥 ONCE ONLY", style = EyebrowTextStyle, color = AfterhoursTheme.colors.brass)
+                    Text(text = "ONCE ONLY", style = EyebrowTextStyle, color = AfterhoursTheme.colors.brass)
                 }
                 Text(
                     text = line,

@@ -34,6 +34,7 @@ import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.component.RevealCard
 import com.shnapps.couple.core.designsystem.component.RevealState
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursEasing
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
@@ -129,11 +130,11 @@ private fun RevealStage(
 
         RevealCard(
             state = state.step.toRevealState(),
-            concealedLabel = if (state.isSecret) SECRET_EMOJI else "?",
+            concealedLabel = if (state.isSecret) "SECRET" else "?",
             concealedDescription = "Something you both chose, not revealed yet",
             // Brass for the secret one, softened so the resting halo frames the card rather
             // than flooding what follows it; the bloom's peak still flares.
-            glowColor = if (state.isSecret) colors.brass.copy(alpha = SECRET_GLOW_ALPHA) else colors.glow,
+            glowColor = if (state.isSecret) colors.brass else AfterhoursTheme.heat.rim,
         ) {
             Text(text = card.categoryTitle.uppercase(), style = EyebrowTextStyle, color = colors.textFaint)
             Text(
@@ -158,7 +159,7 @@ private fun RevealStage(
             RevealStep.Concealed -> GlowButton(
                 text = "Reveal it",
                 onClick = onReveal,
-                leadingEmoji = SECRET_EMOJI,
+                leadingIcon = AfterhoursIcons.Eye,
                 modifier = Modifier.fillMaxWidth(),
             )
             RevealStep.Revealing -> Unit
@@ -183,7 +184,7 @@ private fun SecretBanner(visible: Boolean) {
             ),
     ) {
         Text(
-            text = "WAIT… YOU BOTH PICKED THIS $SECRET_EMOJI",
+            text = "WAIT… YOU BOTH PICKED THIS",
             style = MaterialTheme.typography.headlineSmall,
             color = AfterhoursTheme.colors.brass,
             textAlign = TextAlign.Center,
@@ -201,7 +202,7 @@ private fun RevealedActions(itemId: String, moreAfter: Int, onBuildNight: ((Stri
         text = "Build an evening around this",
         onClick = { onBuildNight?.invoke(itemId) },
         enabled = onBuildNight != null,
-        leadingEmoji = "🔥",
+        leadingIcon = AfterhoursIcons.Flame,
         modifier = Modifier.fillMaxWidth(),
     )
     if (onBuildNight == null) {
@@ -306,6 +307,4 @@ private fun newCaption(count: Int): String = if (count == 1) "1 new." else "$cou
 
 private fun things(count: Int): String = if (count == 1) "1 thing" else "$count things"
 
-private const val SECRET_EMOJI = "👀"
 private const val SECRET_START_SCALE = 0.8f
-private const val SECRET_GLOW_ALPHA = 0.6f

@@ -1,5 +1,6 @@
 package com.shnapps.couple.core.designsystem.theme
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -8,6 +9,9 @@ import androidx.compose.ui.Modifier
 
 /**
  * The root surface every screen is drawn on: the design system's ground, full-bleed.
+ *
+ * It is where the scene is composed (DESIGN_PROMPT.md §4.1): the two lights, the
+ * fall-off and the grain, under everything, once. A screen never draws its own background.
  *
  * Used by `MainActivity` **and** by every screenshot test, so tests render exactly what
  * the app renders. Before this existed, the tests drew screens bare, the default white
@@ -22,6 +26,7 @@ fun AfterhoursSurface(
     Surface(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
-        content = content,
-    )
+    ) {
+        Box(modifier = Modifier.fillMaxSize().scene()) { content() }
+    }
 }

@@ -165,8 +165,11 @@ val AfterhoursTypography = Typography(
 )
 
 /**
- * Small-caps-ish eyebrow label: wide tracking, used above a chapter title or section.
+ * Small-caps-ish eyebrow label: wide tracking, used above a card title or a section.
  * Not a Material slot, so it lives here.
+ *
+ * `case` asks the font for capital-height punctuation, so the middle dot in
+ * "HOT · 5 MIN" sits on the cap line instead of on the x-height.
  */
 val EyebrowTextStyle = TextStyle(
     fontFamily = BodyFontFamily,
@@ -174,4 +177,51 @@ val EyebrowTextStyle = TextStyle(
     fontSize = 11.sp,
     lineHeight = 14.sp,
     letterSpacing = 2.4.sp,
+    fontFeatureSettings = CAPS_PUNCTUATION,
 )
+
+/**
+ * The hero card's body (DESIGN_PROMPT.md §4.5).
+ *
+ * `bodyLarge` is a list style — 17/26 with positive tracking — and it was being used for
+ * the one thing in the app a couple actually reads. This is larger, leaded further, and
+ * tracked at zero, and it is meant to be used with [CARD_MEASURE].
+ */
+val CardBodyTextStyle = TextStyle(
+    fontFamily = BodyFontFamily,
+    fontWeight = FontWeight.Normal,
+    fontSize = 19.sp,
+    lineHeight = 30.sp,
+    letterSpacing = 0.sp,
+)
+
+/**
+ * Anything that counts: a timer, a round, a score, a pairing code.
+ *
+ * `tnum` fixes every digit to the same width. Without it a clock changes width as it
+ * counts down, and the whole card shifts under the reader — the cheapest possible tell
+ * that nobody looked at the screen for more than a second.
+ */
+val NumeralTextStyle = TextStyle(
+    fontFamily = BodyFontFamily,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 20.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.4.sp,
+    fontFeatureSettings = TABULAR_NUMERALS,
+)
+
+/** Tabular figures, for any style that has to hold its width while a number changes. */
+const val TABULAR_NUMERALS = "tnum"
+
+/** Capital-height punctuation, for text set in all caps. */
+private const val CAPS_PUNCTUATION = "case"
+
+/**
+ * How wide the hero card's body is allowed to get, as a multiple of its font size.
+ *
+ * About 38–42 characters. Body copy that runs the full width of a phone at 19 sp is
+ * roughly 52 characters a line, which is past the point where the eye starts losing the
+ * line it was on.
+ */
+const val CARD_MEASURE = 21

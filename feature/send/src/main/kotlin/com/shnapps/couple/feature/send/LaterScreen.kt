@@ -18,6 +18,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.CinematicCard
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.Countdown
@@ -189,7 +190,7 @@ private fun Leaver(state: LaterUiState, actions: LaterActions) {
         text = if (state.busy) "Leaving it…" else "Leave it",
         onClick = actions.onLeave,
         enabled = state.canLeave,
-        leadingEmoji = "🎁",
+        leadingIcon = AfterhoursIcons.Gift,
         modifier = Modifier.fillMaxWidth(),
     )
 }
@@ -203,7 +204,7 @@ private fun Arrived(surprise: Surprise, onOpen: (Surprise) -> Unit) {
         glowing = true,
         contentDescription = "Something has arrived: ${surprise.title}",
     ) {
-        Text(text = "🎁 IT'S HERE", style = EyebrowTextStyle, color = AfterhoursTheme.colors.brass)
+        Text(text = "IT'S HERE", style = EyebrowTextStyle, color = AfterhoursTheme.colors.brass)
         Text(
             text = surprise.title,
             style = MaterialTheme.typography.titleMedium,

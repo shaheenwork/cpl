@@ -5,18 +5,24 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.MediaItem
@@ -114,11 +120,23 @@ internal fun SaveMemoryContent(
             Text(text = "HOW WAS IT", style = EyebrowTextStyle, color = AfterhoursTheme.colors.textFaint)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm)) {
                 for (rating in 1..SaveMemoryUiState.MAX_RATING) {
-                    GlowButton(
-                        text = "★".repeat(rating),
+                    val chosen = state.rating == rating
+                    IconButton(
                         onClick = { actions.onRating(rating) },
-                        style = if (state.rating == rating) GlowButtonStyle.Primary else GlowButtonStyle.Quiet,
-                    )
+                        modifier = Modifier
+                            .size(AfterhoursTheme.spacing.touchTarget)
+                            .semantics { contentDescription = "$rating of ${SaveMemoryUiState.MAX_RATING}" },
+                    ) {
+                        Icon(
+                            imageVector = AfterhoursIcons.Star,
+                            contentDescription = null,
+                            tint = if (chosen || (state.rating ?: 0) > rating) {
+                                AfterhoursTheme.heat.onDark
+                            } else {
+                                AfterhoursTheme.colors.textFaint
+                            },
+                        )
+                    }
                 }
             }
             if (state.media.isNotEmpty()) {
@@ -147,7 +165,7 @@ internal fun SaveMemoryContent(
                 text = if (state.saving) "Keeping…" else "Save to Our Memories",
                 onClick = actions.onSave,
                 enabled = state.canSave,
-                leadingEmoji = "❤️",
+                leadingIcon = AfterhoursIcons.Heart,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -156,7 +174,7 @@ internal fun SaveMemoryContent(
 
 /** A voice note or a photo, named by what it is and who sent it — never by what is in it. */
 private fun MediaItem.label(): String {
-    val what = if (kind == MediaKind.VOICE) "🎙 Voice note" else "📷 Photo"
+    val what = if (kind == MediaKind.VOICE) "Voice note" else "Photo"
     return if (mine) "$what you sent" else "$what from them"
 }
 

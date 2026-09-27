@@ -12,43 +12,46 @@ import androidx.compose.material3.darkColorScheme
  */
 internal fun afterhoursColorScheme(): ColorScheme = darkColorScheme(
     primary = Palette.Burgundy,
-    onPrimary = Palette.Ink,
+    onPrimary = Palette.Scene,
     primaryContainer = Palette.BurgundyContainer,
     onPrimaryContainer = Palette.OnBurgundyContainer,
 
     secondary = Palette.Plum,
-    onSecondary = Palette.Ink,
+    onSecondary = Palette.Scene,
     secondaryContainer = Palette.PlumContainer,
     onSecondaryContainer = Palette.OnPlumContainer,
 
     tertiary = Palette.Brass,
-    onTertiary = Palette.Ink,
+    onTertiary = Palette.Scene,
     tertiaryContainer = Palette.BrassContainer,
     onTertiaryContainer = Palette.OnBrassContainer,
 
-    background = Palette.Ink,
+    background = Palette.Scene,
     onBackground = Palette.Cream,
 
-    surface = Palette.Ink,
+    surface = Palette.Scene,
     onSurface = Palette.Cream,
-    surfaceVariant = Palette.InkElevated,
+    surfaceVariant = Palette.Raised,
     onSurfaceVariant = Palette.CreamMuted,
 
-    surfaceContainerLowest = Palette.Ink,
-    surfaceContainerLow = Palette.InkRaised,
-    surfaceContainer = Palette.InkElevated,
-    surfaceContainerHigh = Palette.InkHigh,
-    surfaceContainerHighest = Palette.InkHighest,
+    // Three grounds, not five (DESIGN_PROMPT.md §4.2). Material has five slots; they map
+    // onto the three a person can actually tell apart, so a component that reaches for
+    // `surfaceContainer` gets the row ground and one that reaches for `High` gets the card.
+    surfaceContainerLowest = Palette.Scene,
+    surfaceContainerLow = Palette.Raised,
+    surfaceContainer = Palette.Raised,
+    surfaceContainerHigh = Palette.Card,
+    surfaceContainerHighest = Palette.Card,
 
     inverseSurface = Palette.Cream,
-    inverseOnSurface = Palette.Ink,
+    inverseOnSurface = Palette.Scene,
     inversePrimary = Palette.BurgundyDeep,
 
     outline = Palette.Outline,
     outlineVariant = Palette.OutlineFaint,
 
     error = Palette.Signal,
-    onError = Palette.Ink,
+    onError = Palette.Scene,
     errorContainer = Palette.SignalContainer,
     onErrorContainer = Palette.OnSignalContainer,
 

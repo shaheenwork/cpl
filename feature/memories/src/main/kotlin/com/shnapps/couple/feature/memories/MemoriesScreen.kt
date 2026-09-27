@@ -18,6 +18,7 @@ import com.shnapps.couple.core.designsystem.component.CinematicCard
 import com.shnapps.couple.core.designsystem.component.EmptyState
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.Memory
@@ -87,7 +88,11 @@ internal fun MemoriesContent(
                         text = filter.label,
                         onClick = { actions.onFilter(filter) },
                         style = if (filter == state.filter) GlowButtonStyle.Primary else GlowButtonStyle.Secondary,
-                        leadingEmoji = if (filter == MemoryFilter.FAVORITES) "❤️" else "📖",
+                        leadingIcon = if (filter == MemoryFilter.FAVORITES) {
+                            AfterhoursIcons.Heart
+                        } else {
+                            AfterhoursIcons.Bookmark
+                        },
                     )
                 }
             }
@@ -157,7 +162,7 @@ private fun MemoryCard(memory: Memory, actions: MemoriesActions) {
                 text = if (memory.favorite) "Loved" else "Love it",
                 onClick = { actions.onFavorite(memory) },
                 style = if (memory.favorite) GlowButtonStyle.Primary else GlowButtonStyle.Secondary,
-                leadingEmoji = "❤️",
+                leadingIcon = AfterhoursIcons.Heart,
             )
             GlowButton(
                 text = "Forget it",
@@ -176,7 +181,7 @@ private fun Memory.eyebrow(): String {
         if (moods.isNotEmpty()) add(moods)
         add("$durationMin MIN")
         if (chapterCount > 0) add(if (finished) "ALL $chapterCount" else "$playedThrough OF $chapterCount")
-        if (mediaIds.isNotEmpty()) add("📎 ${mediaIds.size}")
+        if (mediaIds.isNotEmpty()) add("${mediaIds.size} ATTACHED")
     }
     return shape.joinToString(" · ")
 }

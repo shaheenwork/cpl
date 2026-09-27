@@ -88,7 +88,7 @@ private fun ThreadEntry.Left.line(): String = when {
     sealed && forMoment != null -> "Something, kept for a moment."
     sealed -> "Something is coming."
     state == SurpriseState.OPENED -> title.orEmpty()
-    readyForMe -> "🎁 ${title.orEmpty()}"
+    readyForMe -> title.orEmpty()
     else -> title.orEmpty()
 }
 

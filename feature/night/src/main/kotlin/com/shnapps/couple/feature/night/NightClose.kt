@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import com.shnapps.couple.core.designsystem.component.CinematicCard
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
+import com.shnapps.couple.core.designsystem.icon.icon
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.ChapterReaction
@@ -40,7 +42,7 @@ internal fun HowAreWeStage(state: NightUiState, actions: NightActions) {
                 GlowButton(
                     text = option.label,
                     onClick = { actions.onAnswerClose(option) },
-                    leadingEmoji = option.emoji,
+                    leadingIcon = option.icon(),
                     style = GlowButtonStyle.Secondary,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -100,7 +102,7 @@ internal fun FeedbackStage(state: NightUiState, actions: NightActions) {
                             modifier = Modifier.heightIn(min = spacing.touchTarget),
                             label = {
                                 Text(
-                                    text = "${reaction.emoji} ${reaction.label}",
+                                    text = reaction.label,
                                     style = MaterialTheme.typography.labelLarge,
                                 )
                             },
@@ -147,11 +149,11 @@ internal fun FeedbackStage(state: NightUiState, actions: NightActions) {
 @Composable
 internal fun DoneStage(onKeepIt: () -> Unit, onHome: () -> Unit) {
     ScreenColumn {
-        ScreenHeading(eyebrow = "That's the evening", headline = "That's the evening ❤️", body = "Sleep well, you two.")
+        ScreenHeading(eyebrow = "That's the evening", headline = "That's the evening", body = "Sleep well, you two.")
         GlowButton(
             text = "Save to Our Memories",
             onClick = onKeepIt,
-            leadingEmoji = "📖",
+            leadingIcon = AfterhoursIcons.Bookmark,
             modifier = Modifier.fillMaxWidth(),
         )
         GlowButton(

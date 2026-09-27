@@ -97,7 +97,7 @@ class SendSnapshotTest {
         capture("send-inbox") { SendContent(state, SendActions()) }
         composeRule.onNodeWithText("A voice note from them. Not opened yet.").assertIsDisplayed()
         composeRule.onNodeWithText("A photo you sent. They've opened it.").assertIsDisplayed()
-        composeRule.onNodeWithText("🔥 ONCE ONLY").assertIsDisplayed()
+        composeRule.onNodeWithText("ONCE ONLY").assertIsDisplayed()
     }
 
     @Test
@@ -153,7 +153,7 @@ class SendSnapshotTest {
             ),
         )
         capture("later-arrived") { LaterContent(state, LaterActions()) }
-        composeRule.onNodeWithText("🎁 IT'S HERE").assertIsDisplayed()
+        composeRule.onNodeWithText("IT'S HERE").assertIsDisplayed()
         composeRule.onNodeWithText("OPEN WHEN…").assertIsDisplayed()
         // What is still kept for a moment says only that, never what is in it (§5.7).
         assertThat(composeRule.onAllNodesWithText("read this").fetchSemanticsNodes()).isEmpty()

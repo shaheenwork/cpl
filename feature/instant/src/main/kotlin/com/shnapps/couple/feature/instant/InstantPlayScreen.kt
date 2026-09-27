@@ -18,6 +18,7 @@ import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
+import com.shnapps.couple.core.designsystem.theme.ProvideHeat
 import com.shnapps.couple.core.engine.InstantCard
 import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.ui.BackRow
@@ -76,44 +77,48 @@ internal fun InstantPlayContent(
     onKeepGoing: () -> Unit,
     onKeepThis: () -> Unit,
 ) {
-    ScreenColumn {
-        BackRow(label = "Back", onBack = onBack)
+    // Everything on this screen takes the run's heat: the card's rim, the primary action,
+    // the eyebrow (DESIGN_PROMPT.md §4.4). One setting, and the whole room changes.
+    ProvideHeat(state.heat) {
+        ScreenColumn {
+            BackRow(label = "Back", onBack = onBack)
 
-        when {
-            state.refusing != null -> RefusalQuestion(onRefuse = onRefuse)
-            state.offeringHotter != null -> HotterQuestion(
-                next = state.offeringHotter,
-                onTurnUp = onTurnUp,
-                onKeep = onKeepHeat,
-            )
-            state.runComplete -> RunComplete(
-                played = state.played,
-                onKeepGoing = onKeepGoing,
-                onKeepThis = onKeepThis,
-                onBack = onBack,
-            )
-            state.card != null -> Playing(
-                card = state.card,
-                heat = state.heat,
-                timer = state.timer,
-                position = state.position,
-                runLength = state.runLength,
-                onDone = onDone,
-                onSkip = onSkip,
-                onTooFar = onTooFar,
-                onStartTimer = onStartTimer,
-                onStopTimer = onStopTimer,
-            )
-            state.loading -> Text(
-                text = "One moment.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = AfterhoursTheme.colors.textMuted,
-            )
-            else -> Empty()
-        }
+            when {
+                state.refusing != null -> RefusalQuestion(onRefuse = onRefuse)
+                state.offeringHotter != null -> HotterQuestion(
+                    next = state.offeringHotter,
+                    onTurnUp = onTurnUp,
+                    onKeep = onKeepHeat,
+                )
+                state.runComplete -> RunComplete(
+                    played = state.played,
+                    onKeepGoing = onKeepGoing,
+                    onKeepThis = onKeepThis,
+                    onBack = onBack,
+                )
+                state.card != null -> Playing(
+                    card = state.card,
+                    heat = state.heat,
+                    timer = state.timer,
+                    position = state.position,
+                    runLength = state.runLength,
+                    onDone = onDone,
+                    onSkip = onSkip,
+                    onTooFar = onTooFar,
+                    onStartTimer = onStartTimer,
+                    onStopTimer = onStopTimer,
+                )
+                state.loading -> Text(
+                    text = "One moment.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = AfterhoursTheme.colors.textMuted,
+                )
+                else -> Empty()
+            }
 
-        if (state.showsHeatPicker) {
-            HeatPicker(selected = state.heat, onHeat = onHeat)
+            if (state.showsHeatPicker) {
+                HeatPicker(selected = state.heat, onHeat = onHeat)
+            }
         }
     }
 }

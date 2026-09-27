@@ -41,14 +41,14 @@ object NotificationText {
     /** The most anyone will ever read: which kind of thing happened. */
     fun body(kind: PushKind): String = when (kind) {
         PushKind.PARTNER_INVITED -> "Someone is asking to pair with you."
-        PushKind.PARTNER_JOINED -> "You're paired. 💛"
-        PushKind.SURPRISE_LEFT -> "They left you something. 👀"
-        PushKind.SURPRISE_UNLOCKED -> "Something is ready for you. 🎁"
-        PushKind.NIGHT_STARTING -> "An evening is waiting for you. 🌙"
-        PushKind.DAY_UNLOCKED -> "Today's day is open. 🌙"
+        PushKind.PARTNER_JOINED -> "You're paired."
+        PushKind.SURPRISE_LEFT -> "They left you something."
+        PushKind.SURPRISE_UNLOCKED -> "Something is ready for you."
+        PushKind.NIGHT_STARTING -> "An evening is waiting for you."
+        PushKind.DAY_UNLOCKED -> "Today's day is open."
         PushKind.PARTNER_FINISHED -> "They've done their part."
         PushKind.BOTH_READY -> "You're both in."
         PushKind.SESSION_EXPIRING -> "An evening is about to time out."
-        PushKind.THEY_SENT_SOMETHING -> "They sent you something. 👀"
+        PushKind.THEY_SENT_SOMETHING -> "They sent you something."
     }
 }

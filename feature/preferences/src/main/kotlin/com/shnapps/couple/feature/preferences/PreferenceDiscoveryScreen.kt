@@ -22,6 +22,7 @@ import com.shnapps.couple.core.designsystem.component.CinematicCard
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.component.IntensityDial
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.decorativeTween
 import com.shnapps.couple.core.model.Intensity
@@ -137,7 +138,7 @@ private fun IntroStep(
         // The promise Phase 7's matching must keep (DECISIONS.md D-021): choosing "secretly"
         // never reveals more than answering openly would.
         Text(
-            text = "👀 Secretly curious stays hidden unless they secretly pick it too.",
+            text = "Secretly curious stays hidden unless they secretly pick it too.",
             style = MaterialTheme.typography.bodyMedium,
             color = AfterhoursTheme.colors.textMuted,
         )
@@ -163,7 +164,7 @@ private fun IntroStep(
             GlowButton(
                 text = "Start · ${cards(state.remainingCount)}",
                 onClick = onStart,
-                leadingEmoji = "👀",
+                leadingIcon = AfterhoursIcons.Eye,
                 modifier = Modifier.fillMaxWidth(),
             )
         } else {

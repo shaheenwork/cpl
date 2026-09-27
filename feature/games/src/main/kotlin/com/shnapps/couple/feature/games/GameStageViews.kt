@@ -17,6 +17,8 @@ import com.shnapps.couple.core.designsystem.component.CinematicCard
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.component.WaitingForPartner
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
+import com.shnapps.couple.core.designsystem.icon.icon
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.engine.game.GameMoment
@@ -71,7 +73,7 @@ internal fun IntroStage(state: GameUiState, actions: GameActions) {
             text = "Start the game",
             onClick = actions.onOpen,
             enabled = !state.busy,
-            leadingEmoji = "🎲",
+            leadingIcon = AfterhoursIcons.Dice,
             modifier = Modifier.fillMaxWidth(),
         )
         GlowButton(text = "Back to games", onClick = actions.onGames, style = GlowButtonStyle.Quiet)
@@ -97,7 +99,7 @@ internal fun ConsentStage(state: GameUiState, actions: GameActions) {
             GlowButton(
                 text = "I'm in",
                 onClick = actions.onConsent,
-                leadingEmoji = "🔥",
+                leadingIcon = AfterhoursIcons.Flame,
                 enabled = !state.busy,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -132,7 +134,7 @@ internal fun ReadyStage(state: GameUiState, actions: GameActions) {
             text = "Let's play",
             onClick = actions.onPlay,
             enabled = !state.busy,
-            leadingEmoji = "🎲",
+            leadingIcon = AfterhoursIcons.Dice,
             modifier = Modifier.fillMaxWidth(),
         )
     }
@@ -263,7 +265,7 @@ internal fun ElsewhereStage() {
 @Composable
 internal fun EndedStage(reason: SessionEndReason, actions: GameActions) {
     val (headline, body) = when (reason) {
-        SessionEndReason.COMPLETED -> "Game complete. ❤️" to "Nicely played, both of you."
+        SessionEndReason.COMPLETED -> "That's the game." to "Nicely played, both of you."
         SessionEndReason.STOPPED -> "Ending here. All good." to "Nothing more to do. Come back whenever you like."
         SessionEndReason.DECLINED -> "Not tonight — and that's fine." to "There's always another time."
         SessionEndReason.EXPIRED -> "This game timed out." to "Start another whenever you like."
@@ -289,7 +291,7 @@ internal fun HowAreWeStage(state: GameUiState, actions: GameActions) {
                 GlowButton(
                     text = option.label,
                     onClick = { actions.onAnswerClose(option) },
-                    leadingEmoji = option.emoji,
+                    leadingIcon = option.icon(),
                     style = GlowButtonStyle.Secondary,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -320,7 +322,7 @@ internal fun ResultsStage(state: GameUiState, actions: GameActions) {
         GlowButton(
             text = "Another game",
             onClick = actions.onGames,
-            leadingEmoji = "🎲",
+            leadingIcon = AfterhoursIcons.Dice,
             modifier = Modifier.fillMaxWidth(),
         )
         GlowButton(

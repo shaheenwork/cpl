@@ -81,7 +81,7 @@ class MemoriesSnapshotTest {
         )
         capture("memories-list") { MemoriesContent(state, MemoriesActions()) }
         composeRule.onNodeWithText("The Tuesday one").assertIsDisplayed()
-        composeRule.onNodeWithText("NAUGHTY · TALK · 60 MIN · ALL 4 · 📎 1").assertIsDisplayed()
+        composeRule.onNodeWithText("NAUGHTY · TALK · 60 MIN · ALL 4 · 1 ATTACHED").assertIsDisplayed()
         composeRule.onNodeWithText("Show more").assertIsDisplayed()
         // The shape of the evening, and never a line of what was in it.
         assertThat(composeRule.onAllNodesWithText("item_", substring = true).fetchSemanticsNodes()).isEmpty()
@@ -109,7 +109,7 @@ class MemoriesSnapshotTest {
         )
         capture("memories-save") { SaveMemoryContent(state, SaveMemoryActions()) }
         composeRule.onNodeWithText("Save to Our Memories").assertIsDisplayed()
-        composeRule.onNodeWithText("🎙 Voice note you sent").assertIsDisplayed()
+        composeRule.onNodeWithText("Voice note you sent").assertIsDisplayed()
         composeRule.onNodeWithText("Keep this one?").assertIsDisplayed()
     }
 

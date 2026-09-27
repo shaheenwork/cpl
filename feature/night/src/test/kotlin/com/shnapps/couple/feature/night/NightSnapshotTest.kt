@@ -150,8 +150,8 @@ class NightSnapshotTest {
     fun makeItOffersTheTenWords() {
         capture("night-shape-make-it", state(NightStage.Shape))
         composeRule.onNodeWithText("MAKE IT…").assertIsDisplayed()
-        composeRule.onNodeWithText("🔥 More intense").assertIsDisplayed()
-        composeRule.onNodeWithText("⚡ Shorter").assertIsDisplayed()
+        composeRule.onNodeWithText("More intense").assertIsDisplayed()
+        composeRule.onNodeWithText("Shorter").assertIsDisplayed()
     }
 
     @Test fun consentHost() = capture(

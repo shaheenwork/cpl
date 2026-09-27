@@ -7,7 +7,9 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 `REDESIGN_PROMPT.md` (R1–R10) is complete — 22 games, 632 prompts — and the app is now being
 **unified**: the rebuild had left two of everything, so signing in replaced the app rather than
 adding to it. U1–U6 are done: one home, one way to start, one game list and one player, one vocabulary, the
-six-field form reduced to three questions, and no screen that can be reached and not left. What remains before a public release is
+six-field form reduced to three questions, and no screen that can be reached and not left. The
+**visual rebuild** (`DESIGN_PROMPT.md`) has begun — D1 (foundations) and D2 (icons) are done;
+D3–D8 redraw the frame, the card, home, the games, the rest, and the brand. What remains before a public release is
 setup and review, not code: `RELEASE.md` is the ordered runbook, `HUMAN_SETUP.md` the console detail,
 and `legal/` holds drafts of the privacy policy, the terms and the Play data-safety answers, pending
 a lawyer.
@@ -1231,6 +1233,44 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Visual rebuild D1–D2 — Foundations, and the end of emoji ✅
+
+`DESIGN_PROMPT.md` is the brief: the flow was settled by U1–U6, and the app still looked like a
+prototype. Three quarters of the reason was light, space and type rather than layout, which is why
+this phase changes no screen at all.
+
+### Shipped
+- **The scene** (D-107): the background is not a colour. A key wash, a plum bounce, a vignette and
+  deterministic grain, composed once in `AfterhoursSurface` under every screen.
+- **Three grounds, not five**: the old stack spanned under 5% of luminance in total. `Scene`,
+  `Raised` and `Card` are ~7% apart each, and `ContrastTest` measures the steps.
+- **Rim light** replaces the uniform hairline — a 1 dp vertical gradient, brighter at the top.
+  `Modifier.raised` applies fill, rim and contact shadow together so they cannot drift apart.
+- **The halo is gone** (D-107). Ten equal-alpha rings banded into a hard rectangle at card size and
+  smeared across the heat picker. Twelve rings with a quadratic falloff, normalised by the series
+  total, read as light. Two rules keep it that way: one bloom per screen, never in a row.
+- **A heat is a colour** (D-108): accent, container, rim and two text tones each, carried by
+  `LocalHeatColors`. Wild goes deeper and redder — and is as dark as 3:1 allows, which the test
+  established rather than a preference.
+- **Semantic rhythm** (D-109): `tight 4 / item 12 / group 20 / section 36`, replacing one gap for
+  everything — the single highest-value change in the rebuild.
+- **Type**: a card body style (19/30), tabular numerals, and a measure.
+- **Twenty-six icons, no emoji** (D-110), and a Konsist rule that fails the build on one.
+
+### Verified
+```
+./gradlew check                               BUILD SUCCESSFUL
+:core:designsystem ContrastTest               every heat on every ground it is drawn on
+:architecture DesignLanguageTest              proved by planting an emoji and watching it fail
+recordRoborazziDebug                          every golden in the repo, re-recorded
+```
+- Seven new specimens — grounds, rim, light, heat, rhythm, measure, icons — because none of this is
+  visible in a screenshot of a screen. A wrong gap looks like a gap.
+- The gate caught two things review had not: a star rating built from a dingbat, and two literal
+  colours in `QrCode.kt` that turned out to be legitimate and are named tokens now.
 
 ---
 

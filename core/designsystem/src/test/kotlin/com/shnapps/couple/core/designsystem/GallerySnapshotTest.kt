@@ -16,9 +16,16 @@ import com.shnapps.couple.core.designsystem.gallery.AnticipationSpecimen
 import com.shnapps.couple.core.designsystem.gallery.ButtonsSpecimen
 import com.shnapps.couple.core.designsystem.gallery.CardsSpecimen
 import com.shnapps.couple.core.designsystem.gallery.EmptySpecimen
+import com.shnapps.couple.core.designsystem.gallery.HeatSpecimen
+import com.shnapps.couple.core.designsystem.gallery.IconSpecimen
+import com.shnapps.couple.core.designsystem.gallery.LightSpecimen
+import com.shnapps.couple.core.designsystem.gallery.MeasureSpecimen
 import com.shnapps.couple.core.designsystem.gallery.NightControlsSpecimen
 import com.shnapps.couple.core.designsystem.gallery.PrivateAnswersSpecimen
+import com.shnapps.couple.core.designsystem.gallery.RhythmSpecimen
+import com.shnapps.couple.core.designsystem.gallery.RimSpecimen
 import com.shnapps.couple.core.designsystem.gallery.SafetySpecimen
+import com.shnapps.couple.core.designsystem.gallery.SurfaceSpecimen
 import com.shnapps.couple.core.designsystem.gallery.TypeSpecimen
 import com.shnapps.couple.core.designsystem.gallery.VoiceSpecimen
 import com.shnapps.couple.core.designsystem.gallery.WaitingSpecimen
@@ -48,6 +55,22 @@ class GallerySnapshotTest {
 
     @get:Rule
     val composeRule = createComposeRule()
+
+    // The foundations (DESIGN_PROMPT.md §8, D1). These are the goldens that hold the visual
+    // rebuild: a wrong gap or a banded halo is invisible in a screen and obvious here.
+    @Test fun grounds() = capture("grounds") { SurfaceSpecimen() }
+
+    @Test fun rim() = capture("rim") { RimSpecimen() }
+
+    @Test fun light() = capture("light") { LightSpecimen() }
+
+    @Test fun heat() = capture("heat") { HeatSpecimen() }
+
+    @Test fun rhythm() = capture("rhythm") { RhythmSpecimen() }
+
+    @Test fun measure() = capture("measure") { MeasureSpecimen() }
+
+    @Test fun icons() = capture("icons") { IconSpecimen() }
 
     @Test fun typography() = capture("typography") { TypeSpecimen() }
 

@@ -1,6 +1,5 @@
 package com.shnapps.couple.core.designsystem.gallery
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,7 +15,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.tooling.preview.Preview
 import com.shnapps.couple.core.designsystem.component.BoundarySlider
 import com.shnapps.couple.core.designsystem.component.ChapterCard
@@ -37,6 +35,7 @@ import com.shnapps.couple.core.designsystem.component.StopPauseBar
 import com.shnapps.couple.core.designsystem.component.VoiceRecorderBar
 import com.shnapps.couple.core.designsystem.component.VoiceState
 import com.shnapps.couple.core.designsystem.component.WaitingForPartner
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.BoundaryLevel
@@ -60,18 +59,19 @@ fun ComponentGallery(modifier: Modifier = Modifier) {
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        AfterhoursTheme.colors.backdropTop,
-                        AfterhoursTheme.colors.backdropBottom,
-                    ),
-                ),
-            )
             .padding(horizontal = spacing.gutter),
         verticalArrangement = Arrangement.spacedBy(spacing.lg),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = spacing.xl),
     ) {
+        // The foundations first, because they are what a screen screenshot cannot show
+        // (DESIGN_PROMPT.md §8, D1).
+        item { GallerySection("Grounds") { SurfaceSpecimen() } }
+        item { GallerySection("Rim") { RimSpecimen() } }
+        item { GallerySection("Light") { LightSpecimen() } }
+        item { GallerySection("Heat") { HeatSpecimen() } }
+        item { GallerySection("Rhythm") { RhythmSpecimen() } }
+        item { GallerySection("Measure") { MeasureSpecimen() } }
+        item { GallerySection("Icons") { IconSpecimen() } }
         item { GallerySection("Typography") { TypeSpecimen() } }
         item { GallerySection("Cards") { CardsSpecimen() } }
         item { GallerySection("Anticipation") { AnticipationSpecimen() } }
@@ -163,8 +163,13 @@ internal fun AnticipationSpecimen() {
 internal fun ButtonsSpecimen() {
     val spacing = AfterhoursTheme.spacing
     Column(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
-        GlowButton(text = "Build the evening", onClick = {}, leadingEmoji = "🔥")
-        GlowButton(text = "Surprise us", onClick = {}, style = GlowButtonStyle.Secondary, leadingEmoji = "🎲")
+        GlowButton(text = "Build the evening", onClick = {}, leadingIcon = AfterhoursIcons.Flame)
+        GlowButton(
+            text = "Surprise us",
+            onClick = {},
+            style = GlowButtonStyle.Secondary,
+            leadingIcon = AfterhoursIcons.Dice,
+        )
         GlowButton(text = "Not tonight", onClick = {}, style = GlowButtonStyle.Quiet)
         GlowButton(text = "Unavailable", onClick = {}, enabled = false)
     }

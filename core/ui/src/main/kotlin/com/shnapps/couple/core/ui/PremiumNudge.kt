@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import com.shnapps.couple.core.designsystem.component.CinematicCard
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.Gate
@@ -41,7 +42,7 @@ fun PremiumNudge(
         GlowButton(
             text = "See what's included",
             onClick = onSeeWhatsIncluded,
-            leadingEmoji = "✨",
+            leadingIcon = AfterhoursIcons.Spark,
             modifier = Modifier.fillMaxWidth(),
         )
         GlowButton(

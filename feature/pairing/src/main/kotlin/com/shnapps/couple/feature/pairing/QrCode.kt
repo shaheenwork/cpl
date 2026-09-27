@@ -12,7 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
@@ -21,6 +20,7 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
+import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 
 /**
  * A QR code of the invite link, drawn directly as modules rather than via a bitmap.
@@ -49,10 +49,14 @@ internal fun QrCode(
         )
     }
 
+    // Read outside the draw scope: a canvas is not a composable, and the scanner's two
+    // colours are fixed anyway.
+    val module = AfterhoursTheme.colors.codeModule
+
     Box(
         modifier = modifier
             .clip(MaterialTheme.shapes.medium)
-            .background(PLATE)
+            .background(AfterhoursTheme.colors.codePlate)
             .padding(12.dp)
             .semantics { contentDescription = description },
     ) {
@@ -62,7 +66,7 @@ internal fun QrCode(
                 for (x in 0 until matrix.width) {
                     if (matrix.get(x, y)) {
                         drawRect(
-                            color = MODULE,
+                            color = module,
                             topLeft = Offset(x * cell, y * cell),
                             // Slight overdraw closes hairline gaps between adjacent modules.
                             size = Size(cell + 0.5f, cell + 0.5f),
@@ -75,5 +79,3 @@ internal fun QrCode(
 }
 
 private const val QUIET_ZONE_MODULES = 1
-private val PLATE = Color(0xFFF2E6DA)
-private val MODULE = Color(0xFF0B0708)

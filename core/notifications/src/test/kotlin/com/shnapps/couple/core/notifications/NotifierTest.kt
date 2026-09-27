@@ -58,7 +58,7 @@ class NotifierTest {
 
         val shown = posted().single()
         assertThat(shown.title()).isEqualTo("Afterhours")
-        assertThat(shown.body()).isEqualTo("They left you something. 👀")
+        assertThat(shown.body()).isEqualTo("They left you something.")
     }
 
     @Test

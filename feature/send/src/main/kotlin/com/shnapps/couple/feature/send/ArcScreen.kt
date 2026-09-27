@@ -17,6 +17,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.CinematicCard
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.Arc
@@ -155,7 +156,7 @@ private fun Running(arc: Arc, due: ArcDay?, state: ArcUiState, actions: ArcActio
         GlowButton(
             text = if (state.opening) "Opening…" else "Open today",
             onClick = { actions.onOpenDay(due) },
-            leadingEmoji = "🌙",
+            leadingIcon = AfterhoursIcons.Moon,
             enabled = !state.busy,
             modifier = Modifier.fillMaxWidth(),
         )

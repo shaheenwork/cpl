@@ -3,12 +3,21 @@ package com.shnapps.couple.core.designsystem.theme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Spacing scale. Generous by default — BUILD_PROMPT.md §15.1 asks for large cinematic
- * cards and plenty of negative space, which mostly means resisting the urge to tighten.
+ * Spacing (DESIGN_PROMPT.md §4.6).
+ *
+ * The raw steps are still here, because a component sometimes needs a number. What
+ * matters more are the **semantic** gaps below them.
+ *
+ * Every gap in the app used to be [md]. A section heading therefore sat exactly as far
+ * from its own content as it did from the section above it, and that one fact is what
+ * made every screen look unfinished — more than colour, more than type, more than layout.
+ * A heading now gets [section] above it and [tight] below it, so it belongs to what
+ * follows rather than floating between two things.
  */
 @Immutable
 data class Spacing(
@@ -21,29 +30,57 @@ data class Spacing(
     val xl: Dp = 32.dp,
     val xxl: Dp = 48.dp,
     val xxxl: Dp = 64.dp,
-    /** Standard screen side gutter. */
+
+    // --- semantic gaps: what a screen should actually reach for --------------
+    /** A label and the thing it labels. */
+    val tight: Dp = 4.dp,
+    /** Two rows of the same list. */
+    val item: Dp = 12.dp,
+    /** Two groups inside one section. */
+    val group: Dp = 20.dp,
+    /** Two sections. */
+    val section: Dp = 36.dp,
+    /** The bar and the first content under it. */
+    val screenTop: Dp = 24.dp,
+    /** Inside the bottom action dock. */
+    val dock: Dp = 16.dp,
+
+    /** Standard screen side gutter. Do not tighten it. */
     val gutter: Dp = 24.dp,
     /** Minimum touch target (§20). Never shrink a control below this. */
     val touchTarget: Dp = 48.dp,
+    /** The height of a screen's top bar. */
+    val bar: Dp = 56.dp,
+    /** How far the dock's scrim reaches up, so content can scroll under it. */
+    val dockScrim: Dp = 96.dp,
 )
 
-val LocalSpacing = androidx.compose.runtime.staticCompositionLocalOf { Spacing() }
+val LocalSpacing = staticCompositionLocalOf { Spacing() }
 
 /**
- * Corner radii. Cards are softly rounded rather than sharp: sharp corners read as
- * utilitarian, and this product should feel upholstered.
+ * Corner radii (§4.7), on the same 4 dp step as spacing.
+ *
+ * Sharp corners read as utilitarian and this product should feel upholstered — but not
+ * everything should be equally soft, which is what happens when there is only one radius.
+ * The hero card is the only thing that gets [Shapes.extraLarge].
  */
 val AfterhoursShapes = Shapes(
-    extraSmall = RoundedCornerShape(6.dp),
-    small = RoundedCornerShape(10.dp),
+    /** Chips, badges, progress segments. */
+    extraSmall = RoundedCornerShape(8.dp),
+    /** Rows and fields. */
+    small = RoundedCornerShape(12.dp),
+    /** Buttons and sheets. */
     medium = RoundedCornerShape(16.dp),
-    large = RoundedCornerShape(24.dp),
-    extraLarge = RoundedCornerShape(32.dp),
+    /** Raised panels. */
+    large = RoundedCornerShape(20.dp),
+    /** The hero card, and nothing else. */
+    extraLarge = RoundedCornerShape(28.dp),
 )
 
 /**
- * Elevation, expressed as glow rather than as drop shadow. On a near-black ground a
- * Material shadow is invisible, so depth has to come from surface tint and bloom.
+ * Elevation (§4.2). Declared for three phases and never read; it is the input to
+ * `Modifier.raised` now, which is the one place fill, rim and contact shadow are applied
+ * together.
  */
 @Immutable
 data class Elevations(
@@ -51,6 +88,8 @@ data class Elevations(
     val raised: Dp = 2.dp,
     val floating: Dp = 8.dp,
     val lifted: Dp = 16.dp,
+    /** How far a hero card's contact shadow falls. On near-black it reads as weight. */
+    val contact: Dp = 24.dp,
 )
 
-val LocalElevations = androidx.compose.runtime.staticCompositionLocalOf { Elevations() }
+val LocalElevations = staticCompositionLocalOf { Elevations() }

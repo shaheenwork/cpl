@@ -1,0 +1,1268 @@
+<title>Afterhours Visual Rebuild</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:opsz,wght@14..32,400..700&display=swap">
+
+<style>
+  :root {
+    color-scheme: dark;
+
+    /* --- grounds (§4.2): three levels, ~7% luminance apart --- */
+    --scene:    #0B0708;
+    --raised:   #171115;
+    --card:     #1F1820;
+
+    /* --- cream (§1.6: never white) --- */
+    --cream:    #F2E6DA;
+    --muted:    #CBBAAE;
+    --faint:    #A2938A;
+
+    /* --- the palette --- */
+    --brass:      #D9B978;
+    --brass-c:    #3A2E16;
+    --burgundy:   #C75C7A;
+    --burgundy-c: #4A1426;
+    --oxblood:    #A3243B;
+    --ember:      #E2603F;
+    --oxblood-c:  #3D0F1A;
+    --plum-deep:  #6E3A63;
+    --burg-deep:  #8E2A47;
+    --signal:     #FFB4A8;
+
+    /* --- heat identity (§4.4): swapped by [data-heat] --- */
+    --accent:     var(--burgundy);
+    --accent-c:   var(--burgundy-c);
+    --accent-rim: var(--burgundy);
+
+    /* --- rhythm (§4.6) --- */
+    --tight:   4px;
+    --item:    12px;
+    --group:   20px;
+    --section: 36px;
+    --gutter:  24px;
+
+    /* --- shape (§4.7), on a 4px step --- */
+    --r-xs: 8px;
+    --r-sm: 12px;
+    --r-md: 16px;
+    --r-lg: 20px;
+    --r-xl: 28px;
+
+    --display: "Playfair Display", "Iowan Old Style", Georgia, serif;
+    --body: "Inter", "Segoe UI", system-ui, sans-serif;
+  }
+
+  [data-heat="playful"] { --accent: var(--brass);    --accent-c: var(--brass-c);   --accent-rim: var(--brass); }
+  [data-heat="hot"]     { --accent: var(--burgundy); --accent-c: var(--burgundy-c); --accent-rim: var(--burgundy); }
+  [data-heat="wild"]    { --accent: var(--oxblood);  --accent-c: var(--oxblood-c);  --accent-rim: var(--ember); }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--scene);
+    color: var(--cream);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.6;
+    font-optical-sizing: auto;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* The scene (§4.1): base + two washes + vignette + grain. Fixed, so the page sits in a room. */
+  body::before, body::after {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  }
+  body::before {
+    background:
+      radial-gradient(90vmin 90vmin at -10% -15%, rgba(142, 42, 71, 0.30), rgba(142, 42, 71, 0) 70%),
+      radial-gradient(80vmin 80vmin at 110% 105%, rgba(110, 58, 99, 0.20), rgba(110, 58, 99, 0) 70%),
+      radial-gradient(120vmax 120vmax at 50% 45%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.55) 100%);
+  }
+  /* Grain: feTurbulence as a data URI, tiled, overlay. The one texture the whole app gets. */
+  body::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    background-size: 128px 128px;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: 1340px; margin: 0 auto; padding-block: 44px 80px; padding-inline: 20px; }
+
+  /* ---------------- page furniture ---------------- */
+
+  .eyebrow {
+    font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600;
+  }
+
+  h1 {
+    font-family: var(--display); font-weight: 500;
+    font-size: clamp(34px, 6vw, 60px); line-height: 1.02; margin: 12px 0 0;
+    letter-spacing: -0.02em; text-wrap: balance;
+  }
+  h1 em { font-style: italic; color: var(--accent); }
+
+  .standfirst { max-width: 62ch; color: var(--muted); font-size: 17px; margin: 18px 0 0; }
+
+  h2 {
+    font-family: var(--display); font-weight: 500; font-size: 30px; line-height: 1.15;
+    margin: 0; letter-spacing: -0.01em;
+  }
+  .sec { margin-top: var(--section); }
+  .sec > .eyebrow { margin-bottom: var(--tight); }
+  .sec > h2 + p { color: var(--muted); margin: 10px 0 0; max-width: 68ch; }
+
+  .rule { height: 1px; background: linear-gradient(90deg, rgba(242,230,218,0.16), rgba(242,230,218,0)); margin-top: 26px; }
+
+  /* ---------------- controls ---------------- */
+
+  .bar {
+    position: sticky; top: 0; z-index: 20; margin-top: 30px;
+    display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+    padding: 12px 14px; border-radius: var(--r-md);
+    background: color-mix(in srgb, var(--raised) 88%, transparent);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(242, 230, 218, 0.10);
+  }
+  .bar .label { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); font-weight: 600; }
+  .seg { display: flex; gap: 4px; padding: 4px; background: rgba(0,0,0,0.35); border-radius: 999px; }
+  .seg button {
+    appearance: none; border: 0; cursor: pointer; background: transparent; color: var(--muted);
+    font-family: var(--body); font-weight: 600; font-size: 12.5px; padding: 8px 16px; border-radius: 999px;
+    display: flex; align-items: center; gap: 7px; transition: background 200ms, color 200ms;
+  }
+  .seg button .dots { letter-spacing: 2px; font-size: 11px; }
+  .seg button[aria-pressed="true"] { background: var(--accent-c); color: var(--accent); }
+
+  /* ---------------- foundation specimens ---------------- */
+
+  .grid { display: grid; gap: 18px; margin-top: 22px; }
+  .g2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .g3 { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+
+  .spec {
+    background: var(--raised); border-radius: var(--r-lg); padding: 20px;
+    border: 1px solid transparent;
+    background-image: linear-gradient(var(--raised), var(--raised)),
+      linear-gradient(180deg, rgba(242,230,218,0.10), rgba(242,230,218,0.02));
+    background-origin: border-box; background-clip: padding-box, border-box;
+  }
+  .spec h3 { font-family: var(--body); font-size: 13px; font-weight: 700; margin: 0 0 4px; letter-spacing: 0.01em; }
+  .spec p { margin: 0; color: var(--muted); font-size: 13.5px; }
+  .spec .note { color: var(--faint); font-size: 12px; margin-top: 10px; }
+
+  .swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0 12px; }
+  .sw { height: 72px; border-radius: var(--r-sm); display: flex; align-items: flex-end; padding: 8px; font-size: 10.5px; color: var(--faint); }
+  .sw.scene { background: var(--scene); } .sw.raised { background: var(--raised); } .sw.card { background: var(--card); }
+
+  /* Rim light (§4.2): a gradient border, brighter at the top. */
+  .rim {
+    border: 1px solid transparent; border-radius: var(--r-md);
+    background-image: linear-gradient(var(--card), var(--card)),
+      linear-gradient(180deg, rgba(242,230,218,0.22), rgba(242,230,218,0.03));
+    background-origin: border-box; background-clip: padding-box, border-box;
+  }
+  .norim { border: 1px solid rgba(242,230,218,0.06); border-radius: var(--r-md); background: var(--card); }
+  .rimdemo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .rimdemo > div { height: 84px; display: grid; place-items: center; font-size: 11px; color: var(--faint); }
+
+  .heats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+  .heatchip { border-radius: var(--r-sm); padding: 14px 12px; display: grid; gap: 6px; }
+  .heatchip b { font-size: 13px; }
+  .heatchip span { font-size: 11px; color: var(--faint); }
+  .h-playful { background: var(--brass-c); border: 1px solid color-mix(in srgb, var(--brass) 35%, transparent); }
+  .h-playful b { color: var(--brass); }
+  .h-hot { background: var(--burgundy-c); border: 1px solid color-mix(in srgb, var(--burgundy) 35%, transparent); }
+  .h-hot b { color: var(--burgundy); }
+  .h-wild { background: var(--oxblood-c); border: 1px solid color-mix(in srgb, var(--ember) 35%, transparent); }
+  .h-wild b { color: var(--ember); }
+
+  .typespec > div { margin-top: 12px; }
+  .t-display { font-family: var(--display); font-size: 34px; line-height: 1.1; letter-spacing: -0.01em; }
+  .t-title { font-size: 17px; font-weight: 600; }
+  .t-body { font-size: 19px; line-height: 30px; color: var(--muted); max-width: 40ch; }
+  .t-eyebrow { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  .t-num { font-variant-numeric: tabular-nums; font-size: 26px; font-weight: 600; letter-spacing: 0.02em; }
+
+  /* The rhythm argument (§4.6) — the single strongest fix, shown side by side. */
+  .rhythm { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .rhythm .col { background: rgba(0,0,0,0.28); border-radius: var(--r-sm); padding: 16px; }
+  .rhythm .col > .tag { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); margin-bottom: 14px; }
+  .rhythm .h { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); }
+  .rhythm .b { height: 30px; border-radius: 7px; background: var(--raised); }
+  .flat > * + * { margin-top: 16px; }
+  .tuned .h { margin-top: var(--section); margin-bottom: var(--tight); }
+  .tuned .h:first-child { margin-top: 0; }
+  .tuned .b + .b { margin-top: var(--item); }
+
+  .icons { display: grid; grid-template-columns: repeat(auto-fit, minmax(62px, 1fr)); gap: 10px; margin-top: 16px; }
+  .icons figure { margin: 0; display: grid; gap: 6px; justify-items: center; }
+  .icons svg { width: 24px; height: 24px; }
+  .icons figcaption { font-size: 9.5px; color: var(--faint); letter-spacing: 0.04em; }
+
+  /* ---------------- phones ---------------- */
+
+  .phones { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px 22px; margin-top: 26px; }
+  @media (max-width: 700px) { .phones { grid-template-columns: 1fr; } }
+
+  figure.screen { margin: 0; display: grid; gap: 12px; justify-items: center; }
+  figure.screen figcaption { font-size: 13px; color: var(--muted); max-width: 320px; }
+  figure.screen figcaption b { display: block; color: var(--cream); font-weight: 600; font-size: 14px; margin-bottom: 3px; }
+  figure.screen figcaption .ph {
+    display: inline-block; margin-top: 8px; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    border-radius: 999px; padding: 3px 9px;
+  }
+
+  .phone {
+    width: 100%; max-width: 320px; aspect-ratio: 320 / 690;
+    border-radius: 34px; padding: 7px;
+    background: #171215;
+    box-shadow: 0 0 0 1px rgba(242,230,218,0.09), 0 30px 60px -30px rgba(0,0,0,0.95);
+  }
+  .vp {
+    position: relative; height: 100%; width: 100%; border-radius: 28px; overflow: hidden;
+    background: var(--scene);
+    display: flex; flex-direction: column;
+    font-size: 13px;
+  }
+  /* Each phone carries its own scene, so the design is visible, not inherited from the page. */
+  .vp::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(150% 90% at -10% -10%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 62%),
+      radial-gradient(120% 80% at 110% 104%, rgba(110, 58, 99, 0.20), transparent 62%),
+      radial-gradient(120% 120% at 50% 45%, transparent 52%, rgba(0,0,0,0.55) 100%);
+  }
+  .vp > * { position: relative; z-index: 1; }
+
+  /* top bar (§5.5) */
+  .topbar {
+    height: 46px; flex: 0 0 auto; display: flex; align-items: center; gap: 10px;
+    padding: 0 14px;
+  }
+  .topbar .t {
+    flex: 1; text-align: center; font-size: 9.5px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--faint); font-weight: 600;
+  }
+  .topbar .ico { width: 20px; height: 20px; color: var(--muted); flex: 0 0 auto; }
+  .topbar .wordmark { flex: 1; font-size: 10.5px; letter-spacing: 0.3em; font-weight: 600; color: var(--cream); }
+  .topbar .warn { color: var(--faint); display: flex; align-items: center; gap: 4px; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; }
+
+  .body { flex: 1; overflow: hidden; padding: 0 16px; display: flex; flex-direction: column; }
+  .body.pad { padding-top: 6px; }
+
+  /* dock (§5.5) */
+  .dock {
+    flex: 0 0 auto; padding: 14px 16px 18px; display: grid; gap: 8px;
+    background: linear-gradient(180deg, rgba(11,7,8,0), rgba(11,7,8,0.92) 45%);
+  }
+  .dock .row { display: flex; gap: 8px; }
+
+  /* type inside a phone */
+  .vp .kick { font-size: 9px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  .vp .kickq { font-size: 9px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--faint); font-weight: 600; }
+  .vp h4 { font-family: var(--display); font-weight: 500; font-size: 26px; line-height: 1.12; margin: 0; letter-spacing: -0.01em; }
+  .vp .sub { color: var(--muted); font-size: 12.5px; margin: 0; line-height: 1.5; }
+
+  /* buttons (§5.2) */
+  .btn {
+    appearance: none; border: 0; cursor: pointer; width: 100%;
+    font-family: var(--body); font-weight: 600; font-size: 13.5px;
+    min-height: 44px; padding: 0 16px; border-radius: var(--r-md);
+    background: var(--accent); color: #140A0E;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: transform 120ms, filter 120ms;
+  }
+  .btn:active { transform: scale(0.985); }
+  .btn.sec {
+    background: transparent; color: var(--cream);
+    border: 1px solid transparent;
+    background-image: linear-gradient(rgba(255,255,255,0), rgba(255,255,255,0)),
+      linear-gradient(180deg, rgba(242,230,218,0.22), rgba(242,230,218,0.05));
+    background-origin: border-box; background-clip: padding-box, border-box;
+  }
+  .btn.quiet { background: transparent; color: var(--muted); font-weight: 500; min-height: 40px; }
+  .btn svg { width: 17px; height: 17px; }
+  .btn.bloom { box-shadow: 0 0 34px -6px color-mix(in srgb, var(--accent) 60%, transparent); }
+
+  /* rows (§5.3): a list, not ten cards */
+  .row-i {
+    display: flex; align-items: center; gap: 11px; width: 100%; text-align: left;
+    appearance: none; cursor: pointer; border: 0;
+    background: var(--raised); border-radius: var(--r-sm); padding: 11px 12px; color: var(--cream);
+    font-family: var(--body);
+  }
+  .row-i + .row-i { margin-top: var(--item); }
+  .row-i svg.lead { width: 20px; height: 20px; color: var(--muted); flex: 0 0 auto; }
+  .row-i .tx { flex: 1; min-width: 0; }
+  .row-i b { display: block; font-size: 13px; font-weight: 600; }
+  .row-i span { display: block; font-size: 11px; color: var(--faint); line-height: 1.45; }
+  .row-i svg.go { width: 15px; height: 15px; color: var(--faint); flex: 0 0 auto; }
+  .row-i.locked { opacity: 0.45; }
+  .row-i.locked svg.go { color: var(--faint); }
+
+  .sec-h { font-size: 9px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--faint); font-weight: 600; }
+  .stack-section > * + .sec-h { margin-top: var(--section); }
+  .sec-h + * { margin-top: var(--tight); }
+
+  /* the hero card (§5.1) */
+  .hero {
+    position: relative; overflow: hidden; border-radius: var(--r-xl); padding: 20px 18px 18px;
+    border: 1px solid transparent;
+    background-image: linear-gradient(var(--card), var(--card)),
+      linear-gradient(180deg, color-mix(in srgb, var(--accent-rim) 55%, transparent), rgba(242,230,218,0.04));
+    background-origin: border-box; background-clip: padding-box, border-box;
+    box-shadow: 0 18px 40px -22px rgba(0,0,0,0.95), 0 0 46px -18px color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .hero .idx {
+    position: absolute; top: -30px; right: -6px; font-family: var(--display); font-weight: 600;
+    font-size: 132px; line-height: 1; color: rgba(242,230,218,0.05); pointer-events: none;
+  }
+  .hero .kick { margin-bottom: var(--tight); }
+  .hero .title { font-family: var(--display); font-weight: 500; font-size: 25px; line-height: 1.15; margin: 0; }
+  .hero .title::first-letter { font-size: 1.9em; float: left; line-height: 0.82; padding: 4px 8px 0 0; color: color-mix(in srgb, var(--brass) 70%, transparent); }
+  .hero .text { margin: var(--group) 0 0; font-size: 14.5px; line-height: 23px; color: var(--muted); max-width: 40ch; }
+  .hero .meta { margin-top: var(--group); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+
+  /* progress rail (§5.6) */
+  .rail { display: flex; gap: 4px; padding: 0 16px 8px; }
+  .rail i { flex: 1; height: 3px; border-radius: 3px; background: rgba(242,230,218,0.10); }
+  .rail i.done { background: rgba(242,230,218,0.35); }
+  .rail i.now { background: var(--accent); }
+
+  /* timer ring (§5.7) */
+  .ring { display: grid; place-items: center; margin: var(--group) auto 0; width: 92px; height: 92px; position: relative; }
+  .ring svg { width: 92px; height: 92px; transform: rotate(-90deg); }
+  .ring .tk { fill: none; stroke: rgba(242,230,218,0.10); stroke-width: 3; }
+  .ring .pg { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; }
+  .ring .num {
+    position: absolute; font-variant-numeric: tabular-nums; font-size: 20px; font-weight: 600; letter-spacing: 0.02em;
+  }
+  .ring .num small { display: block; font-size: 8px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--faint); font-weight: 600; text-align: center; margin-top: 2px; }
+
+  /* heat track (§5.4): one track, sliding selection, no halos */
+  .track { display: flex; gap: 3px; padding: 3px; background: rgba(0,0,0,0.38); border-radius: var(--r-xs); }
+  .track button {
+    flex: 1; appearance: none; border: 0; cursor: pointer; background: transparent; color: var(--faint);
+    font-family: var(--body); font-size: 10.5px; font-weight: 600; padding: 8px 2px; border-radius: 6px;
+    display: grid; gap: 2px; justify-items: center; transition: background 200ms, color 200ms;
+  }
+  .track button .dots { letter-spacing: 1.5px; font-size: 10px; }
+  .track button[aria-pressed="true"] { background: var(--accent-c); color: var(--accent); }
+
+  /* chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip {
+    appearance: none; cursor: pointer; font-family: var(--body); font-size: 11.5px; font-weight: 500;
+    padding: 8px 12px; border-radius: var(--r-xs); background: var(--raised); color: var(--muted);
+    border: 1px solid rgba(242,230,218,0.07);
+  }
+  .chip[aria-pressed="true"] { background: var(--accent-c); color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+
+  /* sheet (§5.9) */
+  .sheet {
+    position: absolute; inset: auto 0 0 0; z-index: 3; background: var(--raised);
+    border-radius: var(--r-md) var(--r-md) 0 0; padding: 12px 16px 18px; display: grid; gap: 10px;
+    border-top: 1px solid rgba(242,230,218,0.12);
+  }
+  .grab { width: 34px; height: 4px; border-radius: 4px; background: rgba(242,230,218,0.2); justify-self: center; }
+  .scrim { position: absolute; inset: 0; background: rgba(0,0,0,0.45); z-index: 2; }
+
+  /* timeline (§6.5) */
+  .tl { position: relative; padding-left: 18px; }
+  .tl::before { content: ""; position: absolute; left: 4px; top: 6px; bottom: 6px; width: 1px; background: rgba(242,230,218,0.10); }
+  .tl .node { position: relative; margin-bottom: var(--item); }
+  .tl .node::before {
+    content: ""; position: absolute; left: -18px; top: 13px; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--scene); border: 1px solid rgba(242,230,218,0.3);
+  }
+  .tl .node.hot::before { background: var(--accent); border-color: var(--accent); }
+  .tl .bub { background: var(--raised); border-radius: var(--r-sm); padding: 10px 11px; }
+  .tl .bub .w { font-size: 8.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--faint); font-weight: 600; }
+  .tl .bub p { margin: 3px 0 0; font-size: 12px; color: var(--cream); line-height: 1.45; }
+  .tl .bub .burn { color: var(--ember); font-size: 10.5px; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+  .tl .bub svg { width: 12px; height: 12px; }
+  .tl .node.mine .bub { background: color-mix(in srgb, var(--accent-c) 70%, var(--raised)); }
+
+  /* memories grid (§6.6) */
+  .mem { columns: 2; column-gap: 10px; }
+  .mem .m { break-inside: avoid; background: var(--raised); border-radius: var(--r-sm); padding: 12px; margin-bottom: 10px; }
+  .mem .m .d { font-family: var(--display); font-size: 17px; }
+  .mem .m .n { font-size: 11px; color: var(--faint); margin-top: 4px; line-height: 1.45; }
+  .mem .m .dots { display: flex; gap: 4px; margin-top: 8px; }
+  .mem .m .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); opacity: 0.8; }
+  .mem .m svg { width: 13px; height: 13px; color: var(--brass); margin-top: 8px; }
+
+  /* skeleton (§5.8) */
+  .skel { border-radius: var(--r-xl); background: var(--raised); position: relative; overflow: hidden; }
+  .skel::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg, rgba(242,230,218,0) 0%, rgba(242,230,218,0.06) 50%, rgba(242,230,218,0) 100%);
+    animation: shim 2.4s ease-in-out infinite;
+  }
+  @keyframes shim { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+  @media (prefers-reduced-motion: reduce) { .skel::after { animation: none; } }
+  .skel-line { height: 11px; border-radius: 6px; background: rgba(242,230,218,0.07); }
+
+  /* the hand-off moment (§6.3): no chrome at all */
+  .handoff { flex: 1; display: grid; place-items: center; text-align: center; padding: 0 26px; }
+  .handoff h4 { font-size: 30px; }
+
+  /* field (§6.7) */
+  .field {
+    background: var(--raised); border-radius: var(--r-sm); padding: 13px 12px; font-size: 12.5px; color: var(--faint);
+    border: 1px solid rgba(242,230,218,0.08);
+  }
+  .field.focus { border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--cream); }
+
+  /* the code (§6.7): the one place brass goes large */
+  .code {
+    font-family: var(--display); font-size: 34px; letter-spacing: 0.16em; color: var(--brass);
+    font-variant-numeric: tabular-nums; text-align: center;
+  }
+
+  /* brand (§7) */
+  .mono {
+    width: 104px; height: 104px; border-radius: 26px; display: grid; place-items: center;
+    background: radial-gradient(120% 120% at 30% 20%, var(--burg-deep), var(--scene) 72%);
+    font-family: var(--display); font-weight: 500; font-size: 54px; color: var(--cream);
+    box-shadow: 0 0 0 1px rgba(242,230,218,0.10), 0 20px 46px -20px rgba(0,0,0,0.9);
+  }
+
+  footer { margin-top: var(--section); color: var(--faint); font-size: 14px; max-width: 76ch; }
+  footer b { color: var(--muted); font-weight: 600; }
+
+  ol.done { max-width: 74ch; color: var(--muted); font-size: 14.5px; padding-left: 20px; }
+  ol.done li { margin-top: 7px; }
+  ol.done b { color: var(--cream); font-weight: 600; }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="i-back" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></g>
+    <g id="i-go" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></g>
+    <g id="i-close" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></g>
+    <g id="i-check" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></g>
+    <g id="i-dice" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="15" r="1"/><circle cx="15" cy="9" r="1"/><circle cx="9" cy="15" r="1"/></g>
+    <g id="i-spark" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M18 17l.8 2.2L21 20l-2.2.8L18 23l-.8-2.2L15 20l2.2-.8z"/></g>
+    <g id="i-flame" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3c3 3.5 5 6 5 9a5 5 0 01-10 0c0-1.6.7-3 1.8-4.3.4 1 1 1.7 1.7 2C10.6 7.4 11 5 12 3z"/></g>
+    <g id="i-moon" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M20 14.5A8 8 0 019.5 4 8.5 8.5 0 1020 14.5z"/></g>
+    <g id="i-clock" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></g>
+    <g id="i-lock" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="9.5" rx="2.5"/><path d="M8 10.5V8a4 4 0 118 0v2.5"/></g>
+    <g id="i-heart" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-9.2A4 4 0 0112 8.6 4 4 0 0119 10.8C19 15.6 12 20 12 20z"/></g>
+    <g id="i-book" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M7 4h10v16l-5-3.4L7 20z"/></g>
+    <g id="i-send" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M20 4L3.5 10.8l6.8 2.2 2.2 6.8z"/><path d="M20 4l-9.7 9.7"/></g>
+    <g id="i-mic" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9.5" y="3" width="5" height="10" rx="2.5"/><path d="M6 11a6 6 0 0012 0M12 17v4"/></g>
+    <g id="i-gift" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="4" y="9.5" width="16" height="10.5" rx="2"/><path d="M4 13h16M12 9.5V20"/><path d="M12 9.5S10.5 4 8 4a2 2 0 000 5.5zM12 9.5S13.5 4 16 4a2 2 0 010 5.5z"/></g>
+    <g id="i-eye" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.7"/></g>
+    <g id="i-people" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5a5.5 5.5 0 0111 0"/><path d="M16 5.6a3.2 3.2 0 010 4.8M17.5 14.6a5.5 5.5 0 013 4.9"/></g>
+    <g id="i-cal" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="15" rx="2.5"/><path d="M4 10h16M9 3.5v4M15 3.5v4"/></g>
+    <g id="i-set" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M21 12h-2.5M5.5 12H3M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8M18.4 18.4l-1.8-1.8M7.4 7.4L5.6 5.6"/></g>
+    <g id="i-shield" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3l7 2.8v5.6c0 4.3-2.9 7.6-7 9.6-4.1-2-7-5.3-7-9.6V5.8z"/></g>
+    <g id="i-skip" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M5 5l8 7-8 7zM18 5v14"/></g>
+    <g id="i-pause" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9.5 5v14M14.5 5v14"/></g>
+  </defs>
+</svg>
+
+<div class="wrap" id="root" data-heat="hot">
+
+  <header>
+    <div class="eyebrow">Afterhours · the visual rebuild</div>
+    <h1>A dim room. Not a <em>dark app</em>.</h1>
+    <p class="standfirst">
+      A dark app is a light app with the colours inverted: flat panels, hairline borders, one gap
+      between everything. A dim room has a source of light, things that catch it, texture, and
+      shadow where the light does not reach. Today's build is the first thing. This is the second —
+      the foundations first, then every screen drawn on top of them.
+    </p>
+  </header>
+
+  <div class="bar">
+    <span class="label">How far tonight</span>
+    <div class="seg" id="heat">
+      <button type="button" data-heat="playful"><span class="dots">●○○</span>Playful</button>
+      <button type="button" data-heat="hot" aria-pressed="true"><span class="dots">●●○</span>Hot</button>
+      <button type="button" data-heat="wild"><span class="dots">●●●</span>Wild</button>
+    </div>
+    <span class="label" style="color:var(--muted)">Changes every screen on this page</span>
+  </div>
+
+  <!-- ================= FOUNDATIONS ================= -->
+
+  <section class="sec">
+    <div class="eyebrow">D1 · Foundations</div>
+    <h2>Three quarters of "prototype" is light, space and type.</h2>
+    <p>None of this is layout. It is why the layout currently looks unfinished.</p>
+    <div class="rule"></div>
+
+    <div class="grid g2">
+      <div class="spec">
+        <h3>§4.2 — Three surfaces, seven percent apart</h3>
+        <p>Five ink levels under 5% luminance apart means the app has one surface colour. Three that
+          a person can actually tell apart, with grain over them.</p>
+        <div class="swatches">
+          <div class="sw scene">scene</div>
+          <div class="sw raised">raised</div>
+          <div class="sw card">card</div>
+        </div>
+        <p class="note">#0B0708 · #171115 · #1F1820</p>
+      </div>
+
+      <div class="spec">
+        <h3>§4.2 — Rim light, not a hairline</h3>
+        <p>A 1&nbsp;dp border drawn as a vertical gradient — brighter at the top, fading at the bottom.
+          One modifier, and it is the whole difference between a panel and an object.</p>
+        <div class="rimdemo">
+          <div class="norim">uniform hairline</div>
+          <div class="rim">rim light</div>
+        </div>
+      </div>
+
+      <div class="spec">
+        <h3>§4.4 — Heat is a colour</h3>
+        <p>Today all three heats are the same pink, so the product's whole arc — escalation — is
+          invisible. Wild goes <em>darker and redder</em>, never brighter: escalation here is
+          intimacy, not volume.</p>
+        <div class="heats">
+          <div class="heatchip h-playful"><b>Playful</b><span>Brass</span></div>
+          <div class="heatchip h-hot"><b>Hot</b><span>Burgundy</span></div>
+          <div class="heatchip h-wild"><b>Wild</b><span>Oxblood + ember</span></div>
+        </div>
+      </div>
+
+      <div class="spec typespec">
+        <h3>§4.5 — The pairing is right; the usage is thin</h3>
+        <p>One display size per screen. A measure on body. Tabular numerals on anything that counts.</p>
+        <div class="t-eyebrow">Hot · 5 min</div>
+        <div class="t-display">Opposite Corners</div>
+        <div class="t-body">Sit at opposite sides of the room and talk only by message.</div>
+        <div class="t-num">04:38 · 2 of 6</div>
+      </div>
+
+      <div class="spec" style="grid-column: 1 / -1">
+        <h3>§4.6 — Rhythm: the single highest-value change in the brief</h3>
+        <p>Every gap in the app today is <code>spacing.md</code>. A section heading therefore sits as
+          far from its own content as it does from the section above it, which is exactly what makes
+          a screen look unfinished. Semantic gaps: tight&nbsp;4 · item&nbsp;12 · group&nbsp;20 ·
+          section&nbsp;36.</p>
+        <div class="rhythm">
+          <div class="col">
+            <div class="tag">One gap for everything — today</div>
+            <div class="flat">
+              <div class="h">Tonight</div><div class="b"></div><div class="b"></div>
+              <div class="h">When you're apart</div><div class="b"></div><div class="b"></div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="tag">Semantic rhythm — proposed</div>
+            <div class="tuned">
+              <div class="h">Tonight</div><div class="b"></div><div class="b"></div>
+              <div class="h">When you're apart</div><div class="b"></div><div class="b"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec" style="grid-column: 1 / -1">
+        <h3>§4.9 — Icons, because emoji are the loudest amateur signal left</h3>
+        <p>🔥 🎲 🌙 💌 👀 📖 ⏱ come out. One set: 1.5&nbsp;dp stroke, 24&nbsp;dp box, round caps, no
+          fills. Uniformly plain beats individually pretty. A Konsist rule fails the build on an
+          emoji literal in a user-facing string.</p>
+        <div class="icons" id="icongrid"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= THE CARD ================= -->
+
+  <section class="sec">
+    <div class="eyebrow">D4 · The card and the player</div>
+    <h2>The worst screen in the app is the product itself.</h2>
+    <p>
+      In today's golden the glow bands into a hard pink rectangle, the title sits directly on the
+      body, three calls to action compete, and the bottom 40% of the screen is empty. Everything a
+      thumb needs is in the middle.
+    </p>
+    <div class="rule"></div>
+
+    <div class="phones">
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar">
+            <svg class="ico"><use href="#i-back"/></svg>
+            <span class="t">Tonight</span>
+            <span class="warn"><svg class="ico" style="width:14px;height:14px"><use href="#i-shield"/></svg>Too far</span>
+          </div>
+          <div class="rail"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+          <div class="body" style="justify-content:center">
+            <div class="hero">
+              <div class="idx">02</div>
+              <div class="kick" id="card-kick">Hot · 5 min</div>
+              <p class="title">Opposite Corners</p>
+              <p class="text">Sit at opposite sides of the room and talk only by message. Describe what
+                you would do if they came closer. Nobody moves until someone gives in.</p>
+              <div class="meta">Whoever's holding the phone</div>
+            </div>
+            <div class="ring">
+              <svg viewBox="0 0 92 92"><circle class="tk" cx="46" cy="46" r="42"/><circle class="pg" cx="46" cy="46" r="42" stroke-dasharray="264" stroke-dashoffset="96"/></svg>
+              <div class="num">03:02<small>Tap to pause</small></div>
+            </div>
+          </div>
+          <div class="dock">
+            <div class="row">
+              <button class="btn sec" style="flex:0 0 38%"><svg><use href="#i-skip"/></svg>Skip</button>
+              <button class="btn bloom" style="flex:1"><svg><use href="#i-check"/></svg>Done</button>
+            </div>
+          </div>
+        </div></div>
+        <figcaption>
+          <b>The card, redrawn</b>
+          Index numeral bled off the corner, drop cap, heat rim, one bloom. Progress is a rail, not
+          four words of grey. "Too far" moves to the bar — it is a safety control, never a third
+          call to action.
+          <span class="ph">§5.1 · §5.6 · §5.7</span>
+        </figcaption>
+      </figure>
+
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar">
+            <svg class="ico"><use href="#i-back"/></svg>
+            <span class="t">Tonight</span>
+            <span class="warn"><svg class="ico" style="width:14px;height:14px"><use href="#i-shield"/></svg>Too far</span>
+          </div>
+          <div class="rail"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+          <div class="body" style="justify-content:center">
+            <div class="hero" style="opacity:.35">
+              <div class="idx">02</div>
+              <div class="kick">Hot · 5 min</div>
+              <p class="title">Opposite Corners</p>
+            </div>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="grab"></div>
+            <div class="kickq">Nobody is told</div>
+            <h4 style="font-size:20px">Skip this kind of thing?</h4>
+            <p class="sub">Not tonight, not ever. Your partner never sees this.</p>
+            <button class="btn">Just this one</button>
+            <button class="btn sec">Never show me these again</button>
+          </div>
+        </div></div>
+        <figcaption>
+          <b>Too far</b>
+          The sheet gets a real treatment: raised surface, grab handle, a scrim over what is behind
+          it. The card dims rather than disappearing, so nothing about the moment is lost.
+          <span class="ph">§5.9</span>
+        </figcaption>
+      </figure>
+
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar"><svg class="ico"><use href="#i-back"/></svg><span class="t">Dealing</span><span style="width:20px"></span></div>
+          <div class="rail"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="body" style="justify-content:center">
+            <div class="skel" style="height:230px;padding:20px 18px">
+              <div class="skel-line" style="width:38%;height:8px"></div>
+              <div class="skel-line" style="width:72%;height:20px;margin-top:14px"></div>
+              <div class="skel-line" style="width:100%;margin-top:22px"></div>
+              <div class="skel-line" style="width:92%;margin-top:9px"></div>
+              <div class="skel-line" style="width:60%;margin-top:9px"></div>
+            </div>
+          </div>
+          <div class="dock"><div class="row">
+            <button class="btn sec" style="flex:0 0 38%;opacity:.4">Skip</button>
+            <button class="btn" style="flex:1;opacity:.4">Done</button>
+          </div></div>
+        </div></div>
+        <figcaption>
+          <b>Loading</b>
+          A skeleton in the card's own shape with a slow shimmer, not the word "Dealing." in grey
+          body text. No shimmer under reduce-motion.
+          <span class="ph">§5.8</span>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ================= HOME ================= -->
+
+  <section class="sec">
+    <div class="eyebrow">D5 · Home</div>
+    <h2>The same home for everyone, finally finished.</h2>
+    <p>
+      The structure does not change — that is the U1 claim, and it holds. What changes is that the
+      primary action docks within thumb reach, sections get real rhythm, rows stop pretending to be
+      cards, and the live card becomes the one bloomed object on the screen.
+    </p>
+    <div class="rule"></div>
+
+    <div class="phones">
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar"><span class="wordmark">AFTERHOURS</span><svg class="ico"><use href="#i-set"/></svg></div>
+          <div class="body pad stack-section" style="overflow:hidden">
+            <div class="kick">Tonight</div>
+            <h4 style="margin-top:var(--tight)">Pick something. Or let us pick.</h4>
+            <div style="margin-top:var(--group)">
+              <div class="track" data-track>
+                <button type="button" data-h="playful"><span class="dots">●○○</span>Playful</button>
+                <button type="button" data-h="hot" aria-pressed="true"><span class="dots">●●○</span>Hot</button>
+                <button type="button" data-h="wild"><span class="dots">●●●</span>Wild</button>
+              </div>
+            </div>
+            <div class="sec-h">When you're not together</div>
+            <button class="row-i locked">
+              <svg class="lead"><use href="#i-send"/></svg>
+              <span class="tx"><b>Apart</b><span>Send something, leave something for later</span></span>
+              <svg class="go"><use href="#i-lock"/></svg>
+            </button>
+            <button class="row-i locked">
+              <svg class="lead"><use href="#i-book"/></svg>
+              <span class="tx"><b>Our memories</b><span>Keeping an evening</span></span>
+              <svg class="go"><use href="#i-lock"/></svg>
+            </button>
+            <div class="sec-h">Or play something</div>
+            <button class="row-i">
+              <svg class="lead"><use href="#i-spark"/></svg>
+              <span class="tx"><b>Spin</b><span>It decides. You just do it.</span></span>
+              <svg class="go"><use href="#i-go"/></svg>
+            </button>
+            <button class="row-i">
+              <svg class="lead"><use href="#i-dice"/></svg>
+              <span class="tx"><b>Dirty Dice</b><span>Roll, then run the clock.</span></span>
+              <svg class="go"><use href="#i-go"/></svg>
+            </button>
+          </div>
+          <div class="dock"><button class="btn bloom"><svg><use href="#i-flame"/></svg>Start now</button></div>
+        </div></div>
+        <figcaption>
+          <b>Home — no account</b>
+          Wordmark instead of a title. Heat sits with the room it sets. Locked rows keep their place
+          and say so with a lock, never by vanishing. Start docks.
+          <span class="ph">§6.1</span>
+        </figcaption>
+      </figure>
+
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar"><span class="wordmark">AFTERHOURS</span><svg class="ico"><use href="#i-set"/></svg></div>
+          <div class="body pad stack-section" style="overflow:hidden">
+            <div class="hero" style="padding:16px">
+              <div class="idx" style="font-size:96px;top:-18px">04</div>
+              <div class="kick">For you</div>
+              <p class="title" style="font-size:20px">They planned an evening for you.</p>
+              <p class="text" style="margin-top:var(--tight);font-size:12.5px;line-height:19px">Four cards.
+                That's all either of you knows until you open it.</p>
+            </div>
+            <div style="margin-top:var(--item)"><button class="btn"><svg><use href="#i-gift"/></svg>Open it</button></div>
+            <div class="sec-h">When you're not together</div>
+            <button class="row-i">
+              <svg class="lead"><use href="#i-send"/></svg>
+              <span class="tx"><b>Apart</b><span>Sam is 4,100 km away</span></span>
+              <svg class="go"><use href="#i-go"/></svg>
+            </button>
+            <button class="row-i">
+              <svg class="lead"><use href="#i-eye"/></svg>
+              <span class="tx"><b>Plan one for them</b><span>They only know something is coming</span></span>
+              <svg class="go"><use href="#i-go"/></svg>
+            </button>
+            <button class="row-i">
+              <svg class="lead"><use href="#i-book"/></svg>
+              <span class="tx"><b>Our memories</b><span>12 evenings kept</span></span>
+              <svg class="go"><use href="#i-go"/></svg>
+            </button>
+          </div>
+          <div class="dock"><button class="btn sec">Start something else</button></div>
+        </div></div>
+        <figcaption>
+          <b>Home — paired, with something waiting</b>
+          Identical structure to the screen beside it. When there is something live, it is the one
+          bloomed object and the dock steps down to secondary — never two primaries.
+          <span class="ph">§6.1 · §5.1</span>
+        </figcaption>
+      </figure>
+
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar"><span class="wordmark">AFTERHOURS</span><svg class="ico"><use href="#i-set"/></svg></div>
+          <div class="body pad" style="overflow:hidden;opacity:.5">
+            <div class="kick">Tonight</div>
+            <h4 style="margin-top:var(--tight)">Pick something. Or let us pick.</h4>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="grab"></div>
+            <div class="kick">How do you want it?</div>
+            <button class="row-i" style="margin-top:var(--tight)">
+              <svg class="lead"><use href="#i-spark"/></svg>
+              <span class="tx"><b>Just deal us cards</b><span>Do it, skip it, or say it went too far</span></span>
+              <svg class="go"><use href="#i-go"/></svg>
+            </button>
+            <button class="row-i">
+              <svg class="lead"><use href="#i-dice"/></svg>
+              <span class="tx"><b>Surprise us</b><span>We choose everything</span></span>
+              <svg class="go"><use href="#i-go"/></svg>
+            </button>
+            <button class="row-i">
+              <svg class="lead"><use href="#i-moon"/></svg>
+              <span class="tx"><b>A mystery</b><span>We don't tell you the shape</span></span>
+              <svg class="go"><use href="#i-go"/></svg>
+            </button>
+            <button class="row-i">
+              <svg class="lead"><use href="#i-clock"/></svg>
+              <span class="tx"><b>We have 15 minutes</b><span>Short, and it knows it</span></span>
+              <svg class="go"><use href="#i-go"/></svg>
+            </button>
+            <button class="row-i">
+              <svg class="lead"><use href="#i-cal"/></svg>
+              <span class="tx"><b>Plan the evening</b><span>Three questions, then we build it</span></span>
+              <svg class="go"><use href="#i-go"/></svg>
+            </button>
+          </div>
+        </div></div>
+        <figcaption>
+          <b>Start</b>
+          The five shapes, as rows in a proper sheet. Each gets its icon; the list reads as a list
+          rather than five stacked cards.
+          <span class="ph">§5.9 · §5.3</span>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ================= GAMES ================= -->
+
+  <section class="sec">
+    <div class="eyebrow">D6 · Games</div>
+    <h2>Every primitive on the same card. No game gets its own language.</h2>
+    <p>A draw lands on the card. A dial is a track across its width. A recording is the mic in the
+      dock. The hand-off is the only screen in the app with no chrome at all.</p>
+    <div class="rule"></div>
+
+    <div class="phones">
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar"><svg class="ico"><use href="#i-back"/></svg><span class="t">Dirty Dice</span><span style="width:20px"></span></div>
+          <div class="rail"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+          <div class="body" style="justify-content:center">
+            <div class="hero">
+              <div class="idx">02</div>
+              <div class="kick">It says</div>
+              <p class="title" style="font-size:30px">Undo a button</p>
+              <p class="text">Do it without using your hands at all.</p>
+              <div class="meta">Alex's turn</div>
+            </div>
+          </div>
+          <div class="dock"><button class="btn"><svg><use href="#i-check"/></svg>Done</button>
+            <button class="btn quiet">Not this one</button></div>
+        </div></div>
+        <figcaption>
+          <b>A draw, landed</b>
+          The draw animates towards a decision already taken — the landing is seeded from the round
+          itself, so it is the same on both phones and after a restart.
+          <span class="ph">§6.3 · D-099</span>
+        </figcaption>
+      </figure>
+
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar"><svg class="ico"><use href="#i-back"/></svg><span class="t">Rate It</span><span style="width:20px"></span></div>
+          <div class="rail"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i></div>
+          <div class="body" style="justify-content:center">
+            <div class="hero">
+              <div class="idx">03</div>
+              <div class="kick">How much</div>
+              <p class="title" style="font-size:23px">Being told what to do tonight</p>
+              <div style="margin-top:var(--group)">
+                <div style="height:4px;border-radius:4px;background:rgba(242,230,218,.10);position:relative">
+                  <div style="position:absolute;inset:0 38% 0 0;border-radius:4px;background:var(--accent)"></div>
+                  <div style="position:absolute;left:62%;top:-6px;width:16px;height:16px;border-radius:50%;background:var(--accent);box-shadow:0 0 18px -2px var(--accent)"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:10px;color:var(--faint)">
+                  <span>Not at all</span><span>Very much</span>
+                </div>
+              </div>
+              <div class="meta">Only the gap is shared. Never your number.</div>
+            </div>
+          </div>
+          <div class="dock"><button class="btn">That's my answer</button></div>
+        </div></div>
+        <figcaption>
+          <b>A dial</b>
+          A track across the card's own width. The number never leaves the phone — only a distance,
+          and a distance has no direction.
+          <span class="ph">§6.3 · D-099</span>
+        </figcaption>
+      </figure>
+
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="handoff">
+            <div>
+              <div class="kick" style="margin-bottom:var(--group)">Don't look yet</div>
+              <h4>Pass the phone to Sam.</h4>
+            </div>
+          </div>
+          <div class="dock"><button class="btn bloom">I've got it</button></div>
+        </div></div>
+        <figcaption>
+          <b>The hand-off</b>
+          The one screen with no chrome: the scene darkens, one line of Playfair, one primary.
+          Nothing of what comes next is on it.
+          <span class="ph">§6.3</span>
+        </figcaption>
+      </figure>
+
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar"><svg class="ico"><use href="#i-back"/></svg><span class="t">Say It Out Loud</span><span style="width:20px"></span></div>
+          <div class="rail"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+          <div class="body" style="justify-content:center">
+            <div class="hero">
+              <div class="idx">04</div>
+              <div class="kick">Say it</div>
+              <p class="title" style="font-size:23px">Record what you want from the rest of tonight.</p>
+              <p class="text" style="margin-top:var(--group)">It stays on this phone. They listen, then it's gone.</p>
+            </div>
+          </div>
+          <div class="dock">
+            <button class="btn bloom"><svg><use href="#i-mic"/></svg>Hold to record</button>
+            <button class="btn quiet">No microphone? Say it out loud instead</button>
+          </div>
+        </div></div>
+        <figcaption>
+          <b>A recording</b>
+          The mic lives in the dock, where every other action is. The fallback is offered rather
+          than the round being skipped.
+          <span class="ph">§6.3 · D-102</span>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ================= THE REST ================= -->
+
+  <section class="sec">
+    <div class="eyebrow">D7 · The rest</div>
+    <h2>Every screen through the same frame.</h2>
+    <p>Plan, apart, the library, the account, pairing. Nothing here changes what any of them do.</p>
+    <div class="rule"></div>
+
+    <div class="phones">
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar"><svg class="ico"><use href="#i-back"/></svg><span class="t">Plan the evening</span><span style="width:20px"></span></div>
+          <div class="body pad stack-section" style="overflow:hidden">
+            <h4>Three questions, then we build it.</h4>
+            <div class="sec-h">How long</div>
+            <div class="chips">
+              <button class="chip">15 min</button>
+              <button class="chip">30 min</button>
+              <button class="chip" aria-pressed="true">An hour</button>
+              <button class="chip">All evening</button>
+            </div>
+            <div class="sec-h">How far</div>
+            <div class="track" data-track>
+              <button type="button" data-h="playful"><span class="dots">●○○</span>Playful</button>
+              <button type="button" data-h="hot" aria-pressed="true"><span class="dots">●●○</span>Hot</button>
+              <button type="button" data-h="wild"><span class="dots">●●●</span>Wild</button>
+            </div>
+            <div class="sec-h">What are you in the mood for</div>
+            <div class="chips">
+              <button class="chip">Romantic</button>
+              <button class="chip" aria-pressed="true">Naughty</button>
+              <button class="chip">Bold</button>
+              <button class="chip">Unpredictable</button>
+              <button class="chip" aria-pressed="true">Mysterious</button>
+              <button class="chip">Roleplay</button>
+            </div>
+          </div>
+          <div class="dock"><button class="btn bloom"><svg><use href="#i-flame"/></svg>Build the evening</button></div>
+        </div></div>
+        <figcaption>
+          <b>Plan the evening</b>
+          The six-field form is already three questions. Now it has rhythm: a heading, its content
+          close under it, and real air between groups.
+          <span class="ph">§6.4 · §4.6</span>
+        </figcaption>
+      </figure>
+
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar"><svg class="ico"><use href="#i-back"/></svg><span class="t">Apart</span><span style="width:20px"></span></div>
+          <div class="body pad" style="overflow:hidden">
+            <h4 style="font-size:22px">Sam is 4,100 km away.</h4>
+            <p class="sub" style="margin-top:var(--tight)">What you left each other, newest first.</p>
+            <div class="tl" style="margin-top:var(--group)">
+              <div class="node hot"><div class="bub">
+                <div class="w">Them · 14:20</div>
+                <p>A voice note, waiting.</p>
+                <div class="burn"><svg><use href="#i-flame"/></svg>Burns as you listen</div>
+              </div></div>
+              <div class="node"><div class="bub">
+                <div class="w">They left · tonight</div>
+                <p>Something is coming.</p>
+              </div></div>
+              <div class="node mine"><div class="bub">
+                <div class="w">You · 14:32</div>
+                <p>A dare, sent. Ten minutes on the clock.</p>
+              </div></div>
+              <div class="node"><div class="bub">
+                <div class="w">Counting down</div>
+                <p>Friday</p>
+              </div></div>
+            </div>
+          </div>
+          <div class="dock"><div class="row">
+            <button class="btn sec" style="flex:1"><svg><use href="#i-send"/></svg>Send</button>
+            <button class="btn sec" style="flex:1"><svg><use href="#i-gift"/></svg>Leave it</button>
+          </div></div>
+        </div></div>
+        <figcaption>
+          <b>Apart</b>
+          A real timeline: a rail down the gutter, a node per entry, theirs and yours told apart by
+          surface rather than by a label. A sealed thing shows that it exists and nothing else.
+          <span class="ph">§6.5</span>
+        </figcaption>
+      </figure>
+
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar"><svg class="ico"><use href="#i-back"/></svg><span class="t">Our memories</span><svg class="ico"><use href="#i-heart"/></svg></div>
+          <div class="body pad" style="overflow:hidden">
+            <div class="mem">
+              <div class="m"><div class="d">The Tuesday one</div><div class="n">We didn't plan any of it.</div><div class="dots"><i></i><i></i></div><svg><use href="#i-book"/></svg></div>
+              <div class="m"><div class="d">Late</div><div class="n">Four cards, an hour, and no talking for the last one.</div><div class="dots"><i></i></div></div>
+              <div class="m"><div class="d">The long one</div><div class="n">Both of us said yes to the same thing.</div><div class="dots"><i></i><i></i><i></i></div></div>
+              <div class="m"><div class="d">Friday</div><div class="n">Short. Worth keeping anyway.</div><div class="dots"><i></i></div></div>
+            </div>
+          </div>
+          <div class="dock"><button class="btn sec">Keep tonight</button></div>
+        </div></div>
+        <figcaption>
+          <b>Memories</b>
+          A staggered grid rather than a list. Date in Playfair, moods as dots, a brass bookmark when
+          it was kept. Still never a content id — which is why this may list at all.
+          <span class="ph">§6.6 · D-090</span>
+        </figcaption>
+      </figure>
+
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar"><svg class="ico"><use href="#i-close"/></svg><span class="t">An account</span><span style="width:20px"></span></div>
+          <div class="body pad" style="overflow:hidden">
+            <div class="kick">When you're apart</div>
+            <h4 style="margin-top:var(--tight)">This one needs the two of you.</h4>
+            <p class="sub" style="margin-top:var(--group)">Send them something, leave something for
+              later, count down to a date. An account, then one code between you — and how far
+              you've said you'll go comes with you.</p>
+            <div style="margin-top:var(--section);display:grid;gap:var(--item)">
+              <div class="field">Email</div>
+              <div class="field focus">••••••••</div>
+            </div>
+          </div>
+          <div class="dock">
+            <button class="btn bloom">Create account</button>
+            <button class="btn sec">I already have one</button>
+            <button class="btn quiet">Not now, keep playing</button>
+          </div>
+        </div></div>
+        <figcaption>
+          <b>The account moment</b>
+          Says what it buys before it asks for anything, and ends with the way out. Fields get a rim
+          that brightens on focus instead of a stock outline.
+          <span class="ph">§6.7 · D-106</span>
+        </figcaption>
+      </figure>
+
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar"><svg class="ico"><use href="#i-back"/></svg><span class="t">Just you two</span><span style="width:20px"></span></div>
+          <div class="body pad" style="overflow:hidden">
+            <h4 style="font-size:23px">Give them this code.</h4>
+            <p class="sub" style="margin-top:var(--tight)">Then you'll both check the same three symbols,
+              so you know it's really each other.</p>
+            <div class="rim" style="margin-top:var(--section);padding:22px 12px">
+              <div class="code">7K2 · 9QX</div>
+              <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:10px;letter-spacing:.14em;text-transform:uppercase">Expires in 14 min</div>
+            </div>
+          </div>
+          <div class="dock">
+            <button class="btn"><svg><use href="#i-send"/></svg>Share code</button>
+            <button class="btn quiet">Not now</button>
+          </div>
+        </div></div>
+        <figcaption>
+          <b>Pairing</b>
+          The one place brass goes large: Playfair, tabular, letter-spaced, on a rimmed panel. A code
+          you have to read out loud deserves to be readable.
+          <span class="ph">§6.7</span>
+        </figcaption>
+      </figure>
+
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar"><svg class="ico"><use href="#i-back"/></svg><span class="t">Settings</span><span style="width:20px"></span></div>
+          <div class="body pad stack-section" style="overflow:hidden">
+            <div class="sec-h">You</div>
+            <button class="row-i"><svg class="lead"><use href="#i-eye"/></svg><span class="tx"><b>What you're curious about</b><span>Private. Always.</span></span><svg class="go"><use href="#i-go"/></svg></button>
+            <button class="row-i"><svg class="lead"><use href="#i-shield"/></svg><span class="tx"><b>Your limits</b><span>Never shown to them</span></span><svg class="go"><use href="#i-go"/></svg></button>
+            <button class="row-i"><svg class="lead"><use href="#i-lock"/></svg><span class="tx"><b>App lock</b><span>Off</span></span><svg class="go"><use href="#i-go"/></svg></button>
+            <div class="sec-h">The two of you</div>
+            <button class="row-i"><svg class="lead"><use href="#i-people"/></svg><span class="tx"><b>Paired with Sam</b><span>Since March</span></span><svg class="go"><use href="#i-go"/></svg></button>
+            <button class="row-i"><svg class="lead"><use href="#i-spark"/></svg><span class="tx"><b>Premium</b><span>Active</span></span><svg class="go"><use href="#i-go"/></svg></button>
+          </div>
+          <div class="dock"><button class="btn quiet">Sign out</button></div>
+        </div></div>
+        <figcaption>
+          <b>Settings</b>
+          Real headings with real rhythm, and one row style shared with home. Nothing here is a
+          Material list item with a default divider.
+          <span class="ph">§6.7 · §5.3</span>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ================= BRAND ================= -->
+
+  <section class="sec">
+    <div class="eyebrow">D8 · Brand</div>
+    <h2>The app currently has none.</h2>
+    <p>A template launcher icon, no splash, no wordmark. The minimum a store listing requires and a
+      home screen deserves — and no more.</p>
+    <div class="rule"></div>
+
+    <div class="phones">
+      <figure class="screen">
+        <div class="phone"><div class="vp" style="place-items:center;justify-content:center">
+          <div style="display:grid;gap:22px;justify-items:center">
+            <div class="mono">A</div>
+            <div style="font-size:11px;letter-spacing:0.34em;color:var(--muted);font-weight:600">AFTERHOURS</div>
+          </div>
+        </div></div>
+        <figcaption>
+          <b>Splash and launcher</b>
+          A monogram in Playfair on a burgundy-to-ink radial. No spinner. The window is already
+          painted Ink, so it hands over to the first frame with no seam.
+          <span class="ph">§7</span>
+        </figcaption>
+      </figure>
+
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar"><span class="wordmark">AFTERHOURS</span></div>
+          <div class="body pad" style="overflow:hidden;justify-content:center">
+            <h4 style="font-size:30px">Two questions, then we start.</h4>
+            <p class="sub" style="margin-top:var(--group)">No account. No setup. Nothing leaves this
+              phone until you ask it to.</p>
+            <div class="sec-h" style="margin-top:var(--section)">How far tonight</div>
+            <div class="track" data-track style="margin-top:var(--tight)">
+              <button type="button" data-h="playful"><span class="dots">●○○</span>Playful</button>
+              <button type="button" data-h="hot" aria-pressed="true"><span class="dots">●●○</span>Hot</button>
+              <button type="button" data-h="wild"><span class="dots">●●●</span>Wild</button>
+            </div>
+            <p class="sub" style="margin-top:var(--item);font-size:11.5px">Change it any time, mid-game,
+              with one thumb.</p>
+          </div>
+          <div class="dock">
+            <button class="btn bloom">We're both 18 or over — start</button>
+            <button class="btn quiet">I'm not 18</button>
+          </div>
+        </div></div>
+        <figcaption>
+          <b>First launch</b>
+          Still two questions and still one screen. It just looks like somebody made it.
+          <span class="ph">§7 · §6.1</span>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ================= DONE ================= -->
+
+  <section class="sec">
+    <div class="eyebrow">§10</div>
+    <h2>Done when all eight are true.</h2>
+    <ol class="done">
+      <li><b>Grey-box test.</b> Replace every piece of text with a grey box and the hierarchy still reads.</li>
+      <li><b>No two different kinds of thing</b> share the same shape, fill and border.</li>
+      <li><b>One primary action per screen</b>, within thumb reach.</li>
+      <li><b>No screen</b> has more than 120&nbsp;dp of unintended empty space.</li>
+      <li><b>A Playful card and a Wild card</b> are different objects.</li>
+      <li><b>Not one emoji</b> left in the app.</li>
+      <li><b>Nothing</b> is a Material 3 default.</li>
+      <li><b>Two seconds on home</b> is enough to say what the app is for.</li>
+    </ol>
+  </section>
+
+  <footer>
+    Every phone on this page carries its own scene, rim light, grain and heat accent — the
+    foundations are demonstrated, not drawn. The heat switch at the top is the §4.4 argument: one
+    setting, and the whole room changes.
+    <br><br>
+    <b>Nothing here changes behaviour.</b> The flow is the one confirmed in U1–U6, and none of the
+    privacy architecture moves: the server still filters, refusals are still silent, a dial's number
+    still never leaves the phone, and a memory still holds no content id.
+  </footer>
+</div>
+
+<script>
+  (function () {
+    "use strict";
+
+    var root = document.getElementById("root");
+
+    /* The icon set, named as the brief names it (§4.9). */
+    var ICONS = [
+      ["i-back", "back"], ["i-go", "chevron"], ["i-close", "close"], ["i-check", "check"],
+      ["i-dice", "dice"], ["i-spark", "spark"], ["i-flame", "flame"], ["i-moon", "moon"],
+      ["i-clock", "clock"], ["i-lock", "lock"], ["i-heart", "heart"], ["i-book", "bookmark"],
+      ["i-send", "send"], ["i-mic", "mic"], ["i-gift", "gift"], ["i-eye", "eye"],
+      ["i-people", "people"], ["i-cal", "calendar"], ["i-set", "settings"], ["i-shield", "shield"],
+      ["i-skip", "skip"], ["i-pause", "pause"]
+    ];
+    var grid = document.getElementById("icongrid");
+    ICONS.forEach(function (pair) {
+      var fig = document.createElement("figure");
+      fig.innerHTML = '<svg viewBox="0 0 24 24"><use href="#' + pair[0] + '"/></svg>' +
+        '<figcaption>' + pair[1] + '</figcaption>';
+      grid.appendChild(fig);
+    });
+
+    var KICK = { playful: "Playful · 5 min", hot: "Hot · 5 min", wild: "Wild · 5 min" };
+
+    function setHeat(heat) {
+      root.dataset.heat = heat;
+      Array.prototype.forEach.call(document.querySelectorAll("#heat button"), function (b) {
+        b.setAttribute("aria-pressed", String(b.dataset.heat === heat));
+      });
+      // Every track in every phone follows, because it is one setting for the whole room.
+      Array.prototype.forEach.call(document.querySelectorAll("[data-track] button"), function (b) {
+        b.setAttribute("aria-pressed", String(b.dataset.h === heat));
+      });
+      var kick = document.getElementById("card-kick");
+      if (kick) kick.textContent = KICK[heat];
+    }
+
+    document.addEventListener("click", function (event) {
+      var top = event.target.closest("#heat button");
+      if (top) { setHeat(top.dataset.heat); return; }
+
+      var inPhone = event.target.closest("[data-track] button");
+      if (inPhone) { setHeat(inPhone.dataset.h); return; }
+
+      var chip = event.target.closest(".chip");
+      if (chip) {
+        chip.setAttribute("aria-pressed", chip.getAttribute("aria-pressed") === "true" ? "false" : "true");
+      }
+    });
+
+    setHeat("hot");
+  })();
+</script>

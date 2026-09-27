@@ -101,7 +101,7 @@ private fun ReviewRow(entry: ReviewEntry, onClick: () -> Unit) {
                 modifier = Modifier.weight(1f),
             )
             Text(
-                text = if (entry.answer.secret) "👀 $answer" else answer,
+                text = if (entry.answer.secret) "$answer · secret" else answer,
                 style = MaterialTheme.typography.labelLarge,
                 color = if (entry.answer.value.isPositive) colors.brass else colors.textMuted,
             )

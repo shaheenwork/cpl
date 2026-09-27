@@ -16,6 +16,7 @@ import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.component.MoodChipRow
 import com.shnapps.couple.core.designsystem.component.WaitingForPartner
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.Gate
@@ -166,7 +167,7 @@ internal fun BuildNightContent(state: BuildNightUiState, actions: BuildNightActi
                 GlowButton(
                     text = if (state.forPartner) "Plan it for them" else "Build the evening",
                     onClick = actions.onBuild,
-                    leadingEmoji = if (state.forPartner) "👀" else "🔥",
+                    leadingIcon = if (state.forPartner) AfterhoursIcons.Eye else AfterhoursIcons.Flame,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -245,7 +246,7 @@ private fun ExpressContent(state: BuildNightUiState, actions: BuildNightActions,
                 GlowButton(
                     text = "Surprise us",
                     onClick = { actions.onExpress(null) },
-                    leadingEmoji = "🎲",
+                    leadingIcon = AfterhoursIcons.Dice,
                     style = GlowButtonStyle.Secondary,
                     modifier = Modifier.fillMaxWidth(),
                 )

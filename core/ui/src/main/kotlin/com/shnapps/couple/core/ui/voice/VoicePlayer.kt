@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalInspectionMode
 import com.shnapps.couple.core.designsystem.component.GlowButton
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import java.io.File
 
@@ -59,7 +60,7 @@ fun VoicePlayer(file: File, modifier: Modifier = Modifier) {
                 playing = true
             }
         },
-        leadingEmoji = "🎧",
+        leadingIcon = AfterhoursIcons.Mic,
         modifier = modifier.fillMaxWidth(),
     )
     if (player == null && !inspecting) {

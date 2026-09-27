@@ -7,16 +7,19 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import com.shnapps.couple.core.designsystem.icon.icon
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.model.Mood
 
@@ -53,9 +56,10 @@ fun MoodChipRow(
                     .semantics { contentDescription = mood.label },
                 label = {
                     Row(horizontalArrangement = Arrangement.spacedBy(spacing.xs)) {
-                        Text(
-                            text = mood.emoji,
-                            modifier = Modifier.clearAndSetSemantics { },
+                        Icon(
+                            imageVector = mood.icon(),
+                            contentDescription = null,
+                            modifier = Modifier.size(MOOD_ICON),
                         )
                         Text(text = mood.label, style = MaterialTheme.typography.labelLarge)
                     }
@@ -121,3 +125,6 @@ fun DurationPicker(
         }
     }
 }
+
+/** A mood's icon inside a chip: one step down from a button's. */
+private val MOOD_ICON = 16.dp

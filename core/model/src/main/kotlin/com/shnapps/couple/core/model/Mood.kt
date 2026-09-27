@@ -7,18 +7,19 @@ package com.shnapps.couple.core.model
  * can be built from several at once, and the engine weights candidates by how well they
  * match (§10.3).
  *
- * The emoji is presentation, but it lives here because the set has to stay in lockstep
- * with the mood ids used by content tags; splitting them across modules is how they drift.
+ * How a mood is drawn is the design system's business, not the model's: the icon for one
+ * is `AfterhoursIcons`' (DESIGN_PROMPT.md §4.9). What lives here is the id, because it has
+ * to stay in lockstep with the mood tags used by content.
  */
-enum class Mood(val id: String, val label: String, val emoji: String) {
-    ROMANTIC("romantic", "Romantic", "❤️"),
-    NAUGHTY("naughty", "Naughty", "😏"),
-    BOLD("bold", "Bold", "🔥"),
-    UNPREDICTABLE("unpredictable", "Unpredictable", "🎲"),
-    MYSTERIOUS("mysterious", "Mysterious", "👀"),
-    ROLEPLAY("roleplay", "Roleplay", "🎭"),
-    TALK("talk", "Talk", "💬"),
-    EXPERIMENTAL("experimental", "Experimental", "✨"),
+enum class Mood(val id: String, val label: String) {
+    ROMANTIC("romantic", "Romantic"),
+    NAUGHTY("naughty", "Naughty"),
+    BOLD("bold", "Bold"),
+    UNPREDICTABLE("unpredictable", "Unpredictable"),
+    MYSTERIOUS("mysterious", "Mysterious"),
+    ROLEPLAY("roleplay", "Roleplay"),
+    TALK("talk", "Talk"),
+    EXPERIMENTAL("experimental", "Experimental"),
     ;
 
     companion object {

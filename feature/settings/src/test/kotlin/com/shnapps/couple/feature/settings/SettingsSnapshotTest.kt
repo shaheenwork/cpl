@@ -48,7 +48,7 @@ class SettingsSnapshotTest {
             settings = NotificationSettings(enabled = true, showContent = true, quietHours = QuietHours.NIGHT),
         )
         capture("notifications-shown") { NotificationSettingsContent(state, NotificationSettingsActions()) }
-        composeRule.onNodeWithText("\"They left you something 👀\"").assertIsDisplayed()
+        composeRule.onNodeWithText("\"They left you something\"").assertIsDisplayed()
         composeRule.onNodeWithText("Nothing between 22:00 and 07:00.").assertIsDisplayed()
     }
 

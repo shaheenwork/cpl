@@ -82,7 +82,7 @@ fun WaitingForPartner(
                 .size(72.dp)
                 // The halo breathes through its alpha, outside the scaled layer: drawn inside
                 // it, the halo was cut to the layer's square bounds and read as a grey box.
-                .glow(colors.glowSecondary, alpha = pulse, spread = 24.dp, cornerRadius = 36.dp)
+                .bloom(color = colors.brass, cornerRadius = 36.dp, spread = 24.dp, alpha = pulse)
                 .graphicsLayer {
                     scaleX = pulse
                     scaleY = pulse
