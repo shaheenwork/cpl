@@ -76,7 +76,7 @@ fun ComponentGallery(modifier: Modifier = Modifier) {
         item { GallerySection("Cards") { CardsSpecimen() } }
         item { GallerySection("Anticipation") { AnticipationSpecimen() } }
         item { GallerySection("Buttons") { ButtonsSpecimen() } }
-        item { GallerySection("Night controls") { NightControlsSpecimen() } }
+        item { GallerySection("Evening controls") { NightControlsSpecimen() } }
         item { GallerySection("Private answers") { PrivateAnswersSpecimen() } }
         item { GallerySection("Waiting and time") { WaitingSpecimen() } }
         item { GallerySection("Voice") { VoiceSpecimen() } }
@@ -108,7 +108,7 @@ internal fun TypeSpecimen() {
     Column(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
         Text("Tonight could get interesting.", style = MaterialTheme.typography.displaySmall)
         Text("You both chose this.", style = MaterialTheme.typography.headlineMedium)
-        Text("Build our night", style = MaterialTheme.typography.titleLarge)
+        Text("Build the evening", style = MaterialTheme.typography.titleLarge)
         Text(
             "Nobody else knows what happens in here. It is just ours.",
             style = MaterialTheme.typography.bodyLarge,
@@ -155,7 +155,7 @@ internal fun AnticipationSpecimen() {
             eyebrow = "Scheduled",
             subtitle = "Unlocks at 9:00 pm",
         )
-        LockedCard(title = "Chapter 4", eyebrow = "Mystery", unlocked = true)
+        LockedCard(title = "Card 4", eyebrow = "Mystery", unlocked = true)
     }
 }
 
@@ -163,7 +163,7 @@ internal fun AnticipationSpecimen() {
 internal fun ButtonsSpecimen() {
     val spacing = AfterhoursTheme.spacing
     Column(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
-        GlowButton(text = "Build our night", onClick = {}, leadingEmoji = "🔥")
+        GlowButton(text = "Build the evening", onClick = {}, leadingEmoji = "🔥")
         GlowButton(text = "Surprise us", onClick = {}, style = GlowButtonStyle.Secondary, leadingEmoji = "🎲")
         GlowButton(text = "Not tonight", onClick = {}, style = GlowButtonStyle.Quiet)
         GlowButton(text = "Unavailable", onClick = {}, enabled = false)

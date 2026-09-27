@@ -198,7 +198,7 @@ private fun SecretBanner(visible: Boolean) {
 private fun RevealedActions(itemId: String, moreAfter: Int, onBuildNight: ((String) -> Unit)?, onNext: () -> Unit) {
     // Every reveal ends with one tap into a night (§14.7).
     GlowButton(
-        text = "Build a night around this",
+        text = "Build an evening around this",
         onClick = { onBuildNight?.invoke(itemId) },
         enabled = onBuildNight != null,
         leadingEmoji = "🔥",
@@ -206,7 +206,7 @@ private fun RevealedActions(itemId: String, moreAfter: Int, onBuildNight: ((Stri
     )
     if (onBuildNight == null) {
         Text(
-            text = "Building a night around it arrives in a later update.",
+            text = "Building an evening around it arrives in a later update.",
             style = MaterialTheme.typography.bodySmall,
             color = AfterhoursTheme.colors.textMuted,
         )

@@ -21,14 +21,14 @@ object NotificationText {
     fun channelName(channel: PushChannel): String = when (channel) {
         PushChannel.PAIRING -> "Pairing"
         PushChannel.SURPRISES -> "Surprises"
-        PushChannel.TOGETHER -> "Your nights"
+        PushChannel.TOGETHER -> "Your evenings"
         PushChannel.MESSAGES -> "Voice notes and photos"
     }
 
     fun channelDescription(channel: PushChannel): String = when (channel) {
         PushChannel.PAIRING -> "Pairing with your partner."
         PushChannel.SURPRISES -> "Something left for you, and days that open."
-        PushChannel.TOGETHER -> "A night the two of you are in."
+        PushChannel.TOGETHER -> "An evening the two of you are in."
         PushChannel.MESSAGES -> "Something they sent you."
     }
 
@@ -44,11 +44,11 @@ object NotificationText {
         PushKind.PARTNER_JOINED -> "You're paired. 💛"
         PushKind.SURPRISE_LEFT -> "They left you something. 👀"
         PushKind.SURPRISE_UNLOCKED -> "Something is ready for you. 🎁"
-        PushKind.NIGHT_STARTING -> "A night is waiting for you. 🌙"
+        PushKind.NIGHT_STARTING -> "An evening is waiting for you. 🌙"
         PushKind.DAY_UNLOCKED -> "Today's day is open. 🌙"
         PushKind.PARTNER_FINISHED -> "They've done their part."
         PushKind.BOTH_READY -> "You're both in."
-        PushKind.SESSION_EXPIRING -> "A night is about to time out."
+        PushKind.SESSION_EXPIRING -> "An evening is about to time out."
         PushKind.THEY_SENT_SOMETHING -> "They sent you something. 👀"
     }
 }

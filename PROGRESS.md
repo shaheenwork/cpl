@@ -6,8 +6,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 **Current position:** The 23 phases of BUILD_PROMPT.md are complete, the rebuild in
 `REDESIGN_PROMPT.md` (R1–R10) is complete — 22 games, 632 prompts — and the app is now being
 **unified**: the rebuild had left two of everything, so signing in replaced the app rather than
-adding to it. U1–U3 are done (one home, one way to start, one game list and one player); U4 (one
-vocabulary), U5 (design repair) and U6 (no dead ends) follow. What remains before a public release is
+adding to it. U1–U5 are done (one home, one way to start, one game list and one player, one vocabulary, and the
+six-field form reduced to three questions); U6 (no dead ends) follows. What remains before a public release is
 setup and review, not code: `RELEASE.md` is the ordered runbook, `HUMAN_SETUP.md` the console detail,
 and `legal/` holds drafts of the privacy policy, the terms and the Play data-safety answers, pending
 a lawyer.
@@ -1231,6 +1231,35 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Unification U4–U5 — One word for one thing, and three questions ✅
+
+### Shipped
+- **One vocabulary** (D-105), in every string a person reads: *heat* (Playful, Hot, Wild) for how far,
+  *evening* for the thing, *tonight* for the time, *card* for one of its parts. The five-level
+  `Intensity` ladder stays in the engine, where it belongs; `Heat.covering` maps a couple's
+  server-side ceiling back into the words they set it in. Class and route names were deliberately
+  left alone — nobody using the app reads `NightRepository`, and renaming it would have buried the
+  change that matters.
+- **Three questions, as home promises.** `BuildNightScreen` asked six. It asks how long, how far and
+  what mood; who leads and how novel it is keep `NightSettings`' own defaults, which is roughly what
+  those two dials produced anyway. Nothing about §10 changed.
+- **A real fix came with it**: `IntensityDial` took `maxSelectable`, so nobody could drag past the
+  couple's shared level. `HeatPicker` has no such parameter, so `setHeat` caps against it and a test
+  holds it. The server would have refused anything past it (§3.2); this stops a screen saying Wild to
+  a couple who agreed to stop at Hot.
+
+### Verified
+```
+./gradlew check                               BUILD SUCCESSFUL
+:feature:night BuildNightViewModelTest        12/12  (including the new ceiling test)
+recordRoborazziDebug                          every golden the words touched, re-recorded
+```
+- 38 strings across 17 files, each an exact replacement rather than a regex, so every one was
+  reviewable and the sweep could be re-run safely.
+- Five test assertions had to be taught the new words, which is the point of asserting on them.
 
 ---
 

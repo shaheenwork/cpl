@@ -215,9 +215,9 @@ private fun ChapterProgress(state: NightUiState) {
 /** What the progress says to TalkBack. A mystery never says how many there are (D-077). */
 private fun progressLine(mystery: Boolean, current: Int, count: Int): String = when {
     mystery && current == 0 -> "Tonight"
-    mystery -> "Chapter $current"
-    current == 0 -> "Tonight has $count chapters"
-    else -> "Chapter $current of $count"
+    mystery -> "Card $current"
+    current == 0 -> "Tonight has $count cards"
+    else -> "Card $current of $count"
 }
 
 /** The same, as the eyebrow above the marks. */
@@ -256,8 +256,8 @@ private fun PausedVeil() {
 }
 
 private fun NightError.message(): String = when (this) {
-    NightError.OFFLINE -> "We couldn't reach the server. Your night is waiting right where you left it."
-    NightError.MOVED_ON -> "Your night moved on from the other phone. Here's where it is now."
+    NightError.OFFLINE -> "We couldn't reach the server. Your evening is waiting right where you left it."
+    NightError.MOVED_ON -> "Your evening moved on from the other phone. Here's where it is now."
     NightError.OTHER -> "Something went wrong. Try that again."
 }
 

@@ -162,7 +162,7 @@ class SendSnapshotTest {
     @Test
     fun choosingHowManyDays() {
         capture("arc-chooser") { ArcContent(ArcUiState(), due = null, actions = ArcActions()) }
-        composeRule.onNodeWithText("One night").assertIsDisplayed()
+        composeRule.onNodeWithText("One evening").assertIsDisplayed()
         composeRule.onNodeWithText("7 days").assertIsDisplayed()
         composeRule.onNodeWithText("14 days").assertIsDisplayed()
     }

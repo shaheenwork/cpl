@@ -124,8 +124,8 @@ private fun Chooser(state: ArcUiState, actions: ArcActions) {
     ScreenHeading(
         eyebrow = "A few days of this",
         headline = "Make it last longer.",
-        body = "A night a day, each one picking up where the last left off. Curiosity, teasing, " +
-            "a secret, a challenge — and a last night at the end of it.",
+        body = "An evening a day, each one picking up where the last left off. Curiosity, teasing, " +
+            "a secret, a challenge — and a last one at the end of it.",
     )
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm),
@@ -133,7 +133,7 @@ private fun Chooser(state: ArcUiState, actions: ArcActions) {
     ) {
         for (length in state.lengths) {
             GlowButton(
-                text = if (length == 1) "One night" else "$length days",
+                text = if (length == 1) "One evening" else "$length days",
                 onClick = { actions.onStart(length) },
                 style = if (length == DEFAULT_LENGTH) GlowButtonStyle.Primary else GlowButtonStyle.Secondary,
                 enabled = !state.busy,

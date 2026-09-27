@@ -63,9 +63,9 @@ internal data class PaywallActions(
 
 /** What premium is, in the order it matters. Each line is a thing they can do, not a feeling. */
 private val INCLUDED = listOf(
-    "🌙" to "As many nights as you want — built, surprise, or fifteen minutes.",
-    "👀" to "Mystery Nights: you find out as you go.",
-    "📅" to "A few days of this — one, three, seven or fourteen, a night each.",
+    "🌙" to "As many evenings as you want — planned, a surprise, or fifteen minutes.",
+    "👀" to "A mystery: you find out as you go.",
+    "📅" to "A few days of this — one, three, seven or fourteen, an evening each.",
     "🎁" to "Leave as many surprises waiting as you like.",
     "❤️" to "Everything free includes, unchanged.",
 )

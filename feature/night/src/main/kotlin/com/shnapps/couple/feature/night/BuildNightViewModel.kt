@@ -10,13 +10,13 @@ import com.shnapps.couple.core.data.night.DefaultNightRepository
 import com.shnapps.couple.core.data.night.NightRepository
 import com.shnapps.couple.core.data.taxonomy.TaxonomyRepository
 import com.shnapps.couple.core.model.Gate
+import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Leadership
 import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.Mood
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.NightSettings
-import com.shnapps.couple.core.model.Novelty
 import com.shnapps.couple.core.navigation.Route
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,7 +34,7 @@ enum class BuildError { NOT_ENOUGH_CONTENT, RATE_LIMITED, OFFLINE, OUT_OF_DATE, 
 
 data class BuildNightUiState(
     val settings: NightSettings = NightSettings(),
-    /** The couple's shared level: the most the dial can reach. Null until known. */
+    /** The couple's shared level: the most any evening can reach. Null until known. */
     val sharedLevel: Intensity? = null,
     /** The match the night is built around, in the taxonomy's words (§14.7). */
     val focusPrompt: String? = null,
@@ -52,12 +52,15 @@ data class BuildNightUiState(
     val error: BuildError? = null,
     /** A limit they reached: the screen offers what premium includes, and nothing is lost (§19). */
     val gate: Gate? = null,
-)
+) {
+    /** How far, as the picker asks it: this evening's own, never past the couple's shared level. */
+    val heat: Heat get() = Heat.covering(Intensity.effective(settings.intensity, sharedLevel ?: Intensity.WILD))
+}
 
 /**
- * Build Our Night (BUILD_PROMPT.md §14.5): time, mood, intensity, who leads and novelty —
- * then the server builds the night behind both partners' boundaries (§10). Nothing here
- * decides what the couple may see; the dial only shows how far their shared level reaches.
+ * Plan the evening (BUILD_PROMPT.md §14.5): how long, how far and what mood — then the server
+ * builds it behind both partners' boundaries (§10). Nothing here decides what the couple may see;
+ * the picker only shows how far their shared level reaches.
  */
 @HiltViewModel
 class BuildNightViewModel @Inject constructor(
@@ -103,11 +106,17 @@ class BuildNightViewModel @Inject constructor(
 
     fun toggleMood(mood: Mood) = edit { copy(moods = if (mood in moods) moods - mood else moods + mood) }
 
-    fun setIntensity(intensity: Intensity) = edit { copy(intensity = intensity) }
-
-    fun setLeadership(leadership: Leadership) = edit { copy(leadership = leadership) }
-
-    fun setNovelty(novelty: Novelty) = edit { copy(novelty = novelty) }
+    /**
+     * How far, in the words a person actually sets it in (D-103).
+     *
+     * A heat is a ceiling, and so is the couple's shared level: the lower of the two wins here,
+     * and the server still applies its own on top. Who leads and how novel it is keep the model's
+     * defaults — RANDOM and MIXED — which is what the two dials that used to ask mostly produced.
+     */
+    fun setHeat(heat: Heat) {
+        val ceiling = uiState.value.sharedLevel ?: Intensity.WILD
+        edit { copy(intensity = Intensity.effective(heat.ceiling, ceiling)) }
+    }
 
     fun build() {
         if (local.value.building) return

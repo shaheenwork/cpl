@@ -71,7 +71,7 @@ class AccountSnapshotTest {
         composeRule.onNodeWithText("This cannot be undone.").assertIsDisplayed()
         // The part nobody expects, said before the first tap.
         composeRule.onNodeWithText(
-            "• The couple — and with it every night you played, every memory you kept, and everything " +
+            "• The couple — and with it every evening you played, every memory you kept, and everything " +
                 "either of you sent the other.",
         ).assertIsDisplayed()
         composeRule.onNodeWithText("I understand what goes").assertIsDisplayed()

@@ -19,7 +19,7 @@ enum class MemoriesError { OFFLINE, OTHER }
 
 /** What the library is showing (§14.8). */
 enum class MemoryFilter(val label: String) {
-    ALL("Our nights"),
+    ALL("Our evenings"),
     FAVORITES("We love"),
 }
 

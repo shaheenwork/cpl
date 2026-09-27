@@ -66,7 +66,7 @@ class MemoriesSnapshotTest {
     fun nothingKeptYet() {
         capture("memories-empty") { MemoriesContent(MemoriesUiState(loading = false), MemoriesActions()) }
         composeRule.onNodeWithText("Nothing kept yet.").assertIsDisplayed()
-        composeRule.onNodeWithText("Our nights").assertIsDisplayed()
+        composeRule.onNodeWithText("Our evenings").assertIsDisplayed()
     }
 
     @Test

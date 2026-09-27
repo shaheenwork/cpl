@@ -2,13 +2,7 @@ package com.shnapps.couple.feature.night
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,18 +14,17 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.DurationPicker
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
-import com.shnapps.couple.core.designsystem.component.IntensityDial
 import com.shnapps.couple.core.designsystem.component.MoodChipRow
 import com.shnapps.couple.core.designsystem.component.WaitingForPartner
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.Gate
+import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.Intensity
-import com.shnapps.couple.core.model.Leadership
 import com.shnapps.couple.core.model.Mood
-import com.shnapps.couple.core.model.Novelty
 import com.shnapps.couple.core.ui.BackRow
 import com.shnapps.couple.core.ui.ErrorBanner
+import com.shnapps.couple.core.ui.HeatPicker
 import com.shnapps.couple.core.ui.PremiumNudge
 import com.shnapps.couple.core.ui.ScreenColumn
 import com.shnapps.couple.core.ui.ScreenHeading
@@ -63,9 +56,7 @@ fun BuildNightScreen(
         actions = BuildNightActions(
             onDuration = viewModel::setDuration,
             onMood = viewModel::toggleMood,
-            onIntensity = viewModel::setIntensity,
-            onLeadership = viewModel::setLeadership,
-            onNovelty = viewModel::setNovelty,
+            onHeat = viewModel::setHeat,
             onBuild = viewModel::build,
             onExpress = viewModel::buildExpress,
             onDismissError = viewModel::dismissError,
@@ -84,9 +75,7 @@ internal data class BuildNightActions(
     val onDismissGate: () -> Unit = {},
     val onDuration: (Int) -> Unit = {},
     val onMood: (Mood) -> Unit = {},
-    val onIntensity: (Intensity) -> Unit = {},
-    val onLeadership: (Leadership) -> Unit = {},
-    val onNovelty: (Novelty) -> Unit = {},
+    val onHeat: (Heat) -> Unit = {},
     val onBuild: () -> Unit = {},
     /** "We have 15 minutes": the one choice, and the night at once. Null is "surprise me". */
     val onExpress: (Mood?) -> Unit = {},
@@ -119,15 +108,15 @@ internal fun BuildNightContent(state: BuildNightUiState, actions: BuildNightActi
                 )
             } else {
                 ScreenHeading(
-                    eyebrow = "Build our night",
-                    headline = "What are we in the mood for?",
+                    eyebrow = "Plan the evening",
+                    headline = "Three questions, then we build it.",
                     body = state.focusPrompt?.let { "Built around something you both chose: $it." },
                 )
             }
             state.activeNight?.let { night ->
                 // One night at a time (D-059): say so before anyone sets five dials.
                 Text(
-                    text = "There's a night under way already.",
+                    text = "There's an evening under way already.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = AfterhoursTheme.colors.brass,
                 )
@@ -138,28 +127,24 @@ internal fun BuildNightContent(state: BuildNightUiState, actions: BuildNightActi
                 )
             }
 
-            Section("Time") { DurationPicker(selectedMinutes = settings.durationMin, onSelect = actions.onDuration) }
-            Section("Mood") { MoodChipRow(selected = settings.moods, onToggle = actions.onMood) }
-            Section("Intensity") {
-                val ceiling = state.sharedLevel ?: Intensity.WILD
-                IntensityDial(
-                    selected = Intensity.effective(settings.intensity, ceiling),
-                    onSelect = actions.onIntensity,
-                    maxSelectable = ceiling,
-                )
-                if (ceiling != Intensity.WILD) {
+            // Three questions, which is what home promises. Who leads and how novel it is were
+            // two more dials for something nobody had asked for yet; the engine still takes both,
+            // at the defaults the model already had (§6, U5).
+            Section("How long") {
+                DurationPicker(selectedMinutes = settings.durationMin, onSelect = actions.onDuration)
+            }
+            Section("How far") {
+                HeatPicker(selected = state.heat, onHeat = actions.onHeat)
+                state.sharedLevel?.takeIf { it != Intensity.WILD }?.let {
                     Text(
-                        text = "Your shared level is ${ceiling.label}. Nothing tonight goes past it.",
+                        text = "You've both agreed to stop at ${Heat.covering(it).label}. Nothing goes past it.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = AfterhoursTheme.colors.textMuted,
                     )
                 }
             }
-            Section("Who leads") {
-                OptionRow(Leadership.entries, settings.leadership, { it.label }, actions.onLeadership)
-            }
-            Section("Novelty") {
-                OptionRow(Novelty.entries, settings.novelty, { it.label }, actions.onNovelty)
+            Section("What are you in the mood for") {
+                MoodChipRow(selected = settings.moods, onToggle = actions.onMood)
             }
 
             state.error?.let { ErrorBanner(message = it.message(), onDismiss = actions.onDismissError) }
@@ -174,12 +159,12 @@ internal fun BuildNightContent(state: BuildNightUiState, actions: BuildNightActi
 
             if (state.building) {
                 WaitingForPartner(
-                    message = if (state.forPartner) "Planning it…" else "Building your night…",
+                    message = if (state.forPartner) "Planning it…" else "Building your evening…",
                     detail = "Only from what you've both said yes to.",
                 )
             } else {
                 GlowButton(
-                    text = if (state.forPartner) "Plan it for them" else "Build our night",
+                    text = if (state.forPartner) "Plan it for them" else "Build the evening",
                     onClick = actions.onBuild,
                     leadingEmoji = if (state.forPartner) "👀" else "🔥",
                     modifier = Modifier.fillMaxWidth(),
@@ -199,7 +184,7 @@ private fun PlannedContent(chapters: Int, onDone: () -> Unit, modifier: Modifier
         ScreenColumn {
             ScreenHeading(
                 eyebrow = "It's ready",
-                headline = "$chapters chapters, waiting for them.",
+                headline = "$chapters cards, waiting for them.",
                 body = "They'll see that something is waiting. Neither of you sees what until " +
                     "they open it.",
             )
@@ -229,7 +214,7 @@ private fun ExpressContent(state: BuildNightUiState, actions: BuildNightActions,
             )
             state.activeNight?.let { night ->
                 Text(
-                    text = "There's a night under way already.",
+                    text = "There's an evening under way already.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = AfterhoursTheme.colors.brass,
                 )
@@ -250,7 +235,7 @@ private fun ExpressContent(state: BuildNightUiState, actions: BuildNightActions,
             }
             if (state.building) {
                 WaitingForPartner(
-                    message = "Building your night…",
+                    message = "Building your evening…",
                     detail = "Only from what you've both said yes to.",
                 )
             } else {
@@ -277,38 +262,11 @@ private fun Section(title: String, content: @Composable () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun <T> OptionRow(options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit) {
-    val spacing = AfterhoursTheme.spacing
-    FlowRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .selectableGroup(),
-        horizontalArrangement = Arrangement.spacedBy(spacing.sm),
-        verticalArrangement = Arrangement.spacedBy(spacing.sm),
-    ) {
-        options.forEach { option ->
-            FilterChip(
-                selected = option == selected,
-                onClick = { onSelect(option) },
-                modifier = Modifier.heightIn(min = spacing.touchTarget),
-                label = { Text(text = label(option), style = MaterialTheme.typography.labelLarge) },
-                shape = MaterialTheme.shapes.small,
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                ),
-            )
-        }
-    }
-}
-
 private fun BuildError.message(): String = when (this) {
     BuildError.NOT_ENOUGH_CONTENT ->
-        "Nothing fits a night that short at that level. Try a longer night, or a gentler one."
-    BuildError.RATE_LIMITED -> "That's a lot of nights for one evening. Try again in a little while."
-    BuildError.OFFLINE -> "We couldn't reach the server. Nights are built there, behind both your limits."
+        "Nothing fits an evening that short at that heat. Try a longer one, or a gentler one."
+    BuildError.RATE_LIMITED -> "That's a lot in a short time. Try again in a little while."
+    BuildError.OFFLINE -> "We couldn't reach the server. Evenings are built there, behind both your limits."
     BuildError.OUT_OF_DATE -> "Your content needs a moment to catch up. Try again shortly."
-    BuildError.OTHER -> "Something went wrong building your night. Try again."
+    BuildError.OTHER -> "Something went wrong building your evening. Try again."
 }

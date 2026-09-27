@@ -262,7 +262,7 @@ private fun Apart(state: HomeUiState, actions: HomeActions) {
         when (state.company) {
             Company.ALONE -> ChoiceRow(
                 title = "Apart",
-                subtitle = "Send them something, leave something for later, count down to a night.",
+                subtitle = "Send them something, leave something for later, count down to a date.",
                 locked = true,
                 onClick = actions.onAccount,
             )

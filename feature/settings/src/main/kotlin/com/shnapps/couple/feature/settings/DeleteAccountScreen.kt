@@ -70,7 +70,7 @@ internal data class DeleteAccountActions(
 private val GOES = listOf(
     "Your account, and the way back into it.",
     "Your private answers, your limits, and everything only you could see.",
-    "The couple — and with it every night you played, every memory you kept, and everything " +
+    "The couple — and with it every evening you played, every memory you kept, and everything " +
         "either of you sent the other.",
     "Anything waiting: surprises, countdowns, days of an arc.",
 )

@@ -1656,3 +1656,40 @@ want something they have not been shown.
 
 `BuildNight`'s six-field form is not gone; it is demoted. It is one line inside Start, called "Plan
 the evening", for the couples who want to plan one.
+
+---
+
+## D-105 — One word for one thing, and the form that asked six questions
+
+Two vocabularies had grown up beside each other. A person set a **heat** — Playful, Hot, Wild — on
+first launch and on home, and then met an **intensity** — Gentle, Flirty, Naughty, Bold, Wild — on
+the build form, which is the same idea on a different scale with a different name. An evening was a
+**night** on one screen and an **evening** on another. What was inside it was a **chapter**, which
+is a word from a book, for a thing that is one instruction on one card.
+
+So, in every string a person reads:
+
+- **heat** — Playful, Hot, Wild. `Intensity`'s five levels are the engine's and stay in the engine,
+  where `Heat.ceiling` maps onto them. `Heat.covering` maps back, so the picker can show a couple's
+  server-side ceiling in the words they set it in.
+- **evening** for the thing, **tonight** for the time. "Night" survives nowhere as a noun for a
+  built experience.
+- **card** for one of its parts. `NightChapter` keeps its name in the model and on the wire, because
+  renaming a Firestore field is a migration and this is a vocabulary change, not a data change.
+
+Class and route names were left alone on purpose: `Route.Night`, `NightRepository`,
+`chapterCount`. They are not read by anyone using the app, and renaming them would have buried the
+change that matters in a rename nobody could review.
+
+**The form.** `BuildNightScreen` asked six questions — time, mood, intensity, who leads, novelty, and
+implicitly "are you sure" — and it was the main way into an evening. Home now calls it "Plan the
+evening. Three questions, then we build it around them", so it asks three: how long, how far, what
+mood. Who leads and how novel it is keep `NightSettings`' own defaults, `RANDOM` and `MIXED`, which
+is roughly what those two dials produced anyway; the engine still takes both and nothing about §10
+changed.
+
+One real fix came with it. The old `IntensityDial` took `maxSelectable = ceiling`, so a couple could
+not drag past their shared level. `HeatPicker` has no such parameter, so `setHeat` caps against the
+shared level itself — `Intensity.effective(heat.ceiling, ceiling)` — and a test holds it. The server
+would have refused anything past it regardless (§3.2); what this prevents is a screen that says Wild
+to a couple who agreed to stop at Hot.

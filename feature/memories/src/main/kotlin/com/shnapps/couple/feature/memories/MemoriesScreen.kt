@@ -79,7 +79,7 @@ internal fun MemoriesContent(
             ScreenHeading(
                 eyebrow = "Our memories",
                 headline = "The ones you kept.",
-                body = "Your own words about your own nights. What was in them stays where it was.",
+                body = "Your own words about your own evenings. What was in them stays where it was.",
             )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm)) {
                 for (filter in MemoryFilter.entries) {
@@ -95,7 +95,7 @@ internal fun MemoriesContent(
             if (state.empty) {
                 EmptyState(
                     title = if (state.filter == MemoryFilter.FAVORITES) "Nothing marked yet." else "Nothing kept yet.",
-                    body = "At the end of a night, you can keep it here — a title, a note, the " +
+                    body = "At the end of an evening, you can keep it here — a title, a note, the " +
                         "moment you want to remember.",
                 )
             }

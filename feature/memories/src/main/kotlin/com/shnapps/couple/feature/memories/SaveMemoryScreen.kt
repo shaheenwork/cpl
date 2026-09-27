@@ -85,9 +85,9 @@ internal fun SaveMemoryContent(
         ScreenColumn {
             BackRow(label = "Not now", onBack = actions.onBack)
             ScreenHeading(
-                eyebrow = "Night complete",
+                eyebrow = "That's the evening",
                 headline = "Keep this one?",
-                body = "Your own words, for the two of you. What was in the night stays in the night.",
+                body = "Your own words, for the two of you. What was in the evening stays in the evening.",
             )
             OutlinedTextField(
                 value = state.title,
@@ -162,6 +162,6 @@ private fun MediaItem.label(): String {
 
 private fun SaveMemoryError.message(): String = when (this) {
     SaveMemoryError.OFFLINE -> "You're offline. That one needs the network."
-    SaveMemoryError.NOT_PLAYED -> "There's nothing to keep yet — play the night first."
+    SaveMemoryError.NOT_PLAYED -> "There's nothing to keep yet — play an evening first."
     SaveMemoryError.OTHER -> "That didn't save. Try again."
 }

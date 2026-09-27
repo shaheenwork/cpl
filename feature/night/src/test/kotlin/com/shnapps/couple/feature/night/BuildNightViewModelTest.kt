@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
+import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Leadership
 import com.shnapps.couple.core.model.Mode
@@ -69,18 +70,18 @@ class BuildNightViewModelTest {
         vm.toggleMood(Mood.NAUGHTY)
         vm.toggleMood(Mood.MYSTERIOUS)
         vm.toggleMood(Mood.NAUGHTY)
-        vm.setIntensity(Intensity.NAUGHTY)
-        vm.setLeadership(Leadership.SWITCH)
-        vm.setNovelty(Novelty.SURPRISE_ME)
+        vm.setHeat(Heat.WILD)
         vm.build()
         advanceUntilIdle()
 
         val asked = nights.built.single()
         assertThat(asked.durationMin).isEqualTo(45)
         assertThat(asked.moods).containsExactly(Mood.MYSTERIOUS)
-        assertThat(asked.intensity).isEqualTo(Intensity.NAUGHTY)
-        assertThat(asked.leadership).isEqualTo(Leadership.SWITCH)
-        assertThat(asked.novelty).isEqualTo(Novelty.SURPRISE_ME)
+        // A heat is a ceiling: Wild asks for the top of the range, and the server caps it again.
+        assertThat(asked.intensity).isEqualTo(Heat.WILD.ceiling)
+        // The two dials that used to ask keep the model's defaults, which is what they mostly gave.
+        assertThat(asked.leadership).isEqualTo(Leadership.RANDOM)
+        assertThat(asked.novelty).isEqualTo(Novelty.MIXED)
         assertThat(vm.state.builtExperienceId).isEqualTo(TestNights.gentle.experienceId)
 
         vm.onShown()
@@ -141,6 +142,18 @@ class BuildNightViewModelTest {
         nights.start(TestNights.gentle.experienceId)
         advanceUntilIdle()
         assertThat(vm.state.activeNight?.experienceId).isEqualTo(TestNights.gentle.experienceId)
+    }
+
+    @Test
+    fun `how far never goes past what the couple agreed to`() = test {
+        nights.level.value = Intensity.NAUGHTY
+        val vm = builder()
+
+        act { vm.setHeat(Heat.WILD) }
+
+        // The picker says Wild; what is asked for stops where they said it would (§3.2).
+        assertThat(vm.state.settings.intensity).isEqualTo(Intensity.NAUGHTY)
+        assertThat(vm.state.heat).isEqualTo(Heat.covering(Intensity.NAUGHTY))
     }
 
     @Test

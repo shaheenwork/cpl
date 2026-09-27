@@ -21,7 +21,7 @@ internal val welcomeBeats = listOf(
     ),
     WelcomeBeat(
         eyebrow = "TONIGHT",
-        headline = "Build nights around your chemistry.",
+        headline = "Build evenings around your chemistry.",
         body = "And make distance feel a lot less distant.",
     ),
 )

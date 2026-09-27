@@ -112,7 +112,7 @@ internal fun SettingsContent(
             }
 
             Group("The two of you") {
-                Row("Our memories", "The nights you kept.", routes.onMemories)
+                Row("Our memories", "The evenings you kept.", routes.onMemories)
                 Row(
                     title = if (state.entitlement.premium) "Premium" else "Afterhours premium",
                     detail = if (state.entitlement.premium) "You're in, both of you." else "What's included.",

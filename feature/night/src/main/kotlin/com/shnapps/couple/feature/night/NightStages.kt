@@ -60,7 +60,7 @@ internal fun LoadingStage() {
 @Composable
 internal fun MissingStage(onHome: () -> Unit) {
     EmptyState(
-        title = "This night isn't here any more.",
+        title = "This evening isn't here any more.",
         body = "It may have ended on the other phone. Start a new one whenever you like.",
         actionLabel = "Back home",
         onAction = onHome,
@@ -87,7 +87,7 @@ internal fun ShapeStage(state: NightUiState, actions: NightActions) {
         } else {
             ScreenHeading(
                 eyebrow = "Tonight",
-                headline = "Tonight has ${night.chapters.size} chapters.",
+                headline = "Tonight has ${night.chapters.size} cards.",
                 body = "About ${night.totalMinutes} minutes, rising to ${peak.label}. " +
                     "One at a time — what's inside each stays sealed until you get there.",
             )
@@ -195,7 +195,7 @@ internal fun ConsentStage(state: NightUiState, actions: NightActions) {
         when {
             !session.consented -> ScreenHeading(
                 eyebrow = "Before we begin",
-                headline = if (session.isHost) "This one goes up to $peak." else "Your partner has a night ready.",
+                headline = if (session.isHost) "This one goes up to $peak." else "Your partner has an evening ready.",
                 body = if (session.isHost) {
                     "You both need to say you're in — each of you, on your own phone. " +
                         "Not tonight is always an answer."
@@ -271,7 +271,7 @@ internal fun CheckInStage(index: Int, state: NightUiState, actions: NightActions
         ScreenHeading(
             eyebrow = "A quick check-in",
             headline = "Before the next one — still good?",
-            body = "Either of you can swap it, or stop the night. No reasons needed.",
+            body = "Either of you can swap it, or stop the evening. No reasons needed.",
         )
         GlowButton(text = "Keep going", onClick = { actions.onKeepGoing(index) }, modifier = Modifier.fillMaxWidth())
         GlowButton(
@@ -296,7 +296,7 @@ internal fun ChapterStage(index: Int, open: Boolean, state: NightUiState, action
             contentAlignment = Alignment.Center,
         ) {
             LockedCard(
-                title = "Chapter ${index + 1}",
+                title = "Card ${index + 1}",
                 eyebrow = chapter.kind.label,
                 subtitle = "Tap to open",
                 onClick = { actions.onOpen(index) },
@@ -446,7 +446,7 @@ internal fun ElsewhereStage(state: NightUiState) {
             body = if (state.chapterNumber == 0) {
                 "It's about to begin. You can pause or stop it from here, any time."
             } else {
-                "Chapter ${state.chapterNumber} of ${state.chapterCount}. You can pause or stop it from here, any time."
+                "Card ${state.chapterNumber} of ${state.chapterCount}. You can pause or stop it from here, any time."
             },
         )
     }
@@ -456,9 +456,9 @@ internal fun ElsewhereStage(state: NightUiState) {
 @Composable
 internal fun EndedStage(reason: SessionEndReason, onHome: () -> Unit) {
     val (headline, body) = when (reason) {
-        SessionEndReason.DECLINED -> "Not tonight. All good." to "Another night, whenever you both feel like it."
+        SessionEndReason.DECLINED -> "Not tonight. All good." to "Another evening, whenever you both feel like it."
         SessionEndReason.EXPIRED ->
-            "This night has ended." to "It waited a long while. Start a new one whenever you like."
+            "This evening has ended." to "It waited a long while. Start a new one whenever you like."
         else -> "Ending here. All good." to "Nothing is lost, and nobody did anything wrong."
     }
     ScreenColumn {

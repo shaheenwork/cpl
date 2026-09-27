@@ -30,7 +30,7 @@ import com.shnapps.couple.core.ui.ScreenHeading
 internal fun HowAreWeStage(state: NightUiState, actions: NightActions) {
     ScreenColumn {
         ScreenHeading(
-            eyebrow = "Night complete",
+            eyebrow = "That's the evening",
             headline = "How are we doing?",
             body = "Just a moment for the two of you.",
         )
@@ -74,13 +74,13 @@ internal fun FeedbackStage(state: NightUiState, actions: NightActions) {
         ScreenHeading(
             eyebrow = "Just for you",
             headline = "How did tonight land?",
-            body = "Your reactions are yours alone. They help your next nights fit you better.",
+            body = "Your reactions are yours alone. They help your next evenings fit you better.",
         )
         state.played.forEach { index ->
             val chapter = night.chapters[index]
             CinematicCard {
                 Text(
-                    text = "Chapter ${index + 1} · ${chapter.kind.label}".uppercase(),
+                    text = "Card ${index + 1} · ${chapter.kind.label}".uppercase(),
                     style = EyebrowTextStyle,
                     color = AfterhoursTheme.colors.textFaint,
                 )
@@ -147,7 +147,7 @@ internal fun FeedbackStage(state: NightUiState, actions: NightActions) {
 @Composable
 internal fun DoneStage(onKeepIt: () -> Unit, onHome: () -> Unit) {
     ScreenColumn {
-        ScreenHeading(eyebrow = "Night complete", headline = "Night complete ❤️", body = "Sleep well, you two.")
+        ScreenHeading(eyebrow = "That's the evening", headline = "That's the evening ❤️", body = "Sleep well, you two.")
         GlowButton(
             text = "Save to Our Memories",
             onClick = onKeepIt,

@@ -59,7 +59,7 @@ fun ChapterCard(
 
     CinematicCard(
         modifier = modifier.semantics {
-            contentDescription = "Chapter $index, $shownTitle, $stateWord"
+            contentDescription = "Card $index, $shownTitle, $stateWord"
         },
         onClick = if (state == ChapterState.Locked) null else onClick,
         glowing = state == ChapterState.Active,
