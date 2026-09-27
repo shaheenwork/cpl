@@ -52,6 +52,7 @@ import kotlin.math.ceil
 @Composable
 fun PairingScreen(
     onPaired: () -> Unit,
+    onLeave: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PairingViewModel = hiltViewModel(),
 ) {
@@ -64,6 +65,7 @@ fun PairingScreen(
 
     PairingContent(
         state = state,
+        onLeave = onLeave,
         onInvite = viewModel::startInvite,
         onHaveCode = viewModel::startEnteringCode,
         onCodeChange = viewModel::onCodeChange,
@@ -99,6 +101,7 @@ internal fun PairingContent(
     onCancel: () -> Unit,
     onBack: () -> Unit,
     onShare: (String) -> Unit,
+    onLeave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val spacing = AfterhoursTheme.spacing
@@ -110,7 +113,7 @@ internal fun PairingContent(
         verticalArrangement = Arrangement.spacedBy(spacing.md),
     ) {
         when (val step = state.step) {
-            PairingStep.Choose -> ChooseStep(state.isBusy, onInvite, onHaveCode)
+            PairingStep.Choose -> ChooseStep(state.isBusy, onInvite, onHaveCode, onLeave)
             is PairingStep.Invite -> InviteStep(step, state.isBusy, onShare, onInvite, onCancel)
             is PairingStep.ConfirmPartner -> ConfirmStep(step.verification, state.isBusy, onApprove, onDecline)
             PairingStep.EnterCode -> EnterCodeStep(state, onCodeChange, onSubmitCode, onBack)
@@ -140,7 +143,7 @@ private fun Heading(eyebrow: String, headline: String, body: String? = null) {
 }
 
 @Composable
-private fun ChooseStep(busy: Boolean, onInvite: () -> Unit, onHaveCode: () -> Unit) {
+private fun ChooseStep(busy: Boolean, onInvite: () -> Unit, onHaveCode: () -> Unit, onLeave: () -> Unit) {
     Heading(
         eyebrow = "JUST YOU TWO",
         headline = "Pair with your partner.",
@@ -158,6 +161,15 @@ private fun ChooseStep(busy: Boolean, onInvite: () -> Unit, onHaveCode: () -> Un
         text = "I have a code",
         onClick = onHaveCode,
         style = GlowButtonStyle.Secondary,
+        enabled = !busy,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    // Reached from home by someone who wanted the half of the app that needs a partner. Changing
+    // their mind is an answer, and the rest of the app works without this (§6, U6).
+    GlowButton(
+        text = "Not now",
+        onClick = onLeave,
+        style = GlowButtonStyle.Quiet,
         enabled = !busy,
         modifier = Modifier.fillMaxWidth(),
     )

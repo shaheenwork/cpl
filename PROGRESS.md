@@ -6,8 +6,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 **Current position:** The 23 phases of BUILD_PROMPT.md are complete, the rebuild in
 `REDESIGN_PROMPT.md` (R1–R10) is complete — 22 games, 632 prompts — and the app is now being
 **unified**: the rebuild had left two of everything, so signing in replaced the app rather than
-adding to it. U1–U5 are done (one home, one way to start, one game list and one player, one vocabulary, and the
-six-field form reduced to three questions); U6 (no dead ends) follows. What remains before a public release is
+adding to it. U1–U6 are done: one home, one way to start, one game list and one player, one vocabulary, the
+six-field form reduced to three questions, and no screen that can be reached and not left. What remains before a public release is
 setup and review, not code: `RELEASE.md` is the ordered runbook, `HUMAN_SETUP.md` the console detail,
 and `legal/` holds drafts of the privacy policy, the terms and the Play data-safety answers, pending
 a lawyer.
@@ -1231,6 +1231,30 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Unification U6 — No dead ends ✅
+
+### Shipped
+- **The account screen says what an account buys** (D-106). `Route.Auth` carries `offer` — an
+  `AccountOffer` name and nothing else, three cases, never a content id or what they were doing — so
+  somebody who tapped Apart is told that this one needs the two of them, and that what they have
+  already said no to comes with them. It ends with "Not now, keep playing", which goes back.
+- **Pairing can be left.** Its chooser offered two ways forward and nothing else. It used to be the
+  screen a signed-in person was dumped on; it is reached from a row on home now, so "Not now" is an
+  answer.
+- **The empty library offers the thing that fills it**, and the favourites filter offers the full
+  list — `EmptyState` has taken an action since it was written and was not being passed one.
+
+### Verified
+```
+./gradlew check                               BUILD SUCCESSFUL
+:feature:auth  AuthViewModelTest              9/9   (including the route argument)
+:feature:auth  AuthSnapshotTest               4/4   (sign-up-apart.png)
+```
+- The rule left behind: a screen that can be reached must be leavable, and a screen that asks for
+  something must say what it is for.
 
 ---
 

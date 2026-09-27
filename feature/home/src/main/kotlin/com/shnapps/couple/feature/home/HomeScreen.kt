@@ -20,6 +20,7 @@ import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
+import com.shnapps.couple.core.model.AccountOffer
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.Gate
 import com.shnapps.couple.core.model.Heat
@@ -95,8 +96,8 @@ data class HomeActions(
     val onSettings: () -> Unit = {},
     /** Signed in, but nobody joined yet: the pairing handshake. */
     val onPairPartner: () -> Unit = {},
-    /** Something that needs an account, tapped. It says what it buys before it asks. */
-    val onAccount: () -> Unit = {},
+    /** Something that needs an account, tapped. The screen that asks says what it buys (§6). */
+    val onAccount: (AccountOffer) -> Unit = {},
     val onPaywall: (Gate) -> Unit = {},
     /** A game dealt on this phone, for anyone the server does not know. */
     val onDealtGame: (gameId: String) -> Unit = {},
@@ -218,7 +219,7 @@ private fun Start(state: HomeUiState, choosing: Boolean, onChoosing: (Boolean) -
                 onClick = if (signedIn) {
                     { actions.onSurprise(false) }
                 } else {
-                    actions.onAccount
+                    { actions.onAccount(AccountOffer.EVENING) }
                 },
             )
             ChoiceRow(
@@ -229,7 +230,7 @@ private fun Start(state: HomeUiState, choosing: Boolean, onChoosing: (Boolean) -
                 onClick = if (signedIn) {
                     { actions.onSurprise(true) }
                 } else {
-                    actions.onAccount
+                    { actions.onAccount(AccountOffer.EVENING) }
                 },
             )
             ChoiceRow(
@@ -237,14 +238,14 @@ private fun Start(state: HomeUiState, choosing: Boolean, onChoosing: (Boolean) -
                 subtitle = "Short, and it knows it.",
                 trailing = "Go",
                 locked = !signedIn,
-                onClick = if (signedIn) actions.onExpress else actions.onAccount,
+                onClick = if (signedIn) actions.onExpress else { { actions.onAccount(AccountOffer.EVENING) } },
             )
             ChoiceRow(
                 title = "Plan the evening",
                 subtitle = "Three questions, then we build it around them.",
                 trailing = "Plan",
                 locked = !signedIn,
-                onClick = if (signedIn) actions.onPlan else actions.onAccount,
+                onClick = if (signedIn) actions.onPlan else { { actions.onAccount(AccountOffer.EVENING) } },
             )
         }
     }
@@ -264,7 +265,7 @@ private fun Apart(state: HomeUiState, actions: HomeActions) {
                 title = "Apart",
                 subtitle = "Send them something, leave something for later, count down to a date.",
                 locked = true,
-                onClick = actions.onAccount,
+                onClick = { actions.onAccount(AccountOffer.APART) },
             )
             Company.SIGNED_IN -> ChoiceRow(
                 title = "Apart",
@@ -297,7 +298,11 @@ private fun Apart(state: HomeUiState, actions: HomeActions) {
             },
             trailing = "Open",
             locked = !state.company.signedIn,
-            onClick = if (state.company.signedIn) actions.onMemories else actions.onAccount,
+            onClick = if (state.company.signedIn) {
+                actions.onMemories
+            } else {
+                { actions.onAccount(AccountOffer.MEMORIES) }
+            },
         )
 
         if (state.company.paired) {

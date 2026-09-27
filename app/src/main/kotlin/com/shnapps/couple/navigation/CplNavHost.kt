@@ -7,6 +7,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.shnapps.couple.core.designsystem.gallery.ComponentGallery
+import com.shnapps.couple.core.model.AccountOffer
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.navigation.Route
 import com.shnapps.couple.core.security.BiometricAuthenticator
@@ -85,18 +86,18 @@ fun CplNavHost(
                     }
                 },
                 onNotOldEnough = {
-                    navController.navigate(Route.Auth) {
+                    navController.navigate(Route.Auth()) {
                         popUpTo(Route.Start) { inclusive = true }
                     }
                 },
-                onPairInstead = { navController.navigate(Route.Auth) },
+                onPairInstead = { navController.navigate(Route.Auth(AccountOffer.APART.name)) },
             )
         }
 
         composable<Route.InstantPlay> {
             InstantPlayScreen(
                 onBack = { navController.popBackStack() },
-                onKeepThis = { navController.navigate(Route.Auth) },
+                onKeepThis = { navController.navigate(Route.Auth(AccountOffer.MEMORIES.name)) },
             )
         }
 
@@ -116,7 +117,7 @@ fun CplNavHost(
                 // Declining is a real outcome, not a nudge to try again: it returns to
                 // auth rather than looping the gate (§3.1).
                 onDeclined = {
-                    navController.navigate(Route.Auth) {
+                    navController.navigate(Route.Auth()) {
                         popUpTo(Route.AgeGate) { inclusive = true }
                     }
                 },
@@ -125,9 +126,16 @@ fun CplNavHost(
 
         composable<Route.Auth> {
             AuthScreen(
+                // Nothing here is a wall: whoever arrived from a row on home goes back to it, and
+                // whoever arrived with nothing behind them lands on home, which needs no account.
+                onBack = {
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Route.Home) { popUpTo(0) { inclusive = true } }
+                    }
+                },
                 onSignedIn = {
                     navController.navigate(Route.Splash) {
-                        popUpTo(Route.Auth) { inclusive = true }
+                        popUpTo<Route.Auth> { inclusive = true }
                     }
                 },
             )
@@ -164,6 +172,11 @@ fun CplNavHost(
         // never stood in front of them on the way in (REDESIGN_PROMPT.md §6).
         composable<Route.CoupleSetup> {
             PairingScreen(
+                onLeave = {
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Route.Home) { popUpTo(0) { inclusive = true } }
+                    }
+                },
                 onPaired = {
                     navController.navigate(Route.Home) {
                         popUpTo(Route.CoupleSetup) { inclusive = true }
@@ -265,7 +278,7 @@ fun CplNavHost(
             val signOutViewModel: SignOutViewModel = hiltViewModel()
             val leave: () -> Unit = {
                 signOutViewModel.signOut {
-                    navController.navigate(Route.Auth) { popUpTo(0) { inclusive = true } }
+                    navController.navigate(Route.Auth()) { popUpTo(0) { inclusive = true } }
                 }
             }
             SettingsScreen(
@@ -288,7 +301,7 @@ fun CplNavHost(
             DeleteAccountScreen(
                 // Nothing left to sign out of: the account is gone, and the repository has already
                 // cleared this phone. All that remains is to go back to the beginning.
-                onDeleted = { navController.navigate(Route.Auth) { popUpTo(0) { inclusive = true } } },
+                onDeleted = { navController.navigate(Route.Auth()) { popUpTo(0) { inclusive = true } } },
                 onBack = { navController.popBackStack() },
             )
         }
@@ -343,7 +356,7 @@ private fun experienceRoute(experienceId: String, type: ExperienceType): Any = w
 }
 
 private fun StartDestination.toRoute(): Any = when (this) {
-    StartDestination.Auth -> Route.Auth
+    StartDestination.Auth -> Route.Auth()
     StartDestination.Start -> Route.Start
     StartDestination.AgeGate -> Route.AgeGate
     StartDestination.Welcome -> Route.Welcome
@@ -374,7 +387,7 @@ private fun Home(navController: NavHostController) {
             onSettings = { navController.navigate(Route.Settings) },
             onPairPartner = { navController.navigate(Route.CoupleSetup) },
             // An account, asked for where it buys something and never before (§6).
-            onAccount = { navController.navigate(Route.Auth) },
+            onAccount = { offer -> navController.navigate(Route.Auth(offer.name)) },
             onPaywall = { gate -> navController.navigate(Route.Paywall(gate.name)) },
             onDealtGame = { gameId -> navController.navigate(Route.DealtGame(gameId)) },
             onOpen = { experienceId, type -> navController.navigate(experienceRoute(experienceId, type)) },

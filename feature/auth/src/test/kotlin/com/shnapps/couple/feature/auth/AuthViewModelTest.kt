@@ -1,12 +1,15 @@
 package com.shnapps.couple.feature.auth
 
+import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.shnapps.couple.core.analytics.AnalyticsEvent
 import com.shnapps.couple.core.analytics.AnalyticsLogger
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.instant.LocalPlayReconciler
+import com.shnapps.couple.core.model.AccountOffer
 import com.shnapps.couple.core.model.BoundaryLevel
+import com.shnapps.couple.core.navigation.Route
 import com.shnapps.couple.core.testing.FakeAppPreferencesStore
 import com.shnapps.couple.core.testing.FakeAuthRepository
 import com.shnapps.couple.core.testing.FakeBoundaryRepository
@@ -37,7 +40,13 @@ class AuthViewModelTest {
     private val boundaries = FakeBoundaryRepository()
     private val reconciler = LocalPlayReconciler(preferences, boundaries, auth)
 
-    private fun viewModel() = AuthViewModel(auth, reconciler, analytics)
+    private fun viewModel(offer: AccountOffer? = null) =
+        AuthViewModel(
+            SavedStateHandle(offer?.let { mapOf(Route.Auth::offer.name to it.name) } ?: emptyMap()),
+            auth,
+            reconciler,
+            analytics,
+        )
 
     @Test
     fun `signing up carries what this phone already refused`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -193,5 +202,11 @@ class AuthViewModelTest {
 
         assertThat(vm.uiState.value.errorMessage).isNull()
         assertThat(vm.uiState.value.mode).isEqualTo(AuthMode.SignUp)
+    }
+
+    @Test
+    fun `it knows why it was asked for, so the screen can say what an account buys`() {
+        assertThat(viewModel().uiState.value.offer).isNull()
+        assertThat(viewModel(AccountOffer.APART).uiState.value.offer).isEqualTo(AccountOffer.APART)
     }
 }

@@ -1,12 +1,15 @@
 package com.shnapps.couple.feature.auth
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
+import com.shnapps.couple.core.model.AccountOffer
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,7 +29,7 @@ class AuthSnapshotTest {
         AuthContent(
             state = AuthUiState(email = "you@example.com", password = "a-good-password"),
             onEmailChange = {}, onPasswordChange = {}, onToggleMode = {},
-            onSubmit = {}, onForgotPassword = {}, onDismissReset = {},
+            onSubmit = {}, onForgotPassword = {}, onDismissReset = {}, onBack = {},
         )
     }
 
@@ -35,7 +38,7 @@ class AuthSnapshotTest {
         AuthContent(
             state = AuthUiState(mode = AuthMode.SignUp),
             onEmailChange = {}, onPasswordChange = {}, onToggleMode = {},
-            onSubmit = {}, onForgotPassword = {}, onDismissReset = {},
+            onSubmit = {}, onForgotPassword = {}, onDismissReset = {}, onBack = {},
         )
     }
 
@@ -48,8 +51,23 @@ class AuthSnapshotTest {
                 errorMessage = "That email and password don't match.",
             ),
             onEmailChange = {}, onPasswordChange = {}, onToggleMode = {},
-            onSubmit = {}, onForgotPassword = {}, onDismissReset = {},
+            onSubmit = {}, onForgotPassword = {}, onDismissReset = {}, onBack = {},
         )
+    }
+
+    @Test
+    fun `arriving from a row that needs an account is told what it buys`() {
+        capture("sign-up-apart") {
+            AuthContent(
+                state = AuthUiState(mode = AuthMode.SignUp, offer = AccountOffer.APART),
+                onEmailChange = {}, onPasswordChange = {}, onToggleMode = {},
+                onSubmit = {}, onForgotPassword = {}, onDismissReset = {}, onBack = {},
+            )
+        }
+
+        composeRule.onNodeWithText("This one needs the two of you.").assertIsDisplayed()
+        // Never a wall: whatever they came for, they can go back to playing without it (§6, U6).
+        composeRule.onNodeWithText("Not now, keep playing").assertIsDisplayed()
     }
 
     private fun capture(name: String, content: @Composable () -> Unit) {

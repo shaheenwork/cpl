@@ -57,6 +57,6 @@ class PairingSnapshotTest {
     private fun Content(state: PairingUiState) = PairingContent(
         state = state,
         onInvite = {}, onHaveCode = {}, onCodeChange = {}, onSubmitCode = {},
-        onApprove = {}, onDecline = {}, onCancel = {}, onBack = {}, onShare = {},
+        onApprove = {}, onDecline = {}, onCancel = {}, onBack = {}, onShare = {}, onLeave = {},
     )
 }

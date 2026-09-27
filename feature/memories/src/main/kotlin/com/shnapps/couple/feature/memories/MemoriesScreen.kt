@@ -93,10 +93,22 @@ internal fun MemoriesContent(
             }
             state.error?.let { ErrorBanner(message = it.message(), onDismiss = actions.onDismissError) }
             if (state.empty) {
+                // Never a screen with nothing on it and nowhere to go (§6, U6): what it will hold,
+                // and the one thing that fills it.
                 EmptyState(
                     title = if (state.filter == MemoryFilter.FAVORITES) "Nothing marked yet." else "Nothing kept yet.",
-                    body = "At the end of an evening, you can keep it here — a title, a note, the " +
-                        "moment you want to remember.",
+                    body = if (state.filter == MemoryFilter.FAVORITES) {
+                        "Mark one with a heart and it shows up here."
+                    } else {
+                        "At the end of an evening, you can keep it here — a title, a note, the " +
+                            "moment you want to remember."
+                    },
+                    actionLabel = if (state.filter == MemoryFilter.FAVORITES) "See them all" else "Play something",
+                    onAction = if (state.filter == MemoryFilter.FAVORITES) {
+                        { actions.onFilter(MemoryFilter.ALL) }
+                    } else {
+                        actions.onBack
+                    },
                 )
             }
             Column(verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm)) {

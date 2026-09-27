@@ -1693,3 +1693,34 @@ not drag past their shared level. `HeatPicker` has no such parameter, so `setHea
 shared level itself — `Intensity.effective(heat.ceiling, ceiling)` — and a test holds it. The server
 would have refused anything past it regardless (§3.2); what this prevents is a screen that says Wild
 to a couple who agreed to stop at Hot.
+
+---
+
+## D-106 — Nothing is a wall, and the account says what it buys
+
+Three screens could be reached and not left, and each was reached by someone doing the right thing.
+
+**The account screen.** Tapping a row on home that needs an account landed on `AuthScreen`: an
+eyebrow saying "MAKE IT YOURS", two fields, and no statement of what an account was for or any way
+back to what they had been doing. The one thing they had actually asked for — sending their partner
+a voice note, keeping the evening — was never mentioned.
+
+`Route.Auth` now carries `offer`, an `AccountOffer` name and nothing else. It is deliberately not a
+content id, not a screen name and not what they were doing: three cases, `APART`, `MEMORIES`,
+`EVENING`, so nothing about the couple can ride along in a route argument. The screen says what that
+one buys — including that what they have already said no to comes with them (D-101) — and ends with
+"Not now, keep playing", which goes back to what they were doing. The words live with the screen;
+the enum is only which of them to say.
+
+**Pairing.** `ChooseStep` offered "Invite my partner" and "I have a code" and nothing else. It used
+to be the screen a signed-in person was dumped on, so there was nowhere to go back to; it is
+reached from a row on home now (D-103), so "Not now" is an answer, and the rest of the app works
+without a partner.
+
+**The empty library.** `EmptyState` has taken an action since it was written, and the library was not
+passing one. It says what fills it and offers the way to do it; the favourites filter offers the
+full list instead, which is what somebody who has kept nothing as a favourite actually wants.
+
+The rule this leaves behind: **a screen that can be reached must be leavable, and a screen that asks
+for something must say what it is for.** `EmptyState`'s optional action exists precisely so the
+first half is one argument, not a new component.

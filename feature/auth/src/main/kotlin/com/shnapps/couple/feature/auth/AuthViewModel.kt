@@ -1,5 +1,6 @@
 package com.shnapps.couple.feature.auth
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shnapps.couple.core.analytics.AnalyticsEvent
@@ -8,6 +9,8 @@ import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.auth.AuthRepository
 import com.shnapps.couple.core.data.instant.LocalPlayReconciler
+import com.shnapps.couple.core.model.AccountOffer
+import com.shnapps.couple.core.navigation.Route
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +29,8 @@ data class AuthUiState(
     val errorMessage: String? = null,
     val resetEmailSent: Boolean = false,
     val signedIn: Boolean = false,
+    /** Why they were asked, when they arrived from a row that needs an account (§6). */
+    val offer: AccountOffer? = null,
 ) {
     val canSubmit: Boolean
         get() = !isSubmitting && email.isNotBlank() && password.length >= MIN_PASSWORD_LENGTH
@@ -37,12 +42,18 @@ data class AuthUiState(
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val authRepository: AuthRepository,
     private val reconciler: LocalPlayReconciler,
     private val analytics: AnalyticsLogger,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(AuthUiState())
+    // Read by property name, never through toRoute(): that goes via Android's Bundle, which JVM
+    // unit tests stub, so it silently returns defaults there (D-067).
+    private val offer: AccountOffer? = savedStateHandle.get<String>(Route.Auth::offer.name)
+        ?.let { name -> AccountOffer.entries.firstOrNull { it.name == name } }
+
+    private val _uiState = MutableStateFlow(AuthUiState(offer = offer))
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
     fun onEmailChange(value: String) =
