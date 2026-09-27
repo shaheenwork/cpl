@@ -1,4 +1,4 @@
-package com.shnapps.couple.feature.instant
+package com.shnapps.couple.feature.games
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
@@ -24,16 +24,16 @@ import com.shnapps.couple.core.ui.SecureScreen
 import com.shnapps.couple.core.ui.voice.LocalVoiceRecorder
 
 /**
- * A game, played on one phone by two people, with nobody signed in (REDESIGN_PROMPT.md §5.2).
+ * A game dealt on this phone and played on it, by two people passing it (REDESIGN_PROMPT.md §5.2).
  *
  * Every primitive is drawn by the shared renderers, so this screen knows nothing about any game —
  * only the order the interpreter hands them over in. Leaving is simply leaving: there is no session
  * to end, and nobody on the other side waiting for it.
  */
 @Composable
-fun InstantGameScreen(
+fun DealtGameScreen(
     onBack: () -> Unit,
-    viewModel: InstantGameViewModel = hiltViewModel(),
+    viewModel: DealtGameViewModel = hiltViewModel(),
 ) {
     SecureScreen()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -41,7 +41,7 @@ fun InstantGameScreen(
     // A round that records needs something to record with. Provided here rather than reached for
     // inside the renderer, so a screenshot test and a preview both draw the same screen without one.
     CompositionLocalProvider(LocalVoiceRecorder provides viewModel.recorder) {
-        InstantGameContent(
+        DealtGameContent(
             state = state,
             onBack = onBack,
             onProceed = viewModel::proceed,
@@ -55,8 +55,8 @@ fun InstantGameScreen(
 
 @Suppress("LongParameterList") // A game screen: the moment, and every way past it.
 @Composable
-internal fun InstantGameContent(
-    state: InstantGameUiState,
+internal fun DealtGameContent(
+    state: DealtGameUiState,
     onBack: () -> Unit,
     onProceed: () -> Unit,
     onAnswer: (Answer) -> Unit,

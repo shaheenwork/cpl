@@ -1,14 +1,9 @@
-// The home surface (BUILD_PROMPT.md section 14.2): the way in to everything, and the
-// TOGETHER / APART switch that drives it.
+// The one home (REDESIGN_PROMPT.md section 6): the same screen for a phone with no account, an
+// account with nobody joined to it, and a couple. What an account adds is that more of it works.
 plugins {
     id("afterhours.android.feature")
 }
 
 android {
     namespace = "com.shnapps.couple.feature.home"
-}
-
-dependencies {
-    // The home this phone opens on is a device setting, like the app lock's (§14.2).
-    implementation(project(":core:datastore"))
 }

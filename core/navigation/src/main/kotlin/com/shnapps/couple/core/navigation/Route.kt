@@ -34,14 +34,6 @@ object Route {
     @Serializable
     data object InstantPlay
 
-    /** Where an evening starts when nobody has signed in: what to play, and how far. */
-    @Serializable
-    data object InstantHome
-
-    /** A game dealt on this phone, with no account and no session behind it. */
-    @Serializable
-    data class InstantGame(val gameId: String)
-
     @Serializable
     data object Auth
 
@@ -127,9 +119,12 @@ object Route {
     @Serializable
     data class Night(val experienceId: String)
 
-    /** The games, and setting one up (§11). */
+    /**
+     * A game dealt on this phone: no session, no server, nobody waiting. What a phone with no
+     * account plays, and the one player screen draws it the same way it draws a session's.
+     */
     @Serializable
-    data object Games
+    data class DealtGame(val gameId: String)
 
     /**
      * A game being played — or waiting to be — on either partner's phone (§11). [twoPhones] is

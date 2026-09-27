@@ -3,17 +3,14 @@
 Live build status. Updated at the end of every phase (BUILD_PROMPT.md §0.2).
 Phase list and exit criteria: BUILD_PROMPT.md §22.
 
-**Current position:** The 23 phases of BUILD_PROMPT.md are complete, and the rebuild in
-`REDESIGN_PROMPT.md` has begun — R1 (chance, desire and six new games) and R2 (two taps to a card,
-with no account and no network), R3 (the player whole) and R4 (home, and fourteen games playable
-with no account) and R5 (an account offered when it buys something, carrying the local refusals into
-the person's real limits), R6 (apart as one thread) and R7 (the deck offered rather than demanded)
-and R8 (polish, and the audit run against the new screens) are done — the whole of
-`REDESIGN_PROMPT.md` §7 is built, R9 added seven more games and R10 the `MEDIA` step — 22 games,
-632 prompts. The rebuild is complete; what remains before release is human setup (`RELEASE.md`). Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
-and every §23 deliverable is written. What remains before a public release is setup and review, not
-code: `RELEASE.md` is the ordered runbook, `HUMAN_SETUP.md` the console detail, and `legal/` holds
-drafts of the privacy policy, the terms and the Play data-safety answers, pending a lawyer.
+**Current position:** The 23 phases of BUILD_PROMPT.md are complete, the rebuild in
+`REDESIGN_PROMPT.md` (R1–R10) is complete — 22 games, 632 prompts — and the app is now being
+**unified**: the rebuild had left two of everything, so signing in replaced the app rather than
+adding to it. U1–U3 are done (one home, one way to start, one game list and one player); U4 (one
+vocabulary), U5 (design repair) and U6 (no dead ends) follow. What remains before a public release is
+setup and review, not code: `RELEASE.md` is the ordered runbook, `HUMAN_SETUP.md` the console detail,
+and `legal/` holds drafts of the privacy policy, the terms and the Play data-safety answers, pending
+a lawyer.
 
 ---
 
@@ -1234,6 +1231,56 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Unification U1–U3 — One home, one way to start, one game list ✅
+
+The device walk after R10 found the real problem, and it was not any one screen: the app had become
+**two apps**. A phone with no account opened on one home; signing in replaced it with another, with
+a different layout, a different list of games, a different player and a different word for how far
+the evening goes. Everything a person had learned stopped being true the moment they made an account.
+
+### Shipped
+- **One home** (D-103). `:feature:home` is the home for all three audiences; `HomeUiState.company`
+  (`ALONE` / `SIGNED_IN` / `PAIRED`) says who is looking at it and never chooses a layout. The
+  heading, the one filled button, the heat and the list of games are identical in all three. Apart
+  and the library are on the screen from the first minute, greyed, with "Set up" where their action
+  word goes — so what an account buys is named where someone reaches for it.
+- **One way to start** (D-104). Five competing buttons and a card became one "Start now", which
+  opens the five shapes: deal us cards, surprise us, a mystery, fifteen minutes, plan the evening.
+  The one that needs nothing at all is first; the rest say what they need rather than hiding.
+- **One game list, one tap.** `HomeViewModel.play` asks the server for a paired couple — their
+  rounds are chosen behind both partners' boundaries and both phones follow the session (§3.2,
+  D-070) — and deals on the phone for anyone else (D-100). The difference is not something a person
+  has to know about.
+- **One player.** The dealt-game player moved into `:feature:games` as `DealtGameScreen`, beside the
+  session player and its goldens, because the two are meant to be indistinguishable.
+- **Not paired is no longer a wall.** The splash sends a signed-in, unpaired person home; pairing is
+  one row inside it.
+- **Two shared components** so there is one of each: `HeatPicker` and `ChoiceRow` in `:core:ui`. Every
+  choosable thing on home — a game, apart, the library, a shape of an evening — is the same row.
+
+### Retired
+`Route.InstantHome`, `Route.Games`, `InstantHomeScreen`, `InstantHomeViewModel`, `GamesScreen`,
+`GamesViewModel` and its setup form (an intensity dial beside the heat, and two name fields standing
+between a couple and a game), the TOGETHER/APART switch, the five-button wall, the
+`StartDestination.InstantPlay` branch, and `ActiveNightCard` — which nothing had used since the home
+grew its own, and whose golden was the "broken empty card" the walk reported.
+
+### Verified
+```
+./gradlew check                               BUILD SUCCESSFUL
+:feature:home  HomeViewModelTest              11/11
+:feature:home  HomeSnapshotTest                8/8   (home-alone.png and home-paired.png)
+:feature:home  HomeAccessibilityTest           3/3   (200% type, 48 dp, everything labelled)
+:feature:games DealtGameViewModelTest          6/6
+```
+- **The claim has two goldens.** `home-alone.png` and `home-paired.png` come from the same composable
+  with one field changed. A change that pulls them back into two layouts is an image diff.
+- `a paired couple's game is the server's, at the heat they set` asserts the call actually made:
+  `start:<game>:<ceiling>`. `with no account the games are still listed, and one is dealt on this
+  phone` asserts the opposite — that no server call happens at all.
 
 ---
 

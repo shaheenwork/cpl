@@ -7,15 +7,19 @@ import com.shnapps.couple.core.analytics.AnalyticsLogger
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Clock
 import com.shnapps.couple.core.common.Outcome
+import com.shnapps.couple.core.data.auth.AuthRepository
 import com.shnapps.couple.core.data.billing.gate
+import com.shnapps.couple.core.data.game.GameRepository
+import com.shnapps.couple.core.data.instant.InstantPlayRepository
 import com.shnapps.couple.core.data.media.MediaRepository
 import com.shnapps.couple.core.data.night.NightRepository
 import com.shnapps.couple.core.data.preferences.PreferenceRepository
 import com.shnapps.couple.core.data.surprise.SurpriseRepository
-import com.shnapps.couple.core.datastore.AppPreferencesStore
+import com.shnapps.couple.core.model.ExperienceType
+import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.Gate
+import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.MediaItem
-import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.ThreadEntry
@@ -34,15 +38,44 @@ import javax.inject.Inject
 /** Why the app could not make something out of one tap. */
 enum class HomeError { OFFLINE, NOT_ENOUGH_CONTENT, BUSY, OTHER }
 
+/** What home has opened, once a tap has produced something to open. */
+sealed interface Opened {
+    /** A game dealt on this phone: nothing was asked of any server. */
+    data class Dealt(val gameId: String) : Opened
+
+    /** An evening or a game the server built, and the session both phones follow. */
+    data class Session(val experienceId: String, val type: ExperienceType) : Opened
+}
+
+/** Who is using the app. The same home for all three — more of it works, further down. */
+enum class Company {
+    /** No account: everything this phone can do on its own, which is most of it. */
+    ALONE,
+
+    /** An account, but nobody joined to it yet. */
+    SIGNED_IN,
+
+    /** Both of them. */
+    PAIRED,
+    ;
+
+    val signedIn: Boolean get() = this != ALONE
+    val paired: Boolean get() = this == PAIRED
+}
+
 data class HomeUiState(
-    /** The same room, or apart: one switch drives the whole surface (§14.2). */
-    val mode: Mode = Mode.TOGETHER,
+    /** Who is using it: what is enabled, never which screen they get (REDESIGN_PROMPT.md §6). */
+    val company: Company = Company.ALONE,
+    /** Every game the app ships. The list is the same for everyone. */
+    val games: List<Game> = emptyList(),
+    /** How far tonight goes: the one setting home has. */
+    val heat: Heat = Heat.DEFAULT,
     /** The couple's one experience under way, from either phone, or null. */
     val active: NightSession? = null,
-    /** A surprise is being made: the app is choosing, and the tap has landed. */
+    /** Something is being built: the app is deciding, and the tap has landed. */
     val making: Boolean = false,
-    /** Set once a surprise exists: the screen opens it and calls [HomeViewModel.onShown]. */
-    val startedExperienceId: String? = null,
+    /** Set once there is something to play; the screen opens it and calls [HomeViewModel.onShown]. */
+    val opened: Opened? = null,
     /** Something the partner planned, waiting to be found (§2.5 #2). */
     val waitingForMe: NightPlan? = null,
     /** Something this phone's user planned for them, and whether they have opened it. */
@@ -54,12 +87,7 @@ data class HomeUiState(
      * still sealed. Ordered newest first, and saying nothing about anything undelivered.
      */
     val thread: List<ThreadEntry> = emptyList(),
-    /**
-     * How many private curiosities this person has answered (REDESIGN_PROMPT.md §4.2).
-     *
-     * The deck is optional and re-entrant: the engine builds a night with none of them, a better
-     * one with some, and home offers it as something to play rather than a form to complete.
-     */
+    /** How many private curiosities this person has answered (REDESIGN_PROMPT.md §4.2). */
     val answered: Int = 0,
     val error: HomeError? = null,
     /** A limit they reached: the screen offers what premium includes, and nothing is lost (§19). */
@@ -76,38 +104,50 @@ data class HomeUiState(
 }
 
 /**
- * Home (BUILD_PROMPT.md §14.2): "Tonight could get interesting."
+ * Home — the only one (REDESIGN_PROMPT.md §6).
  *
- * The one UX law (§2.4) is that nobody should be made to think "which question should we
- * pick?", so the two taps that need no thought are here: a surprise, which the server shapes
- * from what only it can see, and a Mystery Night, which does the same and keeps its shape to
- * itself (D-077). Everything else leads to a screen that asks at most a couple of things.
+ * There used to be two: a plain one for a phone with no account, and a wall of buttons for a couple
+ * who had signed in. Signing in therefore replaced the app, which is the reason nobody could learn
+ * it. This is one screen for all three audiences: the same heading, the same one way to start, the
+ * same list of games, in the same order. What an account adds is that more of it works.
  *
- * The surface is one switch — the same room, or apart — kept on the phone, because it is about
- * where this phone is rather than about the couple.
+ * Every flow read here returns nothing at all when there is no account behind it, so the signed-out
+ * home costs no reads and shows no empty scaffolding.
  */
+@Suppress("LongParameterList") // One home now: what used to be two screens' worth of sources.
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val nights: NightRepository,
-    private val preferences: AppPreferencesStore,
-    private val curiosities: PreferenceRepository,
+    private val instant: InstantPlayRepository,
+    private val gameStarts: GameRepository,
     private val analytics: AnalyticsLogger,
     private val clock: Clock,
+    auth: AuthRepository,
+    curiosities: PreferenceRepository,
     media: MediaRepository,
     surprises: SurpriseRepository,
 ) : ViewModel() {
 
     private val local = MutableStateFlow(HomeUiState())
 
+    /** Signed in at all, and joined to someone: the two facts that enable things. */
+    private val company = combine(auth.authState, auth.currentProfile) { user, profile ->
+        when {
+            user == null -> Company.ALONE
+            profile?.coupleId == null -> Company.SIGNED_IN
+            else -> Company.PAIRED
+        }
+    }
+
+    /** What this phone can play on its own: the list, and how far it goes. */
+    private val ownDeck = combine(instant.games, instant.heat, ::Pair)
+
     /**
      * What being apart looks like, in one flow: the inbox, and the thread built from it.
      *
-     * Composed here because `combine` takes five, and because the inbox is wanted twice — once for
+     * Composed here because a combine takes five, and because the inbox is wanted twice — once for
      * the one unopened thing the home nudges about, and once as part of the thread.
      */
-    /** Their own answers, counted. The answers themselves never leave the private path (§5.1). */
-    private val answered = curiosities.answers.map { it.size }
-
     private val apart = combine(
         media.inbox,
         surprises.surprises,
@@ -116,88 +156,112 @@ class HomeViewModel @Inject constructor(
         inbox to threadOf(inbox, left, counting, clock.nowMillis())
     }
 
+    /** What the couple has going, and what one of them left for the other. */
+    private val theirs = combine(
+        nights.activeSession,
+        nights.plans,
+        // Their own answers, counted. The answers themselves never leave the private path (§5.1).
+        curiosities.answers.map { it.size },
+    ) { active, plans, answered -> Triple(active, plans, answered) }
+
     val uiState: StateFlow<HomeUiState> = combine(
         local,
-        nights.activeSession,
-        preferences.preferences.map { it.mode },
-        combine(nights.plans, answered) { plans, count -> plans to count },
+        company,
+        ownDeck,
         apart,
-    ) { state, active, mode, (plans, count), (inbox, thread) ->
+        theirs,
+    ) { state, company, (games, heat), (inbox, thread), (active, plans, answered) ->
         state.copy(
+            company = company,
+            games = games,
+            heat = heat,
             active = active,
-            mode = mode,
-            // Theirs first: a night waiting to be found is the best thing on this screen.
+            // Theirs first: an evening waiting to be found is the best thing on this screen.
             waitingForMe = plans.firstOrNull { !it.mine },
             plannedByMe = plans.firstOrNull { it.mine },
             unopenedMedia = inbox.firstOrNull { it.unopened },
             thread = thread,
-            answered = count,
+            answered = answered,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), HomeUiState())
 
-    fun setMode(mode: Mode) {
-        viewModelScope.launch { preferences.setMode(mode) }
+    fun setHeat(heat: Heat) {
+        local.update { it.copy(heat = heat) }
+        viewModelScope.launch { instant.setHeat(heat) }
     }
 
-    /** 🎲 Surprise us, and 🌙 Mystery Night: one tap, and the app decides (§14.2). */
+    /**
+     * A game, from the one list.
+     *
+     * A paired couple's game is the server's: it chooses the rounds behind both partners'
+     * boundaries, and both phones follow the session it opens (§3.2, D-070). A phone on its own
+     * deals the game itself, from the shipped content and inside its own heat (D-100). One tap,
+     * either way — the difference is not something a person should have to know about.
+     */
+    fun play(gameId: String) {
+        if (!uiState.value.company.paired) {
+            local.update { it.copy(opened = Opened.Dealt(gameId), error = null) }
+            return
+        }
+        if (!uiState.value.canStart) return
+        val ceiling = uiState.value.heat.ceiling
+        local.update { it.copy(making = true, error = null) }
+        viewModelScope.launch {
+            finish(gameStarts.start(gameId, ceiling).map { it.experienceId }, ExperienceType.GAME)
+        }
+    }
+
+    /** Surprise us, and a mystery: one tap, and the app decides (§14.2). */
     fun surprise(mystery: Boolean = false) {
         if (!uiState.value.canStart) return
         local.update { it.copy(making = true, error = null) }
         viewModelScope.launch {
-            when (val result = nights.surprise(mystery)) {
-                is Outcome.Success -> {
-                    // One event for both: which of the two taps it was is not worth recording.
-                    analytics.log(AnalyticsEvent.SurpriseCreated)
-                    local.update { it.copy(making = false, startedExperienceId = result.value.experienceId) }
-                }
-                is Outcome.Failure -> local.update {
-                    val gate = result.error.gate()
-                    it.copy(
-                        making = false,
-                        gate = gate,
-                        error = if (gate == null) result.error.toHomeError() else null,
-                    )
-                }
-            }
+            val result = nights.surprise(mystery)
+            // One event for both: which of the two taps it was is not worth recording.
+            if (result is Outcome.Success) analytics.log(AnalyticsEvent.SurpriseCreated)
+            finish(result.map { it.experienceId }, ExperienceType.NIGHT)
         }
     }
 
     /**
-     * "Something is waiting for you tonight 👀" (§13): opening it tells the partner it landed —
-     * never what happened next — and hands the night to the player.
+     * Something waiting for them (§13): opening it tells the partner it landed — never what
+     * happened next — and hands the evening to the player.
      */
     fun openWaiting() {
         val plan = uiState.value.waitingForMe ?: return
         if (!uiState.value.canStart) return
         local.update { it.copy(making = true, error = null) }
         viewModelScope.launch {
-            when (val result = nights.openPlan(plan.experienceId)) {
-                is Outcome.Success -> local.update {
-                    it.copy(making = false, startedExperienceId = plan.experienceId)
-                }
-                is Outcome.Failure -> local.update {
-                    val gate = result.error.gate()
-                    it.copy(
-                        making = false,
-                        gate = gate,
-                        error = if (gate == null) result.error.toHomeError() else null,
-                    )
-                }
-            }
+            finish(nights.openPlan(plan.experienceId).map { plan.experienceId }, ExperienceType.NIGHT)
         }
     }
 
     /** The screen has opened what was made: the next tap starts again from nothing. */
-    fun onShown() = local.update { it.copy(startedExperienceId = null) }
+    fun onShown() = local.update { it.copy(opened = null) }
 
     fun dismissError() = local.update { it.copy(error = null) }
 
     fun dismissGate() = local.update { it.copy(gate = null) }
 
+    /** One ending for every tap that asks the server for something (§19). */
+    private fun finish(result: Outcome<String>, type: ExperienceType) = local.update { state ->
+        when (result) {
+            is Outcome.Success -> state.copy(making = false, opened = Opened.Session(result.value, type))
+            is Outcome.Failure -> {
+                val gate = result.error.gate()
+                state.copy(
+                    making = false,
+                    gate = gate,
+                    error = if (gate == null) result.error.toHomeError() else null,
+                )
+            }
+        }
+    }
+
     companion object {
         private const val STOP_TIMEOUT_MS = 5_000L
 
-        /** The couple's limits leave too little for a night at all. */
+        /** The couple's limits leave too little for an evening at all. */
         const val NOT_ENOUGH_CONTENT = "not-enough-content"
 
         /** They already have something under way: there is one at a time (D-059). */

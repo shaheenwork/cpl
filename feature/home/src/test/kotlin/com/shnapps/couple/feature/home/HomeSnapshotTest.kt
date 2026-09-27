@@ -6,19 +6,25 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.google.common.truth.Truth.assertThat
 import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.model.ExperienceType
+import com.shnapps.couple.core.model.Game
+import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.MediaKind
 import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
+import com.shnapps.couple.core.model.Scoring
 import com.shnapps.couple.core.model.SessionState
 import com.shnapps.couple.core.model.SurpriseState
 import com.shnapps.couple.core.model.ThreadEntry
+import com.shnapps.couple.core.model.TurnOrder
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,9 +32,11 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Home, screen by screen (BUILD_PROMPT.md §14.2): it opens with "Tonight could get
- * interesting.", never a questionnaire; the two taps that need no thought are the first thing
- * on it; and Apart says what it is rather than offering controls that do nothing (§25).
+ * Home, the only one (REDESIGN_PROMPT.md §6).
+ *
+ * The first two goldens are the claim the whole rebuild rests on: a phone with no account and a
+ * paired couple are looking at the same screen. If a change ever makes those two diverge into two
+ * different layouts again, it shows up here as an image diff rather than as a review comment.
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -45,32 +53,103 @@ class HomeSnapshotTest {
     }
 
     @Test
-    fun togetherHome() {
-        capture("home-together") { HomeContent(HomeUiState(), HomeActions()) }
-        composeRule.onNodeWithText("Tonight could get interesting.").assertIsDisplayed()
+    fun `with no account it is the whole app, with things marked as needing one`() {
+        capture("home-alone") { HomeContent(state(Company.ALONE), HomeActions()) }
+
+        composeRule.onNodeWithText("Pick something. Or let us pick.").assertIsDisplayed()
+        composeRule.onNodeWithText("Start now").assertIsDisplayed()
+        // The games are the same list, in the same order, before anyone signs in.
+        composeRule.onNodeWithText("Spin").assertIsDisplayed()
+        // Nothing is hidden until later: what needs an account is here, saying so.
+        composeRule.onNodeWithText("Apart").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `paired is the same screen with more of it working`() {
+        capture("home-paired") { HomeContent(state(Company.PAIRED), HomeActions()) }
+
+        // The same heading and the same one button: signing in adds, it does not replace (§6).
+        composeRule.onNodeWithText("Pick something. Or let us pick.").assertIsDisplayed()
+        composeRule.onNodeWithText("Start now").assertIsDisplayed()
+        composeRule.onNodeWithText("Plan one for them").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Spin").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `every shape of an evening is behind one button`() {
+        composeRule.setContent {
+            AfterhoursTheme { AfterhoursSurface { HomeContent(state(Company.PAIRED), HomeActions()) } }
+        }
+
+        // Five buttons used to compete on this screen. One opens the five now.
+        assertThat(composeRule.onAllNodesWithText("Surprise us").fetchSemanticsNodes()).isEmpty()
+        composeRule.onNodeWithText("Start now").performClick()
+        composeRule.mainClock.advanceTimeBy(SETTLE_MS)
+        composeRule.onRoot().captureRoboImage("src/test/screenshots/home-start.png")
+
+        composeRule.onNodeWithText("Just deal us cards").assertIsDisplayed()
         composeRule.onNodeWithText("Surprise us").assertIsDisplayed()
+        composeRule.onNodeWithText("A mystery").assertIsDisplayed()
         composeRule.onNodeWithText("We have 15 minutes").assertIsDisplayed()
+        composeRule.onNodeWithText("Plan the evening").assertIsDisplayed()
     }
 
     @Test
-    fun apartIsItsOwnWayIn() {
-        val state = HomeUiState(
-            mode = Mode.APART,
-            plannedByMe = NightPlan(experienceId = "for_them", mine = true, chapterCount = 4, opened = false),
+    fun `with no account the cards are still dealt, and the rest says what it needs`() {
+        composeRule.setContent {
+            AfterhoursTheme { AfterhoursSurface { HomeContent(state(Company.ALONE), HomeActions()) } }
+        }
+        composeRule.onNodeWithText("Start now").performClick()
+        composeRule.mainClock.advanceTimeBy(SETTLE_MS)
+        composeRule.onRoot().captureRoboImage("src/test/screenshots/home-start-alone.png")
+
+        // The fastest way from opening the app to doing something needs nothing at all.
+        composeRule.onNodeWithText("One at a time. Do it, skip it, or say it went too far.").assertIsDisplayed()
+        // The others are on the screen, greyed, saying what they need — never hidden.
+        composeRule.onNodeWithText("We choose everything — the shape, the length, all of it.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `something waiting has both answers on the screen`() {
+        val waiting = state(Company.PAIRED).copy(
+            waitingForMe = NightPlan(experienceId = "planned", mine = false, chapterCount = 5, opened = false),
         )
-        capture("home-apart") { HomeContent(state, HomeActions()) }
-        composeRule.onNodeWithText("Start tonight").assertIsDisplayed()
-        composeRule.onNodeWithText("Plan a night they'll find later.").assertIsDisplayed()
-        // The planner is told it landed, never what is in it (§2.5 #2).
-        composeRule.onNodeWithText("You've planned something. They haven't found it yet.").assertIsDisplayed()
-        assertThat(composeRule.onAllNodesWithText("Build tonight").fetchSemanticsNodes()).isEmpty()
+        capture("home-waiting") { HomeContent(waiting, HomeActions()) }
+
+        // The card used to be a question above a void: no button, and nothing saying what to do.
+        composeRule.onNodeWithText("They planned an evening for you.").assertIsDisplayed()
+        composeRule.onNodeWithText("Open it").assertIsDisplayed()
+        composeRule.onNodeWithText("Nothing happens to it if you leave it. It waits.").assertIsDisplayed()
     }
 
     @Test
-    fun apartIsAThread() {
+    fun `something under way has the way back into it`() {
+        val state = state(Company.PAIRED).copy(
+            active = NightSession(
+                id = "s",
+                experienceId = "e",
+                state = SessionState.CHAPTER_ACTIVE,
+                pausedFrom = null,
+                currentChapter = 1,
+                chapterCount = 6,
+                consentRequired = false,
+                consented = false,
+                partnerConsented = false,
+                isHost = true,
+                endReason = null,
+                experienceType = ExperienceType.NIGHT,
+            ),
+        )
+        capture("home-under-way") { HomeContent(state, HomeActions()) }
+
+        composeRule.onNodeWithText("Your evening is waiting. Pick up where you left off.").assertIsDisplayed()
+        composeRule.onNodeWithText("Pick it up").assertIsDisplayed()
+    }
+
+    @Test
+    fun `apart is a thread`() {
         // What they left, what was sent, what is still sealed (REDESIGN_PROMPT.md §5.4).
-        val state = HomeUiState(
-            mode = Mode.APART,
+        val state = state(Company.PAIRED).copy(
             thread = listOf(
                 ThreadEntry.Media(
                     id = "m1",
@@ -95,66 +174,46 @@ class HomeSnapshotTest {
 
         capture("home-apart-thread") { HomeContent(state, HomeActions()) }
 
-        composeRule.onNodeWithText("A voice note, waiting. It goes when you open it.").assertIsDisplayed()
+        composeRule.onNodeWithText("A voice note, waiting. It goes when you open it.")
+            .performScrollTo().assertIsDisplayed()
         // The one that matters: a surprise before its moment says only that it exists.
-        composeRule.onNodeWithText("Something is coming.").assertIsDisplayed()
+        composeRule.onNodeWithText("Something is coming.").performScrollTo().assertIsDisplayed()
     }
 
     @Test
-    fun curiositiesAreOfferedNotDemanded() {
-        // The deck used to run straight after pairing (REDESIGN_PROMPT.md §4.2). Now it is a card
+    fun `curiosities are offered rather than demanded`() {
+        // The deck used to run straight after pairing (REDESIGN_PROMPT.md §4.2). Now it is one row
         // on home, and nothing makes anyone finish it.
-        capture("home-curiosities-none") { HomeContent(HomeUiState(answered = 0), HomeActions()) }
-
-        composeRule.onNodeWithText("What are you curious about?").assertIsDisplayed()
-        composeRule.onNodeWithText("A few cards, in private. They never see them — only what you both said yes to.")
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun curiositiesSayWhereYouAre() {
-        capture("home-curiosities-some") { HomeContent(HomeUiState(answered = 12), HomeActions()) }
+        capture("home-curiosities") { HomeContent(state(Company.PAIRED).copy(answered = 12), HomeActions()) }
 
         // Where they are, never how far they have to go: there is no end anyone has to reach.
         composeRule.onNodeWithText("12 answered so far. Every one makes tonight a little more yours.")
-            .assertIsDisplayed()
+            .performScrollTo().assertIsDisplayed()
     }
 
-    @Test
-    fun somethingIsWaiting() {
-        val state = HomeUiState(
-            waitingForMe = NightPlan(experienceId = "planned", mine = false, chapterCount = 5, opened = false),
-        )
-        capture("home-waiting") { HomeContent(state, HomeActions()) }
-        composeRule.onNodeWithText("They've planned something for you.").assertIsDisplayed()
-        composeRule.onNodeWithText("5 chapters. That's all either of you knows until you open it.")
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun somethingUnderWay() {
-        val state = HomeUiState(
-            active = NightSession(
-                id = "s",
-                experienceId = "e",
-                state = SessionState.CHAPTER_ACTIVE,
-                pausedFrom = null,
-                currentChapter = 1,
-                chapterCount = 6,
-                consentRequired = false,
-                consented = false,
-                partnerConsented = false,
-                isHost = true,
-                endReason = null,
-                experienceType = ExperienceType.NIGHT,
-            ),
-        )
-        capture("home-under-way") { HomeContent(state, HomeActions()) }
-        composeRule.onNodeWithText("Your night is waiting. Pick up where you left off.").assertIsDisplayed()
-    }
+    private fun state(company: Company) = HomeUiState(company = company, games = games, heat = Heat.HOT)
 
     private companion object {
         const val SETTLE_MS = 2_000L
+
+        val games = listOf(
+            game("SPIN", "Spin", "It decides. You just do it."),
+            game("DIRTY_DICE", "Dirty Dice", "Roll, then run the clock."),
+            game("RATE_IT", "Rate It", "How much, without saying a number."),
+        )
+
+        fun game(id: String, title: String, tagline: String) = Game(
+            id = id,
+            title = title,
+            tagline = tagline,
+            description = "",
+            modes = setOf(Mode.TOGETHER),
+            rounds = 6,
+            turns = TurnOrder.ALTERNATE,
+            scoring = Scoring.NONE,
+            promptKinds = emptyList(),
+            steps = emptyList(),
+        )
     }
 }
 

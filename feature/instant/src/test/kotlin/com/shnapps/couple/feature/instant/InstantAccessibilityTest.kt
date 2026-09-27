@@ -22,12 +22,8 @@ import com.google.common.truth.Truth.assertThat
 import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.engine.InstantCard
-import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.Intensity
-import com.shnapps.couple.core.model.Mode
-import com.shnapps.couple.core.model.Scoring
-import com.shnapps.couple.core.model.TurnOrder
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -37,8 +33,8 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * The accessibility audit, run against the screens the rebuild added (BUILD_PROMPT.md §20).
  *
- * `AccessibilityTest` in `:core:designsystem` holds the components; these are the three screens
- * a person actually meets first, and they were written after that suite existed. The same three
+ * `AccessibilityTest` in `:core:designsystem` holds the components; these are the two screens a
+ * person meets before anything else, and they were written after that suite existed. The same three
  * rules apply: type scales to 200% without losing anything, nothing you are meant to touch is
  * smaller than 48 dp, and everything interactive says what it is.
  */
@@ -76,22 +72,6 @@ class InstantAccessibilityTest {
     }
 
     @Test
-    fun `home holds at 200 percent`() {
-        capture("a11y-instant-home-200", LARGEST) {
-            InstantHomeContent(
-                state = InstantHomeUiState(games = games, heat = Heat.HOT),
-                onStartNow = {},
-                onGame = {},
-                onApart = {},
-                onPlanEvening = {},
-                onHeat = {},
-            )
-        }
-
-        composeRule.onNodeWithText("Start now").assertIsDisplayed()
-    }
-
-    @Test
     fun `nothing you are meant to touch is smaller than 48 dp`() {
         compose(NORMAL) {
             Column {
@@ -119,13 +99,12 @@ class InstantAccessibilityTest {
         compose(NORMAL) {
             Column {
                 play()
-                InstantHomeContent(
-                    state = InstantHomeUiState(games = games, heat = Heat.HOT),
-                    onStartNow = {},
-                    onGame = {},
-                    onApart = {},
-                    onPlanEvening = {},
+                StartContent(
+                    state = StartUiState(heat = Heat.HOT),
                     onHeat = {},
+                    onConfirm = {},
+                    onNotOldEnough = {},
+                    onPairInstead = {},
                 )
             }
         }
@@ -191,21 +170,6 @@ class InstantAccessibilityTest {
             minutes = 5,
             intensity = Intensity.NAUGHTY,
             themes = setOf("teasing_anticipation"),
-        )
-
-        val games = listOf(
-            Game(
-                id = "SPIN",
-                title = "Spin",
-                tagline = "It decides. You just do it.",
-                description = "",
-                modes = setOf(Mode.TOGETHER),
-                rounds = 6,
-                turns = TurnOrder.ALTERNATE,
-                scoring = Scoring.NONE,
-                promptKinds = emptyList(),
-                steps = emptyList(),
-            ),
         )
     }
 }

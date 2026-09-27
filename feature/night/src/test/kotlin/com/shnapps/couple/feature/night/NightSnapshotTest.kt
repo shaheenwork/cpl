@@ -217,15 +217,6 @@ class NightSnapshotTest {
 
     @Test fun done() = capture("night-done", state(NightStage.Done))
 
-    @Test fun activeNightCard() {
-        composeRule.setContent {
-            Themed {
-                ActiveNightContent(session(SessionState.WAITING_FOR_PARTNER, isHost = false), onOpen = { _, _ -> })
-            }
-        }
-        composeRule.onRoot().captureRoboImage("src/test/screenshots/night-active-card.png")
-    }
-
     // ---- promises kept on screen ----------------------------------------------------------------
 
     @Test

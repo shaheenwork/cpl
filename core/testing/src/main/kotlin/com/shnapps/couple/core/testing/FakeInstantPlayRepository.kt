@@ -1,0 +1,54 @@
+package com.shnapps.couple.core.testing
+
+import com.shnapps.couple.core.data.instant.InstantPlayRepository
+import com.shnapps.couple.core.engine.InstantCard
+import com.shnapps.couple.core.engine.InstantDeck
+import com.shnapps.couple.core.engine.game.ReleasedGame
+import com.shnapps.couple.core.model.ContentItem
+import com.shnapps.couple.core.model.Game
+import com.shnapps.couple.core.model.Heat
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+
+/**
+ * In-memory [InstantPlayRepository]: what a phone with no account can play on its own.
+ *
+ * A real deck over real content rather than a mock, for the same reason as every other fake here
+ * (DECISIONS.md D-013) — and built the only way a deck may be built, through the factory. [refused]
+ * records what was said no to, since nothing else can: a refusal never leaves the phone.
+ */
+class FakeInstantPlayRepository(
+    items: List<ContentItem> = emptyList(),
+    games: List<Game> = TestGames.games,
+) : InstantPlayRepository {
+
+    val items = MutableStateFlow(items)
+    override val games = MutableStateFlow(games)
+    override val heat = MutableStateFlow(Heat.DEFAULT)
+
+    /** What this phone has said no to: the card, and whether its whole kind went with it. */
+    val refused = mutableListOf<Pair<String, Boolean>>()
+
+    /** Every game this phone dealt itself, in order. */
+    val dealt = mutableListOf<String>()
+
+    /** What [startGame] hands back. Null stands for content that has nothing at this heat. */
+    var released: ReleasedGame? = null
+
+    override val deck: Flow<InstantDeck> =
+        combine(this.items, heat) { available, level -> InstantDeck.of(available, level) }
+
+    override suspend fun setHeat(heat: Heat) {
+        this.heat.value = heat
+    }
+
+    override suspend fun refuse(card: InstantCard, alsoItsKind: Boolean) {
+        refused += card.id to alsoItsKind
+    }
+
+    override suspend fun startGame(gameId: String): ReleasedGame? {
+        dealt += gameId
+        return released
+    }
+}

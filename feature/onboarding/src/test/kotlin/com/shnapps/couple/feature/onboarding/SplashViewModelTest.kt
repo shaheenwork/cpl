@@ -45,7 +45,8 @@ class SplashViewModelTest {
         auth.user.value = null
         auth.ageHint = true
 
-        assertThat(resolve()).isEqualTo(StartDestination.InstantPlay)
+        // The same home a signed-in couple opens on: an account adds to it, it does not swap it.
+        assertThat(resolve()).isEqualTo(StartDestination.Home)
     }
 
     @Test
@@ -110,12 +111,13 @@ class SplashViewModelTest {
     }
 
     @Test
-    fun `confirmed but unpaired goes to couple setup`() = runTest(mainDispatcherRule.testDispatcher) {
+    fun `confirmed but unpaired goes home, not to a pairing wall`() = runTest(mainDispatcherRule.testDispatcher) {
         auth.user.value = FakeAuthRepository.DEFAULT_USER
         auth.serverAgeConfirmed = true
         auth.profile.value = confirmedProfile(coupleId = null)
 
-        assertThat(resolve()).isEqualTo(StartDestination.CoupleSetup)
+        // Pairing used to stand in front of the app. It is one row inside home now (§6).
+        assertThat(resolve()).isEqualTo(StartDestination.Home)
     }
 
     @Test

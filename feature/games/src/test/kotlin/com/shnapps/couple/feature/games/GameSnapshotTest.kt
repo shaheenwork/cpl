@@ -23,7 +23,6 @@ import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.GamePrimitive
 import com.shnapps.couple.core.model.GameStep
-import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.RevealOutcome
@@ -137,24 +136,6 @@ class GameSnapshotTest {
     }
 
     @Test
-    fun gamesHub() {
-        capture("games-hub") { GamesContent(GamesUiState(games = TestGames.games, first = "Alex"), GamesActions()) }
-    }
-
-    @Test
-    fun gameSetup() {
-        val state = GamesUiState(
-            games = TestGames.games,
-            selectedId = TestGames.TRUTH_OR_DARE,
-            intensity = Intensity.NAUGHTY,
-            sharedLevel = Intensity.BOLD,
-            first = "Alex",
-            second = "Sam",
-        )
-        capture("games-setup") { GamesContent(state, GamesActions()) }
-    }
-
-    @Test
     fun handOffShowsNothingOfWhatComesNext() {
         val state = playing(TestGames.choices, choicePrompts) { it }
         capture("game-hand-off") { GameContent(state, GameActions()) }
@@ -201,21 +182,6 @@ class GameSnapshotTest {
             TestGames.dares.map { it.copy(text = "Slow dance with me for one whole song, no talking.") }
         val state = playing(TestGames.truthOrDare, prompts) { it.submit(Answer.Picked("DARE"))!! }
         capture("game-dare") { GameContent(state, GameActions()) }
-    }
-
-    @Test
-    fun twoPhonesSetup() {
-        val state = GamesUiState(
-            games = TestGames.games,
-            selectedId = TestGames.CHOICES,
-            intensity = Intensity.FLIRTY,
-            sharedLevel = Intensity.BOLD,
-            twoPhones = true,
-        )
-        capture("games-setup-two-phones") { GamesContent(state, GamesActions()) }
-        composeRule.onNodeWithText("A phone each").assertIsDisplayed()
-        // With a phone each there is nobody to pass it to, so no names are asked for.
-        assertThat(composeRule.onAllNodesWithText("Goes first").fetchSemanticsNodes()).isEmpty()
     }
 
     @Test

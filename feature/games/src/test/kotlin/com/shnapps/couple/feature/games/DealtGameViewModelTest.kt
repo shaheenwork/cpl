@@ -1,12 +1,9 @@
-package com.shnapps.couple.feature.instant
+package com.shnapps.couple.feature.games
 
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
-import com.shnapps.couple.core.data.instant.InstantPlayRepository
-import com.shnapps.couple.core.engine.InstantCard
-import com.shnapps.couple.core.engine.InstantDeck
 import com.shnapps.couple.core.engine.game.Answer
 import com.shnapps.couple.core.engine.game.GameMoment
 import com.shnapps.couple.core.engine.game.ReleasedGame
@@ -15,7 +12,6 @@ import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.GamePrimitive
 import com.shnapps.couple.core.model.GamePrompt
 import com.shnapps.couple.core.model.GameStep
-import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.Scoring
@@ -24,10 +20,9 @@ import com.shnapps.couple.core.model.StepOptions
 import com.shnapps.couple.core.model.StepText
 import com.shnapps.couple.core.model.TurnOrder
 import com.shnapps.couple.core.navigation.Route
+import com.shnapps.couple.core.testing.FakeInstantPlayRepository
 import com.shnapps.couple.core.testing.MainDispatcherRule
 import com.shnapps.couple.core.ui.voice.VoiceRecorder
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -41,12 +36,14 @@ import java.io.File
  * seam: a game starts from what this phone dealt itself, it plays through the primitives, and a
  * game the content cannot fill says so rather than showing an empty screen.
  */
-class InstantGameViewModelTest {
+class DealtGameViewModelTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private val instant = FakeInstantPlayRepository()
+    private val instant = FakeInstantPlayRepository().apply {
+        released = ReleasedGame.forHeat(game, prompts, ceiling = 5)
+    }
 
     @Test
     fun `a game deals and is ready to play`() = runTest {
@@ -105,7 +102,7 @@ class InstantGameViewModelTest {
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value.round).isEqualTo(0)
-        assertThat(instant.deals).isEqualTo(2)
+        assertThat(instant.dealt).hasSize(2)
     }
 
     @Test
@@ -117,9 +114,9 @@ class InstantGameViewModelTest {
         assertThat(viewModel.uiState.value.loading).isFalse()
     }
 
-    private fun viewModel(): InstantGameViewModel {
-        val handle = SavedStateHandle(mapOf(Route.InstantGame::gameId.name to game.id))
-        val viewModel = InstantGameViewModel(handle, instant, NoRecorder)
+    private fun viewModel(): DealtGameViewModel {
+        val handle = SavedStateHandle(mapOf(Route.DealtGame::gameId.name to game.id))
+        val viewModel = DealtGameViewModel(handle, instant, NoRecorder)
         mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
         return viewModel
     }
@@ -131,25 +128,6 @@ class InstantGameViewModelTest {
         override fun stop(): Outcome<File> = Outcome.Failure(AppError.Unknown())
 
         override fun cancel() = Unit
-    }
-
-    private class FakeInstantPlayRepository : InstantPlayRepository {
-        var released: ReleasedGame? = ReleasedGame.forHeat(game, prompts, ceiling = 5)
-        var deals = 0
-            private set
-
-        override val deck: Flow<InstantDeck> = MutableStateFlow(InstantDeck.of(emptyList(), Heat.WILD))
-        override val heat: Flow<Heat> = MutableStateFlow(Heat.WILD)
-        override val games: Flow<List<Game>> = MutableStateFlow(listOf(game))
-
-        override suspend fun setHeat(heat: Heat) = Unit
-
-        override suspend fun refuse(card: InstantCard, alsoItsKind: Boolean) = Unit
-
-        override suspend fun startGame(gameId: String): ReleasedGame? {
-            deals += 1
-            return released
-        }
     }
 
     private companion object {

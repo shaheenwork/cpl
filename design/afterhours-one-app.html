@@ -1,0 +1,749 @@
+<title>Afterhours, One App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Manrope:wght@400;500;600;700&display=swap">
+
+<style>
+  :root {
+    color-scheme: dark;
+
+    --ink:    #120A10;
+    --ink-2:  #1C1018;
+    --ink-3:  #271722;
+    --blush:  #F6E7E3;
+    --muted:  #B79AA1;
+    --faint:  #8A7078;
+    --gold:   #E9B44C;
+    --rose:   #FF3D68;
+    --ember:  #FF7A59;
+    --line:   rgba(246, 231, 227, 0.10);
+    --line-2: rgba(246, 231, 227, 0.20);
+
+    --display: "Fraunces", "Iowan Old Style", Georgia, serif;
+    --body: "Manrope", "Segoe UI", system-ui, sans-serif;
+    --pill: 999px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1100px 600px at 10% -10%, #2A1220 0%, transparent 60%),
+      radial-gradient(900px 500px at 95% 5%, #23111C 0%, transparent 55%),
+      var(--ink);
+    color: var(--blush);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1240px; margin: 0 auto; padding-block: 40px 72px; padding-inline: 20px; }
+
+  .eyebrow {
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--gold); font-weight: 600;
+  }
+
+  h1 {
+    font-family: var(--display); font-weight: 600;
+    font-size: clamp(32px, 5.5vw, 54px); line-height: 1.04; margin: 10px 0 0;
+    text-wrap: balance; font-variation-settings: "SOFT" 40, "WONK" 1;
+  }
+  h1 em { font-style: italic; color: var(--gold); }
+
+  .standfirst { max-width: 64ch; color: var(--muted); font-size: 16px; margin: 14px 0 0; }
+
+  /* ---------- the before/after ledger ---------- */
+
+  .ledger {
+    margin-top: 28px; border: 1px solid var(--line); border-radius: 14px;
+    overflow: hidden; display: grid; gap: 1px; background: var(--line);
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  }
+  .ledger div { background: var(--ink-2); padding: 14px 16px; }
+  .ledger dt { font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+  .ledger dd { margin: 0; font-size: 14px; }
+  .ledger dd s { color: var(--faint); text-decoration-color: var(--rose); }
+  .ledger dd b { color: var(--gold); font-weight: 600; }
+
+  /* ---------- stage ---------- */
+
+  .stage {
+    display: grid; grid-template-columns: minmax(0, 430px) minmax(0, 1fr);
+    gap: 40px; align-items: start; margin-top: 38px;
+  }
+  @media (max-width: 1060px) { .stage { grid-template-columns: 1fr; gap: 26px; } }
+
+  .phone-hold { display: grid; gap: 14px; justify-items: center; }
+
+  /* who is using it */
+  .who {
+    display: flex; gap: 6px; padding: 5px; width: 100%; max-width: 392px;
+    background: var(--ink-2); border: 1px solid var(--line); border-radius: var(--pill);
+  }
+  .who button {
+    flex: 1; appearance: none; cursor: pointer; border: 0; background: transparent;
+    color: var(--muted); font-family: var(--body); font-weight: 700; font-size: 12.5px;
+    padding: 9px 6px; border-radius: var(--pill);
+  }
+  .who button[aria-pressed="true"] { background: var(--ink-3); color: var(--blush); }
+
+  .phone {
+    width: 100%; max-width: 392px; aspect-ratio: 392 / 800;
+    background: var(--ink); border: 9px solid #241620; border-radius: 44px;
+    box-shadow: 0 0 0 1px rgba(246,231,227,0.08), 0 40px 80px -30px rgba(0,0,0,0.9);
+    overflow: hidden; position: relative;
+  }
+  .notch {
+    position: absolute; top: 8px; left: 50%; translate: -50% 0;
+    width: 104px; height: 22px; background: #241620; border-radius: var(--pill); z-index: 5;
+  }
+  .screen {
+    position: absolute; inset: 0; padding: 46px 18px 18px;
+    display: flex; flex-direction: column; gap: 13px; overflow-y: auto; overscroll-behavior: contain;
+  }
+  .screen[hidden] { display: none !important; }
+
+  /* ---------- phone pieces ---------- */
+
+  .kicker { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--faint); font-weight: 700; }
+
+  .screen h2 {
+    font-family: var(--display); font-weight: 600; font-size: 26px; line-height: 1.12;
+    margin: 0; text-wrap: balance; font-variation-settings: "SOFT" 30;
+  }
+  .sub { color: var(--muted); font-size: 13px; margin: 0; }
+
+  .btn {
+    appearance: none; border: 0; cursor: pointer; width: 100%;
+    font-family: var(--body); font-weight: 700; font-size: 15px;
+    padding: 15px 18px; border-radius: var(--pill);
+    background: var(--gold); color: #1A0E08;
+    transition: transform 120ms ease, filter 120ms ease;
+  }
+  .btn:hover { filter: brightness(1.06); }
+  .btn:active { transform: scale(0.985); }
+  .btn.ghost { background: transparent; color: var(--blush); border: 1px solid var(--line-2); }
+  .btn.quiet { background: transparent; color: var(--muted); font-weight: 600; font-size: 13px; padding: 10px; }
+  .btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+
+  .row { display: flex; gap: 9px; }
+  .row > * { flex: 1; }
+  .spacer { flex: 1; min-height: 4px; }
+
+  .card {
+    background: linear-gradient(170deg, var(--ink-3), var(--ink-2));
+    border: 1px solid var(--line-2); border-radius: 20px; padding: 18px;
+    display: grid; gap: 9px; align-content: start; position: relative; overflow: hidden;
+  }
+  .card::after {
+    content: ""; position: absolute; inset: -40% -30% auto auto; width: 200px; height: 200px;
+    background: radial-gradient(circle, var(--heat, var(--gold)) 0%, transparent 70%);
+    opacity: 0.15; pointer-events: none;
+  }
+  .card .line { font-family: var(--display); font-size: 21px; line-height: 1.26; margin: 0; }
+  .card .who-for { font-size: 12px; color: var(--muted); }
+
+  .pill {
+    justify-self: start; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    font-weight: 700; padding: 5px 11px; border-radius: var(--pill);
+    background: color-mix(in srgb, var(--heat, var(--gold)) 22%, transparent);
+    color: var(--heat, var(--gold));
+    border: 1px solid color-mix(in srgb, var(--heat, var(--gold)) 40%, transparent);
+  }
+
+  /* one list, one style, everywhere */
+  .item {
+    appearance: none; cursor: pointer; text-align: left; width: 100%;
+    font-family: var(--body); background: var(--ink-2); border: 1px solid var(--line);
+    border-radius: 15px; padding: 13px 14px; color: var(--blush);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .item:hover { border-color: var(--line-2); background: var(--ink-3); }
+  .item b { font-size: 14.5px; font-weight: 700; display: block; }
+  .item span { font-size: 11.5px; color: var(--muted); }
+  .item .go { font-size: 11px; font-weight: 700; color: var(--gold); white-space: nowrap; }
+  .item[disabled] { opacity: 0.45; cursor: not-allowed; }
+  .item[disabled] .go { color: var(--faint); }
+
+  .heat { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .heat button {
+    appearance: none; cursor: pointer; font-family: var(--body);
+    background: var(--ink-2); border: 1px solid var(--line); color: var(--muted);
+    border-radius: 13px; padding: 11px 6px; font-size: 11.5px; font-weight: 700;
+    display: grid; gap: 2px; justify-items: center;
+  }
+  .heat button .dots { letter-spacing: 2px; font-size: 12px; }
+  .heat button[aria-pressed="true"] { color: #1A0E08; background: var(--heat, var(--gold)); border-color: transparent; }
+
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 6;
+    background: var(--ink-3); border-top: 1px solid var(--line-2);
+    border-radius: 22px 22px 0 0; padding: 16px 18px 20px; display: grid; gap: 10px;
+    animation: rise 200ms ease;
+  }
+  @keyframes rise { from { transform: translateY(100%); } to { transform: none; } }
+  .sheet[hidden] { display: none !important; }
+  .grab { width: 38px; height: 4px; border-radius: 4px; background: var(--line-2); justify-self: center; }
+
+  .thread { display: grid; gap: 7px; }
+  .msg { background: var(--ink-2); border: 1px solid var(--line); border-radius: 13px; padding: 10px 12px; font-size: 12.5px; display: grid; gap: 3px; }
+  .msg .from { font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+  .msg.hot { border-color: color-mix(in srgb, var(--ember) 45%, transparent); }
+  .msg .burn { color: var(--ember); font-size: 11px; }
+
+  .dial { width: 100%; }
+  .dial input { width: 100%; accent-color: var(--rose); }
+  .ends { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+
+  /* ---------- notes ---------- */
+
+  .notes { display: grid; gap: 16px; align-content: start; }
+  .jump { display: flex; flex-wrap: wrap; gap: 7px; }
+  .jump button {
+    appearance: none; cursor: pointer; font-family: var(--body); font-size: 12px; font-weight: 600;
+    padding: 8px 13px; border-radius: var(--pill); background: transparent;
+    border: 1px solid var(--line-2); color: var(--muted);
+  }
+  .jump button[aria-current="true"] { background: var(--gold); border-color: var(--gold); color: #1A0E08; }
+
+  .note {
+    background: var(--ink-2); border: 1px solid var(--line); border-left: 2px solid var(--gold);
+    border-radius: 0 16px 16px 0; padding: 17px 19px; display: grid; gap: 9px;
+  }
+  .note h3 { font-family: var(--display); font-size: 20px; font-weight: 600; margin: 0; }
+  .note p { margin: 0; color: var(--muted); font-size: 14.5px; }
+  .note p strong { color: var(--blush); font-weight: 600; }
+  .swap { display: grid; gap: 5px; border-top: 1px solid var(--line); padding-top: 11px; font-size: 13px; }
+  .swap div { display: flex; gap: 10px; align-items: baseline; }
+  .swap span { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); min-width: 58px; font-weight: 700; }
+  .swap .was { color: var(--faint); }
+  .swap .now { color: var(--blush); }
+
+  .rules { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+  .rule { background: var(--ink-2); padding: 15px 18px; display: grid; gap: 4px; }
+  .rule b { font-family: var(--display); font-size: 17px; font-weight: 600; }
+  .rule span { color: var(--muted); font-size: 13.5px; }
+
+  .retired { margin-top: 34px; border-top: 1px solid var(--line); padding-top: 20px; }
+  .retired h2 { font-family: var(--display); font-size: 24px; font-weight: 600; margin: 0 0 12px; }
+  .retired ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 14.5px; display: grid; gap: 6px; max-width: 78ch; }
+  .retired code { color: var(--blush); font-size: 13px; }
+
+  footer { margin-top: 30px; color: var(--faint); font-size: 13px; max-width: 72ch; }
+
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Afterhours · one app, proposed</div>
+    <h1>Signing in should add things. Not <em>change the app</em>.</h1>
+    <p class="standfirst">
+      Today the app has two of everything: two homes, two game lists, two players, six ways to start
+      an evening. Signing in swaps the simple half for the complicated one. This is the same app with
+      one of each — tap the phone, and use the switch above it to see what a new person, a signed-in
+      person and a paired couple each get from the <em>same</em> screen.
+    </p>
+
+    <dl class="ledger">
+      <div><dt>Homes</dt><dd><s>2</s> → <b>1</b></dd></div>
+      <div><dt>Ways to start</dt><dd><s>6 on screen</s> → <b>1 button</b></dd></div>
+      <div><dt>Game lists</dt><dd><s>2</s> → <b>1</b></dd></div>
+      <div><dt>Players</dt><dd><s>3</s> → <b>1</b></dd></div>
+      <div><dt>Words for heat</dt><dd><s>2 scales</s> → <b>Playful · Hot · Wild</b></dd></div>
+    </dl>
+  </header>
+
+  <div class="stage">
+
+    <div class="phone-hold">
+      <div class="who" id="who">
+        <button type="button" data-who="new" aria-pressed="true">New</button>
+        <button type="button" data-who="signed">Signed in</button>
+        <button type="button" data-who="paired">Paired</button>
+      </div>
+
+      <div class="phone">
+        <div class="notch"></div>
+
+        <!-- home: the only one -->
+        <section class="screen" id="s-home">
+          <div class="kicker" id="home-kicker">Tonight</div>
+          <h2>Pick something. Or let us pick.</h2>
+          <p class="sub" id="home-sub">One phone between you, passed back and forth.</p>
+
+          <button class="btn" data-goto="s-start">Start now</button>
+
+          <div class="kicker">Or play something</div>
+          <button class="item" data-goto="s-games">
+            <span><b>All 22 games</b><span>Spin · Dirty Dice · Rate It · Truth or Dare…</span></span>
+            <span class="go">SEE ALL</span>
+          </button>
+          <button class="item" data-goto="s-game"><span><b>Spin</b><span>It decides. You just do it.</span></span><span class="go">PLAY</span></button>
+          <button class="item" data-goto="s-game"><span><b>Dirty Dice</b><span>Roll, then run the clock.</span></span><span class="go">PLAY</span></button>
+
+          <div class="kicker">When you're not together</div>
+          <button class="item" id="home-apart" data-goto="s-apart">
+            <span><b>Apart</b><span id="apart-sub">Needs your partner — takes a minute</span></span>
+            <span class="go" id="apart-go">SET UP</span>
+          </button>
+          <button class="item" id="home-keep" data-goto="s-keep">
+            <span><b>Our memories</b><span id="keep-sub">Needs an account</span></span>
+            <span class="go" id="keep-go">SET UP</span>
+          </button>
+
+          <div class="spacer"></div>
+          <div class="heat" id="heat-home">
+            <button type="button" data-heat="1" aria-pressed="true"><span class="dots">●○○</span>Playful</button>
+            <button type="button" data-heat="2"><span class="dots">●●○</span>Hot</button>
+            <button type="button" data-heat="3"><span class="dots">●●●</span>Wild</button>
+          </div>
+
+          <!-- the one sheet: every way to start, behind one button -->
+          <div class="sheet" id="sheet-start" hidden>
+            <div class="grab"></div>
+            <h2 style="font-size:21px">How do you want it?</h2>
+            <button class="btn" data-goto="s-card">Just deal us cards</button>
+            <button class="btn ghost" data-goto="s-card">Surprise us — you choose everything</button>
+            <button class="btn ghost" data-goto="s-card">A mystery — don't tell us the shape</button>
+            <button class="btn ghost" data-goto="s-card">We have 15 minutes</button>
+            <button class="btn quiet" data-goto="s-plan">Plan the whole evening instead</button>
+          </div>
+        </section>
+
+        <!-- one card player -->
+        <section class="screen" id="s-card" hidden>
+          <button class="btn quiet" style="width:auto;padding:4px 0" data-goto="s-home">‹ Home</button>
+
+          <div class="card">
+            <span class="pill" id="card-heat">Playful</span>
+            <p class="line" id="card-line">Kiss them somewhere you've never kissed them before.</p>
+            <span class="who-for">Whoever's holding the phone</span>
+          </div>
+
+          <div class="kicker" id="card-progress">2 of 6 this run</div>
+          <button class="btn ghost" id="card-timer">Start the 5 minutes</button>
+
+          <div class="spacer"></div>
+          <div class="row">
+            <button class="btn ghost" id="btn-skip">Skip</button>
+            <button class="btn" id="btn-done">Done</button>
+          </div>
+          <button class="btn quiet" data-sheet="sheet-toofar">Too far — not this kind of thing</button>
+
+          <div class="sheet" id="sheet-toofar" hidden>
+            <div class="grab"></div>
+            <h2 style="font-size:20px">Skip this kind of thing?</h2>
+            <p class="sub">Nobody is told. Not tonight, not ever.</p>
+            <button class="btn" data-close>Just this one</button>
+            <button class="btn ghost" data-close>Never show me these again</button>
+          </div>
+        </section>
+
+        <!-- one game list -->
+        <section class="screen" id="s-games" hidden>
+          <button class="btn quiet" style="width:auto;padding:4px 0" data-goto="s-home">‹ Home</button>
+          <div class="kicker">22 games</div>
+          <h2>All of them, one list.</h2>
+          <p class="sub">The same list whether or not you've signed in.</p>
+          <div id="game-list" style="display:grid;gap:8px"></div>
+        </section>
+
+        <!-- one game player -->
+        <section class="screen" id="s-game" hidden>
+          <button class="btn quiet" style="width:auto;padding:4px 0" data-goto="s-games">‹ Games</button>
+          <div class="kicker" id="game-kicker">DIRTY DICE · ROUND 2 OF 6</div>
+
+          <div class="card" id="game-card">
+            <span class="pill" id="game-stage">It says</span>
+            <p class="line" id="game-line">Undo a button</p>
+            <span class="who-for" id="game-who">Do it without using your hands at all.</span>
+          </div>
+
+          <div id="game-extra"></div>
+
+          <div class="spacer"></div>
+          <button class="btn" id="game-next">Done</button>
+          <button class="btn quiet" data-goto="s-games">Not this one</button>
+        </section>
+
+        <!-- apart, one thread -->
+        <section class="screen" id="s-apart" hidden>
+          <button class="btn quiet" style="width:auto;padding:4px 0" data-goto="s-home">‹ Home</button>
+          <h2>Sam is 4,100 km away.</h2>
+          <p class="sub">What you left each other, newest first.</p>
+
+          <div class="row">
+            <button class="btn ghost">Send something</button>
+            <button class="btn ghost">Leave it for later</button>
+          </div>
+
+          <div class="thread">
+            <div class="msg hot">
+              <span class="from">Them · 14:20</span>
+              A voice note, waiting. It goes when you open it.
+              <span class="burn">🔥 Burns as you listen</span>
+            </div>
+            <div class="msg"><span class="from">They left · tonight</span>Something is coming.</div>
+            <div class="msg"><span class="from">You · 14:32</span>A dare, sent. Ten minutes on the clock.</div>
+            <div class="msg"><span class="from">Counting down</span>Friday</div>
+          </div>
+        </section>
+
+        <!-- the screen that was broken -->
+        <section class="screen" id="s-ready" hidden>
+          <div class="spacer"></div>
+          <div class="card">
+            <span class="pill">For you</span>
+            <p class="line">Sam planned an evening for you.</p>
+            <span class="who-for">Four cards. That's all either of you knows until you open it.</span>
+          </div>
+          <button class="btn" data-goto="s-card">Open it</button>
+          <button class="btn ghost" data-goto="s-home">Not right now</button>
+          <div class="spacer"></div>
+          <p class="sub" style="text-align:center">Nothing happens to it if you leave it. It waits.</p>
+        </section>
+
+        <!-- plan an evening: now one option, not a rival home -->
+        <section class="screen" id="s-plan" hidden>
+          <button class="btn quiet" style="width:auto;padding:4px 0" data-goto="s-home">‹ Home</button>
+          <div class="kicker">Plan the evening</div>
+          <h2>Three questions, then we build it.</h2>
+
+          <div class="kicker">How long</div>
+          <div class="row">
+            <button class="btn ghost">30 min</button>
+            <button class="btn">An hour</button>
+            <button class="btn ghost">All evening</button>
+          </div>
+
+          <div class="kicker">How far</div>
+          <div class="heat" id="heat-plan">
+            <button type="button" data-heat="1" aria-pressed="true"><span class="dots">●○○</span>Playful</button>
+            <button type="button" data-heat="2"><span class="dots">●●○</span>Hot</button>
+            <button type="button" data-heat="3"><span class="dots">●●●</span>Wild</button>
+          </div>
+
+          <div class="kicker">Who's deciding</div>
+          <div class="row">
+            <button class="btn">Me</button>
+            <button class="btn ghost">You</button>
+            <button class="btn ghost">Either</button>
+          </div>
+
+          <div class="spacer"></div>
+          <button class="btn" data-goto="s-card">Build it</button>
+        </section>
+
+        <!-- what an account buys, at the moment it buys it -->
+        <section class="screen" id="s-keep" hidden>
+          <button class="btn quiet" style="width:auto;padding:4px 0" data-goto="s-home">‹ Home</button>
+          <div class="spacer"></div>
+          <div class="card">
+            <span class="pill">Keep tonight</span>
+            <p class="line">This needs an account.</p>
+            <span class="who-for">
+              Keeping what you saved, playing when you're apart, and finding each other again on a new
+              phone. What you've said no to comes with you.
+            </span>
+          </div>
+          <button class="btn" data-goto="s-home">Make one — 20 seconds</button>
+          <button class="btn quiet" data-goto="s-home">Not now, keep playing</button>
+          <div class="spacer"></div>
+        </section>
+
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="jump" id="jump">
+        <button type="button" data-goto="s-home" aria-current="true">Home</button>
+        <button type="button" data-goto="s-card">Playing</button>
+        <button type="button" data-goto="s-games">Games</button>
+        <button type="button" data-goto="s-game">A round</button>
+        <button type="button" data-goto="s-plan">Plan it</button>
+        <button type="button" data-goto="s-apart">Apart</button>
+        <button type="button" data-goto="s-ready">Left for you</button>
+        <button type="button" data-goto="s-keep">Account</button>
+      </div>
+
+      <div class="note">
+        <h3 id="note-title">Loading</h3>
+        <p id="note-body"></p>
+        <div class="swap">
+          <div><span>Was</span><em class="was" id="note-was"></em></div>
+          <div><span>Now</span><em class="now" id="note-now"></em></div>
+        </div>
+      </div>
+
+      <div class="rules">
+        <div class="rule">
+          <b>One primary action per screen</b>
+          <span>Exactly one filled button anywhere you look. Everything else is outlined or quiet. Today's home has two loud buttons competing and three more beneath them, which is why nothing tells you what to do.</span>
+        </div>
+        <div class="rule">
+          <b>Signing in enables, never replaces</b>
+          <span>The same home, the same list, the same player, whoever you are. Apart and memories sit there greyed with "set up" rather than living on a different screen you meet later.</span>
+        </div>
+        <div class="rule">
+          <b>One word for one thing</b>
+          <span>Heat is Playful, Hot, Wild — everywhere, including the planner. "Intensity", "chapter" and "experience" stop being words a person reads.</span>
+        </div>
+        <div class="rule">
+          <b>No screen with a void</b>
+          <span>The "your partner has a night ready" card currently renders a question and a thousand pixels of nothing. Every screen shows its answer, or it is not finished.</span>
+        </div>
+        <div class="rule">
+          <b>Ask at the moment, not before</b>
+          <span>An account is offered where it buys something, saying what it buys. Nothing is asked for on the way in except an age and a heat.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="retired">
+    <h2>What this retires</h2>
+    <ul>
+      <li><code>HomeScreen</code>'s button wall — replaced by the one home above.</li>
+      <li><code>GamesScreen</code> — the second game list, with its own card style and "3 ROUNDS" labels.</li>
+      <li><code>BuildNightScreen</code>'s six-field form — becomes "Plan the evening", three questions, behind Start.</li>
+      <li>The chapter player's shape screen, anticipation beats and check-in — the card player covers them.</li>
+      <li><code>Route.Games</code>, <code>Route.Game</code>, <code>Route.InstantHome</code>, <code>Route.InstantPlay</code> — four routes become two.</li>
+      <li>The five-level intensity ladder as something a person sees. It stays in the engine, where it belongs.</li>
+    </ul>
+  </section>
+
+  <footer>
+    Every button in the phone works. The switch above it changes who is using the app, not which app
+    it is — that is the whole proposal. Nothing here changes the privacy architecture: the server
+    still filters, refusals are still silent, and what a couple said no to still never reaches the
+    other one.
+  </footer>
+</div>
+
+<script>
+  (function () {
+    "use strict";
+
+    var HEAT = { 1: { name: "Playful", color: "#E9B44C" }, 2: { name: "Hot", color: "#FF7A59" }, 3: { name: "Wild", color: "#FF3D68" } };
+
+    var DECK = {
+      1: ["Kiss them somewhere you've never kissed them before.", "Say the thing you noticed today and never mentioned.", "Two minutes. Hands only. No talking."],
+      2: ["Trace a slow line from their collarbone down. Stop where they tell you.", "Whisper what you want to happen next. Only a whisper.", "They can't move for a minute. You can do as you like."],
+      3: ["They set a rule for the next ten minutes. You don't get to negotiate it.", "Tell them the fantasy. All of it, no editing.", "Hands behind their back. Five minutes, your choosing."]
+    };
+
+    var GAMES = [
+      ["Spin", "It decides. You just do it."],
+      ["Dirty Dice", "Roll, then run the clock."],
+      ["Truth or Dare", "The classic, at your level."],
+      ["Yes, No, Maybe", "Only what you both said yes to."],
+      ["Rate It", "How much, without saying a number."],
+      ["Three Minutes Yours", "One leads. The clock ends it."],
+      ["Strip Round", "Guess wrong, lose a layer."],
+      ["The Bet", "Stake it in private. Match, and it's on."],
+      ["Red Light", "They start. You say when to stop."],
+      ["Earn It", "Guess what they want. Get it right, give it."],
+      ["Blind Taste", "They can't see. They still have to guess."],
+      ["Don't Move", "Whoever moves first has lost."],
+      ["In Your Words", "Write it. Read it at the same moment."],
+      ["Build the Fantasy", "One line each, until somebody stops."],
+      ["Say It Out Loud", "Record it. Hand the phone over."],
+      ["Never Have I Ever", "Find out fast."],
+      ["Would You Rather", "Two options. Choose in secret."],
+      ["Two Truths & A Lie", "Find the lie."],
+      ["Me or You", "Who's more likely?"],
+      ["Predict My Answer", "Points for knowing them."],
+      ["Who Knows Who", "Best of the pair."],
+      ["Deep Talk", "The ones that go somewhere."]
+    ];
+
+    /** A game round, as the interpreter hands each primitive over. */
+    var ROUND = [
+      { stage: "It says", line: "Undo a button", who: "Do it without using your hands at all.", next: "Start the 40 seconds", extra: "" },
+      { stage: "40 seconds", line: "0:28 left", who: "Stop when it stops.", next: "Done", extra: "" },
+      { stage: "How much", line: "Being told what to do tonight", who: "Both of you set it. Only the gap is shown.", next: "That's my answer", extra: "dial" },
+      { stage: "Both of you", line: "3 apart", who: "Close. Neither number is shown, and neither is yours.", next: "Next round", extra: "" },
+      { stage: "Say it", line: "Record what you want from the rest of tonight.", who: "It stays on this phone. They listen, then it's gone.", next: "Record", extra: "record" }
+    ];
+
+    var NOTES = {
+      "s-home": {
+        title: "One home, for everyone",
+        body: "The same screen whoever you are. One filled button. Two games surfaced, the rest one tap away. Apart and memories are here from the first minute — greyed, labelled with what they need, never hidden on another screen you meet later.",
+        was: "Two homes; five competing buttons; six ways to start",
+        now: "One home; one Start; everything else named and quiet"
+      },
+      "s-card": {
+        title: "One player",
+        body: "Cards, chapters and game rounds were three different screens. They are one: an instruction, a clock if it has one, and three answers — done, skip, too far. Nothing to learn twice.",
+        was: "Night player + instant player + game player",
+        now: "One card, three answers"
+      },
+      "s-games": {
+        title: "One list",
+        body: "The old hub and the new tiles were two lists of the same games with different styling. This is the list, and it is the same before and after you sign in.",
+        was: "GamesScreen and InstantHome tiles",
+        now: "One list of 22"
+      },
+      "s-game": {
+        title: "A round, primitive by primitive",
+        body: "Tap Done to walk a round of Dirty Dice: the draw lands, the clock runs, a dial asks how much, the gap comes back without either number, and a round can be answered by recording it. Same card frame as everything else.",
+        was: "A separate screen per game family",
+        now: "One frame, the primitives inside it"
+      },
+      "s-plan": {
+        title: "The form, demoted",
+        body: "The six-field build form was the main way in. It becomes three questions behind Start, for the couples who want to plan — and it uses the same heat words as everywhere else.",
+        was: "Mood, length, intensity, leadership, novelty, on the way in",
+        now: "Three questions, one tap down"
+      },
+      "s-apart": {
+        title: "Apart is the thread",
+        body: "What they left, what you sent, what's still sealed — with two things you can do about it at the top. A surprise before its moment still says only that it exists.",
+        was: "Five buttons and a settings page",
+        now: "Two actions and the thread"
+      },
+      "s-ready": {
+        title: "The screen that was broken",
+        body: "Today this renders a question — “your partner has a night ready, are you in?” — above a thousand pixels of empty card, with no visible answer. Here it says what it is, offers both answers, and says what happens if you do nothing.",
+        was: "A question with no answer and a void",
+        now: "A card, two answers, and a reassurance"
+      },
+      "s-keep": {
+        title: "The account, where it earns itself",
+        body: "Not on the way in. Here, when somebody reaches for a thing that genuinely needs it — and saying what it buys, including that their refusals travel with them.",
+        was: "Sign up before anything",
+        now: "Offered at the moment it buys something"
+      }
+    };
+
+    var heat = 1, index = 0, step = 0, who = "new";
+
+    function $(id) { return document.getElementById(id); }
+
+    function applyHeat(level) {
+      heat = level;
+      document.documentElement.style.setProperty("--heat", HEAT[level].color);
+      $("card-heat").textContent = HEAT[level].name;
+      Array.prototype.forEach.call(document.querySelectorAll("[data-heat]"), function (b) {
+        b.setAttribute("aria-pressed", String(Number(b.dataset.heat) === level));
+      });
+      index = 0;
+      $("card-line").textContent = DECK[level][0];
+    }
+
+    function applyWho(next) {
+      who = next;
+      Array.prototype.forEach.call($("who").children, function (b) {
+        b.setAttribute("aria-pressed", String(b.dataset.who === next));
+      });
+
+      var apart = $("home-apart"), keep = $("home-keep");
+      var signed = next !== "new", paired = next === "paired";
+
+      $("home-kicker").textContent = paired ? "Tonight · you and Sam" : "Tonight";
+      $("home-sub").textContent = paired
+        ? "One phone between you, or one each."
+        : "One phone between you, passed back and forth.";
+
+      $("apart-sub").textContent = paired ? "Sam is 4,100 km away" : (signed ? "Connect Sam — one tap" : "Needs an account and your partner");
+      $("apart-go").textContent = paired ? "OPEN" : "SET UP";
+      apart.disabled = false;
+
+      $("keep-sub").textContent = signed ? "12 evenings kept" : "Needs an account";
+      $("keep-go").textContent = signed ? "OPEN" : "SET UP";
+    }
+
+    function show(id) {
+      Array.prototype.forEach.call(document.querySelectorAll(".screen"), function (s) { s.hidden = s.id !== id; });
+      Array.prototype.forEach.call(document.querySelectorAll(".sheet"), function (s) { s.hidden = true; });
+
+      var note = NOTES[id];
+      if (note) {
+        $("note-title").textContent = note.title;
+        $("note-body").textContent = note.body;
+        $("note-was").textContent = note.was;
+        $("note-now").textContent = note.now;
+      }
+      Array.prototype.forEach.call($("jump").children, function (b) {
+        b.setAttribute("aria-current", String(b.dataset.goto === id));
+      });
+      if (id === "s-game") { step = 0; paintRound(); }
+    }
+
+    function paintRound() {
+      var beat = ROUND[step % ROUND.length];
+      $("game-stage").textContent = beat.stage;
+      $("game-line").textContent = beat.line;
+      $("game-who").textContent = beat.who;
+      $("game-next").textContent = beat.next;
+      $("game-kicker").textContent = "DIRTY DICE · ROUND " + ((step % ROUND.length) + 1) + " OF 6";
+
+      var extra = $("game-extra");
+      extra.innerHTML = "";
+      if (beat.extra === "dial") {
+        var box = document.createElement("div");
+        box.className = "dial";
+        box.innerHTML = '<input type="range" min="0" max="10" value="5" aria-label="How much">' +
+          '<div class="ends"><span>Not at all</span><span>Very much</span></div>';
+        extra.appendChild(box);
+      } else if (beat.extra === "record") {
+        var hint = document.createElement("p");
+        hint.className = "sub";
+        hint.textContent = "No microphone? Say it out loud instead — it counts the same.";
+        extra.appendChild(hint);
+      }
+    }
+
+    document.addEventListener("click", function (event) {
+      var goto = event.target.closest("[data-goto]");
+      if (goto) { show(goto.dataset.goto); return; }
+
+      var sheet = event.target.closest("[data-sheet]");
+      if (sheet) { $(sheet.dataset.sheet).hidden = false; return; }
+
+      if (event.target.closest("[data-close]")) {
+        Array.prototype.forEach.call(document.querySelectorAll(".sheet"), function (s) { s.hidden = true; });
+        return;
+      }
+
+      var heatBtn = event.target.closest("[data-heat]");
+      if (heatBtn) { applyHeat(Number(heatBtn.dataset.heat)); return; }
+
+      var whoBtn = event.target.closest("[data-who]");
+      if (whoBtn) { applyWho(whoBtn.dataset.who); }
+    });
+
+    $("btn-done").addEventListener("click", function () {
+      index += 1;
+      $("card-line").textContent = DECK[heat][index % DECK[heat].length];
+      $("card-progress").textContent = ((index % 6) + 1) + " of 6 this run";
+    });
+
+    $("btn-skip").addEventListener("click", function () {
+      index += 1;
+      $("card-line").textContent = DECK[heat][index % DECK[heat].length];
+    });
+
+    $("game-next").addEventListener("click", function () { step += 1; paintRound(); });
+
+    // The one list, built from the one array.
+    var list = $("game-list");
+    GAMES.forEach(function (game) {
+      var item = document.createElement("button");
+      item.className = "item";
+      item.dataset.goto = "s-game";
+      item.innerHTML = "<span><b>" + game[0] + "</b><span>" + game[1] + "</span></span><span class='go'>PLAY</span>";
+      list.appendChild(item);
+    });
+
+    applyHeat(1);
+    applyWho("new");
+    show("s-home");
+  })();
+</script>

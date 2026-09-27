@@ -1584,3 +1584,75 @@ The recorder and the player moved to `:core:ui` to make that possible: two playe
 primitives now, a feature may not import another feature, and duplicating either would put two
 MediaRecorders in the app. The architecture rule that keeps the app silent followed them, and still
 names every file allowed to make a noise.
+
+---
+
+## D-103 — One home, and signing in adds rather than replaces
+
+The rebuild left the app with two of everything. A phone with no account opened on
+`InstantHomeScreen`: a heading, one Start, a list of games, a heat. A signed-in couple opened on
+`HomeScreen`: a TOGETHER/APART switch, five buttons of which two were loud, a Mystery Night card, a
+curiosities card and four quiet links. Two homes meant two game lists — `GamesScreen`, with its own
+card style and a setup form asking for an intensity and two names, beside the tiles on the instant
+home — and two ways into a game, and two vocabularies for the same dial.
+
+The effect was worse than the duplication. **Signing in swapped the app.** Someone who had learned
+the simple one, made an account so they could send their partner a voice note, and came back found a
+screen they had never seen, with none of the words they had learned on it. Nothing about the app was
+learnable, because there was nothing stable to learn.
+
+So there is one home, `:feature:home`, for all three audiences, and `HomeUiState.company` says which
+one is looking at it: `ALONE`, `SIGNED_IN`, `PAIRED`. It never chooses a layout. The heading, the one
+filled button, the heat and the list of games are identical in all three; what an account adds is
+that rows already on the screen start working. Apart and the library are visible from the first
+minute, greyed, with "Set up" where their action word goes — so the thing an account buys is named
+at the moment someone reaches for it, rather than being invisible until they have one.
+
+Three things follow from that, and they are the parts worth keeping:
+
+- **Two goldens hold it.** `home-alone.png` and `home-paired.png` are captured from the same
+  composable with one field changed. A change that pulls them back into two different layouts is an
+  image diff, not a review comment.
+- **A game is one tap for everyone, and the difference is not a person's problem.** `HomeViewModel.play`
+  asks the server for a paired couple, because a couple's rounds are chosen behind *both* partners'
+  boundaries and both phones follow the session (§3.2, D-070); and deals on the phone for anyone
+  else, from shipped content inside this phone's heat, because there is no partner whose limits
+  could leak (D-100). One list, one tap, two sources — never two screens.
+- **Not paired is no longer a wall.** The splash sent a signed-in, unpaired person to `CoupleSetup`
+  and left them there. It sends them home; pairing is one row inside it, reached by someone who
+  wants the half of the app that needs a partner.
+
+What this retires: `Route.InstantHome`, `Route.Games`, `InstantHomeScreen`, `GamesScreen`,
+`GamesViewModel`, the TOGETHER/APART switch, the five-button wall, the games setup form with its
+intensity dial and its two name fields, and the `StartDestination.InstantPlay` branch. The dealt
+game player moved to `:feature:games` as `DealtGameScreen`, beside the session player and its
+goldens, because the two are meant to be indistinguishable to a person and a diff between them is
+how anyone would notice they had drifted.
+
+What the games setup form asked for, and where it went: the intensity dial is the heat on home, one
+dial rather than two scales for one thing; the two names default to "You" and "Them" and are still
+remembered when a couple gives them, because a form standing between a couple and a game at eleven
+at night costs more than the names are worth; and the phone-each choice belongs with the game rather
+than in a hub, so it sits in the player's own intro, where the game it applies to is on screen.
+
+---
+
+## D-104 — One way to start, and the five shapes behind it
+
+Home had five filled or outlined buttons — Build tonight, Surprise us, Play a game, We have 15
+minutes, Send something — and a Mystery Night card underneath that was a sixth. Every one of them
+started an evening. A person opening the app at eleven at night had to rank five options before
+anything had happened, which is exactly the decision §2.4 says the app exists to take away.
+
+There is one filled button now, "Start now", and the five are what it opens: deal us cards, surprise
+us, a mystery, fifteen minutes, plan the evening. The choices are drawn in place rather than in a
+modal sheet — the same pattern `ReportSheet` already uses — so a screenshot test captures them and
+no Material3 experimental API is in the way.
+
+Two details are deliberate. The choice that needs nothing at all is first, for everyone, because it
+is the shortest path from opening the app to doing something. And for a phone with no account the
+other four are still listed, greyed, saying what they need — never hidden, because a person cannot
+want something they have not been shown.
+
+`BuildNight`'s six-field form is not gone; it is demoted. It is one line inside Start, called "Plan
+the evening", for the couples who want to plan one.

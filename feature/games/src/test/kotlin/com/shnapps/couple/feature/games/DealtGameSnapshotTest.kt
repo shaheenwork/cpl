@@ -1,0 +1,112 @@
+package com.shnapps.couple.feature.games
+
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.github.takahirom.roborazzi.captureRoboImage
+import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
+import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
+import com.shnapps.couple.core.engine.game.GameMoment
+import com.shnapps.couple.core.engine.game.RoundPrimitive
+import com.shnapps.couple.core.engine.game.Score
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+
+/**
+ * A game dealt on this phone (REDESIGN_PROMPT.md §5.2), drawn by the one player.
+ *
+ * It lives beside the session player's goldens on purpose: the two are meant to be
+ * indistinguishable to a person, and a diff here is how anyone would notice they had drifted apart.
+ */
+@RunWith(AndroidJUnit4::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [35], qualifiers = "w392dp-h840dp-xhdpi")
+class DealtGameSnapshotTest {
+
+    @get:Rule
+    val composeRule = createComposeRule()
+
+    @Test
+    fun `a game dealt on this phone`() {
+        capture("dealt-game") {
+            content(
+                DealtGameUiState(
+                    title = "Dirty Dice",
+                    moment = GameMoment.Turn(
+                        round = 0,
+                        primitive = RoundPrimitive.Challenge(
+                            step = 1,
+                            seat = 0,
+                            text = "Do it without using your hands at all.",
+                            kind = null,
+                        ),
+                        canSkip = true,
+                    ),
+                    round = 0,
+                    rounds = 6,
+                    loading = false,
+                ),
+            )
+        }
+
+        composeRule.onNodeWithText("DIRTY DICE · ROUND 1 OF 6").assertIsDisplayed()
+        composeRule.onNodeWithText("Not this one").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a finished game does not count past its last round`() {
+        capture("dealt-game-finished") {
+            content(
+                DealtGameUiState(
+                    title = "Dirty Dice",
+                    moment = GameMoment.Finished(round = 6, score = Score()),
+                    round = 6,
+                    rounds = 6,
+                    loading = false,
+                ),
+            )
+        }
+
+        // Found on the device: the eyebrow read "ROUND 7 OF 6" once the game was over.
+        composeRule.onNodeWithText("DIRTY DICE").assertIsDisplayed()
+        composeRule.onNodeWithText("That's the game.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a game the content cannot fill says so, and offers a way on`() {
+        capture("dealt-game-nothing") { content(DealtGameUiState(loading = false, nothingToPlay = true)) }
+
+        // Never a blank screen: what happened, and the two things that would fix it (§6, U6).
+        composeRule.onNodeWithText("Nothing to deal here.").assertIsDisplayed()
+        composeRule.onNodeWithText("Pick something else").assertIsDisplayed()
+    }
+
+    @Composable
+    private fun content(state: DealtGameUiState) {
+        DealtGameContent(
+            state = state,
+            onBack = {},
+            onProceed = {},
+            onAnswer = {},
+            onSkipPrompt = {},
+            onNextRound = {},
+            onPlayAgain = {},
+        )
+    }
+
+    private fun capture(name: String, content: @Composable () -> Unit) {
+        composeRule.setContent { AfterhoursTheme { AfterhoursSurface { content() } } }
+        composeRule.mainClock.advanceTimeBy(SETTLE_MS)
+        composeRule.onRoot().captureRoboImage("src/test/screenshots/$name.png")
+    }
+
+    private companion object {
+        const val SETTLE_MS = 1_000L
+    }
+}

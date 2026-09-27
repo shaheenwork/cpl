@@ -1,13 +1,6 @@
 package com.shnapps.couple.navigation
 
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -25,12 +18,10 @@ import com.shnapps.couple.feature.auth.AuthScreen
 import com.shnapps.couple.feature.auth.SignOutViewModel
 import com.shnapps.couple.feature.boundaries.BoundariesScreen
 import com.shnapps.couple.feature.discovery.MutualDiscoveryScreen
+import com.shnapps.couple.feature.games.DealtGameScreen
 import com.shnapps.couple.feature.games.GameScreen
-import com.shnapps.couple.feature.games.GamesScreen
 import com.shnapps.couple.feature.home.HomeActions
 import com.shnapps.couple.feature.home.HomeScreen
-import com.shnapps.couple.feature.instant.InstantGameScreen
-import com.shnapps.couple.feature.instant.InstantHomeScreen
 import com.shnapps.couple.feature.instant.InstantPlayScreen
 import com.shnapps.couple.feature.instant.StartScreen
 import com.shnapps.couple.feature.memories.MemoriesScreen
@@ -42,7 +33,6 @@ import com.shnapps.couple.feature.onboarding.SplashScreen
 import com.shnapps.couple.feature.onboarding.StartDestination
 import com.shnapps.couple.feature.onboarding.WelcomeScreen
 import com.shnapps.couple.feature.pairing.PairingScreen
-import com.shnapps.couple.feature.pairing.UnpairViewModel
 import com.shnapps.couple.feature.paywall.PaywallScreen
 import com.shnapps.couple.feature.preferences.PreferenceDiscoveryScreen
 import com.shnapps.couple.feature.send.ArcScreen
@@ -90,7 +80,7 @@ fun CplNavHost(
         composable<Route.Start> {
             StartScreen(
                 onStarted = {
-                    navController.navigate(Route.InstantHome) {
+                    navController.navigate(Route.Home) {
                         popUpTo(Route.Start) { inclusive = true }
                     }
                 },
@@ -105,25 +95,15 @@ fun CplNavHost(
 
         composable<Route.InstantPlay> {
             InstantPlayScreen(
-                onBack = { navController.navigate(Route.InstantHome) },
+                onBack = { navController.popBackStack() },
                 onKeepThis = { navController.navigate(Route.Auth) },
             )
         }
 
-        // Home for a couple with no account: what to play, and how far (REDESIGN_PROMPT.md §5.2).
-        composable<Route.InstantHome> {
-            InstantHomeScreen(
-                onStartNow = { navController.navigate(Route.InstantPlay) },
-                onGame = { gameId -> navController.navigate(Route.InstantGame(gameId)) },
-                // Apart and a planned evening both need a partner, so both ask for an account at
-                // the moment it is wanted rather than before anything has happened.
-                onApart = { navController.navigate(Route.Auth) },
-                onPlanEvening = { navController.navigate(Route.Auth) },
-            )
-        }
-
-        composable<Route.InstantGame> {
-            InstantGameScreen(onBack = { navController.popBackStack() })
+        // A game dealt on this phone. The one player screen draws it exactly as it draws a
+        // session's, because a person should not be able to tell which one they are in.
+        composable<Route.DealtGame> {
+            DealtGameScreen(onBack = { navController.popBackStack() })
         }
 
         composable<Route.AgeGate> {
@@ -180,11 +160,10 @@ fun CplNavHost(
         // Placeholders until the phase that owns them lands. They carry the account actions
         // that have no permanent home until Settings (Phase 20), so Phase 3's features are
         // reachable on a device rather than only in tests.
+        // Reached from home, by someone who wants the half of the app that needs a partner —
+        // never stood in front of them on the way in (REDESIGN_PROMPT.md §6).
         composable<Route.CoupleSetup> {
             PairingScreen(
-                // Straight to the app (REDESIGN_PROMPT.md §4.2). Pairing used to hand people
-                // twenty preference cards before they had done anything together; the deck is
-                // offered from home now, once they have.
                 onPaired = {
                     navController.navigate(Route.Home) {
                         popUpTo(Route.CoupleSetup) { inclusive = true }
@@ -326,20 +305,12 @@ fun CplNavHost(
             )
         }
 
-        composable<Route.Games> {
-            GamesScreen(
-                // The setup has done its job once a game exists: back from the game is the games.
-                onStarted = { experienceId, twoPhones -> navController.navigate(Route.Game(experienceId, twoPhones)) },
-                onOpen = { experienceId, type -> navController.navigate(experienceRoute(experienceId, type)) },
-                onBack = { navController.popBackStack() },
-            )
-        }
-
         composable<Route.Game> {
             GameScreen(
+                // There is no hub to go back to any more: the list is home's.
                 onGames = {
-                    if (!navController.popBackStack(Route.Games, inclusive = false)) {
-                        navController.navigate(Route.Games) { popUpTo<Route.Game> { inclusive = true } }
+                    if (!navController.popBackStack(Route.Home, inclusive = false)) {
+                        navController.navigate(Route.Home) { popUpTo(0) { inclusive = true } }
                     }
                 },
                 onHome = {
@@ -374,7 +345,6 @@ private fun experienceRoute(experienceId: String, type: ExperienceType): Any = w
 private fun StartDestination.toRoute(): Any = when (this) {
     StartDestination.Auth -> Route.Auth
     StartDestination.Start -> Route.Start
-    StartDestination.InstantPlay -> Route.InstantHome
     StartDestination.AgeGate -> Route.AgeGate
     StartDestination.Welcome -> Route.Welcome
     StartDestination.CoupleSetup -> Route.CoupleSetup
@@ -383,40 +353,31 @@ private fun StartDestination.toRoute(): Any = when (this) {
     StartDestination.Loading -> Route.Splash
 }
 
+/**
+ * Home, for everyone (REDESIGN_PROMPT.md §6).
+ *
+ * Nothing about this differs by who is using it: the screen itself says what an account would add,
+ * and each row here leads to the one thing it names. Unpairing and signing out live in Settings,
+ * where the rest of the account is.
+ */
 @Composable
-private fun Home(
-    navController: NavHostController,
-    signOutViewModel: SignOutViewModel = hiltViewModel(),
-    unpairViewModel: UnpairViewModel = hiltViewModel(),
-) {
-    var confirmingUnpair by remember { mutableStateOf(false) }
-
+private fun Home(navController: NavHostController) {
     HomeScreen(
-        onNight = { experienceId -> navController.navigate(Route.Night(experienceId)) },
         actions = HomeActions(
-            onBuild = { navController.navigate(Route.BuildNight()) },
+            onCards = { navController.navigate(Route.InstantPlay) },
+            onPlan = { navController.navigate(Route.BuildNight()) },
             onExpress = { navController.navigate(Route.BuildNight(express = true)) },
-            onGames = { navController.navigate(Route.Games) },
-            onApartNight = { navController.navigate(Route.BuildNight(apart = true)) },
+            onApart = { navController.navigate(Route.Send) },
             onPlanForThem = { navController.navigate(Route.BuildNight(forPartner = true)) },
-            onSend = { navController.navigate(Route.Send) },
-            onLater = { navController.navigate(Route.Later) },
-            onArc = { navController.navigate(Route.Arc) },
-            onNotifications = { navController.navigate(Route.NotificationSettings) },
             onMemories = { navController.navigate(Route.Memories) },
-            onPaywall = { gate -> navController.navigate(Route.Paywall(gate.name)) },
             onCuriosities = { navController.navigate(Route.PreferenceDiscovery) },
-            onMutual = { navController.navigate(Route.MutualDiscovery) },
-            onLimits = { navController.navigate(Route.Boundaries) },
-            onAppLock = { navController.navigate(Route.AppLockSetup) },
             onSettings = { navController.navigate(Route.Settings) },
+            onPairPartner = { navController.navigate(Route.CoupleSetup) },
+            // An account, asked for where it buys something and never before (§6).
+            onAccount = { navController.navigate(Route.Auth) },
+            onPaywall = { gate -> navController.navigate(Route.Paywall(gate.name)) },
+            onDealtGame = { gameId -> navController.navigate(Route.DealtGame(gameId)) },
             onOpen = { experienceId, type -> navController.navigate(experienceRoute(experienceId, type)) },
-            onSignOut = {
-                signOutViewModel.signOut {
-                    navController.navigate(Route.Auth) { popUpTo(0) { inclusive = true } }
-                }
-            },
-            onUnpair = { confirmingUnpair = true },
             onGallery = { navController.navigate(Route.DesignGallery) },
             onInspector = if (CONTENT_INSPECTOR_AVAILABLE) {
                 { navController.navigate(Route.ContentInspector) }
@@ -425,30 +386,4 @@ private fun Home(
             },
         ),
     )
-
-    // Unpairing ends the couple for both partners at once, so it gets one clear confirmation.
-    // Unlike STOP in a session (§3.1), this is not time-critical and is not trivially undone.
-    if (confirmingUnpair) {
-        AlertDialog(
-            onDismissRequest = { confirmingUnpair = false },
-            title = { Text("Unpair?") },
-            text = {
-                Text(
-                    "This ends your shared space for both of you. You'll each keep your own " +
-                        "account, and can pair again later.",
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmingUnpair = false
-                    unpairViewModel.unpair {
-                        navController.navigate(Route.CoupleSetup) { popUpTo(0) { inclusive = true } }
-                    }
-                }) { Text("Unpair") }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmingUnpair = false }) { Text("Keep us paired") }
-            },
-        )
-    }
 }

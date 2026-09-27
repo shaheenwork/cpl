@@ -1,4 +1,4 @@
-package com.shnapps.couple.feature.instant
+package com.shnapps.couple.feature.games
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /** Immutable screen state (BUILD_PROMPT.md §4.1; enforced by :architecture). */
-data class InstantGameUiState(
+data class DealtGameUiState(
     val title: String = "",
     val moment: GameMoment? = null,
     val players: GamePlayers = GamePlayers("You", "Them"),
@@ -30,7 +30,7 @@ data class InstantGameUiState(
 )
 
 /**
- * A game on one phone, with nobody signed in (REDESIGN_PROMPT.md §5.2).
+ * A game dealt on this phone, with no session behind it (REDESIGN_PROMPT.md §5.2).
  *
  * The interpreter is the same `GameRun` every game has always used — the rule that no code knows a
  * game by name is untouched (D-072). What differs is where the rounds come from: `forHeat` deals
@@ -41,19 +41,19 @@ data class InstantGameUiState(
  * simply leaving: there is no session to end and nobody waiting on the other side.
  */
 @HiltViewModel
-class InstantGameViewModel @Inject constructor(
+class DealtGameViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val instant: InstantPlayRepository,
     /** Handed to the screen for a round that records. Nothing here uses it. */
     val recorder: VoiceRecorder,
 ) : ViewModel() {
 
-    private val gameId: String = checkNotNull(savedStateHandle.get<String>(Route.InstantGame::gameId.name)) {
-        "Route.InstantGame needs a gameId"
+    private val gameId: String = checkNotNull(savedStateHandle.get<String>(Route.DealtGame::gameId.name)) {
+        "Route.DealtGame needs a gameId"
     }
 
-    private val _uiState = MutableStateFlow(InstantGameUiState())
-    val uiState: StateFlow<InstantGameUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(DealtGameUiState())
+    val uiState: StateFlow<DealtGameUiState> = _uiState.asStateFlow()
 
     private var run: GameRun? = null
 

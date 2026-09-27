@@ -23,9 +23,6 @@ sealed interface StartDestination {
     /** Not signed in, and nothing set up: age and heat, then a card (REDESIGN_PROMPT.md §5.1). */
     data object Start : StartDestination
 
-    /** Not signed in, but already through the gate: straight back to playing. */
-    data object InstantPlay : StartDestination
-
     /** Not signed in, and asking to be: the sign-in screen. */
     data object Auth : StartDestination
 
@@ -35,7 +32,7 @@ sealed interface StartDestination {
     /** Signed in and confirmed, but has not seen the welcome beats. */
     data object Welcome : StartDestination
 
-    /** Signed in, confirmed, not yet paired. */
+    /** Signed in, confirmed, not yet paired. Reached from home, never instead of it. */
     data object CoupleSetup : StartDestination
 
     data object Home : StartDestination
@@ -72,7 +69,7 @@ class SplashViewModel @Inject constructor(
                 // goes back to where they were; someone new gets the one screen that asks.
                 val confirmed = authRepository.ageConfirmedHint()
                 _uiState.value = SplashUiState(
-                    if (confirmed) StartDestination.InstantPlay else StartDestination.Start,
+                    if (confirmed) StartDestination.Home else StartDestination.Start,
                 )
                 return@launch
             }
@@ -94,7 +91,8 @@ class SplashViewModel @Inject constructor(
             _uiState.value = SplashUiState(
                 when {
                     profile == null -> StartDestination.Welcome
-                    profile.coupleId == null -> StartDestination.CoupleSetup
+                    // Not paired is not a wall any more: home says what a partner would add, and
+                    // pairing is one row inside it (REDESIGN_PROMPT.md §6).
                     else -> StartDestination.Home
                 },
             )

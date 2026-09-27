@@ -19,10 +19,10 @@ import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
  * root of the app (DECISIONS.md D-028), so screens add none of their own.
  */
 @Composable
-fun ScreenColumn(content: @Composable ColumnScope.() -> Unit) {
+fun ScreenColumn(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     val spacing = AfterhoursTheme.spacing
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = spacing.gutter, vertical = spacing.xl),
