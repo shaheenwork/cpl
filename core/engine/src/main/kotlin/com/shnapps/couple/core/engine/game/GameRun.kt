@@ -280,7 +280,8 @@ internal fun scoreOf(results: List<RoundResult>): Score {
                 compared += 1
                 if (verdict.gap == 0) matches += 1
             }
-            Verdict.AwaitingJudge -> Unit
+            // Nothing to count: a round that only showed both answers is not a comparison.
+            Verdict.Shown, Verdict.AwaitingJudge -> Unit
         }
     }
     return Score(points.toList(), matches, compared)

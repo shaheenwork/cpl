@@ -183,7 +183,11 @@ class ContentBundleFileTest {
             assertWithMessage("${game.id} finished").that(run.moment).isInstanceOf(GameMoment.Finished::class.java)
             val verdicts = run.results.map { it.verdict }
             when (game.scoring) {
-                Scoring.NONE -> assertWithMessage("${game.id} scores nothing").that(verdicts).isEmpty()
+                // A game that scores nothing may still reveal: "In Your Words" shows both answers
+                // and stops there. What it must not do is keep a score.
+                Scoring.NONE -> assertWithMessage("${game.id} scores nothing")
+                    .that(verdicts.none { it is Verdict.Matched || it is Verdict.Point || it is Verdict.Apart })
+                    .isTrue()
                 // A game that counts matches compares two answers a round: the same choice, or
                 // two dials and the gap between them.
                 Scoring.MATCHES -> assertWithMessage("${game.id} compares every round")

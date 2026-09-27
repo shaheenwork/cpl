@@ -19,8 +19,17 @@ internal fun RoundReading.reveal(take: Slot.Take, step: GameStep): RoundPrimitiv
         RevealOutcome.LIE_FOUND -> lieFound(first, second)
         RevealOutcome.WINNER -> won(first)
         RevealOutcome.DISTANCE -> apart(first)
+        RevealOutcome.SHARED -> shown(first)
     }
     return RoundPrimitive.Reveal(take.step, take.seat, outcome, shown, verdict)
+}
+
+/** Both answers, side by side, and nothing else: no winner, no match, no point. */
+private fun RoundReading.shown(step: Int): Pair<List<Shown>, Verdict> {
+    val mine = answerOf(step, active)
+    val theirs = answerOf(step, other)
+    val shown = listOf(Shown(active, labelOf(step, active, mine)), Shown(other, labelOf(step, other, theirs)))
+    return shown to Verdict.Shown
 }
 
 /**

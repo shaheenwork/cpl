@@ -9,8 +9,8 @@ with no account and no network), R3 (the player whole) and R4 (home, and fourtee
 with no account) and R5 (an account offered when it buys something, carrying the local refusals into
 the person's real limits), R6 (apart as one thread) and R7 (the deck offered rather than demanded)
 and R8 (polish, and the audit run against the new screens) are done — the whole of
-`REDESIGN_PROMPT.md` §7 is built. What remains of the rebuild is content and one primitive: the
-`MEDIA` step for games played apart, and the rest of the game catalogue. Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
+`REDESIGN_PROMPT.md` §7 is built, and R9 added seven more games (21 in all). What remains of the
+rebuild is the `MEDIA` step and the games played apart that need it. Phase 22 complete — every phase in BUILD_PROMPT.md §22 is built and verified,
 and every §23 deliverable is written. What remains before a public release is setup and review, not
 code: `RELEASE.md` is the ordered runbook, `HUMAN_SETUP.md` the console detail, and `legal/` holds
 drafts of the privacy policy, the terms and the Play data-safety answers, pending a lawyer.
@@ -1234,6 +1234,41 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Redesign R9 — Seven more games, and one honest reduction ✅
+
+Twenty-one games ship now, 613 prompts. The catalogue had more names than it had mechanics, and this
+phase says which were which.
+
+### Shipped
+- **Seven new games**, each a genuinely different shape: **The Bet** (both stake it in private,
+  matching means it is on), **Red Light** (they start, you say stop, the clock ends it either way),
+  **Earn It** (guess what they chose and give it; wrong and you wait), **Blind Taste** (a blindfold
+  and a question afterwards), **Don't Move** (stillness, timed, and both name who broke), **In Your
+  Words** (written in private, read at the same moment), **Build the Fantasy** (one line each).
+- **A new reveal, `SHARED`**: both answers side by side with nothing to win. Some rounds are not a
+  comparison — scoring two confessions would turn them into a contest — so this one shows and stops.
+- **An honest reduction.** Roulette needs branching the interpreter does not have, and faking it
+  would be Dirty Dice with extra taps. Simon Says, Find It, Confession Escalator, Sealed Bid, Same
+  Second and Hotter or Colder each turned out to be an existing game with different prompts rather
+  than a new mechanic — so they are prompts, and the games list stays honest about what is actually
+  different.
+
+### Verified
+```
+npm --prefix tools run validate                content OK, 21 games, 613 prompts
+npm --prefix functions run test:unit           135/135
+./gradlew check                                BUILD SUCCESSFUL
+```
+- **A game can now be ruled out entirely by a couple's limits, and that is correct.** Blind Taste is
+  every prompt behind `sensory_blindfold`: somebody who said never to blindfolds cannot play it. The
+  server test used to assume every game always deals; it now allows a game to come up empty and
+  still holds the half that matters — everything released is permitted — while asserting that all
+  but a couple of games survive ordinary limits.
+- The validator caught the same trap as Rate It did: every Earn It prompt was one sentence reworded,
+  thirteen near-duplicate pairs. Rewritten so each asks its own question.
 
 ---
 

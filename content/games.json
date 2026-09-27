@@ -574,6 +574,298 @@
           "text": "Didn't match? One layer each."
         }
       ]
+    },
+    {
+      "id": "THE_BET",
+      "prefix": "bet",
+      "file": "the-bet.json",
+      "title": "The Bet",
+      "tagline": "Stake it in private. Match, and it's on.",
+      "description": "You each stake the same thing without seeing the other's. Matching means you both meant it.",
+      "modes": [
+        "TOGETHER"
+      ],
+      "rounds": 6,
+      "turns": "SHARED",
+      "scoring": "MATCHES",
+      "promptKinds": [],
+      "promptOptions": [
+        3,
+        3
+      ],
+      "minPrompts": 19,
+      "steps": [
+        {
+          "primitive": "CHOICE",
+          "who": "EACH",
+          "private": true,
+          "text": "PROMPT",
+          "options": "PROMPT"
+        },
+        {
+          "primitive": "REVEAL",
+          "who": "TOGETHER",
+          "of": [
+            0
+          ],
+          "outcome": "MATCH"
+        }
+      ]
+    },
+    {
+      "id": "RED_LIGHT",
+      "prefix": "red",
+      "file": "red-light.json",
+      "title": "Red Light",
+      "tagline": "They start. You say when to stop.",
+      "description": "One of you begins, the other ends it whenever they like — and the clock ends it either way.",
+      "modes": [
+        "TOGETHER"
+      ],
+      "rounds": 6,
+      "turns": "ALTERNATE",
+      "scoring": "NONE",
+      "promptKinds": [],
+      "promptOptions": [
+        0,
+        0
+      ],
+      "minPrompts": 19,
+      "steps": [
+        {
+          "primitive": "CHALLENGE",
+          "who": "ACTIVE",
+          "text": "PROMPT"
+        },
+        {
+          "primitive": "TIMER",
+          "who": "ACTIVE",
+          "seconds": "PROMPT"
+        },
+        {
+          "primitive": "REACTION",
+          "who": "EACH",
+          "text": "How was that?"
+        }
+      ]
+    },
+    {
+      "id": "EARN_IT",
+      "prefix": "earn",
+      "file": "earn-it.json",
+      "title": "Earn It",
+      "tagline": "Guess what they want. Get it right, give it.",
+      "description": "One answers in private, the other guesses. Right, and it happens; wrong, and they wait.",
+      "modes": [
+        "TOGETHER"
+      ],
+      "rounds": 6,
+      "turns": "ALTERNATE",
+      "scoring": "POINTS",
+      "promptKinds": [],
+      "promptOptions": [
+        4,
+        4
+      ],
+      "minPrompts": 19,
+      "steps": [
+        {
+          "primitive": "CHOICE",
+          "who": "ACTIVE",
+          "private": true,
+          "text": "PROMPT",
+          "options": "PROMPT"
+        },
+        {
+          "primitive": "PREDICTION",
+          "who": "OTHER",
+          "private": true,
+          "text": "What did they pick?",
+          "options": "PROMPT",
+          "of": [
+            0
+          ]
+        },
+        {
+          "primitive": "REVEAL",
+          "who": "TOGETHER",
+          "of": [
+            0,
+            1
+          ],
+          "outcome": "PREDICTED"
+        },
+        {
+          "primitive": "CHALLENGE",
+          "who": "OTHER",
+          "text": "Right? Do it now. Wrong? They decide when."
+        }
+      ]
+    },
+    {
+      "id": "BLIND_TASTE",
+      "prefix": "blind",
+      "file": "blind-taste.json",
+      "title": "Blind Taste",
+      "tagline": "They can't see. They still have to guess.",
+      "description": "A blindfold, something to work out, and a question at the end.",
+      "modes": [
+        "TOGETHER"
+      ],
+      "rounds": 6,
+      "turns": "ALTERNATE",
+      "scoring": "NONE",
+      "promptKinds": [],
+      "promptOptions": [
+        0,
+        0
+      ],
+      "minPrompts": 19,
+      "steps": [
+        {
+          "primitive": "CHALLENGE",
+          "who": "ACTIVE",
+          "text": "PROMPT"
+        },
+        {
+          "primitive": "TIMER",
+          "who": "ACTIVE",
+          "seconds": "PROMPT"
+        },
+        {
+          "primitive": "QUESTION",
+          "who": "OTHER",
+          "text": "What was it?",
+          "answer": "SPOKEN"
+        }
+      ]
+    },
+    {
+      "id": "DONT_MOVE",
+      "prefix": "still",
+      "file": "dont-move.json",
+      "title": "Don't Move",
+      "tagline": "Whoever moves first has lost.",
+      "description": "Stay exactly as you are for as long as the clock says. You both name who broke first.",
+      "modes": [
+        "TOGETHER"
+      ],
+      "rounds": 6,
+      "turns": "SHARED",
+      "scoring": "MATCHES",
+      "promptKinds": [],
+      "promptOptions": [
+        0,
+        0
+      ],
+      "minPrompts": 19,
+      "steps": [
+        {
+          "primitive": "CHALLENGE",
+          "who": "TOGETHER",
+          "text": "PROMPT"
+        },
+        {
+          "primitive": "TIMER",
+          "who": "TOGETHER",
+          "seconds": "PROMPT"
+        },
+        {
+          "primitive": "VOTE",
+          "who": "EACH",
+          "private": true,
+          "text": "Who moved first?",
+          "options": [
+            "ME",
+            "YOU",
+            "TIE"
+          ]
+        },
+        {
+          "primitive": "REVEAL",
+          "who": "TOGETHER",
+          "of": [
+            2
+          ],
+          "outcome": "AGREEMENT"
+        }
+      ]
+    },
+    {
+      "id": "IN_YOUR_WORDS",
+      "prefix": "words",
+      "file": "in-your-words.json",
+      "title": "In Your Words",
+      "tagline": "Write it down. Read it at the same moment.",
+      "description": "You each write it in private. Both are shown together, and nobody wins.",
+      "modes": [
+        "TOGETHER"
+      ],
+      "rounds": 6,
+      "turns": "SHARED",
+      "scoring": "NONE",
+      "promptKinds": [],
+      "promptOptions": [
+        0,
+        0
+      ],
+      "minPrompts": 19,
+      "steps": [
+        {
+          "primitive": "QUESTION",
+          "who": "EACH",
+          "private": true,
+          "text": "PROMPT",
+          "answer": "TEXT"
+        },
+        {
+          "primitive": "REVEAL",
+          "who": "TOGETHER",
+          "of": [
+            0
+          ],
+          "outcome": "SHARED"
+        }
+      ]
+    },
+    {
+      "id": "BUILD_THE_FANTASY",
+      "prefix": "fant",
+      "file": "build-the-fantasy.json",
+      "title": "Build the Fantasy",
+      "tagline": "One line each, until somebody stops.",
+      "description": "One of you starts the story. The other adds the next line. It goes where it goes.",
+      "modes": [
+        "TOGETHER"
+      ],
+      "rounds": 6,
+      "turns": "ALTERNATE",
+      "scoring": "NONE",
+      "promptKinds": [],
+      "promptOptions": [
+        0,
+        0
+      ],
+      "minPrompts": 19,
+      "steps": [
+        {
+          "primitive": "QUESTION",
+          "who": "ACTIVE",
+          "text": "PROMPT",
+          "answer": "SPOKEN"
+        },
+        {
+          "primitive": "QUESTION",
+          "who": "OTHER",
+          "text": "Add the next line. Don't think about it.",
+          "answer": "SPOKEN"
+        },
+        {
+          "primitive": "REACTION",
+          "who": "EACH",
+          "text": "Where did that go?"
+        }
+      ]
     }
   ]
 }

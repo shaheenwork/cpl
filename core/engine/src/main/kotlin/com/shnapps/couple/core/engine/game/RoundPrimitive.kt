@@ -198,4 +198,7 @@ sealed interface Verdict {
      * zero is the interesting answer, and the direction of a gap is nobody's business.
      */
     data class Apart(val gap: Int) : Verdict
+
+    /** Both answers are shown and that is the whole of it: nothing is compared, nobody scores. */
+    data object Shown : Verdict
 }

@@ -25,6 +25,17 @@ function played(result: GeneratedGame | string): GeneratedGame {
   return result as GeneratedGame;
 }
 
+/**
+ * The game, or nothing — because a couple's limits can rule a whole game out.
+ *
+ * Blind Taste is every prompt behind `sensory_blindfold`: someone who said never to blindfolds
+ * cannot play it, and refusing to deal it is the chokepoint working rather than failing. What must
+ * still hold is the other half — that anything it *does* release is permitted.
+ */
+function playedOrNothing(result: GeneratedGame | string): GeneratedGame | null {
+  return typeof result === 'string' ? null : result;
+}
+
 function released(game: GeneratedGame): string[] {
   return [...game.rounds.flatMap((round) => round.promptIds), ...game.alternates];
 }
@@ -38,9 +49,10 @@ describe('every game can be played', () => {
     // Named rather than counted: a game disappearing from the bundle is a content mistake that
     // no other test would notice, because everything else here loops over whatever is there.
     assert.deepEqual(games.map((each) => each.id).sort(), [
-      'COUPLE_BATTLE', 'DEEP_TALK', 'DIRTY_DICE', 'ME_OR_YOU', 'PREDICT_MY_ANSWER', 'RATE_IT', 'SPIN',
-      'STRIP_ROUND', 'THREE_MINUTES', 'TRUTH_OR_DARE', 'TWO_TRUTHS_AND_A_LIE', 'WHO_KNOWS_WHO',
-      'WOULD_YOU_RATHER', 'YES_NO_MAYBE',
+      'BLIND_TASTE', 'BUILD_THE_FANTASY', 'COUPLE_BATTLE', 'DEEP_TALK', 'DIRTY_DICE', 'DONT_MOVE',
+      'EARN_IT', 'IN_YOUR_WORDS', 'ME_OR_YOU', 'PREDICT_MY_ANSWER', 'RATE_IT', 'RED_LIGHT', 'SPIN',
+      'STRIP_ROUND', 'THE_BET', 'THREE_MINUTES', 'TRUTH_OR_DARE', 'TWO_TRUTHS_AND_A_LIE',
+      'WHO_KNOWS_WHO', 'WOULD_YOU_RATHER', 'YES_NO_MAYBE',
     ]);
   });
 
@@ -129,11 +141,17 @@ describe('the chokepoint holds for games', () => {
 
   it('every released prompt is one the chokepoint permits', () => {
     const context = openContext({ filters: { ...openContext().filters, excludedThemes: ['power_leading', 'sensory_blindfold'], maxIntensity: 4 } });
+    let playable = 0;
     for (const each of games) {
       const req = request({ intensity: 5, seed: 99 });
-      const result = played(generateGame(prompts, each, req, context));
+      const result = playedOrNothing(generateGame(prompts, each, req, context));
+      if (result === null) continue;
+      playable += 1;
       for (const id of released(result)) assert.equal(permits(byId.get(id)!, req, context), undefined, id);
     }
+    // Most of them survive these limits; a game built entirely on an excluded theme does not, and
+    // the app offers what can be dealt rather than a game that would come up empty.
+    assert.ok(playable >= games.length - 2, `only ${playable} of ${games.length} games could be dealt`);
   });
 
   it('never hands out the whole permitted set', () => {

@@ -133,6 +133,14 @@ enum class RevealOutcome {
 
     /** How far apart two dials landed. Shows the gap, never a ranking. */
     DISTANCE,
+
+    /**
+     * Both answers, side by side, with nothing to win.
+     *
+     * Some rounds are not a comparison: two people write what they want and read each other's.
+     * Scoring that would turn a confession into a competition, so this reveal shows and stops.
+     */
+    SHARED,
 }
 
 /** Whether every round belongs to both partners, or turns alternate between them. */

@@ -399,6 +399,8 @@ private fun verdictLine(
         }
     }
     is Verdict.Apart -> gapLine(verdict.gap)
+    // Nothing to say about it: the answers are the point, and a verdict would make it a contest.
+    Verdict.Shown -> ""
     Verdict.AwaitingJudge -> "Close enough?"
 }
 
