@@ -1856,3 +1856,65 @@ those enums is a compile error until somebody decides what it looks like.
 The rule was proved by planting an emoji and watching the build fail, per the phase's own exit
 criterion. A second rule fails the build on a literal `Color(` outside `:core:designsystem` — the
 convention has been in CLAUDE.md since Phase 2 and was held by review alone until now.
+
+---
+
+## D-111 — A screen has a frame, and the primary action does not scroll away
+
+Every screen in the app was a scrolling column with a back link at the top. Two things followed
+from that, and neither is a matter of taste:
+
+- **Nothing anchored the bottom.** The card player put its actions in the middle of the screen
+  with 40% of it empty below them — visible in the golden this replaces. A thumb reaches the
+  bottom of a phone; the app put Done above the fold and nothing under it.
+- **A primary action could scroll out of reach.** "Build the evening" sat at the end of a long
+  form. That is the wrong order: a person decides and then reaches, so the thing they reach for
+  has to be where their hand already is.
+
+`ScreenScaffold` is the frame: a 56 dp bar over the scene, content that scrolls **under** a docked
+action, and a gradient scrim between them so content passes beneath rather than stopping at an
+edge. `dock` is the screen's one primary action and whatever sits beside it.
+
+Three details are deliberate:
+
+- **The bar's hairline appears only once something has scrolled under it.** A divider over empty
+  space is a line drawn for its own sake.
+- **`centred`** is for a screen that is one object rather than a list. The card player uses it;
+  home does not.
+- **`BarAction`** puts "Too far" in the bar. It is a safety control that must always be reachable,
+  and as a third filled button beside Done it competed with the thing a couple was doing. A safety
+  control that looks like a choice is a worse safety control.
+
+Material's `IconButton` is 40 dp and its `TextButton` applies its own 40 dp default *inside*
+`GlowButton`'s. A `defaultMinSize` loses to another `defaultMinSize`, so the touch target is
+`heightIn` now — a constraint rather than a preference. The accessibility suite caught both, which
+is what it is for.
+
+---
+
+## D-112 — The hero card, and the clock as a shape
+
+`AfterhoursCard` is the thing this whole rebuild exists for: one instruction, on one card, between
+two people. It was drawn as a list row — same fill, same radius, same uniform gap — with the title
+sitting directly on the body because a card spaced its children the way a list does.
+
+What makes it an object:
+
+- The **heat's rim**, so a Playful card and a Wild card are different things before a word is read.
+- An **index numeral** bled off the corner and clipped by the card at 4.5% opacity. It carries no
+  data and is decorative, so it is out of the accessibility tree — and it is most of why a page
+  looks composed rather than filled in.
+- Its own **internal rhythm**: eyebrow, `tight`, title, `group`, body, `group`, meta.
+- A **measure**, so a line stops at about 40 characters instead of running to the edge of the phone.
+
+`RunProgress` replaces "2 of 6 this run" — four words of 11 sp grey floating between the card and
+the buttons. One segment per card, the current one in the heat's accent, and one description for
+the whole rail so a screen reader hears "Card 2 of 6" rather than six anonymous boxes.
+
+`TimerRing` replaces "Start the 5 minutes" as a full-width outlined button, which was a third call
+to action competing with Done and Skip. A ring shows how much is left without being read, which is
+the point of a clock in a room where nobody wants to be looking at a screen. The last ten seconds
+pulse and warm towards ember; under reduce-motion the colour still changes and the pulse stops,
+because someone who turned animation off should lose the performance, not the information.
+
+`Dealing()` is a skeleton in the card's own shape rather than the word "Dealing." in grey.

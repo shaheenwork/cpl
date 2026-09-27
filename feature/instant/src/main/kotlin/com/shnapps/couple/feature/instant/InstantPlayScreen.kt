@@ -1,30 +1,39 @@
 package com.shnapps.couple.feature.instant
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.CinematicCard
-import com.shnapps.couple.core.designsystem.component.CountdownRing
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
+import com.shnapps.couple.core.designsystem.component.raised
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
-import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.designsystem.theme.ProvideHeat
 import com.shnapps.couple.core.engine.InstantCard
 import com.shnapps.couple.core.model.Heat
-import com.shnapps.couple.core.ui.BackRow
+import com.shnapps.couple.core.ui.AfterhoursCard
+import com.shnapps.couple.core.ui.BarAction
 import com.shnapps.couple.core.ui.HeatPicker
-import com.shnapps.couple.core.ui.ScreenColumn
+import com.shnapps.couple.core.ui.RunProgress
+import com.shnapps.couple.core.ui.ScreenScaffold
 import com.shnapps.couple.core.ui.SecureScreen
+import com.shnapps.couple.core.ui.TimerRing
 
 /**
  * One instruction at a time (REDESIGN_PROMPT.md §5.3).
@@ -60,7 +69,7 @@ fun InstantPlayScreen(
     )
 }
 
-@Suppress("LongParameterList") // A screen with one card and every action it offers.
+@Suppress("LongParameterList", "CyclomaticComplexMethod") // One screen, one card, every way past it.
 @Composable
 internal fun InstantPlayContent(
     state: InstantPlayUiState,
@@ -80,9 +89,78 @@ internal fun InstantPlayContent(
     // Everything on this screen takes the run's heat: the card's rim, the primary action,
     // the eyebrow (DESIGN_PROMPT.md §4.4). One setting, and the whole room changes.
     ProvideHeat(state.heat) {
-        ScreenColumn {
-            BackRow(label = "Back", onBack = onBack)
+        val playing = state.card != null && state.refusing == null &&
+            state.offeringHotter == null && !state.runComplete
 
+        // Typed up front rather than inline: a `when` whose branches are composable lambdas
+        // needs the expected type to be stated somewhere, and a slot is easier to read here.
+        val trailing: (@Composable () -> Unit)? = if (playing) {
+            { BarAction(label = "Too far", icon = AfterhoursIcons.Shield, onClick = onTooFar) }
+        } else {
+            null
+        }
+        val belowBar: (@Composable () -> Unit)? = if (playing) {
+            { RunProgress(current = state.position - 1, total = state.runLength) }
+        } else {
+            null
+        }
+        val dock: (@Composable ColumnScope.() -> Unit)? = when {
+            state.refusing != null || state.offeringHotter != null -> null
+            state.runComplete -> {
+                {
+                    GlowButton(
+                        text = "Keep going",
+                        onClick = onKeepGoing,
+                        leadingIcon = AfterhoursIcons.Flame,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    GlowButton(
+                        text = "Keep tonight, and find each other",
+                        onClick = onKeepThis,
+                        style = GlowButtonStyle.Secondary,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    GlowButton(
+                        text = "That's us for tonight",
+                        onClick = onBack,
+                        style = GlowButtonStyle.Quiet,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+            playing -> {
+                {
+                    Row(horizontalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm)) {
+                        GlowButton(
+                            text = "Skip",
+                            onClick = onSkip,
+                            style = GlowButtonStyle.Secondary,
+                            leadingIcon = AfterhoursIcons.Skip,
+                            modifier = Modifier.weight(SKIP_WIDTH),
+                        )
+                        GlowButton(
+                            text = "Done",
+                            onClick = onDone,
+                            leadingIcon = AfterhoursIcons.Check,
+                            modifier = Modifier.weight(DONE_WIDTH),
+                        )
+                    }
+                }
+            }
+            else -> null
+        }
+
+        ScreenScaffold(
+            title = if (playing) "Tonight" else null,
+            onBack = onBack,
+            // A safety control belongs in the bar, always reachable and never competing with
+            // the thing a couple is actually doing (§6.2).
+            trailing = trailing,
+            belowBar = belowBar,
+            dock = dock,
+            // One card, centred in what is left: this screen is an object, not a list.
+            centred = true,
+        ) {
             when {
                 state.refusing != null -> RefusalQuestion(onRefuse = onRefuse)
                 state.offeringHotter != null -> HotterQuestion(
@@ -90,29 +168,16 @@ internal fun InstantPlayContent(
                     onTurnUp = onTurnUp,
                     onKeep = onKeepHeat,
                 )
-                state.runComplete -> RunComplete(
-                    played = state.played,
-                    onKeepGoing = onKeepGoing,
-                    onKeepThis = onKeepThis,
-                    onBack = onBack,
-                )
+                state.runComplete -> RunComplete(played = state.played)
                 state.card != null -> Playing(
                     card = state.card,
                     heat = state.heat,
                     timer = state.timer,
                     position = state.position,
-                    runLength = state.runLength,
-                    onDone = onDone,
-                    onSkip = onSkip,
-                    onTooFar = onTooFar,
                     onStartTimer = onStartTimer,
                     onStopTimer = onStopTimer,
                 )
-                state.loading -> Text(
-                    text = "One moment.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = AfterhoursTheme.colors.textMuted,
-                )
+                state.loading -> Dealing()
                 else -> Empty()
             }
 
@@ -123,100 +188,59 @@ internal fun InstantPlayContent(
     }
 }
 
-@Suppress("LongParameterList") // One card, its clock, and everything you can do about it.
 @Composable
 private fun Playing(
     card: InstantCard,
     heat: Heat,
     timer: CardTimer?,
     position: Int,
-    runLength: Int,
-    onDone: () -> Unit,
-    onSkip: () -> Unit,
-    onTooFar: () -> Unit,
     onStartTimer: () -> Unit,
     onStopTimer: () -> Unit,
 ) {
-    CinematicCard(modifier = Modifier.fillMaxWidth(), glowing = true) {
-        Text(
-            text = "${heat.label.uppercase()} · ${card.minutes} MIN",
-            style = EyebrowTextStyle,
-            color = AfterhoursTheme.colors.brass,
-        )
-        Text(
-            text = card.title,
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = card.body,
-            style = MaterialTheme.typography.bodyLarge,
-            color = AfterhoursTheme.colors.textMuted,
-        )
-    }
+    val spacing = AfterhoursTheme.spacing
 
-    Progress(position = position, runLength = runLength)
+    AfterhoursCard(
+        eyebrow = "${heat.label} · ${card.minutes} min",
+        title = card.title,
+        body = card.body,
+        meta = "Whoever's holding the phone",
+        index = position,
+    )
 
+    // A clock is a shape, not a third call to action (§5.7). It only appears once somebody
+    // asked for one, and tapping it is how it stops.
     if (timer == null) {
         GlowButton(
             text = "Start the ${card.minutes} minutes",
             onClick = onStartTimer,
-            style = GlowButtonStyle.Secondary,
+            style = GlowButtonStyle.Quiet,
+            leadingIcon = AfterhoursIcons.Clock,
             modifier = Modifier.fillMaxWidth(),
         )
     } else {
-        Countdown(timer = timer, onStop = onStopTimer)
-    }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.xs),
-    ) {
-        GlowButton(
-            text = "Skip",
-            onClick = onSkip,
-            style = GlowButtonStyle.Secondary,
-            modifier = Modifier.weight(1f),
-        )
-        GlowButton(text = "Done", onClick = onDone, modifier = Modifier.weight(1f))
-    }
-    GlowButton(
-        text = "Too far — not this kind of thing",
-        onClick = onTooFar,
-        style = GlowButtonStyle.Quiet,
-        modifier = Modifier.fillMaxWidth(),
-    )
-}
-
-/** The clock, once someone started it. Stopping it is one tap and needs no reason. */
-@Composable
-private fun Countdown(timer: CardTimer, onStop: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.xs),
-    ) {
-        CountdownRing(
-            progress = timer.progress,
-            value = if (timer.finished) "Time" else timer.remainingSeconds.clock(),
-            unit = if (timer.finished) "" else "left",
-        )
-        GlowButton(
-            text = if (timer.finished) "Put the clock away" else "Stop the clock",
-            onClick = onStop,
-            style = GlowButtonStyle.Quiet,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        Box(modifier = Modifier.fillMaxWidth().padding(top = spacing.sm), contentAlignment = Alignment.Center) {
+            TimerRing(
+                remainingSeconds = timer.remainingSeconds,
+                totalSeconds = timer.totalSeconds,
+                onToggle = onStopTimer,
+                running = !timer.finished,
+            )
+        }
     }
 }
 
-/** Where they are in this run. Not a target — the app offers more when it runs out. */
+/** Dealing. A skeleton in the card's own shape, not the word "Dealing." in grey (§5.8). */
 @Composable
-private fun Progress(position: Int, runLength: Int) {
-    Text(
-        text = "${position.coerceAtMost(runLength)} of $runLength this run",
-        style = EyebrowTextStyle,
-        color = AfterhoursTheme.colors.textFaint,
+private fun Dealing() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(SKELETON)
+            .raised(
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = MaterialTheme.shapes.extraLarge,
+            )
+            .semantics { contentDescription = "Dealing" },
     )
 }
 
@@ -225,45 +249,17 @@ private fun Progress(position: Int, runLength: Int) {
  * anything, so it is the first moment one is offered (REDESIGN_PROMPT.md §4.2).
  */
 @Composable
-private fun RunComplete(played: Int, onKeepGoing: () -> Unit, onKeepThis: () -> Unit, onBack: () -> Unit) {
-    CinematicCard(modifier = Modifier.fillMaxWidth(), glowing = true) {
-        Text(
-            text = "That's $played.",
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = "Stop here, or keep going — there is plenty left.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = AfterhoursTheme.colors.textMuted,
-        )
-    }
-    GlowButton(text = "Keep going", onClick = onKeepGoing, modifier = Modifier.fillMaxWidth())
-    GlowButton(
-        text = "Keep tonight, and find each other",
-        onClick = onKeepThis,
-        style = GlowButtonStyle.Secondary,
-        modifier = Modifier.fillMaxWidth(),
-    )
-    Text(
-        text = "An account keeps what you saved and lets you play when you're apart. " +
+private fun RunComplete(played: Int) {
+    AfterhoursCard(
+        eyebrow = "That's $played",
+        title = "Stop here, or keep going?",
+        body = "There is plenty left, and an evening does not end on its own.",
+        meta = "An account keeps what you saved and lets you play when you're apart. " +
             "What you've said no to comes with you.",
-        style = MaterialTheme.typography.bodySmall,
-        color = AfterhoursTheme.colors.textMuted,
-    )
-    GlowButton(
-        text = "That's us for tonight",
-        onClick = onBack,
-        style = GlowButtonStyle.Quiet,
-        modifier = Modifier.fillMaxWidth(),
     )
 }
 
 /** Seconds as a clock reads them. */
-private fun Int.clock(): String = "%d:%02d".format(this / SECONDS_PER_MINUTE, this % SECONDS_PER_MINUTE)
-
-private const val SECONDS_PER_MINUTE = 60
-
 /** Two taps, and nobody is told: the whole of how a limit is set now. */
 @Composable
 private fun RefusalQuestion(onRefuse: (Boolean) -> Unit) {
@@ -332,3 +328,10 @@ private fun Empty() {
         )
     }
 }
+
+/** Skip is narrower than Done on purpose: they are not equal choices. */
+private const val SKIP_WIDTH = 0.4f
+private const val DONE_WIDTH = 0.6f
+
+/** A dealing skeleton stands in for a card, so the screen does not jump when one arrives. */
+private val SKELETON = 240.dp

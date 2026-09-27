@@ -3,7 +3,12 @@ package com.shnapps.couple.feature.home
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,8 +23,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.CinematicCard
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
+import com.shnapps.couple.core.designsystem.theme.ProvideHeat
 import com.shnapps.couple.core.model.AccountOffer
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.Gate
@@ -34,9 +41,10 @@ import com.shnapps.couple.core.ui.ChoiceRow
 import com.shnapps.couple.core.ui.ErrorBanner
 import com.shnapps.couple.core.ui.HeatPicker
 import com.shnapps.couple.core.ui.PremiumNudge
-import com.shnapps.couple.core.ui.ScreenColumn
 import com.shnapps.couple.core.ui.ScreenHeading
+import com.shnapps.couple.core.ui.ScreenScaffold
 import com.shnapps.couple.core.ui.SecureScreen
+import com.shnapps.couple.core.ui.Wordmark
 
 /**
  * Home — the only one (REDESIGN_PROMPT.md §6).
@@ -119,59 +127,72 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
     // The one way to start, opened. Screen state, because it is a question this screen asked.
     var choosing by remember { mutableStateOf(false) }
 
-    ScreenColumn(modifier = modifier) {
-        ScreenHeading(
-            eyebrow = if (state.company.paired) "Tonight, the two of you" else "Tonight",
-            headline = "Pick something. Or let us pick.",
-            body = "One phone between you, passed back and forth.",
-        )
-
-        state.error?.let { error -> ErrorBanner(message = error.message(), onDismiss = actions.onDismissError) }
-        // A limit, said where the tap happened — never over an evening that has started (§19).
-        state.gate?.let { gate ->
-            PremiumNudge(
-                gate = gate,
-                onSeeWhatsIncluded = { actions.onPaywall(gate) },
-                onDismiss = actions.onDismissGate,
-            )
+    // Everything on this screen takes tonight's heat (DESIGN_PROMPT.md §4.4).
+    ProvideHeat(state.heat) {
+        // The one primary action docks, so it is in reach whatever the list below has grown to.
+        // It used to sit at the top of a column that scrolled past it.
+        val dock: (@Composable ColumnScope.() -> Unit) = {
+            Start(state = state, choosing = choosing, onChoosing = { choosing = it }, actions = actions)
         }
 
-        // What is already happening comes before anything that could be started.
-        state.active?.let { session -> UnderWay(session, actions.onOpen) }
-        state.waitingForMe?.let { plan -> SomethingWaiting(plan, state.canStart, actions.onOpenWaiting) }
-        state.unopenedMedia?.let { item -> TheySentSomething(item, actions.onApart) }
-
-        Start(state = state, choosing = choosing, onChoosing = { choosing = it }, actions = actions)
-
-        Section("How far tonight") {
-            HeatPicker(selected = state.heat, onHeat = actions.onHeat)
-            Text(
-                text = "Change it any time, mid-game, with one thumb.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AfterhoursTheme.colors.textMuted,
+        ScreenScaffold(
+            modifier = modifier,
+            trailing = {
+                // Material's IconButton is 40 dp; a target is 48 (§20).
+                IconButton(
+                    onClick = actions.onSettings,
+                    modifier = Modifier.size(AfterhoursTheme.spacing.touchTarget),
+                ) {
+                    Icon(
+                        imageVector = AfterhoursIcons.Settings,
+                        contentDescription = "Settings",
+                        tint = AfterhoursTheme.colors.textMuted,
+                    )
+                }
+            },
+            belowBar = { Wordmark(modifier = Modifier.padding(horizontal = AfterhoursTheme.spacing.gutter)) },
+            dock = dock,
+        ) {
+            ScreenHeading(
+                eyebrow = if (state.company.paired) "Tonight, the two of you" else "Tonight",
+                headline = "Pick something. Or let us pick.",
             )
-        }
 
-        Apart(state, actions)
-
-        Section("Or play something") {
-            state.games.forEach { game ->
-                ChoiceRow(
-                    title = game.title,
-                    subtitle = game.tagline,
-                    onClick = { actions.onPlay(game.id) },
+            state.error?.let { error -> ErrorBanner(message = error.message(), onDismiss = actions.onDismissError) }
+            // A limit, said where the tap happened — never over an evening that has started (§19).
+            state.gate?.let { gate ->
+                PremiumNudge(
+                    gate = gate,
+                    onSeeWhatsIncluded = { actions.onPaywall(gate) },
+                    onDismiss = actions.onDismissGate,
                 )
             }
-        }
 
-        GlowButton(
-            text = "Settings",
-            onClick = actions.onSettings,
-            style = GlowButtonStyle.Quiet,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        actions.onGallery?.let { Quiet("Component gallery", it) }
-        actions.onInspector?.let { Quiet("Content inspector", it) }
+            // What is already happening comes before anything that could be started, and it is
+            // the one lit object on the screen when it is there.
+            state.active?.let { session -> UnderWay(session, actions.onOpen) }
+            state.waitingForMe?.let { plan -> SomethingWaiting(plan, state.canStart, actions.onOpenWaiting) }
+            state.unopenedMedia?.let { item -> TheySentSomething(item, actions.onApart) }
+
+            // How far tonight goes belongs with the room it sets, directly under the heading.
+            HeatPicker(selected = state.heat, onHeat = actions.onHeat)
+
+            Apart(state, actions)
+
+            Section("Or play something") {
+                state.games.forEach { game ->
+                    ChoiceRow(
+                        title = game.title,
+                        subtitle = game.tagline,
+                        icon = AfterhoursIcons.Spark,
+                        onClick = { actions.onPlay(game.id) },
+                    )
+                }
+            }
+
+            actions.onGallery?.let { Quiet("Component gallery", it) }
+            actions.onInspector?.let { Quiet("Content inspector", it) }
+        }
     }
 }
 
@@ -428,9 +449,16 @@ private fun UnderWay(session: NightSession, onOpen: (String, ExperienceType) -> 
 
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm)) {
+    val spacing = AfterhoursTheme.spacing
+    // A heading belongs to what follows it: `tight` below, and the `group` the scaffold already
+    // puts between children above. Equal gaps on both sides is what made every screen look
+    // unfinished (DESIGN_PROMPT.md §4.6).
+    Column(
+        modifier = Modifier.padding(top = spacing.item),
+        verticalArrangement = Arrangement.spacedBy(spacing.tight),
+    ) {
         Text(text = title.uppercase(), style = EyebrowTextStyle, color = AfterhoursTheme.colors.textFaint)
-        content()
+        Column(verticalArrangement = Arrangement.spacedBy(spacing.item)) { content() }
     }
 }
 

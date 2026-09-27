@@ -1,29 +1,43 @@
 package com.shnapps.couple.core.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.shnapps.couple.core.designsystem.component.CinematicCard
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 
 /**
- * One thing you can choose, in the one style everything choosable uses.
+ * One thing you can choose (DESIGN_PROMPT.md §5.3).
  *
- * A game on home, a game in the list, an evening to plan, apart, the library: they were four card
- * styles and three button styles, which is the reason a person could not tell what any screen wanted
- * of them. This is the row: what it is, what it does to an evening, and what tapping it will do.
+ * A row, not a card. It was drawn as a card, and ten of them in a column read as ten separate
+ * objects rather than as a list — which is what happens when everything on a screen carries the
+ * same fill, the same radius and the same border. Separation here comes from the gap between
+ * rows and nothing else: no rim, no shadow.
  *
- * [trailing] is a word, not a button — the whole row is the target, so a screen reader hears one
- * thing and a thumb has the full width. [locked] greys it and replaces the trailing word: a row
- * that needs an account still shows, and still says why, rather than being hidden until later.
+ * A game on home, a shape of an evening inside Start, the library, apart, a settings row: all of
+ * them are this. The whole row is one target, so a screen reader hears one thing and a thumb has
+ * the full width.
+ *
+ * [locked] greys it and replaces the trailing chevron with a lock. A row that needs an account
+ * still shows, and still says what it would do — a person cannot want something they have never
+ * been shown.
  */
 @Composable
 fun ChoiceRow(
@@ -32,47 +46,75 @@ fun ChoiceRow(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     trailing: String? = null,
+    icon: ImageVector? = null,
     locked: Boolean = false,
 ) {
+    val spacing = AfterhoursTheme.spacing
     val colors = AfterhoursTheme.colors
-    val words = listOfNotNull(title, subtitle, trailing?.takeIf { !locked }, NEEDS_ACCOUNT.takeIf { locked })
+    val words = listOfNotNull(
+        title,
+        subtitle,
+        trailing?.takeIf { !locked },
+        NEEDS_ACCOUNT.takeIf { locked },
+    )
 
-    CinematicCard(
-        modifier = modifier.fillMaxWidth(),
-        onClick = onClick,
-        contentDescription = words.joinToString(". "),
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = spacing.touchTarget)
+            .background(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.shapes.small)
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = words.joinToString(". ") }
+            .padding(horizontal = spacing.md, vertical = spacing.item),
+        horizontalArrangement = Arrangement.spacedBy(spacing.item),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = AfterhoursTheme.spacing.touchTarget),
-            horizontalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (locked) colors.textFaint else colors.textMuted,
+                modifier = Modifier.size(LEAD),
+            )
+        }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(spacing.xxs),
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.xxs),
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = if (locked) colors.textMuted else MaterialTheme.colorScheme.onSurface,
-                )
-                subtitle?.let {
-                    Text(text = it, style = MaterialTheme.typography.bodyMedium, color = colors.textMuted)
-                }
-            }
             Text(
-                text = (if (locked) NEEDS_ACCOUNT else trailing ?: PLAY).uppercase(),
-                style = EyebrowTextStyle,
-                color = if (locked) colors.textFaint else colors.brass,
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = if (locked) colors.textMuted else MaterialTheme.colorScheme.onSurface,
+            )
+            subtitle?.let {
+                Text(text = it, style = MaterialTheme.typography.bodyMedium, color = colors.textMuted)
+            }
+        }
+
+        if (locked) {
+            Icon(
+                imageVector = AfterhoursIcons.Lock,
+                contentDescription = null,
+                tint = colors.textFaint,
+                modifier = Modifier.size(GO),
+            )
+        } else {
+            trailing?.let {
+                Text(text = it.uppercase(), style = EyebrowTextStyle, color = AfterhoursTheme.heat.onDark)
+            }
+            Icon(
+                imageVector = AfterhoursIcons.Forward,
+                contentDescription = null,
+                tint = colors.textFaint,
+                modifier = Modifier.size(GO),
             )
         }
     }
 }
 
-/** What a row that needs a partner or an account says instead of what it would have done. */
-private const val NEEDS_ACCOUNT = "Set up"
+private val LEAD = 20.dp
+private val GO = 16.dp
 
-/** What a row does when nobody said otherwise. Most of them are games. */
-private const val PLAY = "Play"
+/** What a locked row says it needs, for anyone listening rather than looking. */
+private const val NEEDS_ACCOUNT = "Needs an account"

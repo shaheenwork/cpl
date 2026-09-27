@@ -55,16 +55,18 @@ class InstantSnapshotTest {
     fun `a card, and the three things you can do about it`() {
         capture("instant-card") { play(state()) }
 
+        // Done and Skip dock within thumb reach; "Too far" is a safety control in the bar,
+        // where it cannot be mistaken for a third choice (DESIGN_PROMPT.md §6.2).
         composeRule.onNodeWithText("Skip").assertIsDisplayed()
         composeRule.onNodeWithText("Done").assertIsDisplayed()
-        composeRule.onNodeWithText("Too far — not this kind of thing").assertIsDisplayed()
+        composeRule.onNodeWithText("Too far").assertIsDisplayed()
     }
 
     @Test
     fun `a clock, once someone starts one`() {
         capture("instant-timer") { play(state(timer = CardTimer(totalSeconds = 300, remainingSeconds = 182))) }
 
-        composeRule.onNodeWithText("Stop the clock").assertIsDisplayed()
+        composeRule.onNodeWithText("PAUSE").assertIsDisplayed()
     }
 
     @Test

@@ -185,6 +185,8 @@ data class AfterhoursColors(
      */
     val codePlate: Color,
     val codeModule: Color,
+    /** The last stretch of a clock: warmer than any heat, and not one of them. */
+    val ember: Color,
 )
 
 internal val afterhoursColors = AfterhoursColors(
@@ -202,4 +204,5 @@ internal val afterhoursColors = AfterhoursColors(
     grain = Palette.Cream.copy(alpha = 0.035f),
     codePlate = Palette.Cream,
     codeModule = Palette.Scene,
+    ember = Palette.Ember,
 )

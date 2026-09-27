@@ -8,8 +8,9 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 **unified**: the rebuild had left two of everything, so signing in replaced the app rather than
 adding to it. U1–U6 are done: one home, one way to start, one game list and one player, one vocabulary, the
 six-field form reduced to three questions, and no screen that can be reached and not left. The
-**visual rebuild** (`DESIGN_PROMPT.md`) has begun — D1 (foundations) and D2 (icons) are done;
-D3–D8 redraw the frame, the card, home, the games, the rest, and the brand. What remains before a public release is
+**visual rebuild** (`DESIGN_PROMPT.md`) has begun — D1 (foundations), D2 (icons), D3 (the
+frame), D4 (the card and the player) and D5 (home) are done; D6 (games), D7 (the remaining
+screens) and D8 (brand) follow. What remains before a public release is
 setup and review, not code: `RELEASE.md` is the ordered runbook, `HUMAN_SETUP.md` the console detail,
 and `legal/` holds drafts of the privacy policy, the terms and the Play data-safety answers, pending
 a lawyer.
@@ -1233,6 +1234,36 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Visual rebuild D3–D5 — The frame, the card, and home ✅
+
+### Shipped
+- **`ScreenScaffold`** (D-111): a bar over the scene, content that scrolls *under* a docked action,
+  and a scrim between them. The card player's actions were in the middle of the screen with 40% of
+  it empty below; a primary action could scroll out of reach. Neither is possible now.
+- **`BarAction`** puts "Too far" in the bar. A safety control that looks like a third choice is a
+  worse safety control.
+- **`AfterhoursCard`** (D-112): the hero. Heat rim, an index numeral bled off the corner, its own
+  internal rhythm, and a measure on the body.
+- **`RunProgress`** — a segmented rail instead of four words of grey — and **`TimerRing`**, a clock
+  as a shape rather than a third button. A skeleton replaces the word "Dealing."
+- **`ChoiceRow` is a row**, not a card: no rim, separation from the gap alone, a leading icon and a
+  chevron. Ten of them read as a list now.
+- **Home on the frame**: wordmark, the heat directly under the heading it sets, sections with real
+  rhythm, and Start docked.
+
+### Verified
+```
+./gradlew check                               BUILD SUCCESSFUL
+recordRoborazziDebug                          every golden re-recorded
+:feature:home  HomeAccessibilityTest          caught Material's 40 dp IconButton
+:feature:instant InstantAccessibilityTest     caught the bar action's target
+```
+- Two real accessibility catches, both from Material defaults rather than from the design:
+  `IconButton` is 40 dp, and `TextButton` applies its own 40 dp *inside* `GlowButton`'s. A
+  `defaultMinSize` loses to another `defaultMinSize`, so targets are `heightIn` now.
 
 ---
 

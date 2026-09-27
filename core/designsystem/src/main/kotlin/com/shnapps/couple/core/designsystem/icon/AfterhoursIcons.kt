@@ -47,7 +47,7 @@ object AfterhoursIcons {
         "M18 17l.8 2.2L21 20l-2.2.8L18 23l-.8-2.2L15 20l2.2-.8z",
     )
     val Moon = icon("Moon", "M20 14.5A8 8 0 019.5 4 8.5 8.5 0 1020 14.5z")
-    val Clock = icon("Clock", "M20.5 12a8.5 8.5 0 11-17 0 8.5 8.5 0 0117 0z", "M12 7.5V12l3 1.8")
+    val Clock = icon("Clock", "M3.5 12a8.5 8.5 0 0 1 17.0 0a8.5 8.5 0 0 1 -17.0 0", "M12 7.5V12l3 1.8")
     val Skip = icon("Skip", "M5 5l8 7-8 7z", "M18 5v14")
     val Pause = icon("Pause", "M9.5 5v14", "M14.5 5v14")
     val Stop = icon("Stop", "M6 6h12v12H6z")
@@ -55,7 +55,7 @@ object AfterhoursIcons {
     // --- the two of you ------------------------------------------------------
     val People = icon(
         "People",
-        "M12.2 8a3.2 3.2 0 11-6.4 0 3.2 3.2 0 016.4 0z",
+        "M5.8 8a3.2 3.2 0 0 1 6.4 0a3.2 3.2 0 0 1 -6.4 0",
         "M3.5 19.5a5.5 5.5 0 0111 0",
         "M16 5.6a3.2 3.2 0 010 4.8",
         "M17.5 14.6a5.5 5.5 0 013 4.9",
@@ -67,7 +67,7 @@ object AfterhoursIcons {
         "M6 11a6 6 0 0012 0",
         "M12 17v4",
     )
-    val Camera = icon("Camera", "M4 8h3l1.5-2h7L17 8h3v11H4z", "M15 13a3 3 0 11-6 0 3 3 0 016 0z")
+    val Camera = icon("Camera", "M4 8h3l1.5-2h7L17 8h3v11H4z", "M9 13a3 3 0 0 1 6 0a3 3 0 0 1 -6 0")
     val Gift = icon(
         "Gift",
         "M4 9.5h16V20H4z",
@@ -85,15 +85,21 @@ object AfterhoursIcons {
     val Eye = icon(
         "Eye",
         "M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z",
-        "M14.7 12a2.7 2.7 0 11-5.4 0 2.7 2.7 0 015.4 0z",
+        "M9.3 12a2.7 2.7 0 0 1 5.4 0a2.7 2.7 0 0 1 -5.4 0",
     )
     val Lock = icon("Lock", "M4.5 10.5h15V20h-15z", "M8 10.5V8a4 4 0 118 0v2.5")
     val Shield = icon("Shield", "M12 3l7 2.8v5.6c0 4.3-2.9 7.6-7 9.6-4.1-2-7-5.3-7-9.6V5.8z")
+
+    // Sliders rather than a cog with rays: the ray version reads as a brightness control,
+    // which is what the first draft of this set drew.
     val Settings = icon(
         "Settings",
-        "M15 12a3 3 0 11-6 0 3 3 0 016 0z",
-        "M12 3v2.5", "M12 18.5V21", "M21 12h-2.5", "M5.5 12H3",
-        "M18.4 5.6l-1.8 1.8", "M7.4 16.6l-1.8 1.8", "M18.4 18.4l-1.8-1.8", "M7.4 7.4L5.6 5.6",
+        "M4 7h9", "M17 7h3",
+        "M4 12h3", "M11 12h9",
+        "M4 17h9", "M17 17h3",
+        "M15 7a2 2 0 104 0 2 2 0 10-4 0",
+        "M7 12a2 2 0 104 0 2 2 0 10-4 0",
+        "M15 17a2 2 0 104 0 2 2 0 10-4 0",
     )
 
     /** Every icon in the set, for the gallery and for the audit that holds them to one spec. */

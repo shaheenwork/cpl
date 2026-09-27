@@ -1,6 +1,5 @@
 package com.shnapps.couple.feature.instant
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
@@ -68,23 +67,14 @@ class InstantAccessibilityTest {
         capture("a11y-instant-card-200", LARGEST) { play() }
 
         composeRule.onNodeWithText("Done").assertIsDisplayed()
-        composeRule.onNodeWithText("Too far — not this kind of thing").assertIsDisplayed()
+        composeRule.onNodeWithText("Too far").assertIsDisplayed()
     }
 
     @Test
     fun `nothing you are meant to touch is smaller than 48 dp`() {
-        compose(NORMAL) {
-            Column {
-                StartContent(
-                    state = StartUiState(heat = Heat.HOT),
-                    onHeat = {},
-                    onConfirm = {},
-                    onNotOldEnough = {},
-                    onPairInstead = {},
-                )
-                play()
-            }
-        }
+        // The player alone, not stacked under another screen: it fills the window now, so a
+        // second screen above it would squeeze its own content to nothing and measure zero.
+        compose(NORMAL) { play() }
 
         val clickable = composeRule.onAllNodes(isClickable).fetchSemanticsNodes()
         assertThat(clickable).isNotEmpty()
@@ -96,18 +86,7 @@ class InstantAccessibilityTest {
 
     @Test
     fun `everything interactive says what it is`() {
-        compose(NORMAL) {
-            Column {
-                play()
-                StartContent(
-                    state = StartUiState(heat = Heat.HOT),
-                    onHeat = {},
-                    onConfirm = {},
-                    onNotOldEnough = {},
-                    onPairInstead = {},
-                )
-            }
-        }
+        compose(NORMAL) { play() }
 
         for (node in composeRule.onAllNodes(isClickable).fetchSemanticsNodes()) {
             val text = node.config.getOrNull(SemanticsProperties.Text)
