@@ -53,7 +53,11 @@ class AuthViewModel @Inject constructor(
     private val offer: AccountOffer? = savedStateHandle.get<String>(Route.Auth::offer.name)
         ?.let { name -> AccountOffer.entries.firstOrNull { it.name == name } }
 
-    private val _uiState = MutableStateFlow(AuthUiState(offer = offer))
+    // Somebody who arrived from a row that needs an account does not have one yet, so the screen
+    // opens on making one rather than on signing in (§6).
+    private val _uiState = MutableStateFlow(
+        AuthUiState(offer = offer, mode = if (offer == null) AuthMode.SignIn else AuthMode.SignUp),
+    )
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
     fun onEmailChange(value: String) =

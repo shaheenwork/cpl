@@ -1258,6 +1258,32 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
 
 ---
 
+### On the device
+The whole point was that the app was confusing on a phone, so the walk is the verification that
+counts. Cold install, no account, no network setup:
+
+- First launch is still one screen — 18+ and a heat — and lands on **home**.
+- Home is the one screen: one **Start now**, the heat under it, Apart and the library marked
+  **SET UP**, then the games. Nothing on it needs an account to be understood.
+- **Start now** opens the five shapes. "Just deal us cards" dealt a card and Done moved it on.
+- Tapping **Our memories** with no account showed "Keeping this needs an account", said what it
+  buys, and **Not now, keep playing** went straight back to home.
+
+Two real things the walk found, both fixed and re-walked:
+
+- **The games were in the wrong order**: the eight quiz-ish ones from Phase 11 came first, so the
+  list opened on "Predict My Answer" and the physical ones were buried. Reordered in
+  `content/games.json`, which is the only legal place — no code may know a game by name (D-072).
+- **The account offer opened on "Sign in"**, for somebody who by definition has no account. It
+  opens on making one now when it was offered, and on signing in when it was asked for.
+
+One ANR appeared mid-walk and was **not** a regression: "failed to complete startup" under CPU
+pressure, with the same ANR recorded the day before on an unchanged build and Google's own search
+app ANR'ing in the same second. It does not reproduce with the Gradle daemon stopped (CLAUDE.md
+already warns about this machine's memory).
+
+---
+
 ## Unification U4–U5 — One word for one thing, and three questions ✅
 
 ### Shipped

@@ -209,4 +209,11 @@ class AuthViewModelTest {
         assertThat(viewModel().uiState.value.offer).isNull()
         assertThat(viewModel(AccountOffer.APART).uiState.value.offer).isEqualTo(AccountOffer.APART)
     }
+
+    @Test
+    fun `somebody who was offered an account is making one, not signing in`() {
+        assertThat(viewModel().uiState.value.mode).isEqualTo(AuthMode.SignIn)
+        // They reached for a row that needs an account, so they do not have one yet.
+        assertThat(viewModel(AccountOffer.MEMORIES).uiState.value.mode).isEqualTo(AuthMode.SignUp)
+    }
 }
