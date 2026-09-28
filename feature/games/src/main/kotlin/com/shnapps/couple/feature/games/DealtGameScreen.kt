@@ -159,7 +159,7 @@ private fun Moment(
         null -> Unit
 
         is GameMoment.HandOff -> Pass(
-            line = "Pass the phone to ${players.name(moment.seat)}.",
+            line = if (players.named) "Pass the phone to ${players.name(moment.seat)}." else "Pass the phone over.",
             button = "I've got it",
             onNext = onProceed,
         )
@@ -169,7 +169,7 @@ private fun Moment(
         // One phone between two people: nobody waits for a network here, so this moment only
         // appears if a two-phone game is ever played locally. It says the truth either way.
         is GameMoment.Waiting -> Pass(
-            line = "Waiting for ${players.name(moment.seat)}.",
+            line = if (players.named) "Waiting for ${players.name(moment.seat)}." else "Waiting for them.",
             button = "Carry on",
             onNext = onProceed,
         )

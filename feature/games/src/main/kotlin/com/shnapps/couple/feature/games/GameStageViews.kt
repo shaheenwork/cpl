@@ -23,6 +23,7 @@ import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.engine.game.GameMoment
 import com.shnapps.couple.core.model.CloseCheckIn
+import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Scoring
 import com.shnapps.couple.core.model.SessionEndReason
@@ -140,18 +141,41 @@ internal fun ReadyStage(state: GameUiState, actions: GameActions) {
     }
 }
 
+/**
+ * Passing the phone (DESIGN_PROMPT.md §6.3).
+ *
+ * Its own composable because it is its own moment: one line, one action, and nothing of what comes
+ * next. With no names there is nobody to name — the phone is going to whoever is not holding it,
+ * which both of them already know, and a stand-in name here would be a pronoun pretending to be a
+ * person (see `GamePlayers`).
+ */
+@Composable
+private fun HandOff(players: GamePlayers, seat: Int, onProceed: () -> Unit) {
+    val name = players.name(seat).takeIf { players.named }
+    ScreenHeading(
+        eyebrow = "Pass the phone",
+        headline = name?.let { "Over to $it." } ?: "Over to them.",
+        body = name?.let { "Only $it should look." } ?: "Only they should look.",
+    )
+    GlowButton(
+        text = name?.let { "I'm $it" } ?: "I've got it",
+        onClick = onProceed,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
 /** The game itself: whatever the interpreter says comes next. */
 @Composable
 internal fun PlayingStage(moment: GameMoment, state: GameUiState, actions: GameActions) {
     ScreenColumn {
         when (moment) {
-            is GameMoment.HandOff -> {
-                val name = state.players.name(moment.seat)
-                ScreenHeading(eyebrow = "Pass the phone", headline = "Over to $name.", body = "Only $name should look.")
-                GlowButton(text = "I'm $name", onClick = actions.onProceed, modifier = Modifier.fillMaxWidth())
-            }
+            is GameMoment.HandOff -> HandOff(state.players, moment.seat, actions.onProceed)
             is GameMoment.Waiting -> WaitingOnThem(
-                message = if (state.twoPhones) "Over to them." else "${state.players.name(moment.seat)} is answering.",
+                message = when {
+                    state.twoPhones -> "Over to them."
+                    state.players.named -> "${state.players.name(moment.seat)} is answering."
+                    else -> "They're answering."
+                },
                 detail = "You'll both see the answers at once.",
                 away = state.partnerAway,
             )

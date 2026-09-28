@@ -2048,3 +2048,43 @@ dock, and what is left is the content.
 The paywall's "Not now" became the bar's back label rather than a row of text, which is what moved
 one assertion from `onNodeWithText` to `onNodeWithContentDescription` — the way out is still there,
 and still says the same thing, but it is a control now rather than a line.
+
+---
+
+## D-120 — A stand-in name must never be a pronoun
+
+Found by a couple on a device: *"when I answer 'you' and they answer 'them', that's a match, right?
+Because they meant me?"*
+
+They were right, and the app was saying otherwise.
+
+The engine was never wrong. A vote in a game like "who's more likely" is **relative** — each person
+picks `ME` or `YOU` from their own side — and `RoundReading.named` resolves that to a seat before
+anything is compared: `ME` is the voter, `YOU` is `1 - voter`. Seat 0 picking "me" and seat 1 picking
+"you" both resolve to seat 0, and the reveal says they agreed. That is correct and always was.
+
+What was wrong was the **labels**. `fixedLabel` turns `ME`/`YOU` into a name so a reveal can say who
+was chosen, and the dealt game's default players were `GamePlayers("You", "Them")` — pronouns used
+as fixed names. So on the *second* player's turn, the option meaning themselves rendered as "Them"
+and the one meaning their partner rendered as "You". The screen said the opposite of what it meant,
+and two people who agreed had every reason to think the app had got it wrong.
+
+It came in with D-103, which retired the names form from the games hub. Retiring the form was right;
+picking pronouns as the stand-in was not.
+
+Three parts to the fix:
+
+1. **`GamePlayers.named`.** Whether these are real names or stand-ins, and `GamePlayers.UNNAMED` is
+   the one default for both players — never pronouns.
+2. **A vote with no names stays relative.** Both people see "Me" and "You" from their own side,
+   which is unambiguous because only the person whose turn it is is looking.
+3. **Nothing speaks a name it does not have.** "Pass the phone to X" becomes "Pass the phone over",
+   "X is answering" becomes "They're answering", and a reveal — which both of them look at
+   together, where "you" *would* be ambiguous — names a seat by its order instead.
+
+Three tests hold it, and the guard was proved by planting the old default and watching it fail:
+`[You, Them]` where it should read `[Me, You]`.
+
+The better product answer is still to ask for the two names once, cheaply, at the first hand-off —
+"Alex" and "Sam" read correctly from both sides and make every one of these lines warmer. That is a
+separate change, and this one is the bug.

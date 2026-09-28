@@ -112,7 +112,7 @@ data class GameUiState(
     val roundNumber: Int get() = (session?.currentChapter ?: -1) + 1
 
     companion object {
-        val DEFAULT_PLAYERS = GamePlayers("Player one", "Player two")
+        val DEFAULT_PLAYERS = GamePlayers.UNNAMED
     }
 }
 

@@ -129,7 +129,7 @@ internal fun RevealRenderer(reveal: RoundPrimitive.Reveal, players: GamePlayers,
     RevealCard(state = state, modifier = Modifier.fillMaxWidth(), concealedLabel = "Ready?") {
         Column(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
             reveal.shown.forEach { shown ->
-                val owner = shown.seat?.let { players.name(it) }
+                val owner = shown.seat?.let { if (players.named) players.name(it) else seatWord(it) }
                 // Statements are shown as they were written: who guessed is in the verdict.
                 val named = owner != null && reveal.outcome != RevealOutcome.LIE_FOUND
                 val typography = MaterialTheme.typography
@@ -369,8 +369,17 @@ private const val SPOKEN_ALOUD = "spoken"
 
 // ---- pieces the renderers share ------------------------------------------------------------------
 
-/** Whose turn a primitive is: a name, or both of them. */
-private fun whoFor(seat: Int?, players: GamePlayers): String = seat?.let { players.name(it) } ?: "Together"
+/**
+ * Whose turn a primitive is: a name, or both of them.
+ *
+ * With no names, whoever is holding the phone is simply "You" — which is true from the only side
+ * that can see it, and is the reason a stand-in name must never be a pronoun (see [GamePlayers]).
+ */
+private fun whoFor(seat: Int?, players: GamePlayers): String = when {
+    seat == null -> "Together"
+    players.named -> players.name(seat)
+    else -> "You"
+}
 
 @Composable
 private fun Asked(who: String, text: String) {
@@ -470,8 +479,8 @@ private fun verdictLine(
         when {
             seat == null && reveal.outcome == RevealOutcome.WINNER -> "A tie."
             seat == null -> "No point this time."
-            reveal.outcome == RevealOutcome.LIE_FOUND -> "A point to ${players.name(seat)}."
-            else -> "${players.name(seat)} scores."
+            reveal.outcome == RevealOutcome.LIE_FOUND -> "A point to ${scorer(players, seat)}."
+            else -> "${scorer(players, seat)} scores."
         }
     }
     is Verdict.Apart -> gapLine(verdict.gap)
@@ -505,3 +514,14 @@ private const val SPIN_EASING = 1.35
 private const val SECOND_MS = 1_000L
 private const val REVEAL_BEAT_MS = 700L
 private const val MAX_ANSWER = 140
+
+/**
+ * Who scored, when nobody gave a name.
+ *
+ * A reveal is looked at by both of them at once, so "you" would be ambiguous here in a way it is
+ * not on a private turn. The seat is named by its order instead.
+ */
+private fun scorer(players: GamePlayers, seat: Int): String =
+    if (players.named) players.name(seat) else seatWord(seat)
+
+private fun seatWord(seat: Int): String = if (seat == 0) "Whoever went first" else "Whoever went second"

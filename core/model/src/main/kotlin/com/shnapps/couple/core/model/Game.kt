@@ -231,7 +231,27 @@ data class PlannedGame(
 /**
  * The two people passing the phone, by the names they chose on it. Kept on the phone only;
  * the first is whoever started the game.
+ *
+ * [named] is whether these are *real* names or stand-ins, and it matters more than it looks.
+ * A vote in a game like "who's more likely" is relative — each person picks "me" or "you" from
+ * their own side — and the interpreter turns that into a name so a reveal can say who was
+ * chosen. With real names that reads correctly from either side. With pronouns as stand-ins it
+ * does not: on the second player's turn the option meaning *themselves* renders as whatever
+ * word the first player was standing in as, and the screen says the opposite of what it means.
+ *
+ * So when the couple has not given names, nothing pretends to know one: a vote says "Me" and
+ * "You" from the voter's own side, which is unambiguous because only the voter is looking.
  */
-data class GamePlayers(val first: String, val second: String) {
+data class GamePlayers(val first: String, val second: String, val named: Boolean = true) {
     fun name(index: Int): String = if (index == 0) first else second
+
+    companion object {
+        /**
+         * Two people this phone knows nothing about.
+         *
+         * Never pronouns. "You" and "Them" as stand-ins was the bug above: a relative word used
+         * as a fixed name reads correctly for exactly one of the two people holding the phone.
+         */
+        val UNNAMED = GamePlayers(first = "Player one", second = "Player two", named = false)
+    }
 }

@@ -97,6 +97,56 @@ class GameRunTest {
         assertThat(reveal.shown.map { it.label }).containsExactly("Alex", "Alex")
     }
 
+    /**
+     * The bug a couple found on a device.
+     *
+     * With no names given, the stand-ins used to be the words "You" and "Them" — pronouns used as
+     * fixed names. On the *second* player's turn the option meaning themselves rendered as "Them"
+     * and the one meaning their partner rendered as "You", so the screen said the opposite of what
+     * it meant, and two people who agreed looked like they had not.
+     *
+     * A vote with no names stays relative: both of them see "Me" and "You" from their own side,
+     * which is unambiguous because only the person whose turn it is can see it. What the reveal
+     * then compares is the *seat* each vote names, which was always right.
+     */
+    @Test
+    fun `an unnamed vote reads from the voter's own side, and still agrees`() {
+        var run = start(meOrYou, rounds = listOf(listOf(plainPrompt("m"))), players = GamePlayers.UNNAMED)
+            .proceed()
+
+        val first = (run.moment as GameMoment.Turn).primitive as RoundPrimitive.Vote
+        assertThat(first.options.map { it.label }).containsExactly("Me", "You").inOrder()
+
+        // The first player says "me". The second says "you" — and means the first player.
+        run = run.submit(Answer.Picked("ME"))!!.proceed()
+        val second = (run.moment as GameMoment.Turn).primitive as RoundPrimitive.Vote
+        assertThat(second.options.map { it.label }).containsExactly("Me", "You").inOrder()
+
+        run = run.submit(Answer.Picked("YOU"))!!.proceed()
+        val reveal = (run.moment as GameMoment.Turn).primitive as RoundPrimitive.Reveal
+        assertThat(reveal.verdict).isEqualTo(Verdict.Matched(true))
+    }
+
+    /** Both naming themselves is two different people, however it is worded. */
+    @Test
+    fun `an unnamed vote disagrees when each names themselves`() {
+        var run = start(meOrYou, rounds = listOf(listOf(plainPrompt("m"))), players = GamePlayers.UNNAMED)
+            .proceed()
+        run = run.submit(Answer.Picked("ME"))!!.proceed().submit(Answer.Picked("ME"))!!.proceed()
+
+        val reveal = (run.moment as GameMoment.Turn).primitive as RoundPrimitive.Reveal
+        assertThat(reveal.verdict).isEqualTo(Verdict.Matched(false))
+    }
+
+    /** A stand-in name is never a pronoun: that is the whole of what went wrong. */
+    @Test
+    fun `the stand-in names are not pronouns`() {
+        val pronouns = setOf("you", "them", "me", "us", "they", "him", "her")
+        assertThat(pronouns).doesNotContain(GamePlayers.UNNAMED.first.lowercase())
+        assertThat(pronouns).doesNotContain(GamePlayers.UNNAMED.second.lowercase())
+        assertThat(GamePlayers.UNNAMED.named).isFalse()
+    }
+
     // ---- predictions ---------------------------------------------------------------------------
 
     @Test
@@ -378,6 +428,7 @@ class GameRunTest {
         alternates: List<GamePrompt> = emptyList(),
         firstSeat: Int = 0,
         fromRound: Int = 0,
+        players: GamePlayers = this.players,
     ): GameRun {
         // Every prompt belongs to the game under test: anything else would be dropped as released for another.
         val all = (rounds.flatten() + alternates).associate { it.id to it.copy(game = game.id) }

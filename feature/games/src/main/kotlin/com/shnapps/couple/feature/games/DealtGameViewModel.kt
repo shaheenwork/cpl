@@ -23,7 +23,7 @@ import javax.inject.Inject
 data class DealtGameUiState(
     val title: String = "",
     val moment: GameMoment? = null,
-    val players: GamePlayers = GamePlayers("You", "Them"),
+    val players: GamePlayers = GamePlayers.UNNAMED,
     val round: Int = 0,
     val rounds: Int = 0,
     val loading: Boolean = true,

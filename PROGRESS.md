@@ -1237,6 +1237,28 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
 
 ---
 
+## Fix — "You" and "Them" were pronouns pretending to be names ✅
+
+Found by a couple on a device, and the sharpest bug report of the build: *"when I answer 'you' and
+they answer 'them', that's a match, right? Because they meant me?"*
+
+They were right. The engine had always resolved a relative vote to a seat before comparing, so the
+verdict was correct — but the dealt game's stand-in names were the words "You" and "Them", so on the
+second player's turn the option meaning *themselves* rendered as "Them". The screen said the
+opposite of what it meant (D-120).
+
+It came in with D-103, which retired the names form. Retiring the form was right; choosing pronouns
+as the stand-in was not.
+
+### Verified
+```
+:core:engine GameRunTest                      3 new tests, and the guard proved by planting the
+                                              old default: [You, Them] where it should read [Me, You]
+./gradlew check                               BUILD SUCCESSFUL
+```
+
+---
+
 ## Visual rebuild D9 — The screens that were only inherited, drawn ✅
 
 D7 got most of the app its rhythm *by inheritance* — `ScreenColumn` and `ScreenHeading` changed and

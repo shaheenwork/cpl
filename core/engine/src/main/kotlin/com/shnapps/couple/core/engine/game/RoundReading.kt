@@ -158,10 +158,20 @@ internal class RoundReading(private val state: RunState) {
         null -> emptyList()
     }
 
-    /** "Me" and "you" said by [seat] — or, said by both at once, the first and second seat. */
+    /**
+     * "Me" and "you" said by [seat] — or, said by both at once, the first and second seat.
+     *
+     * A name is only substituted when the couple actually gave one. Without names the option
+     * stays relative, because only the person whose turn it is can see it, and a relative word
+     * printed as a fixed name reads correctly for exactly one of the two of them.
+     */
     private fun fixedLabel(id: String, seat: Int?): String = when (id) {
-        VoteOption.ME.name -> state.players.name(seat ?: 0)
-        VoteOption.YOU.name -> state.players.name(if (seat == null) 1 else 1 - seat)
+        VoteOption.ME.name -> if (state.players.named) state.players.name(seat ?: 0) else "Me"
+        VoteOption.YOU.name -> if (state.players.named) {
+            state.players.name(if (seat == null) 1 else 1 - seat)
+        } else {
+            "You"
+        }
         VoteOption.TIE.name -> GameRun.TIE
         else -> PromptKind.entries.firstOrNull { it.name == id }?.label ?: id
     }
