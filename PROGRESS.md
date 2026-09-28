@@ -1265,6 +1265,27 @@ recordRoborazziDebug                          every golden re-recorded
 
 ---
 
+### On the device
+The whole point of the visual rebuild was that the app looked like a prototype on a phone, so the
+walk is what counts. Cold install, no account:
+
+- The **splash** hands over with no seam and no flash — window, splash and first frame are the same
+  ink.
+- **Home** opens with the wordmark, the heading, the heat directly under it, real section rhythm,
+  and **Start now docked** within thumb reach whatever the list has grown to.
+- **A card** has the bar, the rail, the hero card and Done/Skip docked. "Too far" is in the bar.
+- The **account moment** still says what it buys and still lets them back out.
+
+One real bug the walk found, fixed and re-walked: **the progress rail never advanced.** It read
+"Card 1 of 6" on every card, because the screen subtracted one from an index that was already
+0-based. `instant-card-later.png` now holds it.
+
+**Screenshots of the running app are black, and that is correct.** Every screen showing private
+content sets `FLAG_SECURE` (§3.4), so `screencap` returns nothing — which is exactly why the
+Roborazzi goldens exist and why the walk reads the accessibility tree instead.
+
+---
+
 ## Visual rebuild D3–D5 — The frame, the card, and home ✅
 
 ### Shipped

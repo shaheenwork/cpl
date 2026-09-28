@@ -3,6 +3,7 @@ package com.shnapps.couple.feature.instant
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -60,6 +61,15 @@ class InstantSnapshotTest {
         composeRule.onNodeWithText("Skip").assertIsDisplayed()
         composeRule.onNodeWithText("Done").assertIsDisplayed()
         composeRule.onNodeWithText("Too far").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the rail says which card this is`() {
+        capture("instant-card-later") { play(state(played = 4)) }
+
+        // Found on the device: the rail was pinned to the first segment for the whole run,
+        // because the screen subtracted one from an index that was already 0-based.
+        composeRule.onNodeWithContentDescription("Card 5 of 6").assertExists()
     }
 
     @Test

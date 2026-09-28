@@ -100,7 +100,9 @@ internal fun InstantPlayContent(
             null
         }
         val belowBar: (@Composable () -> Unit)? = if (playing) {
-            { RunProgress(current = state.position - 1, total = state.runLength) }
+            // `position` is already the 0-based index of the card on screen. Subtracting one
+            // pinned the rail to the first segment for the whole run — found on the device.
+            { RunProgress(current = state.position, total = state.runLength) }
         } else {
             null
         }
