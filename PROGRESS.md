@@ -1237,6 +1237,57 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
 
 ---
 
+## Content — the packs and the prompts, rewritten upward ✅
+
+The content read as "generic, predictable and repetitive" on a device, and two measurements said why.
+
+### What was actually wrong
+- **Fourteen of the twenty-two games had exactly nineteen prompts** in a 7/3/3/3/3 shape — the
+  validator's floor. A game's rounds ramp to the couple's ceiling and draw from the highest level at
+  or below the target, so at Hot two rounds drew from three level-4 prompts and at Wild from three
+  level-5 ones. **A couple replaying a game met the same rounds as last time** (D-122).
+- **EARN_IT's nineteen cards all offered the same four answers**, so its guessing mechanic guessed
+  the same thing every round; THE_BET staked the same three things on every bet; three games opened
+  every single card with the same stem.
+- **The items were all one shape**: a median body of 122 characters against a 320 allowance, and an
+  `interactionType` distribution of 97/95/95 against 7 REVEAL and 19 PREDICTION — which matters
+  because `assemble.ts` varies a night by exactly that field and had nothing to vary with (D-123).
+- **LONG_DISTANCE was a messaging app**: thirteen of sixty-one items opened "send them…" or
+  "record a…".
+
+### Shipped
+- **+426 game prompts.** Every thin game is now 45 in a 9/9/9/9/9 shape; the eight deeper games have
+  eight to eighteen at each of their top two levels. Nine per level is three games' worth of variety
+  at every heat, and the arithmetic behind that number is now in CONTENT_GUIDE.md §5.
+- **Options vary per card** where the options are not themselves the game, and no stem is repeated.
+- **+164 items**, weighted to the thin interaction types (REVEAL 7 → 15, PREDICTION 19 → 37,
+  CHOICE 33 → 46) and to the shape the schema always allowed: objective, rule, twist, escalation, at
+  a median of 249 characters.
+- **LONG_DISTANCE +22**, all mechanics: sealed answers, dials revealed at an agreed minute, an hour
+  handed over, a mission with a deadline.
+- **AFTER_DARK 63 → 79**, all at the top of the range and written to §3.3's line — bold in language
+  and suggestion, agreed in advance, stoppable with a word. DEEP_TALK grew with it, because contrast
+  is what makes the bold cards land.
+- **Three prompts retired**: a card about agreeing a safe word had appeared in six of the eight older
+  games. No items were retired — sameness is fixed with more shapes, not fewer cards.
+
+Totals: **626 → 790 items, 632 → 1058 prompts**, `contentVersion` 2 → 3.
+
+### Verified
+```
+npm --prefix tools run validate               no problems (schema, closed vocabulary, prohibited
+                                              terms, boundary coverage, near-duplicates, per-pack
+                                              and per-game intensity coverage)
+npm --prefix tools test                       42/42
+npm --prefix functions run test:unit          135/135
+./gradlew check                               BUILD SUCCESSFUL (7m 48s)
+```
+- The §3.3 tripwire did real work while authoring: it caught "swap", "third", "in front of",
+  "asleep" and "order" in draft copy, and eleven items that leaned on a preference without listing
+  the boundary that covers it. Every one was a genuine miss, not a false positive.
+
+---
+
 ## Names, asked once at the first hand-off ✅
 
 The follow-up D-120 left open. A relative vote is correct without names, but "Pass the phone over"

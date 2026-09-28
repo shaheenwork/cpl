@@ -2119,3 +2119,77 @@ server never sees them — `InstantPlayRepository.players` is the only way in or
 The session player asks the same way at its own hand-off, with one extra condition: **not on two
 phones**. There, each side is genuinely looking at their own screen, "you" means the person holding
 it, and there is no hand-off to name.
+
+---
+
+## D-122 — Nine prompts a level, because three is one game played for ever
+
+The content shipped at the validator's floor, and the floor turned out to be far below what the game
+engine actually needs.
+
+`validate-games.ts` asks for three prompts at each intensity and one whole game's worth at level 1.
+Fourteen of the twenty-two games had exactly that: nineteen prompts in a 7/3/3/3/3 shape. It reads
+like a reasonable minimum, and it is — for the build passing, not for a couple playing.
+
+What the engine does with them is the problem. A game's rounds ramp from two levels below the
+couple's ceiling to the ceiling (`rampTargets`), and each round draws from the **highest level at or
+below its target** (`pickPrompt`, mirrored by `ReleasedGame.forHeat` on the phone). So a six-round
+game at Hot runs targets 2, 2, 3, 3, 4, 4, and the two rounds at target 4 draw from the level-4
+prompts alone — of which there were three. Two of the three, every time, with the third turning up as
+an alternate. At Wild the same is true of level 5. **A couple replaying a game met the same rounds
+they met last time**, and the app was written to make them want to replay it.
+
+So the number to author to is not the validator's minimum. It is **nine per level**: three games'
+worth at every heat, and enough spread for scoring to have something to choose between. All fourteen
+are now at 45 prompts in a 9/9/9/9/9 shape, and the eight deeper games have eight to eighteen at each
+of their top two levels rather than six.
+
+Two related things came out of the same look:
+
+- **Options are part of the card.** `EARN_IT` is a guessing game — one answers in private, the other
+  predicts — and all nineteen of its cards offered the same four answers, so the guess never changed.
+  `THE_BET` staked the same three things on every bet. Both now vary per card, except where the
+  options *are* the game (Yes/Maybe/Not tonight, You/Me).
+- **A stem repeated nineteen times is one card.** Every `BUILD_THE_FANTASY` prompt opened "Start the
+  story:", every `IN_YOUR_WORDS` one "Write…", every `SAY_IT_OUT_LOUD` one "Record…".
+
+The validator's floor stays where it is: it is a build gate, not an editorial standard. The standard
+is written down in CONTENT_GUIDE.md §5 instead, next to the arithmetic that produces it.
+
+---
+
+## D-123 — The items gained mechanics, because the engine varies by a field the content barely used
+
+The second half of the same content pass. The 626 items were not bad — they were specific, they were
+in the app's voice, and almost none of them was filler. They were **all the same shape**: one
+instruction, a median of 122 characters against a 320 allowance, and one person doing something to
+the other.
+
+Three measurements decided what to write:
+
+1. **`interactionType` is how a night varies, and the content had nothing to vary with.**
+   `assemble.ts` penalises a repeated type, counts distinct types as variety, and runs a swap pass to
+   inject a type that is missing altogether. The catalogue was 97 CHALLENGE, 95 CONVERSATION and 95
+   MESSAGE against 7 REVEAL, 13 MEMORY, 19 PREDICTION and 33 CHOICE. The swap pass had nothing to
+   swap in. The 164 new items are weighted to the thin end: REVEAL is now 15, PREDICTION 37, CHOICE
+   46, and every pack carries at least three types.
+
+2. **Nothing used the room the schema gives it.** A 320-character body is enough for an objective, a
+   rule, a twist and an escalation — the shape that turns a prompt into an evening rather than an
+   instruction. The new items have a median body of 249 characters and most of them carry a rule that
+   can be broken and a consequence that was agreed inside the same card.
+
+3. **LONG_DISTANCE was a messaging app.** Thirteen of its sixty-one items opened "send them…" or
+   "record a…". Distance is the mode that most needs a *game* — a sealed answer, a dial revealed at
+   an agreed minute, an hour handed over, a mission with a deadline — because there is nothing else
+   to do with the gap. Twenty-two new ones are mechanics rather than messages.
+
+AFTER_DARK went from 63 to 79, all of it at the top of the range, and written to the line §3.3 sets:
+adventurous in language and suggestion, never an instruction manual, everything agreed in advance and
+everything stoppable with a word. Which is also why DEEP_TALK grew: a night of nothing but the
+boldest cards is monotonous, and the engine's own variety pass exists for the same reason.
+
+Nothing was retired from the packs. Three prompts were retired from the games (a card about agreeing
+a safe word had turned up in six of the eight older games, so three of them went), but an item that
+is specific and playable is not improved by being replaced with a different specific, playable item.
+The fix for sameness is more shapes, not fewer cards.

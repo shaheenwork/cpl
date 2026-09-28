@@ -13,7 +13,7 @@ validator is the tripwire under it (BUILD_PROMPT.md §3.3, §9.4).
 ## 1. Where things live
 
 ```
-content/packs/*.json          the items — twelve packs, 626 published items
+content/packs/*.json          the items — twelve packs, 790 published items
 content/prompts/<game>.json   a game's prompts, under the same rules as items
 content/games.json            the games themselves: steps over primitives
 content/taxonomy.json         themes, categories and the private preference library
@@ -150,6 +150,18 @@ saying who acts (`ACTIVE`, `OTHER`, `EACH`, `TOGETHER`) and how they answer.
 - A new **primitive** is the one exception: it changes `vocabulary.json`, `GamePrimitive`,
   `RoundPrimitive`, and gets exactly one renderer in `PrimitiveRenderers.kt`.
 - Prompts follow every item rule above, including the prohibited terms and the near-duplicate check.
+
+**How many prompts a game needs is not what the validator asks for.** It asks for three at each
+intensity, and a game written to that number repeats itself immediately. A game's rounds climb from
+two below the couple's ceiling to the ceiling, and each round draws from the **highest level at or
+below its target** (SPEC.md §10) — so a six-round game at Wild spends two rounds drawing from the
+level-5 prompts alone. With three of them, the same two cards come up every time it is played, for
+ever. **Nine per level** is the number to write to: three games' worth of variety at every heat, and
+enough for the score to actually choose between them.
+
+The same arithmetic applies to the **options** on a prompt. They are part of the card, so a game
+whose nineteen cards all offered the same four answers had one card, shuffled — vary them unless the
+options are the game (Yes/Maybe/Not tonight, You/Me).
 
 ---
 
