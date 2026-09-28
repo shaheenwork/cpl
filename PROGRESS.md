@@ -1237,6 +1237,34 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
 
 ---
 
+## Names, asked once at the first hand-off ✅
+
+The follow-up D-120 left open. A relative vote is correct without names, but "Pass the phone over"
+and "They're answering" are the poorer half of what the app could say.
+
+### Shipped
+- **Asked at the first hand-off, never before** (D-121). The screen that would have said "Pass the
+  phone over" asks who is passing it; from the next hand-off on it says "Pass the phone to Sam".
+  Two fields, 24 characters each, and the run in hand carries the names rather than restarting —
+  `GameRun.withPlayers` — so the very hand-off that asked is the first to use them.
+- **"Not now" is a real answer.** It lasts the game, not for ever; without names everything falls
+  back to what D-120 made correct.
+- **Two of the same name is refused**, which is the bug this all started as.
+- **Remembered on this phone only**: DataStore, through `InstantPlayRepository.players`. The server
+  never sees them.
+- **The session player asks the same way**, except on two phones — there each side is genuinely
+  "you", and there is no hand-off to name.
+
+### Verified
+```
+:feature:games DealtGameViewModelTest         2 new tests: asked and remembered (including that
+                                              "Alex"/"alex" is not two names), and not asked twice
+./gradlew recordRoborazziDebug                BUILD SUCCESSFUL
+./gradlew check                               BUILD SUCCESSFUL (14m 12s)
+```
+
+---
+
 ## Fix — "You" and "Them" were pronouns pretending to be names ✅
 
 Found by a couple on a device, and the sharpest bug report of the build: *"when I answer 'you' and

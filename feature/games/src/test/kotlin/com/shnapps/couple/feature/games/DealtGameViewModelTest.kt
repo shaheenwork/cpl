@@ -9,6 +9,7 @@ import com.shnapps.couple.core.engine.game.GameMoment
 import com.shnapps.couple.core.engine.game.ReleasedGame
 import com.shnapps.couple.core.model.ContentStatus
 import com.shnapps.couple.core.model.Game
+import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.GamePrimitive
 import com.shnapps.couple.core.model.GamePrompt
 import com.shnapps.couple.core.model.GameStep
@@ -114,8 +115,58 @@ class DealtGameViewModelTest {
         assertThat(viewModel.uiState.value.loading).isFalse()
     }
 
-    private fun viewModel(): DealtGameViewModel {
-        val handle = SavedStateHandle(mapOf(Route.DealtGame::gameId.name to game.id))
+    /**
+     * The bug a couple found, and the answer to it (D-120, D-121).
+     *
+     * Names are asked for at the first hand-off — not before, because a name asked for before a
+     * game has started is the setup form the rebuild removed — and the hand-off that asked is the
+     * first one to use them.
+     */
+    @Test
+    fun `names are asked for at the first hand-off, and remembered`() = runTest {
+        val viewModel = handingOver()
+
+        assertThat(viewModel.uiState.value.players.named).isFalse()
+        assertThat(viewModel.uiState.value.askingNames).isTrue()
+
+        // Two people with the same name is worse than two with none: "over to Sam" would be
+        // true of either of them.
+        viewModel.setFirstName("Alex")
+        viewModel.setSecondName("alex")
+        assertThat(viewModel.uiState.value.namesReady).isFalse()
+
+        viewModel.setSecondName("Sam")
+        assertThat(viewModel.uiState.value.namesReady).isTrue()
+        viewModel.confirmNames()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.players).isEqualTo(GamePlayers("Alex", "Sam"))
+        assertThat(viewModel.uiState.value.askingNames).isFalse()
+        // Kept on this phone, so the next game does not ask again.
+        assertThat(instant.players.value).isEqualTo(GamePlayers("Alex", "Sam"))
+    }
+
+    @Test
+    fun `not now is a real answer, and it is not asked again`() = runTest {
+        val viewModel = handingOver()
+        assertThat(viewModel.uiState.value.askingNames).isTrue()
+
+        viewModel.skipNames()
+
+        assertThat(viewModel.uiState.value.askingNames).isFalse()
+        assertThat(viewModel.uiState.value.players.named).isFalse()
+        // Nothing was written: they said not now, not never.
+        assertThat(instant.players.value).isEqualTo(GamePlayers.UNNAMED)
+    }
+
+    /** The naming tests need a game that actually passes the phone. */
+    private fun handingOver(): DealtGameViewModel {
+        instant.released = ReleasedGame.forHeat(handsOver, prompts.map { it.copy(game = handsOver.id) }, ceiling = 5)
+        return viewModel(handsOver.id)
+    }
+
+    private fun viewModel(gameId: String = game.id): DealtGameViewModel {
+        val handle = SavedStateHandle(mapOf(Route.DealtGame::gameId.name to gameId))
         val viewModel = DealtGameViewModel(handle, instant, NoRecorder)
         mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
         return viewModel
@@ -161,6 +212,31 @@ class DealtGameViewModelTest {
                     primitive = GamePrimitive.CHALLENGE,
                     who = StepAudience.ACTIVE,
                     isPrivate = false,
+                    text = StepText.Prompt,
+                    options = null,
+                    answer = null,
+                    of = emptyList(),
+                    outcome = null,
+                    seconds = null,
+                    kindFrom = null,
+                ),
+            ),
+        )
+
+        /**
+         * A game that hands the phone over before its first step.
+         *
+         * The fixture above opens on a TOGETHER step, so it never passes the phone, and the ask
+         * for names has nowhere to appear. This one is what a "who's more likely" game looks
+         * like: one person answers in private, so the phone changes hands first.
+         */
+        val handsOver = game.copy(
+            id = "SHAPED_LIKE_A_VOTE",
+            steps = listOf(
+                GameStep(
+                    primitive = GamePrimitive.CHALLENGE,
+                    who = StepAudience.ACTIVE,
+                    isPrivate = true,
                     text = StepText.Prompt,
                     options = null,
                     answer = null,

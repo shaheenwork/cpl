@@ -30,6 +30,7 @@ import com.shnapps.couple.core.model.SessionEndReason
 import com.shnapps.couple.core.ui.PrimitiveRenderer
 import com.shnapps.couple.core.ui.ScreenColumn
 import com.shnapps.couple.core.ui.ScreenHeading
+import com.shnapps.couple.core.ui.WhoIsPlaying
 
 @Composable
 internal fun LoadingStage() {
@@ -142,6 +143,35 @@ internal fun ReadyStage(state: GameUiState, actions: GameActions) {
 }
 
 /**
+ * Who is passing the phone (D-121).
+ *
+ * Here rather than before the game because this is the first moment the app is about to say a name
+ * out loud. Skipping is a real answer: without names a vote stays relative and every line that would
+ * have said a name says something true instead.
+ */
+@Composable
+private fun AskNames(state: GameUiState, actions: GameActions) {
+    WhoIsPlaying(
+        first = state.firstName,
+        second = state.secondName,
+        onFirst = actions.onFirstName,
+        onSecond = actions.onSecondName,
+    )
+    GlowButton(
+        text = "That's us",
+        onClick = actions.onConfirmNames,
+        enabled = state.namesReady,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    GlowButton(
+        text = "Not now",
+        onClick = actions.onSkipNames,
+        style = GlowButtonStyle.Quiet,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+/**
  * Passing the phone (DESIGN_PROMPT.md §6.3).
  *
  * Its own composable because it is its own moment: one line, one action, and nothing of what comes
@@ -169,7 +199,12 @@ private fun HandOff(players: GamePlayers, seat: Int, onProceed: () -> Unit) {
 internal fun PlayingStage(moment: GameMoment, state: GameUiState, actions: GameActions) {
     ScreenColumn {
         when (moment) {
-            is GameMoment.HandOff -> HandOff(state.players, moment.seat, actions.onProceed)
+            // Asked once, at the first hand-off, and never again (D-121).
+            is GameMoment.HandOff -> if (state.askingNames) {
+                AskNames(state, actions)
+            } else {
+                HandOff(state.players, moment.seat, actions.onProceed)
+            }
             is GameMoment.Waiting -> WaitingOnThem(
                 message = when {
                     state.twoPhones -> "Over to them."

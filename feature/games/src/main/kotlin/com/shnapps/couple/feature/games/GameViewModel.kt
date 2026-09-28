@@ -26,6 +26,7 @@ import com.shnapps.couple.core.model.SessionEndReason
 import com.shnapps.couple.core.model.SessionKind
 import com.shnapps.couple.core.model.SessionState
 import com.shnapps.couple.core.navigation.Route
+import com.shnapps.couple.core.ui.namesReady
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -83,6 +84,11 @@ data class GameUiState(
     val stage: GameStage = GameStage.Loading,
     val started: StartedGame? = null,
     val players: GamePlayers = DEFAULT_PLAYERS,
+    /** Typed into the "who's playing" step, before it is remembered. */
+    val firstName: String = "",
+    val secondName: String = "",
+    /** They said not now: this game carries on without names. */
+    val skippedNames: Boolean = false,
     val session: NightSession? = null,
     val run: GameRun? = null,
     val paused: Boolean = false,
@@ -110,6 +116,18 @@ data class GameUiState(
 
     /** 1-based, for "Round 2 of 8". */
     val roundNumber: Int get() = (session?.currentChapter ?: -1) + 1
+
+    /**
+     * Asked once, at the first hand-off, and never again (D-121).
+     *
+     * Only when the phone is passed: on two phones each side is genuinely "you", which is a real
+     * name for that screen, so there is nothing to ask and nobody to ask it of.
+     */
+    val askingNames: Boolean
+        get() = !players.named && !skippedNames && !twoPhones &&
+            (stage as? GameStage.Playing)?.moment is GameMoment.HandOff
+
+    val namesReady: Boolean get() = namesReady(firstName, secondName)
 
     companion object {
         val DEFAULT_PLAYERS = GamePlayers.UNNAMED
@@ -291,6 +309,27 @@ class GameViewModel @Inject constructor(
         if (phone == 0) GamePlayers(YOU, YOUR_PARTNER) else GamePlayers(YOUR_PARTNER, YOU)
 
     // ---- within a round: the interpreter's -----------------------------------------------------
+
+    fun setFirstName(name: String) = local.update { it.copy(firstName = name) }
+
+    fun setSecondName(name: String) = local.update { it.copy(secondName = name) }
+
+    /**
+     * Remembered on this phone and nowhere else, and the game carries on with them.
+     *
+     * The run in hand is mid-round, so it carries across rather than restarting: the very
+     * hand-off that asked is the first one to use the names.
+     */
+    fun confirmNames() {
+        val state = uiState.value
+        if (!state.namesReady) return
+        val named = GamePlayers(state.firstName.trim(), state.secondName.trim())
+        local.update { it.copy(players = named, run = it.run?.withPlayers(named)) }
+        viewModelScope.launch { games.rememberPlayers(named) }
+    }
+
+    /** Not now. Nothing needs a name, and nothing will ask again this game. */
+    fun skipNames() = local.update { it.copy(skippedNames = true) }
 
     /** Past a hand-off or a gathering. */
     fun proceed() = edit { it.proceed() }

@@ -27,6 +27,7 @@ import com.shnapps.couple.core.ui.PrimitiveRenderer
 import com.shnapps.couple.core.ui.RunProgress
 import com.shnapps.couple.core.ui.ScreenScaffold
 import com.shnapps.couple.core.ui.SecureScreen
+import com.shnapps.couple.core.ui.WhoIsPlaying
 import com.shnapps.couple.core.ui.voice.LocalVoiceRecorder
 
 /**
@@ -59,6 +60,10 @@ fun DealtGameScreen(
             onSkipPrompt = viewModel::skipPrompt,
             onNextRound = viewModel::nextRound,
             onPlayAgain = viewModel::deal,
+            onFirstName = viewModel::setFirstName,
+            onSecondName = viewModel::setSecondName,
+            onConfirmNames = viewModel::confirmNames,
+            onSkipNames = viewModel::skipNames,
         )
     }
 }
@@ -73,58 +78,22 @@ internal fun DealtGameContent(
     onSkipPrompt: () -> Unit,
     onNextRound: () -> Unit,
     onPlayAgain: () -> Unit,
+    onFirstName: (String) -> Unit = {},
+    onSecondName: (String) -> Unit = {},
+    onConfirmNames: () -> Unit = {},
+    onSkipNames: () -> Unit = {},
 ) {
     val finished = state.moment is GameMoment.Finished
     val playing = !state.loading && !state.nothingToPlay && !finished
 
-    val dock: (@Composable ColumnScope.() -> Unit)? = when {
-        state.nothingToPlay -> {
-            {
-                GlowButton(
-                    text = "Pick something else",
-                    onClick = onBack,
-                    leadingIcon = AfterhoursIcons.Forward,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-        finished -> {
-            {
-                GlowButton(
-                    text = "Play it again",
-                    onClick = onPlayAgain,
-                    leadingIcon = AfterhoursIcons.Dice,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                GlowButton(
-                    text = "Pick something else",
-                    onClick = onBack,
-                    style = GlowButtonStyle.Secondary,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-        state.moment is GameMoment.Turn -> {
-            {
-                if ((state.moment as GameMoment.Turn).canSkip) {
-                    GlowButton(
-                        text = "Not this one",
-                        onClick = onSkipPrompt,
-                        style = GlowButtonStyle.Quiet,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-        }
-        else -> null
-    }
+    val dock = dockFor(state, onBack, onSkipPrompt, onPlayAgain, onConfirmNames, onSkipNames)
 
     ProvideHeat(state.heat) {
         ScreenScaffold(
-            title = state.title.takeIf { it.isNotEmpty() && playing },
+            title = state.title.takeIf { it.isNotEmpty() && playing && !state.askingNames },
             onBack = onBack,
             backLabel = "Leave the game",
-            belowBar = if (playing && state.rounds > 0) {
+            belowBar = if (playing && state.rounds > 0 && !state.askingNames) {
                 { RunProgress(current = state.round, total = state.rounds) }
             } else {
                 null
@@ -134,6 +103,13 @@ internal fun DealtGameContent(
         ) {
             when {
                 state.loading -> Dealing()
+                // Asked once, at the first hand-off, and never again (D-121).
+                state.askingNames -> WhoIsPlaying(
+                    first = state.firstName,
+                    second = state.secondName,
+                    onFirst = onFirstName,
+                    onSecond = onSecondName,
+                )
                 state.nothingToPlay -> NothingToPlay()
                 else -> Moment(
                     moment = state.moment,
@@ -235,3 +211,78 @@ private fun NothingToPlay() {
 }
 
 private val SKELETON = 240.dp
+
+/**
+ * What the dock offers, which is one question: which of the screen's five states it is in.
+ *
+ * Its own function so the screen itself stays readable — the content is a `when` over the same
+ * states, and two of them side by side is where a reader loses the thread.
+ */
+@Suppress("LongParameterList") // Five states, five ways out.
+@Composable
+private fun dockFor(
+    state: DealtGameUiState,
+    onBack: () -> Unit,
+    onSkipPrompt: () -> Unit,
+    onPlayAgain: () -> Unit,
+    onConfirmNames: () -> Unit,
+    onSkipNames: () -> Unit,
+): (@Composable ColumnScope.() -> Unit)? = when {
+    // Asked once, at the first hand-off, and never again (D-121).
+    state.askingNames -> {
+        {
+            GlowButton(
+                text = "That's us",
+                onClick = onConfirmNames,
+                enabled = state.namesReady,
+                leadingIcon = AfterhoursIcons.Check,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            GlowButton(
+                text = "Not now",
+                onClick = onSkipNames,
+                style = GlowButtonStyle.Quiet,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+    state.nothingToPlay -> {
+        {
+            GlowButton(
+                text = "Pick something else",
+                onClick = onBack,
+                leadingIcon = AfterhoursIcons.Forward,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+    state.moment is GameMoment.Finished -> {
+        {
+            GlowButton(
+                text = "Play it again",
+                onClick = onPlayAgain,
+                leadingIcon = AfterhoursIcons.Dice,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            GlowButton(
+                text = "Pick something else",
+                onClick = onBack,
+                style = GlowButtonStyle.Secondary,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+    state.moment is GameMoment.Turn -> {
+        {
+            if ((state.moment as GameMoment.Turn).canSkip) {
+                GlowButton(
+                    text = "Not this one",
+                    onClick = onSkipPrompt,
+                    style = GlowButtonStyle.Quiet,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+    else -> null
+}

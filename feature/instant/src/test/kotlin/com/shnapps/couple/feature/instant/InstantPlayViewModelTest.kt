@@ -9,6 +9,7 @@ import com.shnapps.couple.core.model.ChapterKind
 import com.shnapps.couple.core.model.ContentItem
 import com.shnapps.couple.core.model.ContentStatus
 import com.shnapps.couple.core.model.Game
+import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.InteractionType
@@ -229,6 +230,11 @@ class InstantPlayViewModelTest {
 
         override val deck: Flow<InstantDeck> = deckState
         override val heat: Flow<Heat> = heatState
+
+        /** The card player never asks for names; it is kept here only to satisfy the contract. */
+        override val players: Flow<GamePlayers> = MutableStateFlow(GamePlayers.UNNAMED)
+
+        override suspend fun rememberPlayers(players: GamePlayers) = Unit
 
         override suspend fun setHeat(heat: Heat) {
             heatSet = heat

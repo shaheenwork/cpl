@@ -2088,3 +2088,34 @@ Three tests hold it, and the guard was proved by planting the old default and wa
 The better product answer is still to ask for the two names once, cheaply, at the first hand-off —
 "Alex" and "Sam" read correctly from both sides and make every one of these lines warmer. That is a
 separate change, and this one is the bug.
+
+---
+
+## D-121 — Names are asked for once, at the first hand-off
+
+D-120 fixed the bug and left the product answer open: with two real names, every line in a passed
+game reads better from both sides. The question was only where to ask.
+
+Not before the game. A form between "play this" and playing it is exactly what the rebuild removed
+(D-103), and at that moment a name is worth nothing — nothing on screen says one yet.
+
+So it is asked at the **first hand-off**, which is the first moment the app is about to say a name out
+loud. The screen that would have read "Pass the phone over" asks who is passing it instead, and from
+the next hand-off on says "Pass the phone to Sam". One screen, two fields, and the very hand-off that
+asked is the first to use the answer — the run in hand carries across with `GameRun.withPlayers`
+rather than restarting, so nothing is lost by asking.
+
+**Skipping is a real answer.** "Not now" is a button, not a dismissal: without names a vote stays
+relative (D-120) and every line that would have said a name says something true instead. Nothing in
+the game needs one. A skip lasts the game rather than for ever, because the next game is another
+chance to ask and no state should be harder to undo than the thing it was avoiding.
+
+Two names the same are refused (`namesReady`), and for the reason the whole change exists: "Over to
+Sam" would be true of either of them.
+
+The names live in DataStore on this phone and nowhere else. They are not sent, not synced, and the
+server never sees them — `InstantPlayRepository.players` is the only way in or out.
+
+The session player asks the same way at its own hand-off, with one extra condition: **not on two
+phones**. There, each side is genuinely looking at their own screen, "you" means the person holding
+it, and there is no hand-off to name.
