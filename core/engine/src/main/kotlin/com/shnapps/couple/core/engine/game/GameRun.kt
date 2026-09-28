@@ -48,6 +48,7 @@ data class RoundResult(val round: Int, val outcome: RevealOutcome, val verdict: 
  * Only ever started from a [ReleasedGame]: the prompts the server released, and the
  * alternates it released for "Not this one" (§3.1, §5.5).
  */
+@Suppress("TooManyFunctions") // The interpreter: one function per control a game has.
 class GameRun private constructor(private val state: RunState) {
 
     private val reading get() = RoundReading(state)
@@ -149,6 +150,15 @@ class GameRun private constructor(private val state: RunState) {
 
     /** The seat this phone plays, or null when it is passed between the partners. */
     val phone: Int? get() = state.phone
+
+    /**
+     * The same game, now that it knows who is playing it (D-121).
+     *
+     * Names are asked for at the first hand-off, which is in the middle of a round that has
+     * already started, so this carries every answer and result across rather than restarting.
+     * Nothing about the game changes — only what the screen is able to call the two of them.
+     */
+    fun withPlayers(players: GamePlayers): GameRun = GameRun(state.copy(players = players))
 
     /**
      * The answer this phone has to send for the round it is on (§12.2): the last one it gave that

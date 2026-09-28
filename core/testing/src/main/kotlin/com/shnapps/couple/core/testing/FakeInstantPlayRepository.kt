@@ -6,6 +6,7 @@ import com.shnapps.couple.core.engine.InstantDeck
 import com.shnapps.couple.core.engine.game.ReleasedGame
 import com.shnapps.couple.core.model.ContentItem
 import com.shnapps.couple.core.model.Game
+import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.Heat
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,6 +39,13 @@ class FakeInstantPlayRepository(
 
     override val deck: Flow<InstantDeck> =
         combine(this.items, heat) { available, level -> InstantDeck.of(available, level) }
+
+    /** Who is passing this phone, if they have said. Unnamed until a test says otherwise. */
+    override val players = MutableStateFlow(GamePlayers.UNNAMED)
+
+    override suspend fun rememberPlayers(players: GamePlayers) {
+        this.players.value = players
+    }
 
     override suspend fun setHeat(heat: Heat) {
         this.heat.value = heat

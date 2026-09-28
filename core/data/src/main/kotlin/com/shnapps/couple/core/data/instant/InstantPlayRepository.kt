@@ -7,6 +7,7 @@ import com.shnapps.couple.core.engine.InstantCard
 import com.shnapps.couple.core.engine.InstantDeck
 import com.shnapps.couple.core.engine.game.ReleasedGame
 import com.shnapps.couple.core.model.Game
+import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.Mode
 import kotlinx.coroutines.flow.Flow
@@ -42,6 +43,17 @@ interface InstantPlayRepository {
     val games: Flow<List<Game>>
 
     /**
+     * The two people passing this phone, if they have said who they are.
+     *
+     * Kept here with the heat and the refusals, because it is the same kind of thing: something
+     * this phone knows about the couple holding it and never sends anywhere. Unnamed until they
+     * say otherwise (D-120), which is a real state rather than a placeholder.
+     */
+    val players: Flow<GamePlayers>
+
+    suspend fun rememberPlayers(players: GamePlayers)
+
+    /**
      * A game dealt on this phone, inside its heat and its refusals (D-100), or null when the
      * content has nothing for it. Nothing is sent and nothing is stored: the game exists for as
      * long as it is being played.
@@ -70,6 +82,11 @@ class DefaultInstantPlayRepository @Inject constructor(
     override val heat: Flow<Heat> = preferences.preferences.map { it.heat }
 
     override val games: Flow<List<Game>> = content.games
+
+    override val players: Flow<GamePlayers> =
+        preferences.preferences.map { it.gamePlayers ?: GamePlayers.UNNAMED }
+
+    override suspend fun rememberPlayers(players: GamePlayers) = preferences.setGamePlayers(players)
 
     override suspend fun startGame(gameId: String): ReleasedGame? {
         val game = content.games.first().firstOrNull { it.id == gameId } ?: return null

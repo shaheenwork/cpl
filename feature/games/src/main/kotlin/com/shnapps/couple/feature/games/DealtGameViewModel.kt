@@ -10,6 +10,7 @@ import com.shnapps.couple.core.engine.game.GameRun
 import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.navigation.Route
+import com.shnapps.couple.core.ui.namesReady
 import com.shnapps.couple.core.ui.voice.VoiceRecorder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,9 +29,25 @@ data class DealtGameUiState(
     val rounds: Int = 0,
     val loading: Boolean = true,
     val nothingToPlay: Boolean = false,
+    /** Typed into the "who's playing" step, before it is remembered. */
+    val firstName: String = "",
+    val secondName: String = "",
+    /** They said not now: the game carries on without names, this time and every time. */
+    val skippedNames: Boolean = false,
     /** How far this phone is playing, so the screen can take its colour (DESIGN_PROMPT.md §4.4). */
     val heat: Heat = Heat.DEFAULT,
-)
+) {
+    /**
+     * Asked once, at the first hand-off, and never again (D-121).
+     *
+     * Only at a hand-off: that is the first moment the app is about to say a name out loud, and a
+     * name asked for before then is a setup form — which is what the rebuild removed.
+     */
+    val askingNames: Boolean
+        get() = !players.named && !skippedNames && moment is GameMoment.HandOff
+
+    val namesReady: Boolean get() = namesReady(firstName, secondName)
+}
 
 /**
  * A game dealt on this phone, with no session behind it (REDESIGN_PROMPT.md §5.2).
@@ -62,6 +79,10 @@ class DealtGameViewModel @Inject constructor(
 
     init {
         deal()
+        // Whether this phone knows who is holding it. Unnamed is a real state, not a placeholder.
+        viewModelScope.launch {
+            instant.players.collect { players -> _uiState.update { it.copy(players = players) } }
+        }
         // The heat is the phone's, not the game's: a game dealt at Wild should look like it.
         viewModelScope.launch {
             instant.heat.collect { heat -> _uiState.update { it.copy(heat = heat) } }
@@ -117,4 +138,23 @@ class DealtGameViewModel @Inject constructor(
             it.copy(moment = moved.moment, round = moved.round, rounds = moved.roundCount)
         }
     }
+
+    fun setFirstName(name: String) = _uiState.update { it.copy(firstName = name) }
+
+    fun setSecondName(name: String) = _uiState.update { it.copy(secondName = name) }
+
+    /** Remembered on this phone and nowhere else, and the game carries on with them. */
+    fun confirmNames() {
+        val state = _uiState.value
+        if (!state.namesReady) return
+        val named = GamePlayers(state.firstName.trim(), state.secondName.trim())
+        _uiState.update { it.copy(players = named) }
+        // The run in hand is mid-round, so it carries across rather than restarting: the very
+        // hand-off that asked is the first one to use the names.
+        run = run?.withPlayers(named)
+        viewModelScope.launch { instant.rememberPlayers(named) }
+    }
+
+    /** Not now. Nothing needs a name, and nothing will ask again this game. */
+    fun skipNames() = _uiState.update { it.copy(skippedNames = true) }
 }
