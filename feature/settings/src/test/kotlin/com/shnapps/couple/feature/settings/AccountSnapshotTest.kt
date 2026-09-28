@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.google.common.truth.Truth.assertThat
@@ -47,7 +48,8 @@ class AccountSnapshotTest {
         capture("settings-hub") { SettingsContent(state, SettingsRoutes(), SettingsActions()) }
         composeRule.onNodeWithText("Signed in as alex@example.com.").assertIsDisplayed()
         composeRule.onNodeWithText("Export my data").assertIsDisplayed()
-        composeRule.onNodeWithText("Delete my account").assertIsDisplayed()
+        // Further down the page than it was: a screen has real section rhythm now (§4.6).
+        composeRule.onNodeWithText("Delete my account").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Unpair").assertIsDisplayed()
     }
 

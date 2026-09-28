@@ -17,8 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -28,6 +26,7 @@ import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.engine.game.Answer
 import com.shnapps.couple.core.model.CloseCheckIn
 import com.shnapps.couple.core.ui.ErrorBanner
+import com.shnapps.couple.core.ui.RunProgress
 import com.shnapps.couple.core.ui.SecureScreen
 
 /**
@@ -147,22 +146,26 @@ private fun Stage(stage: GameStage, state: GameUiState, actions: GameActions) {
     }
 }
 
-/** "Round 2 of 8". */
+/**
+ * Where the game is (DESIGN_PROMPT.md §5.6).
+ *
+ * The same rail the card player uses, so a game and an evening move along the same way. The
+ * game's name sits above it, because unlike an evening a game has one.
+ */
 @Composable
 private fun RoundProgress(state: GameUiState) {
     val spacing = AfterhoursTheme.spacing
-    val round = state.roundNumber.coerceIn(0, state.roundCount)
-    val label = if (round == 0) "${state.roundCount} ROUNDS" else "ROUND $round OF ${state.roundCount}"
-    val spoken = if (round == 0) "${state.roundCount} rounds" else "Round $round of ${state.roundCount}"
-    Text(
-        text = listOfNotNull(state.started?.released?.game?.title?.uppercase(), label).joinToString(" · "),
-        style = EyebrowTextStyle,
-        color = AfterhoursTheme.colors.brass,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = spacing.gutter, vertical = spacing.md)
-            .semantics { contentDescription = spoken },
-    )
+    Column(modifier = Modifier.padding(top = spacing.sm)) {
+        state.started?.released?.game?.title?.let { name ->
+            Text(
+                text = name.uppercase(),
+                style = EyebrowTextStyle,
+                color = AfterhoursTheme.colors.textFaint,
+                modifier = Modifier.padding(horizontal = spacing.gutter),
+            )
+        }
+        RunProgress(current = state.roundNumber - 1, total = state.roundCount)
+    }
 }
 
 /** Paused, for both phones: everything waits, and nothing is lost (§3.1). */

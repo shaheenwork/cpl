@@ -3,6 +3,7 @@ package com.shnapps.couple.feature.games
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -55,7 +56,9 @@ class DealtGameSnapshotTest {
             )
         }
 
-        composeRule.onNodeWithText("DIRTY DICE · ROUND 1 OF 6").assertIsDisplayed()
+        // The game's name is the bar's; where the round is, is the rail's (DESIGN_PROMPT.md §5.6).
+        composeRule.onNodeWithText("DIRTY DICE").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Card 1 of 6").assertExists()
         composeRule.onNodeWithText("Not this one").assertIsDisplayed()
     }
 
@@ -73,9 +76,10 @@ class DealtGameSnapshotTest {
             )
         }
 
-        // Found on the device: the eyebrow read "ROUND 7 OF 6" once the game was over.
-        composeRule.onNodeWithText("DIRTY DICE").assertIsDisplayed()
-        composeRule.onNodeWithText("That's the game.").assertIsDisplayed()
+        // Found on the device: the eyebrow read "ROUND 7 OF 6" once the game was over. A finished
+        // game has no round, so it has no rail and no title either — only what it says.
+        composeRule.onNodeWithText("THAT'S THE GAME").assertIsDisplayed()
+        composeRule.onNodeWithText("Nicely played, both of you.").assertIsDisplayed()
     }
 
     @Test
@@ -83,7 +87,7 @@ class DealtGameSnapshotTest {
         capture("dealt-game-nothing") { content(DealtGameUiState(loading = false, nothingToPlay = true)) }
 
         // Never a blank screen: what happened, and the two things that would fix it (§6, U6).
-        composeRule.onNodeWithText("Nothing to deal here.").assertIsDisplayed()
+        composeRule.onNodeWithText("Nothing to deal at this heat.").assertIsDisplayed()
         composeRule.onNodeWithText("Pick something else").assertIsDisplayed()
     }
 

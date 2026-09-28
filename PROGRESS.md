@@ -8,9 +8,8 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 **unified**: the rebuild had left two of everything, so signing in replaced the app rather than
 adding to it. U1–U6 are done: one home, one way to start, one game list and one player, one vocabulary, the
 six-field form reduced to three questions, and no screen that can be reached and not left. The
-**visual rebuild** (`DESIGN_PROMPT.md`) has begun — D1 (foundations), D2 (icons), D3 (the
-frame), D4 (the card and the player) and D5 (home) are done; D6 (games), D7 (the remaining
-screens) and D8 (brand) follow. What remains before a public release is
+**visual rebuild** (`DESIGN_PROMPT.md`) has begun — D1–D8 are done: foundations, icons,
+the frame, the card and the player, home, the games, the remaining screens and the brand. What remains before a public release is
 setup and review, not code: `RELEASE.md` is the ordered runbook, `HUMAN_SETUP.md` the console detail,
 and `legal/` holds drafts of the privacy policy, the terms and the Play data-safety answers, pending
 a lawyer.
@@ -1234,6 +1233,35 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Visual rebuild D6–D8 — Games, the rest, and the brand ✅
+
+### Shipped
+- **A game and an evening are the same app** (D-113). Both players are on `ScreenScaffold`: the
+  game's name in the bar, the round on the rail, the ways out in the dock. The hand-off keeps the
+  frame and carries nothing else. The dealt player takes the phone's own heat.
+- **The rhythm reached the screens nobody rewrote** (D-114). `ScreenColumn` spaces by `group` and
+  `ScreenHeading` puts its eyebrow `tight` above its headline, so settings, the paywall, pairing,
+  the discovery decks and the arc all improved without being touched — the argument for having had
+  one column component since Phase 2.
+- **The brand** (D-115): a monogram drawn as three paths with Playfair's proportions, an adaptive
+  launcher icon on a burgundy-to-ink radial, and a splash through `core-splashscreen` where the
+  window, the splash and the first frame are all the same ink, so there is nothing to see at the
+  handover.
+
+### Verified
+```
+./gradlew check                               BUILD SUCCESSFUL
+./gradlew :app:assembleDevDebug               BUILD SUCCESSFUL
+recordRoborazziDebug                          every golden re-recorded
+```
+- One assertion moved because the change worked: "Delete my account" is far enough down the
+  settings page now that the test has to scroll to it.
+- One thing deliberately not changed: a round's action stays under its own input rather than in the
+  dock. Hoisting a button out of every primitive renderer would break the rule that a renderer only
+  draws what the interpreter hands it (§11.1).
 
 ---
 

@@ -8,6 +8,7 @@ import com.shnapps.couple.core.engine.game.Answer
 import com.shnapps.couple.core.engine.game.GameMoment
 import com.shnapps.couple.core.engine.game.GameRun
 import com.shnapps.couple.core.model.GamePlayers
+import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.navigation.Route
 import com.shnapps.couple.core.ui.voice.VoiceRecorder
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,6 +28,8 @@ data class DealtGameUiState(
     val rounds: Int = 0,
     val loading: Boolean = true,
     val nothingToPlay: Boolean = false,
+    /** How far this phone is playing, so the screen can take its colour (DESIGN_PROMPT.md §4.4). */
+    val heat: Heat = Heat.DEFAULT,
 )
 
 /**
@@ -59,6 +62,10 @@ class DealtGameViewModel @Inject constructor(
 
     init {
         deal()
+        // The heat is the phone's, not the game's: a game dealt at Wild should look like it.
+        viewModelScope.launch {
+            instant.heat.collect { heat -> _uiState.update { it.copy(heat = heat) } }
+        }
     }
 
     /** Deals the game. Called again by "Play it again", which is a new deal rather than a rewind. */

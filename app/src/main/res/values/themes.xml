@@ -3,11 +3,21 @@
     <!--
       The window theme, which is what shows BEFORE Compose draws its first frame.
 
-      Dark, with the window painted in the design system's Ink. The Android Studio template
-      used Theme.Material.Light, which flashed white on every cold start: jarring in a dark
-      room, and conspicuous on a phone that may be shared (BUILD_PROMPT.md §15.1, D-014).
+      Dark, with the window painted in the design system's Scene. The Android Studio template used
+      Theme.Material.Light, which flashed white on every cold start: jarring in a dark room, and
+      conspicuous on a phone that may be shared (BUILD_PROMPT.md §15.1, D-014).
+
+      It is a splash theme now (DESIGN_PROMPT.md §7): the platform draws the monogram on the same
+      ink the window is painted, then hands straight over to the app's first frame. No spinner, and
+      no seam — the whole point is that a person should not be able to tell where the splash ended.
     -->
-    <style name="Theme.Cpl" parent="android:Theme.Material.NoActionBar">
+    <style name="Theme.Cpl" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/ink</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_monogram</item>
+        <item name="postSplashScreenTheme">@style/Theme.Cpl.Main</item>
+    </style>
+
+    <style name="Theme.Cpl.Main" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/ink</item>
         <item name="android:colorBackground">@color/ink</item>
         <item name="android:statusBarColor">@android:color/transparent</item>

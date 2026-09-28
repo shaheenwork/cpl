@@ -14,6 +14,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -61,6 +62,9 @@ class MainActivity : FragmentActivity() {
     private val askToNotify = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Before super, as the platform requires: it swaps the splash theme for the app's own.
+        // The two are painted the same ink, so there is nothing to see at the handover (§7).
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         // Light system-bar icons always. The default follows the system theme, and on a
         // phone in light mode that drew dark icons on this dark-only app (DECISIONS.md D-009),

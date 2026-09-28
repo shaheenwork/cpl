@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The monogram, for the splash (DESIGN_PROMPT.md §7).
+
+  The launcher's foreground without its ground: the platform paints the window in Scene behind it,
+  which is the same ink the app's first frame opens on, so there is nothing to see at the handover.
+  The icon is inset because the splash window scales it to its own circle.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFF2E6DA"
+        android:pathData="M56.5,30 L72.5,78 L63.5,78 L49.5,34.5 Z" />
+    <path
+        android:fillColor="#FFF2E6DA"
+        android:pathData="M51.5,30 L55.5,30 L40.5,78 L35.5,78 Z" />
+    <path
+        android:fillColor="#FFF2E6DA"
+        android:pathData="M43.5,62 L64.5,62 L63,66.5 L42,66.5 Z" />
+</vector>

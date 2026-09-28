@@ -1918,3 +1918,62 @@ pulse and warm towards ember; under reduce-motion the colour still changes and t
 because someone who turned animation off should lose the performance, not the information.
 
 `Dealing()` is a skeleton in the card's own shape rather than the word "Dealing." in grey.
+
+---
+
+## D-113 — A game and an evening are the same app
+
+The dealt-game player and the card player had drifted into two shapes: one had a back link and an
+eyebrow that read "DIRTY DICE · ROUND 1 OF 6", the other had a bar, a rail and a dock. A person
+should not be able to tell which player they are in — that was the point of moving the dealt player
+next to the session one in the first place (D-103).
+
+Both are on `ScreenScaffold` now. The game's *name* is the bar's, because unlike an evening a game
+has one; where the round is, is the rail's. The hand-off keeps the frame but carries nothing else:
+one line, one action, and nothing of what comes next anywhere on the screen, because whatever is
+about to be asked belongs to the person the phone is going to.
+
+The dealt player takes the phone's own heat, so a game dealt at Wild looks like it. The session
+player's rounds already come from the server at the couple's ceiling.
+
+One thing deliberately **not** changed: a round's action still sits under its own input rather than
+in the dock. A dial's "That's my answer" belongs beneath the dial and a challenge's "Done" beneath
+the text; moving them would have meant every primitive renderer hoisting a button through the
+interpreter, which is a worse shape for a rule that says a renderer only draws what it is handed
+(§11.1). The dock carries "Not this one" and the ways out.
+
+---
+
+## D-114 — The rhythm reaches the screens nobody rewrote
+
+`ScreenScaffold` is for screens that want a bar and a dock. Most of the app is a column and nothing
+more — settings, the paywall, pairing, the discovery decks, the arc — and rewriting each one to get
+spacing right would have been a lot of diff for a change that is four numbers.
+
+`ScreenColumn` spaces its children by `group` instead of `md`, and `ScreenHeading` puts its eyebrow
+`tight` above the headline it belongs to rather than an equal gap on both sides. Every screen in the
+app improved without being touched, which is the whole argument for having had one column component
+since Phase 2.
+
+It moved one assertion: "Delete my account" is now far enough down the settings page that the test
+has to scroll to it. That is the change working.
+
+---
+
+## D-115 — The brand, at the minimum a store listing needs
+
+The app had a template launcher icon, no splash, and no wordmark. Three things, and no more:
+
+- **A monogram**, drawn rather than set. A launcher icon is rasterised at sizes where a hinted font
+  stops behaving, and a drawable cannot reach the app's display face anyway, so the "A" is three
+  paths with Playfair's proportions: thin bracket, heavy diagonal, a crossbar low on the counter.
+  It sits inside the 66 dp safe zone so no launcher mask clips it.
+- **An adaptive icon** on a burgundy-to-ink radial, lit from the same corner every screen in the app
+  is. The values repeat the palette's own because a drawable cannot read a Compose token; the
+  background is `Scene`, which is the colour the window is already painted.
+- **A splash**, through `core-splashscreen`. The window, the splash and the app's first frame are
+  all the same ink, so there is nothing to see at the handover — which is the point. No spinner.
+
+`Theme.Cpl` is a splash theme with `postSplashScreenTheme` pointing at the old one, and
+`installSplashScreen()` runs before `super.onCreate` as the platform requires. The D-014 fix stands:
+the window is still painted `Scene` so there is no white flash on a cold start.
