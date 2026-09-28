@@ -1,7 +1,10 @@
 package com.shnapps.couple.core.ui
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,15 +16,20 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
+import com.shnapps.couple.core.designsystem.theme.AfterhoursEasing
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
+import com.shnapps.couple.core.designsystem.theme.decorativeTween
 
 /**
  * One thing you can choose (DESIGN_PROMPT.md §5.3).
@@ -51,6 +59,18 @@ fun ChoiceRow(
 ) {
     val spacing = AfterhoursTheme.spacing
     val colors = AfterhoursTheme.colors
+    // The same press as every button in the app, so a row and a button feel like one language.
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val press by animateFloatAsState(
+        targetValue = if (pressed) PRESSED_SCALE else 1f,
+        animationSpec = decorativeTween(
+            AfterhoursTheme.motion.quick,
+            AfterhoursTheme.reduceMotion,
+            AfterhoursEasing.Standard,
+        ),
+        label = "rowPress",
+    )
     val words = listOfNotNull(
         title,
         subtitle,
@@ -62,8 +82,16 @@ fun ChoiceRow(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = spacing.touchTarget)
-            .background(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.shapes.small)
-            .clickable(onClick = onClick)
+            .scale(press)
+            .background(
+                color = if (pressed) {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = PRESSED_FILL)
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainer
+                },
+                shape = MaterialTheme.shapes.small,
+            )
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
             .semantics { contentDescription = words.joinToString(". ") }
             .padding(horizontal = spacing.md, vertical = spacing.item),
         horizontalArrangement = Arrangement.spacedBy(spacing.item),
@@ -115,6 +143,10 @@ fun ChoiceRow(
 
 private val LEAD = 20.dp
 private val GO = 16.dp
+
+/** The app's one press language: a scale, and a brighter fill. Never a bigger halo. */
+private const val PRESSED_SCALE = 0.985f
+private const val PRESSED_FILL = 0.05f
 
 /** What a locked row says it needs, for anyone listening rather than looking. */
 private const val NEEDS_ACCOUNT = "Needs an account"

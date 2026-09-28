@@ -8,8 +8,9 @@ Phase list and exit criteria: BUILD_PROMPT.md §22.
 **unified**: the rebuild had left two of everything, so signing in replaced the app rather than
 adding to it. U1–U6 are done: one home, one way to start, one game list and one player, one vocabulary, the
 six-field form reduced to three questions, and no screen that can be reached and not left. The
-**visual rebuild** (`DESIGN_PROMPT.md`) has begun — D1–D8 are done: foundations, icons,
-the frame, the card and the player, home, the games, the remaining screens and the brand. What remains before a public release is
+**visual rebuild** (`DESIGN_PROMPT.md`) has begun — D1–D9 are done: foundations, icons,
+the frame, the card and the player, home, the games, the brand, and the screens that D7 had only
+improved by inheritance. What remains before a public release is
 setup and review, not code: `RELEASE.md` is the ordered runbook, `HUMAN_SETUP.md` the console detail,
 and `legal/` holds drafts of the privacy policy, the terms and the Play data-safety answers, pending
 a lawyer.
@@ -1233,6 +1234,37 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
   then failed, because the functions runtime defaults to `<project>.appspot.com` while the app
   uses `<project>.firebasestorage.app`. The server now names the bucket when it runs in the
   emulator. Only the device check could have found this: both halves were correct on their own.
+
+---
+
+## Visual rebuild D9 — The screens that were only inherited, drawn ✅
+
+D7 got most of the app its rhythm *by inheritance* — `ScreenColumn` and `ScreenHeading` changed and
+every column screen improved without being touched. That was the right trade for spacing and the
+wrong one for §10's third condition: a primary action at the end of a scroll is not within thumb
+reach, whatever the gaps around it are.
+
+### Shipped
+- **The motion the app had tokens for and never spent** (D-116). `Entrance(index)` staggers a screen
+  in by section, 40 ms apart; `Dealt(key)` lays a card down with `Anticipation`, restarting on each
+  new card. `ChoiceRow` gained the press language the buttons already had.
+- **Nine icons were drawing the wrong shape** (D-117). The heart was a teardrop and the moon a bowl:
+  arc flags packed against the next number (`0112`) do not parse reliably. All spaced out now — and
+  the specimen is a `FlowRow` rather than a `LazyRow`, so the golden shows all twenty-six instead of
+  the eight that happened to fit. That is how the heart was found.
+- **The library is a grid and the thread is a timeline** (D-118), both of which §6 asked to be
+  redrawn rather than inherited.
+- **Settings and the paywall stop ending in mid-air** (D-119): back link to the bar, last button to
+  the dock.
+
+### Verified
+```
+./gradlew recordRoborazziDebug                BUILD SUCCESSFUL
+./gradlew check                               BUILD SUCCESSFUL
+```
+- **Record and verify must be separate invocations.** `recordRoborazziDebug check` in one command
+  has them race, and nine home goldens reported "changed" against images the same run had just
+  written.
 
 ---
 

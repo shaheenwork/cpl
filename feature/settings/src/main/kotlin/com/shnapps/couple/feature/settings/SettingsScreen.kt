@@ -24,11 +24,10 @@ import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
-import com.shnapps.couple.core.ui.BackRow
 import com.shnapps.couple.core.ui.ErrorBanner
 import com.shnapps.couple.core.ui.LegalUrls
-import com.shnapps.couple.core.ui.ScreenColumn
 import com.shnapps.couple.core.ui.ScreenHeading
+import com.shnapps.couple.core.ui.ScreenScaffold
 import com.shnapps.couple.core.ui.SecureScreen
 import java.io.File
 
@@ -95,62 +94,63 @@ internal fun SettingsContent(
     actions: SettingsActions,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier) {
-        ScreenColumn {
-            BackRow(label = "Back", onBack = routes.onBack)
-            ScreenHeading(
-                eyebrow = "Settings",
-                headline = "Yours, and the two of you.",
-                body = state.email?.let { "Signed in as $it." },
-            )
+    ScreenScaffold(
+        modifier = modifier,
+        title = "Settings",
+        onBack = routes.onBack,
+    ) {
+        ScreenHeading(
+            eyebrow = "Settings",
+            headline = "Yours, and the two of you.",
+            body = state.email?.let { "Signed in as $it." },
+        )
 
-            Group("You") {
-                Row("Your private curiosities", "Only ever yours.", routes.onPreferences)
-                Row("Your limits", "What you are up for, and what you are not.", routes.onBoundaries)
-                Row("Notifications", "What this phone may say out loud.", routes.onNotifications)
-                Row("App lock", "A PIN or your fingerprint, on this phone.", routes.onAppLock)
-            }
-
-            Group("The two of you") {
-                Row("Our memories", "The evenings you kept.", routes.onMemories)
-                Row(
-                    title = if (state.entitlement.premium) "Premium" else "Afterhours premium",
-                    detail = if (state.entitlement.premium) "You're in, both of you." else "What's included.",
-                    onClick = routes.onPremium,
-                )
-                if (state.paired) {
-                    Row("Unpair", "End the couple. Your own answers and limits stay yours.", actions.onUnpair)
-                }
-            }
-
-            Group("Your data") {
-                Row(
-                    title = if (state.exporting) "Putting it together…" else "Export my data",
-                    detail = "Everything this app holds about you, as one file.",
-                    onClick = actions.onExport,
-                )
-                Row("Delete my account", "This one cannot be undone.", routes.onDeleteAccount)
-                Row("Sign out", "On this phone.", routes.onSignOut)
-            }
-
-            // Only when they exist: a row here that opens nothing would be worse than no row.
-            if (LegalUrls.published) {
-                Group("The small print") {
-                    val context = LocalContext.current
-                    if (LegalUrls.PRIVACY_POLICY.isNotBlank()) {
-                        Row("Privacy policy", "What this app holds, and what it never shares.") {
-                            context.open(LegalUrls.PRIVACY_POLICY)
-                        }
-                    }
-                    if (LegalUrls.TERMS.isNotBlank()) {
-                        Row("Terms of use", "The agreement between us.") { context.open(LegalUrls.TERMS) }
-                    }
-                }
-            }
-
-            state.export?.let { Exported(it, actions.onDismissExport) }
-            state.error?.let { ErrorBanner(message = it.message(), onDismiss = actions.onDismissError) }
+        Group("You") {
+            Row("Your private curiosities", "Only ever yours.", routes.onPreferences)
+            Row("Your limits", "What you are up for, and what you are not.", routes.onBoundaries)
+            Row("Notifications", "What this phone may say out loud.", routes.onNotifications)
+            Row("App lock", "A PIN or your fingerprint, on this phone.", routes.onAppLock)
         }
+
+        Group("The two of you") {
+            Row("Our memories", "The evenings you kept.", routes.onMemories)
+            Row(
+                title = if (state.entitlement.premium) "Premium" else "Afterhours premium",
+                detail = if (state.entitlement.premium) "You're in, both of you." else "What's included.",
+                onClick = routes.onPremium,
+            )
+            if (state.paired) {
+                Row("Unpair", "End the couple. Your own answers and limits stay yours.", actions.onUnpair)
+            }
+        }
+
+        Group("Your data") {
+            Row(
+                title = if (state.exporting) "Putting it together…" else "Export my data",
+                detail = "Everything this app holds about you, as one file.",
+                onClick = actions.onExport,
+            )
+            Row("Delete my account", "This one cannot be undone.", routes.onDeleteAccount)
+            Row("Sign out", "On this phone.", routes.onSignOut)
+        }
+
+        // Only when they exist: a row here that opens nothing would be worse than no row.
+        if (LegalUrls.published) {
+            Group("The small print") {
+                val context = LocalContext.current
+                if (LegalUrls.PRIVACY_POLICY.isNotBlank()) {
+                    Row("Privacy policy", "What this app holds, and what it never shares.") {
+                        context.open(LegalUrls.PRIVACY_POLICY)
+                    }
+                }
+                if (LegalUrls.TERMS.isNotBlank()) {
+                    Row("Terms of use", "The agreement between us.") { context.open(LegalUrls.TERMS) }
+                }
+            }
+        }
+
+        state.export?.let { Exported(it, actions.onDismissExport) }
+        state.error?.let { ErrorBanner(message = it.message(), onDismiss = actions.onDismissError) }
     }
 }
 

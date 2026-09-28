@@ -29,6 +29,7 @@ import com.shnapps.couple.core.engine.InstantCard
 import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.ui.AfterhoursCard
 import com.shnapps.couple.core.ui.BarAction
+import com.shnapps.couple.core.ui.Dealt
 import com.shnapps.couple.core.ui.HeatPicker
 import com.shnapps.couple.core.ui.RunProgress
 import com.shnapps.couple.core.ui.ScreenScaffold
@@ -201,13 +202,16 @@ private fun Playing(
 ) {
     val spacing = AfterhoursTheme.spacing
 
-    AfterhoursCard(
-        eyebrow = "${heat.label} · ${card.minutes} min",
-        title = card.title,
-        body = card.body,
-        meta = "Whoever's holding the phone",
-        index = position,
-    )
+    // The one moment the app performs: a card being laid down, restarting on each new card.
+    Dealt(key = card.id) {
+        AfterhoursCard(
+            eyebrow = "${heat.label} · ${card.minutes} min",
+            title = card.title,
+            body = card.body,
+            meta = "Whoever's holding the phone",
+            index = position,
+        )
+    }
 
     // A clock is a shape, not a third call to action (§5.7). It only appears once somebody
     // asked for one, and tapping it is how it stops.

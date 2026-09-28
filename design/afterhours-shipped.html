@@ -1,0 +1,864 @@
+<title>Afterhours As Built</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:opsz,wght@14..32,400..700&display=swap">
+
+<style>
+  :root {
+    color-scheme: dark;
+
+    /* --- the three grounds that shipped (Color.kt) --- */
+    --scene:  #0B0708;
+    --raised: #171115;
+    --card:   #1F1820;
+
+    --cream: #F2E6DA;
+    --muted: #CBBAAE;
+    --faint: #A2938A;
+
+    /* --- the palette, at the values in the repo --- */
+    --brass:        #D9B978;
+    --brass-c:      #3A2E16;
+    --on-brass-c:   #F7E4BC;
+    --burgundy:     #C75C7A;
+    --burgundy-txt: #DE8AA1;
+    --burgundy-c:   #4A1426;
+    --on-burg-c:    #FFD9E1;
+    --oxblood:      #B02A42;
+    --ember:        #E2603F;
+    --oxblood-c:    #3D0F1A;
+    --on-ox-c:      #FFDCD2;
+    --plum-deep:    #6E3A63;
+    --burg-deep:    #8E2A47;
+
+    /* --- heat identity, swapped by [data-heat] --- */
+    --accent:    var(--burgundy);
+    --on-accent: var(--scene);
+    --rim:       var(--burgundy);
+    --on-dark:   var(--burgundy-txt);
+    --container: var(--burgundy-c);
+    --on-container: var(--on-burg-c);
+
+    /* --- rhythm (Dimens.kt) --- */
+    --tight: 4px;
+    --item: 12px;
+    --group: 20px;
+    --section: 36px;
+    --gutter: 24px;
+
+    /* --- shape, on a 4px step --- */
+    --r-xs: 8px;
+    --r-sm: 12px;
+    --r-md: 16px;
+    --r-lg: 20px;
+    --r-xl: 28px;
+
+    /* --- rim light --- */
+    --rim-top: rgba(242, 230, 218, 0.16);
+    --rim-bottom: rgba(242, 230, 218, 0.03);
+
+    --display: "Playfair Display", "Iowan Old Style", Georgia, serif;
+    --body: "Inter", "Segoe UI", system-ui, sans-serif;
+  }
+
+  [data-heat="playful"] {
+    --accent: var(--brass); --on-accent: var(--scene); --rim: var(--brass);
+    --on-dark: var(--brass); --container: var(--brass-c); --on-container: var(--on-brass-c);
+  }
+  [data-heat="hot"] {
+    --accent: var(--burgundy); --on-accent: var(--scene); --rim: var(--burgundy);
+    --on-dark: var(--burgundy-txt); --container: var(--burgundy-c); --on-container: var(--on-burg-c);
+  }
+  [data-heat="wild"] {
+    --accent: var(--oxblood); --on-accent: var(--cream); --rim: var(--ember);
+    --on-dark: var(--ember); --container: var(--oxblood-c); --on-container: var(--on-ox-c);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--scene);
+    color: var(--cream);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.6;
+    font-optical-sizing: auto;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* The scene, as Scene.kt composes it: key wash, bounce, vignette, grain. */
+  body::before, body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+  body::before {
+    background:
+      radial-gradient(110vmin 110vmin at -10% -15%, rgba(142, 42, 71, 0.30), rgba(142, 42, 71, 0) 70%),
+      radial-gradient(95vmin 95vmin at 110% 105%, rgba(110, 58, 99, 0.20), rgba(110, 58, 99, 0) 70%),
+      radial-gradient(120vmax 120vmax at 50% 45%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%);
+  }
+  body::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    background-size: 128px 128px; opacity: 0.035; mix-blend-mode: overlay;
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: 1340px; margin: 0 auto; padding-block: 44px 80px; padding-inline: 20px; }
+
+  .eyebrow { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--on-dark); font-weight: 600; }
+
+  h1 {
+    font-family: var(--display); font-weight: 500;
+    font-size: clamp(34px, 6vw, 58px); line-height: 1.03; margin: 12px 0 0;
+    letter-spacing: -0.02em; text-wrap: balance;
+  }
+  h1 em { font-style: italic; color: var(--on-dark); }
+  .standfirst { max-width: 64ch; color: var(--muted); font-size: 17px; margin: 18px 0 0; }
+
+  h2 { font-family: var(--display); font-weight: 500; font-size: 30px; line-height: 1.15; margin: 0; letter-spacing: -0.01em; }
+  .sec { margin-top: var(--section); }
+  .sec > .eyebrow { margin-bottom: var(--tight); }
+  .sec > h2 + p { color: var(--muted); margin: 10px 0 0; max-width: 70ch; }
+  .rule { height: 1px; background: linear-gradient(90deg, rgba(242,230,218,0.16), rgba(242,230,218,0)); margin-top: 24px; }
+
+  /* --- the honest ledger --- */
+  .deltas { display: grid; gap: 1px; background: rgba(242,230,218,0.10); border: 1px solid rgba(242,230,218,0.10); border-radius: var(--r-lg); overflow: hidden; margin-top: 24px; }
+  .delta { background: var(--raised); padding: 18px 20px; display: grid; gap: 6px; }
+  .delta b { font-family: var(--display); font-size: 19px; font-weight: 500; }
+  .delta p { margin: 0; color: var(--muted); font-size: 14.5px; }
+  .delta code { color: var(--on-dark); font-size: 13px; }
+
+  /* --- controls --- */
+  .bar {
+    position: sticky; top: 0; z-index: 20; margin-top: 28px;
+    display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+    padding: 12px 14px; border-radius: var(--r-md);
+    background: color-mix(in srgb, var(--raised) 90%, transparent);
+    backdrop-filter: blur(12px);
+    border: 1px solid transparent;
+    background-image: linear-gradient(color-mix(in srgb, var(--raised) 90%, transparent), color-mix(in srgb, var(--raised) 90%, transparent)),
+      linear-gradient(180deg, var(--rim-top), var(--rim-bottom));
+    background-origin: border-box; background-clip: padding-box, border-box;
+  }
+  .bar .label { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); font-weight: 600; }
+  .seg { display: flex; gap: 4px; padding: 4px; background: var(--scene); border-radius: var(--r-xs); }
+  .seg button {
+    appearance: none; border: 0; cursor: pointer; background: transparent; color: var(--faint);
+    font-family: var(--body); font-weight: 600; font-size: 12.5px; padding: 9px 16px; border-radius: 6px;
+    display: grid; gap: 2px; justify-items: center; transition: background 200ms, color 200ms;
+  }
+  .seg button .dots { letter-spacing: 2px; font-size: 10px; }
+  .seg button[aria-pressed="true"] { background: var(--container); color: var(--on-container); }
+
+  /* --- specimens --- */
+  .grid { display: grid; gap: 18px; margin-top: 22px; }
+  .g2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .spec {
+    background: var(--raised); border-radius: var(--r-lg); padding: 20px;
+    border: 1px solid transparent;
+    background-image: linear-gradient(var(--raised), var(--raised)), linear-gradient(180deg, var(--rim-top), var(--rim-bottom));
+    background-origin: border-box; background-clip: padding-box, border-box;
+  }
+  .spec h3 { font-family: var(--body); font-size: 13px; font-weight: 700; margin: 0 0 4px; }
+  .spec p { margin: 0; color: var(--muted); font-size: 13.5px; }
+  .spec .note { color: var(--faint); font-size: 12px; margin-top: 10px; font-variant-numeric: tabular-nums; }
+
+  .swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0 4px; }
+  .sw { height: 68px; border-radius: var(--r-sm); display: flex; align-items: flex-end; padding: 8px; font-size: 10px; color: var(--faint); }
+  .sw.scene { background: var(--scene); } .sw.raised { background: var(--raised); } .sw.card { background: var(--card); }
+
+  .rimdemo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .rimdemo > div { height: 80px; display: grid; place-items: center; font-size: 11px; color: var(--faint); border-radius: var(--r-md); background: var(--card); }
+  .rimdemo .flat { border: 1px solid rgba(242,230,218,0.06); }
+  .rimdemo .lit {
+    border: 1px solid transparent;
+    background-image: linear-gradient(var(--card), var(--card)), linear-gradient(180deg, var(--rim-top), var(--rim-bottom));
+    background-origin: border-box; background-clip: padding-box, border-box;
+  }
+
+  .heats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+  .heatchip { border-radius: var(--r-sm); padding: 14px 12px; display: grid; gap: 8px; }
+  .heatchip b { font-size: 13px; }
+  .heatchip .fill { height: 30px; border-radius: var(--r-xs); display: grid; place-items: center; font-size: 11px; font-weight: 600; }
+  .heatchip .ratio { font-size: 10px; color: var(--faint); font-variant-numeric: tabular-nums; }
+  .h-playful { background: var(--brass-c); border: 1px solid color-mix(in srgb, var(--brass) 35%, transparent); }
+  .h-playful b { color: var(--brass); } .h-playful .fill { background: var(--brass); color: var(--scene); }
+  .h-hot { background: var(--burgundy-c); border: 1px solid color-mix(in srgb, var(--burgundy) 35%, transparent); }
+  .h-hot b { color: var(--burgundy-txt); } .h-hot .fill { background: var(--burgundy); color: var(--scene); }
+  .h-wild { background: var(--oxblood-c); border: 1px solid color-mix(in srgb, var(--ember) 35%, transparent); }
+  .h-wild b { color: var(--ember); } .h-wild .fill { background: var(--oxblood); color: var(--cream); }
+
+  .rhythm { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .rhythm .col { background: var(--scene); border-radius: var(--r-sm); padding: 16px; }
+  .rhythm .tag { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); margin-bottom: 14px; }
+  .rhythm .h { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--on-dark); }
+  .rhythm .b { height: 28px; border-radius: 7px; background: var(--raised); }
+  .flat-r > * + * { margin-top: 16px; }
+  .tuned .h { margin-top: var(--section); margin-bottom: var(--tight); }
+  .tuned .h:first-child { margin-top: 0; }
+  .tuned .b + .b { margin-top: var(--item); }
+
+  .icons { display: grid; grid-template-columns: repeat(auto-fit, minmax(58px, 1fr)); gap: 12px; margin-top: 16px; }
+  .icons figure { margin: 0; display: grid; gap: 6px; justify-items: center; }
+  .icons svg { width: 24px; height: 24px; }
+  .icons figcaption { font-size: 9.5px; color: var(--faint); }
+
+  /* --- phones --- */
+  .phones { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px 22px; margin-top: 26px; }
+  @media (max-width: 700px) { .phones { grid-template-columns: 1fr; } }
+
+  figure.screen { margin: 0; display: grid; gap: 12px; justify-items: center; }
+  figure.screen figcaption { font-size: 13.5px; color: var(--muted); max-width: 330px; }
+  figure.screen figcaption b { display: block; color: var(--cream); font-weight: 600; font-size: 14px; margin-bottom: 3px; }
+  figure.screen figcaption .tagp {
+    display: inline-block; margin-top: 8px; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--on-dark); border: 1px solid color-mix(in srgb, var(--on-dark) 35%, transparent);
+    border-radius: 999px; padding: 3px 9px;
+  }
+
+  .phone {
+    width: 100%; max-width: 320px; aspect-ratio: 320 / 690;
+    border-radius: 34px; padding: 7px; background: #171215;
+    box-shadow: 0 0 0 1px rgba(242,230,218,0.09), 0 30px 60px -30px rgba(0,0,0,0.95);
+  }
+  .vp {
+    position: relative; height: 100%; width: 100%; border-radius: 28px; overflow: hidden;
+    background: var(--scene); display: flex; flex-direction: column; font-size: 13px;
+  }
+  .vp::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(150% 90% at -10% -10%, color-mix(in srgb, var(--rim) 20%, transparent), transparent 62%),
+      radial-gradient(120% 80% at 110% 104%, rgba(110, 58, 99, 0.20), transparent 62%),
+      radial-gradient(120% 120% at 50% 45%, transparent 52%, rgba(0,0,0,0.55) 100%);
+  }
+  .vp > * { position: relative; z-index: 1; }
+
+  /* top bar, 56dp */
+  .topbar { height: 46px; flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 0 8px; }
+  .topbar .ico { width: 20px; height: 20px; color: var(--muted); flex: 0 0 auto; }
+  .topbar .t { flex: 1; text-align: center; font-size: 9.5px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--faint); font-weight: 600; }
+  .topbar .wm { flex: 1; font-size: 10px; letter-spacing: 0.3em; font-weight: 600; color: var(--cream); padding-left: 8px; }
+  .topbar .warn { display: flex; align-items: center; gap: 4px; font-size: 9.5px; color: var(--faint); padding-right: 4px; }
+  .topbar .warn svg { width: 14px; height: 14px; }
+
+  /* the rail */
+  .rail { display: flex; gap: 4px; padding: 6px 14px 4px; }
+  .rail i { flex: 1; height: 3px; border-radius: 3px; background: rgba(242,230,218,0.10); }
+  .rail i.done { background: rgba(242,230,218,0.35); }
+  .rail i.now { background: var(--accent); }
+
+  .body { flex: 1; overflow: hidden; padding: 0 16px; display: flex; flex-direction: column; gap: var(--group); }
+  .body.pad { padding-top: 14px; }
+  .body.mid { justify-content: center; }
+
+  /* dock */
+  .dock {
+    flex: 0 0 auto; padding: 18px 16px 16px; display: grid; gap: 8px;
+    background: linear-gradient(180deg, rgba(11,7,8,0), rgba(11,7,8,0.94) 45%);
+  }
+  .dock .row { display: flex; gap: 8px; }
+
+  .vp .kick { font-size: 9px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--on-dark); font-weight: 600; }
+  .vp .sech { font-size: 9px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--faint); font-weight: 600; margin-bottom: var(--tight); }
+  .vp h4 { font-family: var(--display); font-weight: 500; font-size: 26px; line-height: 1.12; margin: 0; letter-spacing: -0.01em; }
+  .vp .sub { color: var(--muted); font-size: 12.5px; margin: 0; line-height: 1.5; }
+
+  /* buttons */
+  .btn {
+    appearance: none; border: 0; cursor: pointer; width: 100%;
+    font-family: var(--body); font-weight: 600; font-size: 13.5px;
+    min-height: 44px; padding: 0 16px; border-radius: var(--r-md);
+    background: var(--accent); color: var(--on-accent);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: transform 120ms, filter 120ms;
+  }
+  .btn:active { transform: scale(0.985); }
+  .btn.sec {
+    background: transparent; color: var(--cream); border: 1px solid transparent;
+    background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0)), linear-gradient(180deg, var(--rim-top), var(--rim-bottom));
+    background-origin: border-box; background-clip: padding-box, border-box;
+  }
+  .btn.quiet { background: transparent; color: var(--muted); font-weight: 500; min-height: 40px; }
+  .btn svg { width: 17px; height: 17px; }
+  .btn.bloom { box-shadow: 0 0 30px -8px color-mix(in srgb, var(--rim) 70%, transparent); }
+
+  /* rows */
+  .row-i {
+    display: flex; align-items: center; gap: var(--item); width: 100%; text-align: left;
+    appearance: none; cursor: pointer; border: 0;
+    background: var(--raised); border-radius: var(--r-sm); padding: 12px 16px; color: var(--cream);
+    font-family: var(--body); min-height: 48px;
+  }
+  .row-i + .row-i { margin-top: var(--item); }
+  .row-i svg.lead { width: 20px; height: 20px; color: var(--muted); flex: 0 0 auto; }
+  .row-i .tx { flex: 1; min-width: 0; }
+  .row-i b { display: block; font-size: 13px; font-weight: 600; }
+  .row-i span { display: block; font-size: 11px; color: var(--faint); line-height: 1.45; }
+  .row-i .trail { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--on-dark); font-weight: 600; }
+  .row-i svg.go { width: 16px; height: 16px; color: var(--faint); flex: 0 0 auto; }
+  .row-i.locked { opacity: 0.45; }
+
+  /* the hero card */
+  .hero {
+    position: relative; overflow: hidden; border-radius: var(--r-xl); padding: var(--group) 20px;
+    border: 1px solid transparent;
+    background-image: linear-gradient(var(--card), var(--card)),
+      linear-gradient(180deg, color-mix(in srgb, var(--rim) 55%, transparent), var(--rim-bottom));
+    background-origin: border-box; background-clip: padding-box, border-box;
+    box-shadow: 0 18px 40px -22px rgba(0,0,0,0.95), 0 0 40px -14px color-mix(in srgb, var(--rim) 45%, transparent);
+  }
+  .hero .idx {
+    position: absolute; top: -34px; right: 0; font-family: var(--display); font-weight: 600;
+    font-size: 128px; line-height: 1; color: rgba(242,230,218,0.045); pointer-events: none;
+  }
+  .hero .title { font-family: var(--display); font-weight: 500; font-size: 24px; line-height: 1.16; margin: var(--tight) 0 0; }
+  .hero .title::first-letter { font-size: 1.85em; float: left; line-height: 0.82; padding: 4px 8px 0 0; color: color-mix(in srgb, var(--brass) 65%, transparent); }
+  .hero .text { margin: var(--group) 0 0; font-size: 14px; line-height: 22px; color: var(--muted); max-width: 40ch; }
+  .hero .meta { margin-top: var(--group); font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); }
+
+  /* the ring */
+  .ring { display: grid; place-items: center; margin: 0 auto; width: 96px; height: 96px; position: relative; }
+  .ring svg { width: 96px; height: 96px; transform: rotate(-90deg); }
+  .ring .tk { fill: none; stroke: rgba(242,230,218,0.10); stroke-width: 3; }
+  .ring .pg { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; }
+  .ring .num { position: absolute; text-align: center; }
+  .ring .num b { font-variant-numeric: tabular-nums; font-size: 20px; font-weight: 600; letter-spacing: 0.02em; display: block; }
+  .ring .num small { font-size: 8px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--faint); font-weight: 600; }
+
+  /* heat track */
+  .track { display: flex; gap: 4px; padding: 4px; background: var(--scene); border-radius: var(--r-xs); }
+  .track button {
+    flex: 1; appearance: none; border: 0; cursor: pointer; background: transparent; color: var(--faint);
+    font-family: var(--body); font-size: 10.5px; font-weight: 600; padding: 9px 2px; border-radius: 6px;
+    display: grid; gap: 2px; justify-items: center; transition: background 200ms, color 200ms; min-height: 48px;
+  }
+  .track button .dots { letter-spacing: 1.5px; font-size: 10px; }
+  .track button[aria-pressed="true"] { background: var(--container); color: var(--on-container); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip { appearance: none; cursor: pointer; font-family: var(--body); font-size: 11.5px; font-weight: 500; padding: 9px 12px; border-radius: var(--r-xs); background: var(--raised); color: var(--muted); border: 1px solid rgba(242,230,218,0.07); }
+  .chip[aria-pressed="true"] { background: var(--container); color: var(--on-container); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+
+  .skel { border-radius: var(--r-xl); background: var(--raised); position: relative; overflow: hidden; height: 210px; }
+  .skel::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(242,230,218,0) 0%, rgba(242,230,218,0.06) 50%, rgba(242,230,218,0) 100%); animation: shim 2.4s ease-in-out infinite; }
+  @keyframes shim { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+  @media (prefers-reduced-motion: reduce) { .skel::after { animation: none; } }
+
+  .handoff { flex: 1; display: grid; place-items: center; text-align: center; padding: 0 24px; }
+
+  .mono {
+    width: 104px; height: 104px; border-radius: 26px; display: grid; place-items: center;
+    background: radial-gradient(120% 120% at 35% 30%, var(--burg-deep), #3D1424 55%, var(--scene) 100%);
+    font-family: var(--display); font-weight: 500; font-size: 56px; color: var(--cream);
+    box-shadow: 0 0 0 1px rgba(242,230,218,0.10), 0 20px 46px -20px rgba(0,0,0,0.9);
+  }
+
+  .gates { display: grid; gap: 1px; background: rgba(242,230,218,0.10); border: 1px solid rgba(242,230,218,0.10); border-radius: var(--r-lg); overflow: hidden; margin-top: 22px; }
+  .gate { background: var(--raised); padding: 16px 20px; display: grid; gap: 4px; }
+  .gate b { font-size: 13.5px; font-weight: 600; }
+  .gate span { color: var(--muted); font-size: 13.5px; }
+
+  footer { margin-top: var(--section); color: var(--faint); font-size: 14px; max-width: 78ch; }
+  footer b { color: var(--muted); font-weight: 600; }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="i-back" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></g>
+    <g id="i-go" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></g>
+    <g id="i-close" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></g>
+    <g id="i-check" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></g>
+    <g id="i-plus" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></g>
+    <g id="i-flame" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3c3 3.5 5 6 5 9a5 5 0 01-10 0c0-1.6.7-3 1.8-4.3.4 1 1 1.7 1.7 2C10.6 7.4 11 5 12 3z"/></g>
+    <g id="i-dice" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M4 4h16v16H4z"/><path d="M9 9h.01M15 9h.01M9 15h.01M15 15h.01"/></g>
+    <g id="i-spark" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M18 17l.8 2.2L21 20l-2.2.8L18 23l-.8-2.2L15 20l2.2-.8z"/></g>
+    <g id="i-moon" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M20 14.5A8 8 0 019.5 4 8.5 8.5 0 1020 14.5z"/></g>
+    <g id="i-clock" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></g>
+    <g id="i-skip" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M5 5l8 7-8 7z"/><path d="M18 5v14"/></g>
+    <g id="i-pause" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9.5 5v14M14.5 5v14"/></g>
+    <g id="i-stop" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M6 6h12v12H6z"/></g>
+    <g id="i-people" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5a5.5 5.5 0 0111 0M16 5.6a3.2 3.2 0 010 4.8M17.5 14.6a5.5 5.5 0 013 4.9"/></g>
+    <g id="i-send" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M20 4L3.5 10.8l6.8 2.2 2.2 6.8z"/><path d="M20 4l-9.7 9.7"/></g>
+    <g id="i-mic" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a2.5 2.5 0 012.5 2.5v5a2.5 2.5 0 01-5 0v-5A2.5 2.5 0 0112 3z"/><path d="M6 11a6 6 0 0012 0M12 17v4"/></g>
+    <g id="i-camera" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3"/></g>
+    <g id="i-gift" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M4 9.5h16V20H4z"/><path d="M4 13h16M12 9.5V20"/><path d="M12 9.5S10.5 4 8 4a2 2 0 000 5.5zM12 9.5S13.5 4 16 4a2 2 0 010 5.5z"/></g>
+    <g id="i-cal" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M4 5.5h16v15H4z"/><path d="M4 10h16M9 3.5v4M15 3.5v4"/></g>
+    <g id="i-heart" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-9.2A4 4 0 0112 8.6 4 4 0 0119 10.8C19 15.6 12 20 12 20z"/></g>
+    <g id="i-book" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M7 4h10v16l-5-3.4L7 20z"/></g>
+    <g id="i-star" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3.5l2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.9l6-.8z"/></g>
+    <g id="i-eye" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.7"/></g>
+    <g id="i-lock" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M4.5 10.5h15V20h-15z"/><path d="M8 10.5V8a4 4 0 118 0v2.5"/></g>
+    <g id="i-shield" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3l7 2.8v5.6c0 4.3-2.9 7.6-7 9.6-4.1-2-7-5.3-7-9.6V5.8z"/></g>
+    <g id="i-set" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h9M17 17h3"/><circle cx="17" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17" r="2"/></g>
+  </defs>
+</svg>
+
+<div class="wrap" id="root" data-heat="hot">
+
+  <header>
+    <div class="eyebrow">Afterhours · as built</div>
+    <h1>The rebuild, and the four places it <em>argued back</em>.</h1>
+    <p class="standfirst">
+      This is what shipped, at the values in the repo — not the proposal. Every colour, gap and
+      radius below is read from <code>Color.kt</code>, <code>Dimens.kt</code> and
+      <code>Light.kt</code>. Where the implementation forced a change, it says so and why. The heat
+      switch is the argument the whole palette rests on: one setting, and the room changes.
+    </p>
+
+    <div class="deltas">
+      <div class="delta">
+        <b>Wild is as dark as contrast allows</b>
+        <p>The brief asked for oxblood. <code>#A3243B</code> measured <strong>2.74:1</strong> against
+          the scene — a filled button a thumb cannot find. <code>#B02A42</code> is the deepest red
+          that clears 3:1. Oxblood also cannot carry dark text, so Wild's filled state takes cream.
+          The test set the limit, not a preference.</p>
+      </div>
+      <div class="delta">
+        <b>The bloom had to be normalised</b>
+        <p>Twelve rings with a squared falloff read as light where ten equal ones banded. But alphas
+          <em>accumulate</em> where layers overlap, so the first attempt came out about three and a
+          half times too bright — a solid pink band, worse than what it replaced. It is divided by
+          the series total now, computed rather than guessed.</p>
+      </div>
+      <div class="delta">
+        <b>Burgundy needed a second tone</b>
+        <p><code>#C75C7A</code> as <em>text</em> on the card measures 4.29:1 and fails AA.
+          <code>#DE8AA1</code> is the same hue lifted until it passes; the original stays the fill.
+          Contrast is not a thing to eyeball on a near-black stack.</p>
+      </div>
+      <div class="delta">
+        <b>Optical sizing is not wired, and the brief said it would be</b>
+        <p>The shipped <code>playfair_display_variable</code> has a <code>wght</code> axis and no
+          <code>opsz</code>. Claiming it in code would have been a lie in a comment, so it is not
+          claimed.</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="bar">
+    <span class="label">How far tonight</span>
+    <div class="seg" id="heat">
+      <button type="button" data-heat="playful"><span class="dots">●○○</span>Playful</button>
+      <button type="button" data-heat="hot" aria-pressed="true"><span class="dots">●●○</span>Hot</button>
+      <button type="button" data-heat="wild"><span class="dots">●●●</span>Wild</button>
+    </div>
+    <span class="label" style="color:var(--muted)">Re-tints every screen below</span>
+  </div>
+
+  <!-- ============ FOUNDATIONS ============ -->
+
+  <section class="sec">
+    <div class="eyebrow">D1–D2 · Foundations and icons</div>
+    <h2>None of this is layout. It is why the layout looked unfinished.</h2>
+    <p>Seven specimens ship as goldens, because a wrong gap or a banded halo is invisible in a
+      screenshot of a screen and obvious on its own.</p>
+    <div class="rule"></div>
+
+    <div class="grid g2">
+      <div class="spec">
+        <h3>§4.2 — Three grounds, about seven percent apart</h3>
+        <p>Five levels spanning under five percent in total meant the app had one surface colour and
+          a card, a row and a chip were the same object.</p>
+        <div class="swatches">
+          <div class="sw scene">scene</div><div class="sw raised">raised</div><div class="sw card">card</div>
+        </div>
+        <p class="note">#0B0708 · #171115 · #1F1820 — ContrastTest measures the steps</p>
+      </div>
+
+      <div class="spec">
+        <h3>§4.2 — Rim light, not a hairline</h3>
+        <p>A 1 dp vertical gradient, <code>Cream 16%</code> at the top falling to <code>3%</code>.
+          One modifier, and it is most of the difference between a panel and an object.</p>
+        <div class="rimdemo"><div class="flat">uniform hairline</div><div class="lit">rim light</div></div>
+      </div>
+
+      <div class="spec">
+        <h3>§4.4 — Heat is a colour, and every pairing is measured</h3>
+        <p>Accent, container, rim and two text tones each. Wild goes darker and redder, never
+          brighter: escalation here is intimacy, not volume.</p>
+        <div class="heats">
+          <div class="heatchip h-playful"><b>Playful</b><div class="fill">Aa</div><span class="ratio">9.2:1</span></div>
+          <div class="heatchip h-hot"><b>Hot</b><div class="fill">Aa</div><span class="ratio">5.0:1</span></div>
+          <div class="heatchip h-wild"><b>Wild</b><div class="fill">Aa</div><span class="ratio">3.1:1</span></div>
+        </div>
+      </div>
+
+      <div class="spec">
+        <h3>§4.5 — The three type styles that were missing</h3>
+        <p>The card's body was using a 17/26 <em>list</em> style for the one thing a couple reads.</p>
+        <div style="margin-top:14px;font-size:19px;line-height:30px;color:var(--muted);max-width:40ch">
+          Sit at opposite sides of the room and talk only by message.
+        </div>
+        <div style="margin-top:14px;font-variant-numeric:tabular-nums;font-size:22px;font-weight:600;color:var(--on-dark)">
+          04:38 · 2 of 6
+        </div>
+        <p class="note">19/30 at zero tracking · tnum · a ~40-character measure</p>
+      </div>
+
+      <div class="spec" style="grid-column:1 / -1">
+        <h3>§4.6 — Rhythm: the highest-value change, and the hardest to see</h3>
+        <p>Every gap in the app was <code>spacing.md</code>, so a section heading sat exactly as far
+          from its own content as from the section above it.</p>
+        <div class="rhythm">
+          <div class="col">
+            <div class="tag">One gap — before</div>
+            <div class="flat-r">
+              <div class="h">Tonight</div><div class="b"></div><div class="b"></div>
+              <div class="h">Apart</div><div class="b"></div><div class="b"></div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="tag">Semantic — shipped</div>
+            <div class="tuned">
+              <div class="h">Tonight</div><div class="b"></div><div class="b"></div>
+              <div class="h">Apart</div><div class="b"></div><div class="b"></div>
+            </div>
+          </div>
+        </div>
+        <p class="note">tight 4 · item 12 · group 20 · section 36 — a heading takes section above, tight below</p>
+      </div>
+
+      <div class="spec" style="grid-column:1 / -1">
+        <h3>§4.9 — Twenty-six icons, and a rule that fails the build on an emoji</h3>
+        <p>One factory builds all of them, so the 24 dp box, the 1.5 dp stroke and the round caps
+          cannot drift apart. Proved by planting an emoji and watching the build fail.</p>
+        <div class="icons" id="icongrid"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SCREENS ============ -->
+
+  <section class="sec">
+    <div class="eyebrow">D3–D5 · The frame, the card, home</div>
+    <h2>Content scrolls under a docked action.</h2>
+    <p>The card player used to put Done and Skip in the middle of the screen with forty percent of it
+      empty below them. A thumb reaches the bottom of a phone.</p>
+    <div class="rule"></div>
+
+    <div class="phones">
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar">
+            <svg class="ico"><use href="#i-back"/></svg>
+            <span class="t">Tonight</span>
+            <span class="warn"><svg><use href="#i-shield"/></svg>Too far</span>
+          </div>
+          <div class="rail"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+          <div class="body mid">
+            <div class="hero">
+              <div class="idx">02</div>
+              <div class="kick" id="card-kick">Hot · 5 min</div>
+              <p class="title">Opposite Corners</p>
+              <p class="text">Sit at opposite sides of the room and talk only by message. Describe
+                what you would do if they came closer. Nobody moves until someone gives in.</p>
+              <div class="meta">Whoever's holding the phone</div>
+            </div>
+            <button class="btn quiet"><svg><use href="#i-clock"/></svg>Start the 5 minutes</button>
+          </div>
+          <div class="dock"><div class="row">
+            <button class="btn sec" style="flex:0 0 38%"><svg><use href="#i-skip"/></svg>Skip</button>
+            <button class="btn bloom" style="flex:1"><svg><use href="#i-check"/></svg>Done</button>
+          </div></div>
+        </div></div>
+        <figcaption>
+          <b>The card</b>
+          Bar, rail, hero card, docked Done. The index numeral bleeds off the corner at 4.5% and is
+          kept out of the accessibility tree. "Too far" is in the bar — a safety control that looks
+          like a third choice is a worse safety control.
+          <span class="tagp">instant-card.png</span>
+        </figcaption>
+      </figure>
+
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar">
+            <svg class="ico"><use href="#i-back"/></svg>
+            <span class="t">Tonight</span>
+            <span class="warn"><svg><use href="#i-shield"/></svg>Too far</span>
+          </div>
+          <div class="rail"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+          <div class="body mid">
+            <div class="hero">
+              <div class="idx">02</div>
+              <div class="kick">Hot · 5 min</div>
+              <p class="title">Opposite Corners</p>
+              <p class="text">Sit at opposite sides of the room and talk only by message.</p>
+            </div>
+            <div class="ring">
+              <svg viewBox="0 0 96 96"><circle class="tk" cx="48" cy="48" r="44"/><circle class="pg" cx="48" cy="48" r="44" stroke-dasharray="276" stroke-dashoffset="100"/></svg>
+              <div class="num"><b>3:02</b><small>Pause</small></div>
+            </div>
+          </div>
+          <div class="dock"><div class="row">
+            <button class="btn sec" style="flex:0 0 38%"><svg><use href="#i-skip"/></svg>Skip</button>
+            <button class="btn bloom" style="flex:1"><svg><use href="#i-check"/></svg>Done</button>
+          </div></div>
+        </div></div>
+        <figcaption>
+          <b>The clock</b>
+          A ring instead of a third full-width button. Tabular numerals, so it holds its width while
+          it counts. The last ten seconds pulse and warm towards ember; under reduce-motion the
+          colour still changes and the pulse stops.
+          <span class="tagp">instant-timer.png</span>
+        </figcaption>
+      </figure>
+
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar"><span class="wm">AFTERHOURS</span><svg class="ico"><use href="#i-set"/></svg></div>
+          <div class="body pad">
+            <div>
+              <div class="kick">Tonight</div>
+              <h4 style="margin-top:var(--tight)">Pick something. Or let us pick.</h4>
+            </div>
+            <div class="track" data-track>
+              <button type="button" data-h="playful"><span class="dots">●○○</span>Playful</button>
+              <button type="button" data-h="hot" aria-pressed="true"><span class="dots">●●○</span>Hot</button>
+              <button type="button" data-h="wild"><span class="dots">●●●</span>Wild</button>
+            </div>
+            <div>
+              <div class="sech">When you're not together</div>
+              <button class="row-i locked">
+                <svg class="lead"><use href="#i-send"/></svg>
+                <span class="tx"><b>Apart</b><span>Send them something, leave something for later</span></span>
+                <svg class="go"><use href="#i-lock"/></svg>
+              </button>
+              <button class="row-i locked">
+                <svg class="lead"><use href="#i-book"/></svg>
+                <span class="tx"><b>Our memories</b><span>Keeping an evening</span></span>
+                <svg class="go"><use href="#i-lock"/></svg>
+              </button>
+            </div>
+            <div>
+              <div class="sech">Or play something</div>
+              <button class="row-i">
+                <svg class="lead"><use href="#i-spark"/></svg>
+                <span class="tx"><b>Spin</b><span>It decides. You just do it.</span></span>
+                <svg class="go"><use href="#i-go"/></svg>
+              </button>
+              <button class="row-i">
+                <svg class="lead"><use href="#i-spark"/></svg>
+                <span class="tx"><b>Dirty Dice</b><span>Roll, then run the clock.</span></span>
+                <svg class="go"><use href="#i-go"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="dock"><button class="btn bloom"><svg><use href="#i-flame"/></svg>Start now</button></div>
+        </div></div>
+        <figcaption>
+          <b>Home — no account</b>
+          Wordmark and settings in the bar. The heat sits directly under the heading it sets. Locked
+          rows keep their place and say so with a lock rather than vanishing. Start docks.
+          <span class="tagp">home-alone.png</span>
+        </figcaption>
+      </figure>
+
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar"><svg class="ico"><use href="#i-back"/></svg><span class="t">Tonight</span><span style="width:20px"></span></div>
+          <div class="rail"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="body mid"><div class="skel"></div></div>
+          <div class="dock"><div class="row">
+            <button class="btn sec" style="flex:0 0 38%;opacity:.4">Skip</button>
+            <button class="btn" style="flex:1;opacity:.4">Done</button>
+          </div></div>
+        </div></div>
+        <figcaption>
+          <b>Dealing</b>
+          A skeleton in the card's own shape with a slow shimmer, not the word "Dealing." in grey
+          body text. No shimmer under reduce-motion.
+          <span class="tagp">§5.8</span>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="eyebrow">D6–D8 · Games, the rest, the brand</div>
+    <h2>A game and an evening are the same app.</h2>
+    <p>Both players are on the same frame. The game's name is the bar's, because unlike an evening a
+      game has one; where the round is, is the rail's.</p>
+    <div class="rule"></div>
+
+    <div class="phones">
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar"><svg class="ico"><use href="#i-back"/></svg><span class="t">Dirty Dice</span><span style="width:20px"></span></div>
+          <div class="rail"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div>
+          <div class="body mid">
+            <div class="hero">
+              <div class="idx">02</div>
+              <div class="kick">You</div>
+              <p class="title" style="font-size:26px">Do it without using your hands at all.</p>
+            </div>
+            <button class="btn"><svg><use href="#i-check"/></svg>Done</button>
+          </div>
+          <div class="dock"><button class="btn quiet">Not this one</button></div>
+        </div></div>
+        <figcaption>
+          <b>A game round</b>
+          One thing deliberately <em>not</em> changed: a round's action stays under its own input
+          rather than in the dock. Hoisting a button out of every primitive renderer would break the
+          rule that a renderer draws only what the interpreter hands it.
+          <span class="tagp">dealt-game.png</span>
+        </figcaption>
+      </figure>
+
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="handoff">
+            <div>
+              <div class="kick" style="margin-bottom:var(--group)">Don't look yet</div>
+              <h4 style="font-size:30px">Pass the phone to Sam.</h4>
+            </div>
+          </div>
+          <div class="dock"><button class="btn bloom"><svg><use href="#i-check"/></svg>I've got it</button></div>
+        </div></div>
+        <figcaption>
+          <b>The hand-off</b>
+          The one screen with no chrome: no title, no rail, nothing of what comes next. Whatever is
+          about to be asked belongs to the person the phone is going to.
+          <span class="tagp">§6.3</span>
+        </figcaption>
+      </figure>
+
+      <figure class="screen">
+        <div class="phone"><div class="vp" style="place-items:center;justify-content:center">
+          <div style="display:grid;gap:22px;justify-items:center">
+            <div class="mono">A</div>
+            <div style="font-size:10.5px;letter-spacing:0.34em;color:var(--muted);font-weight:600">AFTERHOURS</div>
+          </div>
+        </div></div>
+        <figcaption>
+          <b>Splash and launcher</b>
+          The monogram is three drawn paths with Playfair's proportions — a launcher icon is
+          rasterised at sizes where a hinted font stops behaving, and a drawable cannot reach the
+          app's display face. Window, splash and first frame are all the same ink, so there is
+          nothing to see at the handover. No spinner.
+          <span class="tagp">D-115</span>
+        </figcaption>
+      </figure>
+
+      <figure class="screen">
+        <div class="phone"><div class="vp">
+          <div class="topbar"><svg class="ico"><use href="#i-back"/></svg><span class="t">Plan the evening</span><span style="width:20px"></span></div>
+          <div class="body pad">
+            <h4>Three questions, then we build it.</h4>
+            <div>
+              <div class="sech">How long</div>
+              <div class="chips">
+                <button class="chip">15 min</button><button class="chip">30 min</button>
+                <button class="chip" aria-pressed="true">An hour</button><button class="chip">All evening</button>
+              </div>
+            </div>
+            <div>
+              <div class="sech">How far</div>
+              <div class="track" data-track>
+                <button type="button" data-h="playful"><span class="dots">●○○</span>Playful</button>
+                <button type="button" data-h="hot" aria-pressed="true"><span class="dots">●●○</span>Hot</button>
+                <button type="button" data-h="wild"><span class="dots">●●●</span>Wild</button>
+              </div>
+            </div>
+            <div>
+              <div class="sech">What are you in the mood for</div>
+              <div class="chips">
+                <button class="chip"><span>Romantic</span></button>
+                <button class="chip" aria-pressed="true">Naughty</button>
+                <button class="chip">Bold</button>
+                <button class="chip" aria-pressed="true">Mysterious</button>
+              </div>
+            </div>
+          </div>
+          <div class="dock"><button class="btn bloom"><svg><use href="#i-flame"/></svg>Build the evening</button></div>
+        </div></div>
+        <figcaption>
+          <b>Plan the evening</b>
+          One of the screens D7 improved by inheritance rather than by redraw: `ScreenColumn` spaces
+          by <code>group</code> and `ScreenHeading` puts its eyebrow <code>tight</code> above its
+          headline, so every column screen in the app got rhythm without being touched.
+          <span class="tagp">D-114</span>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============ GATES ============ -->
+
+  <section class="sec">
+    <div class="eyebrow">§9</div>
+    <h2>What holds it.</h2>
+    <p>A visual decision with no gate is one that regresses two phases later.</p>
+
+    <div class="gates">
+      <div class="gate"><b>ContrastTest</b><span>Every heat's accent, label, container and text tone, on every ground it is drawn on — plus the pairing-code colours a camera has to read.</span></div>
+      <div class="gate"><b>DesignLanguageTest</b><span>No emoji in a user-facing string; no literal <code>Color(</code> outside the design system. Proved by planting an emoji and watching the build fail.</span></div>
+      <div class="gate"><b>Roborazzi</b><span>Every golden in the repo re-recorded, plus seven foundation specimens — grounds, rim, light, heat, rhythm, measure, icons.</span></div>
+      <div class="gate"><b>Accessibility suites</b><span>200% type and 48 dp targets. They caught Material's own defaults: <code>IconButton</code> is 40 dp and <code>TextButton</code> applies its own 40 dp <em>inside</em> ours.</span></div>
+      <div class="gate"><b>The device walk</b><span>Found the one real bug: the progress rail read "Card 1 of 6" on every card, because the screen subtracted one from an index that was already 0-based.</span></div>
+    </div>
+  </section>
+
+  <footer>
+    Every phone on this page carries its own scene, rim light, grain and heat accent, at the values
+    the repo ships. <b>Nothing here changed behaviour.</b> The flow is the one confirmed in U1–U6,
+    and none of the privacy architecture moved: the server still filters, refusals are still silent,
+    a dial's number still never leaves the phone, and a memory still holds no content id.
+    <br><br>
+    <b>Screenshots of the running app are black, and that is correct.</b> Every screen showing
+    private content sets <code>FLAG_SECURE</code>, so <code>screencap</code> returns nothing — which
+    is why the goldens exist and why the device walk reads the accessibility tree instead.
+  </footer>
+</div>
+
+<script>
+  (function () {
+    "use strict";
+
+    var root = document.getElementById("root");
+
+    var ICONS = [
+      ["i-back", "back"], ["i-go", "forward"], ["i-close", "close"], ["i-check", "check"],
+      ["i-plus", "plus"], ["i-flame", "flame"], ["i-dice", "dice"], ["i-spark", "spark"],
+      ["i-moon", "moon"], ["i-clock", "clock"], ["i-skip", "skip"], ["i-pause", "pause"],
+      ["i-stop", "stop"], ["i-people", "people"], ["i-send", "send"], ["i-mic", "mic"],
+      ["i-camera", "camera"], ["i-gift", "gift"], ["i-cal", "calendar"], ["i-heart", "heart"],
+      ["i-book", "bookmark"], ["i-star", "star"], ["i-eye", "eye"], ["i-lock", "lock"],
+      ["i-shield", "shield"], ["i-set", "settings"]
+    ];
+    var grid = document.getElementById("icongrid");
+    ICONS.forEach(function (pair) {
+      var fig = document.createElement("figure");
+      fig.innerHTML = '<svg viewBox="0 0 24 24"><use href="#' + pair[0] + '"/></svg>' +
+        "<figcaption>" + pair[1] + "</figcaption>";
+      grid.appendChild(fig);
+    });
+
+    var KICK = { playful: "Playful · 5 min", hot: "Hot · 5 min", wild: "Wild · 5 min" };
+
+    function setHeat(heat) {
+      root.dataset.heat = heat;
+      Array.prototype.forEach.call(document.querySelectorAll("#heat button"), function (b) {
+        b.setAttribute("aria-pressed", String(b.dataset.heat === heat));
+      });
+      Array.prototype.forEach.call(document.querySelectorAll("[data-track] button"), function (b) {
+        b.setAttribute("aria-pressed", String(b.dataset.h === heat));
+      });
+      var kick = document.getElementById("card-kick");
+      if (kick) kick.textContent = KICK[heat];
+    }
+
+    document.addEventListener("click", function (event) {
+      var top = event.target.closest("#heat button");
+      if (top) { setHeat(top.dataset.heat); return; }
+      var inPhone = event.target.closest("[data-track] button");
+      if (inPhone) { setHeat(inPhone.dataset.h); return; }
+      var chip = event.target.closest(".chip");
+      if (chip) {
+        chip.setAttribute("aria-pressed", chip.getAttribute("aria-pressed") === "true" ? "false" : "true");
+      }
+    });
+
+    setHeat("hot");
+  })();
+</script>

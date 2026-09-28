@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -51,7 +52,8 @@ class PaywallSnapshotTest {
         composeRule.onNodeWithText("£4.99 a month, cancel any time.").assertIsDisplayed()
         composeRule.onNodeWithText("Go premium").assertIsDisplayed()
         // The way out is a plain one, in the same place as on every other screen.
-        composeRule.onNodeWithText("Not now").assertIsDisplayed()
+        // The way out is the bar's back label now, not a row of text (§5.5).
+        composeRule.onNodeWithContentDescription("Not now").assertExists()
         // Nothing that counts down, expires, or implies it will (§19).
         for (pattern in listOf("offer ends", "limited", "hurry", "only today")) {
             assertThat(composeRule.onAllNodesWithText(pattern, substring = true, ignoreCase = true)

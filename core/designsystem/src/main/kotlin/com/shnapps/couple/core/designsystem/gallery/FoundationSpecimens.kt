@@ -4,13 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -261,16 +262,26 @@ internal fun MeasureSpecimen() {
     }
 }
 
-/** §4.9 — the icon set, to one specification: 24 dp box, 1.5 dp stroke, no fills. */
+/**
+ * §4.9 — the icon set, to one specification: 24 dp box, 1.5 dp stroke, no fills.
+ *
+ * Wrapped rather than scrolled: a row that scrolls captures the eight icons that happen to fit,
+ * which is a golden that cannot catch a broken path in the other eighteen.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun IconSpecimen() {
     val spacing = AfterhoursTheme.spacing
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(spacing.md)) {
-        items(AfterhoursIcons.all.size) { index ->
-            val (name, vector) = AfterhoursIcons.all[index]
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(spacing.md),
+        verticalArrangement = Arrangement.spacedBy(spacing.md),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        AfterhoursIcons.all.forEach { (name, vector) ->
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(spacing.xs),
+                modifier = Modifier.width(ICON_CELL),
             ) {
                 Icon(
                     imageVector = vector,
@@ -299,6 +310,7 @@ private val PANEL = 84.dp
 private val SWATCH = 28.dp
 private val BAR = 30.dp
 private val ICON = 24.dp
+private val ICON_CELL = 56.dp
 private val MEASURE = 280.dp
 
 /** Enough rim for a heat to be told apart at a glance, without drawing a stroke. */

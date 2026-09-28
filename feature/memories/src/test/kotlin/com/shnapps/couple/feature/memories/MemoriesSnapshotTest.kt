@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -81,7 +82,11 @@ class MemoriesSnapshotTest {
         )
         capture("memories-list") { MemoriesContent(state, MemoriesActions()) }
         composeRule.onNodeWithText("The Tuesday one").assertIsDisplayed()
-        composeRule.onNodeWithText("NAUGHTY · TALK · 60 MIN · ALL 4 · 1 ATTACHED").assertIsDisplayed()
+        // The shape of the evening is the card's description now, not a line of capitals across
+        // it: a grid only fits twelve evenings if each one stops being a paragraph (§6.6).
+        composeRule.onNodeWithContentDescription(
+            "The Tuesday one. NAUGHTY · TALK · 60 MIN · ALL 4 · 1 ATTACHED",
+        ).assertExists()
         composeRule.onNodeWithText("Show more").assertIsDisplayed()
         // The shape of the evening, and never a line of what was in it.
         assertThat(composeRule.onAllNodesWithText("item_", substring = true).fetchSemanticsNodes()).isEmpty()

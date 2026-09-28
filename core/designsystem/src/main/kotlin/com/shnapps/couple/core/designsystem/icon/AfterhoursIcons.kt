@@ -46,7 +46,7 @@ object AfterhoursIcons {
         "M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z",
         "M18 17l.8 2.2L21 20l-2.2.8L18 23l-.8-2.2L15 20l2.2-.8z",
     )
-    val Moon = icon("Moon", "M20 14.5A8 8 0 019.5 4 8.5 8.5 0 1020 14.5z")
+    val Moon = icon("Moon", "M20 14.6A8.1 8.1 0 0 1 9.4 4A8.6 8.6 0 1 0 20 14.6Z")
     val Clock = icon("Clock", "M3.5 12a8.5 8.5 0 0 1 17.0 0a8.5 8.5 0 0 1 -17.0 0", "M12 7.5V12l3 1.8")
     val Skip = icon("Skip", "M5 5l8 7-8 7z", "M18 5v14")
     val Pause = icon("Pause", "M9.5 5v14", "M14.5 5v14")
@@ -63,8 +63,8 @@ object AfterhoursIcons {
     val Send = icon("Send", "M20 4L3.5 10.8l6.8 2.2 2.2 6.8z", "M20 4l-9.7 9.7")
     val Mic = icon(
         "Mic",
-        "M12 3a2.5 2.5 0 012.5 2.5v5a2.5 2.5 0 01-5 0v-5A2.5 2.5 0 0112 3z",
-        "M6 11a6 6 0 0012 0",
+        "M12 3a2.5 2.5 0 0 1 2.5 2.5v5a2.5 2.5 0 0 1 -5 0v-5A2.5 2.5 0 0 1 12 3Z",
+        "M6 11a6 6 0 0 0 12 0",
         "M12 17v4",
     )
     val Camera = icon("Camera", "M4 8h3l1.5-2h7L17 8h3v11H4z", "M9 13a3 3 0 0 1 6 0a3 3 0 0 1 -6 0")
@@ -73,13 +73,16 @@ object AfterhoursIcons {
         "M4 9.5h16V20H4z",
         "M4 13h16",
         "M12 9.5V20",
-        "M12 9.5S10.5 4 8 4a2 2 0 000 5.5z",
-        "M12 9.5S13.5 4 16 4a2 2 0 010 5.5z",
+        "M12 9.5S10.5 4 8 4a2.2 2.2 0 0 0 0 5.5Z",
+        "M12 9.5S13.5 4 16 4a2.2 2.2 0 0 1 0 5.5Z",
     )
     val Calendar = icon("Calendar", "M4 5.5h16v15H4z", "M4 10h16", "M9 3.5v4", "M15 3.5v4")
 
     // --- what is yours -------------------------------------------------------
-    val Heart = icon("Heart", "M12 20s-7-4.4-7-9.2A4 4 0 0112 8.6 4 4 0 0119 10.8C19 15.6 12 20 12 20z")
+    val Heart = icon(
+        "Heart",
+        "M12 20.5S4.5 15.6 4.5 10.6A4.1 4.1 0 0 1 12 8.4A4.1 4.1 0 0 1 19.5 10.6C19.5 15.6 12 20.5 12 20.5Z",
+    )
     val Bookmark = icon("Bookmark", "M7 4h10v16l-5-3.4L7 20z")
     val Star = icon("Star", "M12 3.5l2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.9l6-.8z")
     val Eye = icon(
@@ -97,9 +100,9 @@ object AfterhoursIcons {
         "M4 7h9", "M17 7h3",
         "M4 12h3", "M11 12h9",
         "M4 17h9", "M17 17h3",
-        "M15 7a2 2 0 104 0 2 2 0 10-4 0",
-        "M7 12a2 2 0 104 0 2 2 0 10-4 0",
-        "M15 17a2 2 0 104 0 2 2 0 10-4 0",
+        "M15 7a2 2 0 1 0 4 0a2 2 0 1 0 -4 0",
+        "M7 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0",
+        "M15 17a2 2 0 1 0 4 0a2 2 0 1 0 -4 0",
     )
 
     /** Every icon in the set, for the gallery and for the audit that holds them to one spec. */

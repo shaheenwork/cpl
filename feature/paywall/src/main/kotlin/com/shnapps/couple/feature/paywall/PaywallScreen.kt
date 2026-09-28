@@ -22,10 +22,9 @@ import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
-import com.shnapps.couple.core.ui.BackRow
 import com.shnapps.couple.core.ui.ErrorBanner
-import com.shnapps.couple.core.ui.ScreenColumn
 import com.shnapps.couple.core.ui.ScreenHeading
+import com.shnapps.couple.core.ui.ScreenScaffold
 import com.shnapps.couple.core.ui.SecureScreen
 
 /**
@@ -81,45 +80,47 @@ internal fun PaywallContent(
     actions: PaywallActions,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier) {
-        ScreenColumn {
-            BackRow(label = "Not now", onBack = actions.onBack)
-            ScreenHeading(
-                eyebrow = "Afterhours premium",
-                headline = state.gate?.headline ?: "More of it.",
-                body = state.gate?.detail
-                    ?: "One subscription covers both of you. Everything you have already stays yours.",
-            )
-            CinematicCard(modifier = Modifier.fillMaxWidth()) {
-                Text(text = "WHAT'S INCLUDED", style = EyebrowTextStyle, color = AfterhoursTheme.colors.brass)
-                Column(verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm)) {
-                    for ((icon, line) in INCLUDED) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm),
-                            verticalAlignment = Alignment.Top,
-                        ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                tint = AfterhoursTheme.colors.brass,
-                                modifier = Modifier.size(INCLUDED_ICON),
-                            )
-                            Text(
-                                text = line,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
+    ScreenScaffold(
+        modifier = modifier,
+        title = "Premium",
+        onBack = actions.onBack,
+        backLabel = "Not now",
+    ) {
+        ScreenHeading(
+            eyebrow = "Afterhours premium",
+            headline = state.gate?.headline ?: "More of it.",
+            body = state.gate?.detail
+                ?: "One subscription covers both of you. Everything you have already stays yours.",
+        )
+        CinematicCard(modifier = Modifier.fillMaxWidth()) {
+            Text(text = "WHAT'S INCLUDED", style = EyebrowTextStyle, color = AfterhoursTheme.colors.brass)
+            Column(verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm)) {
+                for ((icon, line) in INCLUDED) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = AfterhoursTheme.colors.brass,
+                            modifier = Modifier.size(INCLUDED_ICON),
+                        )
+                        Text(
+                            text = line,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
                     }
                 }
             }
-            if (state.alreadyPremium) {
-                AlreadyIn(state)
-            } else {
-                Buy(state, actions)
-            }
-            state.error?.let { ErrorBanner(message = it.message(), onDismiss = actions.onDismissError) }
         }
+        if (state.alreadyPremium) {
+            AlreadyIn(state)
+        } else {
+            Buy(state, actions)
+        }
+        state.error?.let { ErrorBanner(message = it.message(), onDismiss = actions.onDismissError) }
     }
 }
 

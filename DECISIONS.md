@@ -1977,3 +1977,74 @@ The app had a template launcher icon, no splash, and no wordmark. Three things, 
 `Theme.Cpl` is a splash theme with `postSplashScreenTheme` pointing at the old one, and
 `installSplashScreen()` runs before `super.onCreate` as the platform requires. The D-014 fix stands:
 the window is still painted `Scene` so there is no white flash on a cold start.
+
+---
+
+## D-116 — The motion the app had tokens for and never spent
+
+`Motion` has carried `Anticipation`, `bloom`, `ambient` and `Breathing` since Phase 2, and the only
+movement anywhere in the app was a button's glow alpha. Every screen appeared fully formed, which is
+the cheapest way for a well-drawn screen to still feel like a web page.
+
+Two composables, and no more than two:
+
+- **`Entrance(index)`** — a section rises 8 dp and fades over `standard`, staggered 40 ms by
+  position. Applied at the *section* level on purpose: staggering every row of a list is a cascade,
+  and a cascade is a screensaver.
+- **`Dealt(key)`** — the card. Scale from 0.94, a degree and a half of rotation, over `slow` with
+  `Anticipation`: a slow start that gathers pace late, so it reads as a hand putting something down.
+  `key` restarts it, so each new card deals rather than cross-fading. It is the one moment the app
+  performs, and it is the moment the product is about.
+
+Both are decorative, so under reduce-motion the screen appears composed and instantly — the
+information was never in the movement. `ChoiceRow` also gained the press language the buttons
+already had: a scale of 0.985 and a brighter fill, never a bigger halo.
+
+---
+
+## D-117 — Nine icons were drawing the wrong shape
+
+The heart rendered as a teardrop and the moon as a bowl. The cause was arc flags packed against the
+next number — `a4 4 0 0112 8.6` is *meant* to read as flags `0,1` then `12`, and Compose's
+`PathParser` does not reliably split it. Every arc in the set is spaced out now
+(`a4.1 4.1 0 0 1 12 8.4`), which is unambiguous and costs nothing.
+
+It was invisible because the icon specimen was a `LazyRow`: it captured the eight icons that
+happened to fit and the golden could never catch a broken path in the other eighteen. It is a
+`FlowRow` now and the golden shows all twenty-six — which is how the heart and the moon were found
+in the first place.
+
+---
+
+## D-118 — The library is a grid, and the thread is a timeline
+
+Two screens §6 asked to be *redrawn* rather than improved by inheritance, and both were still
+stacks of identical cards.
+
+**The library.** Twelve evenings in one column of identical cards look like one evening twelve
+times. It is two staggered columns now: the title in the display face because that is what a person
+scans by in a grid, the shape of the evening as mood dots rather than a line of capitals, and a
+brass bookmark on the ones they kept — the one place brass appears here, so "we loved this" is
+visible without reading anything. The old line of capitals became the card's description, so a
+screen reader still hears the whole shape.
+
+**The thread.** A conversation across a distance has an order, and a list of identical cards hides
+it. It is a rail down the gutter with a node per entry; yours is told from theirs by the surface it
+sits on rather than by a label, and the one thing actually waiting for this person is the only node
+that catches any light.
+
+Deliberately **not** right-aligned. A right-aligned bubble would make this a messaging app, which it
+is not: nothing here is a message, and half of it is not readable yet.
+
+---
+
+## D-119 — Settings and the paywall stop ending in mid-air
+
+Both were a `BackRow` on top of a scrolling column with their primary action at the very end, which
+means a person has to scroll to a button before they can decide to press it. That is the wrong
+order, and it is the same fix everywhere: the back link becomes the bar, the last button becomes the
+dock, and what is left is the content.
+
+The paywall's "Not now" became the bar's back label rather than a row of text, which is what moved
+one assertion from `onNodeWithText` to `onNodeWithContentDescription` — the way out is still there,
+and still says the same thing, but it is a control now rather than a line.

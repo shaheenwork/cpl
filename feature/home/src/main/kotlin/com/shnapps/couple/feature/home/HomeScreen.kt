@@ -38,6 +38,7 @@ import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionState
 import com.shnapps.couple.core.ui.ApartThread
 import com.shnapps.couple.core.ui.ChoiceRow
+import com.shnapps.couple.core.ui.Entrance
 import com.shnapps.couple.core.ui.ErrorBanner
 import com.shnapps.couple.core.ui.HeatPicker
 import com.shnapps.couple.core.ui.PremiumNudge
@@ -153,10 +154,12 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
             belowBar = { Wordmark(modifier = Modifier.padding(horizontal = AfterhoursTheme.spacing.gutter)) },
             dock = dock,
         ) {
-            ScreenHeading(
-                eyebrow = if (state.company.paired) "Tonight, the two of you" else "Tonight",
-                headline = "Pick something. Or let us pick.",
-            )
+            Entrance(index = 0) {
+                ScreenHeading(
+                    eyebrow = if (state.company.paired) "Tonight, the two of you" else "Tonight",
+                    headline = "Pick something. Or let us pick.",
+                )
+            }
 
             state.error?.let { error -> ErrorBanner(message = error.message(), onDismiss = actions.onDismissError) }
             // A limit, said where the tap happened — never over an evening that has started (§19).
@@ -175,11 +178,13 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
             state.unopenedMedia?.let { item -> TheySentSomething(item, actions.onApart) }
 
             // How far tonight goes belongs with the room it sets, directly under the heading.
-            HeatPicker(selected = state.heat, onHeat = actions.onHeat)
+            Entrance(index = 1) {
+                HeatPicker(selected = state.heat, onHeat = actions.onHeat)
+            }
 
-            Apart(state, actions)
+            Entrance(index = 2) { Apart(state, actions) }
 
-            Section("Or play something") {
+            Section("Or play something", index = 3) {
                 state.games.forEach { game ->
                     ChoiceRow(
                         title = game.title,
@@ -448,17 +453,16 @@ private fun UnderWay(session: NightSession, onOpen: (String, ExperienceType) -> 
 }
 
 @Composable
-private fun Section(title: String, content: @Composable () -> Unit) {
+private fun Section(title: String, index: Int = 0, content: @Composable () -> Unit) {
     val spacing = AfterhoursTheme.spacing
     // A heading belongs to what follows it: `tight` below, and the `group` the scaffold already
     // puts between children above. Equal gaps on both sides is what made every screen look
     // unfinished (DESIGN_PROMPT.md §4.6).
-    Column(
-        modifier = Modifier.padding(top = spacing.item),
-        verticalArrangement = Arrangement.spacedBy(spacing.tight),
-    ) {
-        Text(text = title.uppercase(), style = EyebrowTextStyle, color = AfterhoursTheme.colors.textFaint)
-        Column(verticalArrangement = Arrangement.spacedBy(spacing.item)) { content() }
+    Entrance(index = index, modifier = Modifier.padding(top = spacing.item)) {
+        Column(verticalArrangement = Arrangement.spacedBy(spacing.tight)) {
+            Text(text = title.uppercase(), style = EyebrowTextStyle, color = AfterhoursTheme.colors.textFaint)
+            Column(verticalArrangement = Arrangement.spacedBy(spacing.item)) { content() }
+        }
     }
 }
 
