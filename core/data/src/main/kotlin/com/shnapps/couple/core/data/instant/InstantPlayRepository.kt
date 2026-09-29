@@ -46,6 +46,17 @@ interface InstantPlayRepository {
     /** The packs the app ships, as a couple would name them: the lanes they can ask for (D-125). */
     val packs: Flow<List<ContentPack>>
 
+    /**
+     * Together in a room, or apart on two phones (M6).
+     *
+     * Here rather than read from DataStore by the screen, because a ViewModel reaching the store
+     * directly skips the layer that exists to keep device state in one place — the tier, the lane,
+     * the refusals and this are all the same kind of thing.
+     */
+    val mode: Flow<Mode>
+
+    suspend fun setMode(mode: Mode)
+
     /** The pack being dealt from, or null for all of them. */
     val lane: Flow<String?>
 
@@ -135,6 +146,10 @@ class DefaultInstantPlayRepository @Inject constructor(
             ).packs
             packs.filter { it.id in dealable }
         }
+
+    override val mode: Flow<Mode> = preferences.preferences.map { it.mode }
+
+    override suspend fun setMode(mode: Mode) = preferences.setMode(mode)
 
     override val lane: Flow<String?> = preferences.preferences.map { it.lane }
 

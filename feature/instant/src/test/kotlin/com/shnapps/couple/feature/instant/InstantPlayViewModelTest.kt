@@ -311,6 +311,10 @@ class InstantPlayViewModelTest {
         override val lane: Flow<String?> = laneState
         override val played: Flow<Set<String>> = playedState
 
+        override val mode: Flow<Mode> = MutableStateFlow(Mode.TOGETHER)
+
+        override suspend fun setMode(mode: Mode) = Unit
+
         override suspend fun setLane(pack: String?) {
             laneState.value = pack
             deckState.value = InstantDeck.of(items, Intensity.EXTREME, pack = pack)

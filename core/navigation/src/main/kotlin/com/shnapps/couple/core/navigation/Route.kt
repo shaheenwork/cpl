@@ -34,6 +34,10 @@ object Route {
     @Serializable
     data object InstantPlay
 
+    /** A guided evening: warm-up, build, peak, aftercare (M5, M6). */
+    @Serializable
+    data object GameNight
+
     /**
      * Making an account, or coming back to one. [offer] names why it was asked for — an
      * `AccountOffer`, never anything about what they were doing — so the screen can say what an

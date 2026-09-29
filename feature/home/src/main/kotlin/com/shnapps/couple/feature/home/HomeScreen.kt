@@ -1,12 +1,17 @@
 package com.shnapps.couple.feature.home
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -14,10 +19,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.CinematicCard
@@ -33,6 +42,7 @@ import com.shnapps.couple.core.model.Gate
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.MediaItem
 import com.shnapps.couple.core.model.MediaKind
+import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionState
@@ -47,13 +57,6 @@ import com.shnapps.couple.core.ui.SecureScreen
 import com.shnapps.couple.core.ui.TierPicker
 import com.shnapps.couple.core.ui.Wordmark
 
-/**
- * Home — the only one (REDESIGN_PROMPT.md §6).
- *
- * One heading, one filled button, one list of games, one tier. Everything a person could be asked
- * is behind the button; everything an account would add is on the screen from the first minute,
- * saying what it needs rather than appearing later on a screen they have never seen.
- */
 @Composable
 fun HomeScreen(
     actions: HomeActions,
@@ -81,8 +84,8 @@ fun HomeScreen(
         state = state,
         actions = actions.copy(
             onPlay = viewModel::play,
-            onSurprise = viewModel::surprise,
             onTier = viewModel::setTier,
+            onMode = viewModel::setMode,
             onOpenWaiting = viewModel::openWaiting,
             onDismissError = viewModel::dismissError,
             onDismissGate = viewModel::dismissGate,
@@ -95,13 +98,9 @@ fun HomeScreen(
 data class HomeActions(
     /** The cards: the shortest way into an evening, and the one that needs nothing at all. */
     val onCards: () -> Unit = {},
-    /** Plan the evening: the old six-field form, now one choice inside Start. */
-    val onPlan: () -> Unit = {},
-    val onExpress: () -> Unit = {},
+    /** A guided evening: warm-up, build, peak, aftercare (M5). */
+    val onGameNight: () -> Unit = {},
     val onApart: () -> Unit = {},
-    val onPlanForThem: () -> Unit = {},
-    val onMemories: () -> Unit = {},
-    val onCuriosities: () -> Unit = {},
     val onSettings: () -> Unit = {},
     /** Signed in, but nobody joined yet: the pairing handshake. */
     val onPairPartner: () -> Unit = {},
@@ -116,8 +115,9 @@ data class HomeActions(
     val onGallery: (() -> Unit)? = null,
     val onInspector: (() -> Unit)? = null,
     val onPlay: (gameId: String) -> Unit = {},
-    val onSurprise: (mystery: Boolean) -> Unit = {},
     val onTier: (Intensity) -> Unit = {},
+    /** Together in a room, or apart on two phones: which half of the app this is. */
+    val onMode: (Mode) -> Unit = {},
     val onOpenWaiting: () -> Unit = {},
     val onDismissError: () -> Unit = {},
     val onDismissGate: () -> Unit = {},
@@ -125,16 +125,11 @@ data class HomeActions(
 
 @Composable
 internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Modifier = Modifier) {
-    // The one way to start, opened. Screen state, because it is a question this screen asked.
-    var choosing by remember { mutableStateOf(false) }
-
-    // Everything on this screen takes tonight's heat (DESIGN_PROMPT.md §4.4).
+    // Everything on this screen takes tonight's tier (DESIGN_PROMPT.md §4.4).
     ProvideTier(state.tier) {
         // The one primary action docks, so it is in reach whatever the list below has grown to.
         // It used to sit at the top of a column that scrolled past it.
-        val dock: (@Composable ColumnScope.() -> Unit) = {
-            Start(state = state, choosing = choosing, onChoosing = { choosing = it }, actions = actions)
-        }
+        val dock: (@Composable ColumnScope.() -> Unit) = { Start(state = state, actions = actions) }
 
         ScreenScaffold(
             modifier = modifier,
@@ -157,7 +152,11 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
             Entrance(index = 0) {
                 ScreenHeading(
                     eyebrow = if (state.company.paired) "Tonight, the two of you" else "Tonight",
-                    headline = "Pick something. Or let us pick.",
+                    headline = if (state.mode == Mode.TOGETHER) {
+                        "One phone, both of you."
+                    } else {
+                        "Two phones, one evening."
+                    },
                 )
             }
 
@@ -177,21 +176,38 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
             state.waitingForMe?.let { plan -> SomethingWaiting(plan, state.canStart, actions.onOpenWaiting) }
             state.unopenedMedia?.let { item -> TheySentSomething(item, actions.onApart) }
 
-            // How far tonight goes belongs with the room it sets, directly under the heading.
+            // Which half of the app this is, before anything about tonight: together in a room,
+            // or apart on two phones. A toggle rather than two home screens, because the app has
+            // one home and the brief has one Home.
             Entrance(index = 1) {
+                ModeToggle(selected = state.mode, onMode = actions.onMode)
+            }
+
+            // How far tonight goes belongs with the room it sets, directly under the toggle.
+            Entrance(index = 2) {
                 TierPicker(selected = state.tier, onTier = actions.onTier)
             }
 
-            Entrance(index = 2) { Apart(state, actions) }
-
-            Section("Or play something", index = 3) {
-                state.games.forEach { game ->
+            if (state.mode == Mode.APART) {
+                Entrance(index = 3) { Apart(state, actions) }
+            } else {
+                Section("Or play something", index = 3) {
+                    // Game Night is first and is not one of the games in the catalogue: it is a
+                    // plan over the whole of it, so it has no entry in games.json (M5).
                     ChoiceRow(
-                        title = game.title,
-                        subtitle = game.tagline,
-                        icon = AfterhoursIcons.Spark,
-                        onClick = { actions.onPlay(game.id) },
+                        title = "Game Night",
+                        subtitle = "A guided evening: warm up, build, peak, then land.",
+                        icon = AfterhoursIcons.Clock,
+                        onClick = actions.onGameNight,
                     )
+                    state.games.forEach { game ->
+                        ChoiceRow(
+                            title = game.title,
+                            subtitle = game.tagline,
+                            icon = AfterhoursIcons.Spark,
+                            onClick = { actions.onPlay(game.id) },
+                        )
+                    }
                 }
             }
 
@@ -202,79 +218,66 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
 }
 
 /**
- * One way to start, and every shape of an evening behind it (REDESIGN_PROMPT.md §6).
+ * Together in a room, or apart on two phones.
  *
- * There were five buttons here, two of them loud, and a card underneath that was a sixth. A person
- * arriving at eleven at night had to decide between "Build tonight", "Surprise us", "Play a game",
- * "We have 15 minutes" and "Mystery Night" before anything had happened. Now there is one button,
- * and the five are what it opens.
+ * The app used to show both at once — an Apart section on a Together home — on the reasoning that a
+ * mode switch hides half the app behind a control nobody presses. That was right about the old
+ * switch, which replaced the whole surface. This one changes what the list below is and nothing
+ * else: the toggle, the tier and Play Now stay where they are.
  */
 @Composable
-private fun Start(state: HomeUiState, choosing: Boolean, onChoosing: (Boolean) -> Unit, actions: HomeActions) {
-    val signedIn = state.company.signedIn
-
-    GlowButton(
-        text = when {
-            state.making -> "Getting it ready…"
-            choosing -> "Never mind"
-            else -> "Start now"
-        },
-        onClick = { onChoosing(!choosing) },
-        // Once the choices are open they are the decision; nothing should shout over them.
-        style = if (choosing) GlowButtonStyle.Secondary else GlowButtonStyle.Primary,
-        enabled = state.canStart,
-        modifier = Modifier.fillMaxWidth(),
-    )
-
-    AnimatedVisibility(visible = choosing && state.canStart) {
-        CinematicCard(modifier = Modifier.fillMaxWidth()) {
-            Text(text = "HOW DO YOU WANT IT?", style = EyebrowTextStyle, color = AfterhoursTheme.colors.brass)
-            // The one that needs nothing at all goes first, for everyone: it is the fastest way
-            // from opening the app to doing something.
-            ChoiceRow(
-                title = "Just deal us cards",
-                subtitle = "One at a time. Do it, skip it, or say it went too far.",
-                trailing = "Deal",
-                onClick = actions.onCards,
-            )
-            ChoiceRow(
-                title = "Surprise us",
-                subtitle = "We choose everything — the shape, the length, all of it.",
-                trailing = "Go",
-                locked = !signedIn,
-                onClick = if (signedIn) {
-                    { actions.onSurprise(false) }
-                } else {
-                    { actions.onAccount(AccountOffer.EVENING) }
-                },
-            )
-            ChoiceRow(
-                title = "A mystery",
-                subtitle = "The same, and we don't tell you the shape.",
-                trailing = "Go",
-                locked = !signedIn,
-                onClick = if (signedIn) {
-                    { actions.onSurprise(true) }
-                } else {
-                    { actions.onAccount(AccountOffer.EVENING) }
-                },
-            )
-            ChoiceRow(
-                title = "We have 15 minutes",
-                subtitle = "Short, and it knows it.",
-                trailing = "Go",
-                locked = !signedIn,
-                onClick = if (signedIn) actions.onExpress else { { actions.onAccount(AccountOffer.EVENING) } },
-            )
-            ChoiceRow(
-                title = "Plan the evening",
-                subtitle = "Three questions, then we build it around them.",
-                trailing = "Plan",
-                locked = !signedIn,
-                onClick = if (signedIn) actions.onPlan else { { actions.onAccount(AccountOffer.EVENING) } },
-            )
+private fun ModeToggle(selected: Mode, onMode: (Mode) -> Unit) {
+    val spacing = AfterhoursTheme.spacing
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.extraSmall)
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+            .padding(spacing.xs)
+            .selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(spacing.xs),
+    ) {
+        Mode.entries.forEach { mode ->
+            val isSelected = mode == selected
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = spacing.touchTarget)
+                    .clip(MaterialTheme.shapes.extraSmall)
+                    .background(if (isSelected) AfterhoursTheme.tier.container else Color.Transparent)
+                    .selectable(selected = isSelected, onClick = { onMode(mode) }, role = Role.RadioButton)
+                    .semantics { contentDescription = mode.label },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = mode.label,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (isSelected) AfterhoursTheme.tier.onContainer else AfterhoursTheme.colors.textFaint,
+                )
+            }
         }
     }
+}
+
+/**
+ * Play Now (the brief's zero-friction rule).
+ *
+ * One button, and it deals a card. It used to open a sheet of five shapes — cards, surprise us, a
+ * mystery, fifteen minutes, plan the evening — which meant a person arriving at eleven at night had
+ * to make a decision before anything happened. Four of those five needed an account, so for anyone
+ * who had not signed up the sheet was one real choice and four locked rows.
+ *
+ * The first card is now two taps from opening the app: this, and whatever the card says.
+ */
+@Composable
+private fun Start(state: HomeUiState, actions: HomeActions) {
+    GlowButton(
+        text = if (state.making) "Getting it ready…" else "Play Now",
+        onClick = actions.onCards,
+        enabled = state.canStart,
+        leadingIcon = AfterhoursIcons.Flame,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 /**
@@ -299,40 +302,15 @@ private fun Apart(state: HomeUiState, actions: HomeActions) {
                 trailing = "Connect",
                 onClick = actions.onPairPartner,
             )
-            Company.PAIRED -> {
-                ChoiceRow(
-                    title = "Apart",
-                    subtitle = "What you sent, what they left, what is still sealed.",
-                    trailing = "Open",
-                    onClick = actions.onApart,
-                )
-                ChoiceRow(
-                    title = "Plan one for them",
-                    subtitle = "You choose the shape. They only know something is coming.",
-                    trailing = "Plan",
-                    onClick = actions.onPlanForThem,
-                )
-            }
+            Company.PAIRED -> ChoiceRow(
+                title = "Apart",
+                subtitle = "What you sent, what they left, what is still sealed.",
+                trailing = "Open",
+                onClick = actions.onApart,
+            )
         }
 
-        ChoiceRow(
-            title = "Our memories",
-            subtitle = if (state.company.signedIn) {
-                "The evenings you kept, in your own words."
-            } else {
-                "Keeping an evening, and finding each other on a new phone."
-            },
-            trailing = "Open",
-            locked = !state.company.signedIn,
-            onClick = if (state.company.signedIn) {
-                actions.onMemories
-            } else {
-                { actions.onAccount(AccountOffer.MEMORIES) }
-            },
-        )
-
         if (state.company.paired) {
-            Curiosities(answered = state.answered, onPlay = actions.onCuriosities)
             if (state.thread.isNotEmpty()) ApartThread(entries = state.thread, onOpen = { actions.onApart() })
             state.plannedByMe?.let { plan ->
                 Text(
@@ -347,28 +325,6 @@ private fun Apart(state: HomeUiState, actions: HomeActions) {
             }
         }
     }
-}
-
-/**
- * The private deck, offered rather than demanded (REDESIGN_PROMPT.md §4.2).
- *
- * It used to run straight after pairing: twenty cards before a couple had done anything together.
- * The engine builds an evening with none of them answered and a better one with some, so this is a
- * thing to play when they feel like it — and it says where they are rather than how far they have
- * to go, because there is no end anyone has to reach.
- */
-@Composable
-private fun Curiosities(answered: Int, onPlay: () -> Unit) {
-    ChoiceRow(
-        title = if (answered == 0) "What are you curious about?" else "More you might be curious about",
-        subtitle = when (answered) {
-            0 -> "A few cards, in private. They never see them — only what you both said yes to."
-            1 -> "One answered so far. Every one makes tonight a little more yours."
-            else -> "$answered answered so far. Every one makes tonight a little more yours."
-        },
-        trailing = "Play",
-        onClick = onPlay,
-    )
 }
 
 /** A voice note or a photo they sent that nobody has opened yet (§13). */

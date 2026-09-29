@@ -20,6 +20,7 @@ import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.Gate
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.MediaItem
+import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.ThreadEntry
@@ -70,6 +71,8 @@ data class HomeUiState(
     val games: List<Game> = emptyList(),
     /** How far tonight goes: the one setting home has. */
     val tier: Intensity = Intensity.DEFAULT,
+    /** Together in a room, or apart on two phones (M6). Kept, so the app opens where it was. */
+    val mode: Mode = Mode.TOGETHER,
     /** The couple's one experience under way, from either phone, or null. */
     val active: NightSession? = null,
     /** Something is being built: the app is deciding, and the tap has landed. */
@@ -130,6 +133,13 @@ class HomeViewModel @Inject constructor(
 
     private val local = MutableStateFlow(HomeUiState())
 
+    init {
+        // The mode this phone was last left in, so the app opens where it was (M6).
+        viewModelScope.launch {
+            instant.mode.collect { mode -> local.update { it.copy(mode = mode) } }
+        }
+    }
+
     /** Signed in at all, and joined to someone: the two facts that enable things. */
     private val company = combine(auth.authState, auth.currentProfile) { user, profile ->
         when {
@@ -188,6 +198,18 @@ class HomeViewModel @Inject constructor(
     fun setTier(tier: Intensity) {
         local.update { it.copy(tier = tier) }
         viewModelScope.launch { instant.setTier(tier) }
+    }
+
+    /**
+     * Together in a room, or apart on two phones (M6).
+     *
+     * Kept on the phone rather than held on the screen, so the app opens where it was left: a
+     * couple who are apart this week are apart tomorrow too, and re-choosing it every launch is
+     * the friction the brief spends its first section on.
+     */
+    fun setMode(mode: Mode) {
+        local.update { it.copy(mode = mode) }
+        viewModelScope.launch { instant.setMode(mode) }
     }
 
     /**

@@ -21,6 +21,7 @@ import com.shnapps.couple.feature.games.DealtGameScreen
 import com.shnapps.couple.feature.games.GameScreen
 import com.shnapps.couple.feature.home.HomeActions
 import com.shnapps.couple.feature.home.HomeScreen
+import com.shnapps.couple.feature.instant.GameNightScreen
 import com.shnapps.couple.feature.instant.InstantPlayScreen
 import com.shnapps.couple.feature.instant.StartScreen
 import com.shnapps.couple.feature.onboarding.AgeGateScreen
@@ -84,6 +85,10 @@ fun CplNavHost(
                 },
                 onPairInstead = { navController.navigate(Route.Auth(AccountOffer.APART.name)) },
             )
+        }
+
+        composable<Route.GameNight> {
+            GameNightScreen(onBack = { navController.popBackStack() })
         }
 
         composable<Route.InstantPlay> {
@@ -285,6 +290,7 @@ private fun Home(navController: NavHostController) {
         actions = HomeActions(
             onCards = { navController.navigate(Route.InstantPlay) },
             onApart = { navController.navigate(Route.Send) },
+            onGameNight = { navController.navigate(Route.GameNight) },
             onSettings = { navController.navigate(Route.Settings) },
             onPairPartner = { navController.navigate(Route.CoupleSetup) },
             // An account, asked for where it buys something and never before (§6).

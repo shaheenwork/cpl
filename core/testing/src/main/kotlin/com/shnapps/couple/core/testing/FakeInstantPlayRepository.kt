@@ -10,6 +10,7 @@ import com.shnapps.couple.core.model.ContentItem
 import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.Intensity
+import com.shnapps.couple.core.model.Mode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -46,6 +47,11 @@ class FakeInstantPlayRepository(
     /** The lanes a test offers, and the one it is dealing from. */
     override val packs = MutableStateFlow(TestContent.packs)
     override val lane = MutableStateFlow<String?>(null)
+    override val mode = MutableStateFlow(Mode.TOGETHER)
+
+    override suspend fun setMode(mode: Mode) {
+        this.mode.value = mode
+    }
 
     /** What this fake has been told was seen, and by which deck size. */
     override val played = MutableStateFlow(emptySet<String>())

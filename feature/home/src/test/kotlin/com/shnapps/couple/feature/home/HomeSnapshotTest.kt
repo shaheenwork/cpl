@@ -4,9 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -53,15 +53,16 @@ class HomeSnapshotTest {
     }
 
     @Test
-    fun `with no account it is the whole app, with things marked as needing one`() {
+    fun `with no account it is the whole app, and Play Now is one tap`() {
         capture("home-alone") { HomeContent(state(Company.ALONE), HomeActions()) }
 
-        composeRule.onNodeWithText("Pick something. Or let us pick.").assertIsDisplayed()
-        composeRule.onNodeWithText("Start now").assertIsDisplayed()
-        // The games are the same list, in the same order, before anyone signs in.
-        composeRule.onNodeWithText("Spin").assertIsDisplayed()
-        // Nothing is hidden until later: what needs an account is here, saying so.
-        composeRule.onNodeWithText("Apart").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("One phone, both of you.").assertIsDisplayed()
+        // The brief's first card within two taps: this, and whatever the card says.
+        composeRule.onNodeWithText("Play Now").assertIsDisplayed()
+        // Game Night is first and is not one of the catalogue's games: it is a plan over all of it.
+        composeRule.onNodeWithText("Game Night").performScrollTo().assertIsDisplayed()
+        // Nothing is hidden until later: the other half of the app is a toggle away, saying so.
+        composeRule.onNodeWithContentDescription("Apart").assertExists()
     }
 
     @Test
@@ -69,44 +70,20 @@ class HomeSnapshotTest {
         capture("home-paired") { HomeContent(state(Company.PAIRED), HomeActions()) }
 
         // The same heading and the same one button: signing in adds, it does not replace (§6).
-        composeRule.onNodeWithText("Pick something. Or let us pick.").assertIsDisplayed()
-        composeRule.onNodeWithText("Start now").assertIsDisplayed()
-        composeRule.onNodeWithText("Plan one for them").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Spin").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("One phone, both of you.").assertIsDisplayed()
+        composeRule.onNodeWithText("Play Now").assertIsDisplayed()
+        composeRule.onNodeWithText("Truth or Dare").performScrollTo().assertIsDisplayed()
     }
 
     @Test
-    fun `every shape of an evening is behind one button`() {
-        composeRule.setContent {
-            AfterhoursTheme { AfterhoursSurface { HomeContent(state(Company.PAIRED), HomeActions()) } }
-        }
+    fun `the toggle changes what the list is, and nothing else`() {
+        val apart = state(Company.PAIRED).copy(mode = Mode.APART)
+        capture("home-apart-mode") { HomeContent(apart, HomeActions()) }
 
-        // Five buttons used to compete on this screen. One opens the five now.
-        assertThat(composeRule.onAllNodesWithText("Surprise us").fetchSemanticsNodes()).isEmpty()
-        composeRule.onNodeWithText("Start now").performClick()
-        composeRule.mainClock.advanceTimeBy(SETTLE_MS)
-        composeRule.onRoot().captureRoboImage("src/test/screenshots/home-start.png")
-
-        composeRule.onNodeWithText("Just deal us cards").assertIsDisplayed()
-        composeRule.onNodeWithText("Surprise us").assertIsDisplayed()
-        composeRule.onNodeWithText("A mystery").assertIsDisplayed()
-        composeRule.onNodeWithText("We have 15 minutes").assertIsDisplayed()
-        composeRule.onNodeWithText("Plan the evening").assertIsDisplayed()
-    }
-
-    @Test
-    fun `with no account the cards are still dealt, and the rest says what it needs`() {
-        composeRule.setContent {
-            AfterhoursTheme { AfterhoursSurface { HomeContent(state(Company.ALONE), HomeActions()) } }
-        }
-        composeRule.onNodeWithText("Start now").performClick()
-        composeRule.mainClock.advanceTimeBy(SETTLE_MS)
-        composeRule.onRoot().captureRoboImage("src/test/screenshots/home-start-alone.png")
-
-        // The fastest way from opening the app to doing something needs nothing at all.
-        composeRule.onNodeWithText("One at a time. Do it, skip it, or say it went too far.").assertIsDisplayed()
-        // The others are on the screen, greyed, saying what they need — never hidden.
-        composeRule.onNodeWithText("We choose everything — the shape, the length, all of it.").assertIsDisplayed()
+        // The tier and Play Now stay where they are; the games give way to the apart rows.
+        composeRule.onNodeWithText("Two phones, one evening.").assertIsDisplayed()
+        composeRule.onNodeWithText("Play Now").assertIsDisplayed()
+        assertThat(composeRule.onAllNodesWithText("Game Night").fetchSemanticsNodes()).isEmpty()
     }
 
     @Test
@@ -148,8 +125,10 @@ class HomeSnapshotTest {
 
     @Test
     fun `apart is a thread`() {
-        // What they left, what was sent, what is still sealed (REDESIGN_PROMPT.md §5.4).
+        // What they left, what was sent, what is still sealed (REDESIGN_PROMPT.md §5.4). The
+        // thread belongs to the apart half of the app, so the toggle has to be on it (M6).
         val state = state(Company.PAIRED).copy(
+            mode = Mode.APART,
             thread = listOf(
                 ThreadEntry.Media(
                     id = "m1",
@@ -180,26 +159,15 @@ class HomeSnapshotTest {
         composeRule.onNodeWithText("Something is coming.").performScrollTo().assertIsDisplayed()
     }
 
-    @Test
-    fun `curiosities are offered rather than demanded`() {
-        // The deck used to run straight after pairing (REDESIGN_PROMPT.md §4.2). Now it is one row
-        // on home, and nothing makes anyone finish it.
-        capture("home-curiosities") { HomeContent(state(Company.PAIRED).copy(answered = 12), HomeActions()) }
-
-        // Where they are, never how far they have to go: there is no end anyone has to reach.
-        composeRule.onNodeWithText("12 answered so far. Every one makes tonight a little more yours.")
-            .performScrollTo().assertIsDisplayed()
-    }
-
     private fun state(company: Company) = HomeUiState(company = company, games = games, tier = Intensity.HOT)
 
     private companion object {
         const val SETTLE_MS = 2_000L
 
         val games = listOf(
-            game("SPIN", "Spin", "It decides. You just do it."),
-            game("DIRTY_DICE", "Dirty Dice", "Roll, then run the clock."),
-            game("RATE_IT", "Rate It", "How much, without saying a number."),
+            game("TRUTH_OR_DARE", "Truth or Dare", "The classic, with better questions."),
+            game("HEAT_DICE", "Heat Dice", "Three dice. Do what they say."),
+            game("FANTASY_MATCH", "Fantasy Match", "Only what you both said yes to."),
         )
 
         fun game(id: String, title: String, tagline: String) = Game(
