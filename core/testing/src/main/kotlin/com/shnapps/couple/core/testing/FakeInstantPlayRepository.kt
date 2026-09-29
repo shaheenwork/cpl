@@ -37,8 +37,27 @@ class FakeInstantPlayRepository(
     /** What [startGame] hands back. Null stands for content that has nothing at this heat. */
     var released: ReleasedGame? = null
 
+    /** The lanes a test offers, and the one it is dealing from. */
+    override val packs = MutableStateFlow(TestContent.packs)
+    override val lane = MutableStateFlow<String?>(null)
+
+    /** What this fake has been told was seen, and by which deck size. */
+    override val played = MutableStateFlow(emptySet<String>())
+    val playedAgainst = mutableListOf<Pair<String, Int>>()
+
     override val deck: Flow<InstantDeck> =
-        combine(this.items, heat) { available, level -> InstantDeck.of(available, level) }
+        combine(this.items, heat, lane) { available, level, pack ->
+            InstantDeck.of(available, level, pack = pack)
+        }
+
+    override suspend fun setLane(pack: String?) {
+        this.lane.value = pack
+    }
+
+    override suspend fun markPlayed(card: InstantCard, deckSize: Int) {
+        playedAgainst += card.id to deckSize
+        played.value = played.value + card.id
+    }
 
     /** Who is passing this phone, if they have said. Unnamed until a test says otherwise. */
     override val players = MutableStateFlow(GamePlayers.UNNAMED)

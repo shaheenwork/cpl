@@ -51,6 +51,18 @@ class FakeAppPreferencesStore(initial: AppPreferences = AppPreferences()) : AppP
         )
     }
 
+    override suspend fun markPlayed(cardId: String, deckSize: Int) {
+        val played = state.value.playedCardIds + cardId
+        // The real store's rule: seen all of it, and the deck comes round again (D-124).
+        state.value = state.value.copy(
+            playedCardIds = if (deckSize in 1..played.size) setOf(cardId) else played,
+        )
+    }
+
+    override suspend fun setLane(pack: String?) {
+        state.value = state.value.copy(lane = pack)
+    }
+
     override suspend fun clear() {
         state.value = AppPreferences()
     }

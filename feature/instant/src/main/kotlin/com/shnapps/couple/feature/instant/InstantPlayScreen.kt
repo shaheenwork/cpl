@@ -31,6 +31,7 @@ import com.shnapps.couple.core.ui.AfterhoursCard
 import com.shnapps.couple.core.ui.BarAction
 import com.shnapps.couple.core.ui.Dealt
 import com.shnapps.couple.core.ui.HeatPicker
+import com.shnapps.couple.core.ui.LanePicker
 import com.shnapps.couple.core.ui.RunProgress
 import com.shnapps.couple.core.ui.ScreenScaffold
 import com.shnapps.couple.core.ui.SecureScreen
@@ -67,6 +68,7 @@ fun InstantPlayScreen(
         onStopTimer = viewModel::stopTimer,
         onKeepGoing = viewModel::keepGoing,
         onKeepThis = onKeepThis,
+        onLane = viewModel::setLane,
     )
 }
 
@@ -86,6 +88,7 @@ internal fun InstantPlayContent(
     onStopTimer: () -> Unit,
     onKeepGoing: () -> Unit,
     onKeepThis: () -> Unit,
+    onLane: (String?) -> Unit = {},
 ) {
     // Everything on this screen takes the run's heat: the card's rim, the primary action,
     // the eyebrow (DESIGN_PROMPT.md §4.4). One setting, and the whole room changes.
@@ -175,6 +178,7 @@ internal fun InstantPlayContent(
                 state.card != null -> Playing(
                     card = state.card,
                     heat = state.heat,
+                    lane = state.laneLabel,
                     timer = state.timer,
                     position = state.position,
                     onStartTimer = onStartTimer,
@@ -185,7 +189,10 @@ internal fun InstantPlayContent(
             }
 
             if (state.showsHeatPicker) {
+                // How far, then what kind. Two dials, and the second one is the packs the app has
+                // always shipped and never offered (D-125).
                 HeatPicker(selected = state.heat, onHeat = onHeat)
+                LanePicker(lanes = state.lanes, selected = state.lane, onLane = onLane)
             }
         }
     }
@@ -195,6 +202,7 @@ internal fun InstantPlayContent(
 private fun Playing(
     card: InstantCard,
     heat: Heat,
+    lane: String?,
     timer: CardTimer?,
     position: Int,
     onStartTimer: () -> Unit,
@@ -205,7 +213,7 @@ private fun Playing(
     // The one moment the app performs: a card being laid down, restarting on each new card.
     Dealt(key = card.id) {
         AfterhoursCard(
-            eyebrow = "${heat.label} · ${card.minutes} min",
+            eyebrow = listOfNotNull(lane, heat.label, "${card.minutes} min").joinToString(" · "),
             title = card.title,
             body = card.body,
             meta = "Whoever's holding the phone",

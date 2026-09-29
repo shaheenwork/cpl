@@ -148,6 +148,7 @@ class InstantAccessibilityTest {
             body = "Sit at opposite sides of the room and talk only by message.",
             minutes = 5,
             intensity = Intensity.NAUGHTY,
+            pack = "TEASE",
             themes = setOf("teasing_anticipation"),
         )
     }

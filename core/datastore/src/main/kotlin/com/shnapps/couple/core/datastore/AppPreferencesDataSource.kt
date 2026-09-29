@@ -44,6 +44,8 @@ class AppPreferencesDataSource @Inject constructor(
             heat = prefs[Keys.HEAT]?.let { name -> Heat.entries.firstOrNull { it.name == name } } ?: Heat.DEFAULT,
             refusedCardIds = prefs[Keys.REFUSED_CARDS].orEmpty(),
             refusedThemes = prefs[Keys.REFUSED_THEMES].orEmpty(),
+            playedCardIds = prefs[Keys.PLAYED_CARDS].orEmpty(),
+            lane = prefs[Keys.LANE],
         )
     }
 
@@ -102,6 +104,21 @@ class AppPreferencesDataSource @Inject constructor(
         context.dataStore.edit { it[Keys.HEAT] = heat.name }
     }
 
+    override suspend fun markPlayed(cardId: String, deckSize: Int) {
+        context.dataStore.edit { prefs ->
+            val played = prefs[Keys.PLAYED_CARDS].orEmpty() + cardId
+            // Seen all of it: start the deck again rather than growing a set that can only ever
+            // exclude everything.
+            prefs[Keys.PLAYED_CARDS] = if (deckSize in 1..played.size) setOf(cardId) else played
+        }
+    }
+
+    override suspend fun setLane(pack: String?) {
+        context.dataStore.edit { prefs ->
+            if (pack == null) prefs.remove(Keys.LANE) else prefs[Keys.LANE] = pack
+        }
+    }
+
     override suspend fun refuse(cardId: String, themes: Set<String>) {
         context.dataStore.edit { prefs ->
             prefs[Keys.REFUSED_CARDS] = prefs[Keys.REFUSED_CARDS].orEmpty() + cardId
@@ -127,5 +144,7 @@ class AppPreferencesDataSource @Inject constructor(
         val HEAT = stringPreferencesKey("heat")
         val REFUSED_CARDS = stringSetPreferencesKey("refused_card_ids")
         val REFUSED_THEMES = stringSetPreferencesKey("refused_themes")
+        val PLAYED_CARDS = stringSetPreferencesKey("played_card_ids")
+        val LANE = stringPreferencesKey("deck_lane")
     }
 }

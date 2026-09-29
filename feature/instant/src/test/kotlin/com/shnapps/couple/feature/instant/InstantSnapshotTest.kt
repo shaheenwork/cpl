@@ -155,6 +155,7 @@ class InstantSnapshotTest {
                 "Describe what you would do if they came closer. Nobody moves until someone gives in.",
             minutes = 5,
             intensity = Intensity.NAUGHTY,
+            pack = "TEASE",
             themes = setOf("teasing_anticipation"),
         )
     }

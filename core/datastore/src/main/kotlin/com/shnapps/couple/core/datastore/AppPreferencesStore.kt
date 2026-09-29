@@ -42,7 +42,7 @@ interface AppPreferencesStore {
  * What playing writes down on this phone (REDESIGN_PROMPT.md §5.3).
  *
  * Separate from [AppPreferencesStore] because it is a different kind of thing: the lock, the age
- * hint and the notification setting describe the app, while these two describe an evening. The same
+ * hint and the notification setting describe the app, while these describe an evening. The same
  * data source implements both — the split is for the reader, and for the seam this will be replaced
  * at when a refusal starts going to the person's real limits instead (R5).
  */
@@ -52,4 +52,15 @@ interface PlaySettingsStore {
 
     /** Never show this card again, and nothing else of its kind either. Nobody is told. */
     suspend fun refuse(cardId: String, themes: Set<String>)
+
+    /**
+     * This card has been seen, so the deck stops offering it (D-124).
+     *
+     * [deckSize] is how many cards there are to see at all: once the record covers them, it is
+     * reset to this one card and the deck comes round again.
+     */
+    suspend fun markPlayed(cardId: String, deckSize: Int)
+
+    /** Deal from one pack, or from all of them when null (D-125). */
+    suspend fun setLane(pack: String?)
 }

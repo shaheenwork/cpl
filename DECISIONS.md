@@ -2193,3 +2193,72 @@ Nothing was retired from the packs. Three prompts were retired from the games (a
 a safe word had turned up in six of the eight older games, so three of them went), but an item that
 is specific and playable is not improved by being replaced with a different specific, playable item.
 The fix for sameness is more shapes, not fewer cards.
+
+---
+
+## D-124 — The deck was dealt from card zero, in file order, on every launch
+
+Reported from a device after 590 new cards had landed: *"all the contents are still the same.
+generic, basic."* That was correct, and the content was not the problem.
+
+`InstantPlayViewModel` held `position`, starting at 0, and asked `InstantDeck.cardAt(position)` for
+each card. `cardAt` is `cards[index % size]`, and `cards` is the pool **in the order the bundle
+happens to be written in** — which is pack order, then id order inside each pack. `position` is a
+field on the ViewModel, so it went back to zero every time the screen was opened.
+
+Three consequences, and all three were in front of every user:
+
+1. **Every couple on every install saw the same first card**, then the same second card.
+2. **The first pack in the bundle is FLIRT**, so an evening opened on the mildest content the app
+   has — and since new items are appended to a pack file, nothing written after the first release
+   was reachable at all without ninety-odd taps.
+3. **The heat did almost nothing.** It is a ceiling with an even spread beneath it, so at Wild the
+   first card was `flirt_across_the_room`, intensity 1. Measured before the fix: the deck at Wild
+   held 590 cards, and an evening of six reached the same six every time.
+
+So dealing is now its own thing, `InstantDeck.next(position, heat, seed, exclude)`:
+
+- **The heat is what you get.** A run climbs over its first two cards and then sits at the ceiling:
+  at Wild that is 3, 4, 5, 5, 5, 5. The climb exists because opening at the top is a worse evening,
+  not because the ceiling is meant to be an average. Picking Wild now means the cards are wild.
+- **Nothing repeats.** `exclude` is what this phone has already been dealt — persisted in DataStore
+  as `playedCardIds`, so it survives a launch, and reset once it covers the whole deck so an evening
+  can come round again instead of ending on an empty screen. Both "Done" and "Skip" record a card as
+  seen; a skip is not a refusal, but it is not something to deal again ten minutes later either.
+- **Random, and reproducible.** The draw comes from a seed taken at the start of each run, so two
+  evenings differ, a test can assert a run, and "Keep going" reshuffles rather than continuing down
+  one list.
+
+The pool itself is unchanged, and so is its contract: `cards` is still built in the content's own
+order, and `narrow` can still only ever remove (D-048). What changed is that something now chooses
+from it.
+
+Walked on a device at Wild: three runs, eighteen cards, **zero repeats**, every run climbing
+3 → 4 → 5 → 5 → 5 → 5 and drawing from eight different packs. The unit tests could not have found
+this, and did not: they assert what the pool contains, and the bug was in what was taken out of it.
+
+## D-125 — Twelve packs the app could not name
+
+The same report asked *"what is after dark? i don't see it anywhere in app?"*
+
+It was nowhere. `ContentPack` was parsed out of the bundle and exposed by `ContentRepository`, and
+the only thing that read it was `app/src/debug/ContentInspector` — which has no release twin. So the
+twelve packs were an authoring convenience and nothing else: a couple who wanted the bold half of
+the catalogue had no way to ask for it, and no way to find out it existed.
+
+That is a real gap rather than a missing label. The heat says *how far*; nothing said *what kind*.
+Two couples at Wild, one wanting confessions and one wanting a power evening, got the same deal.
+
+So the deck takes a lane: `InstantDeck.of(pack = …)`, a `LanePicker` under the heat picker, and the
+choice kept in DataStore because picking "After dark" is a statement about the couple rather than a
+question to re-ask every evening. Three rules hold it together:
+
+- **Only lanes with something to deal are offered.** After dark starts at intensity 3, so at Playful
+  it has nothing; Long distance is written for two people in different rooms. Offering either would
+  be the dead end §6 of the rebuild removed everywhere else.
+- **A lane is only ever narrower.** It is a filter on the same pool, so it can never reach a card the
+  open deck would not have dealt — the same rule as `narrow`, tested the same way.
+- **Choosing one starts a new run**, because the point of asking for After dark is to get one now,
+  not behind five cards already queued from the old lane.
+
+The lane's name goes on the card's own eyebrow, so the couple can see which deck they are in.

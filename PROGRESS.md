@@ -1237,6 +1237,62 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
 
 ---
 
+## The deck was never dealing the content ✅
+
+Reported from a device, and the sharpest bug report of the build after D-120: *"all the contents are
+still the same. generic, basic."* Also: *"what is after dark? i don't see it anywhere in app?"*
+
+Both correct. The content was fine; **nothing was reaching the screen**.
+
+### What was actually happening
+- `InstantPlayViewModel` asked `deck.cardAt(position)` with `position` starting at 0 on every
+  launch, over a pool in the order the bundle is written in — pack order, then id order. So **every
+  couple on every install saw the same first card**, and the first pack is FLIRT, so an evening
+  opened on the mildest content in the app.
+- New items are appended to a pack file, so **the 164 items added last wave were unreachable** —
+  ninety-odd taps past the end of the old ones.
+- The heat is a ceiling with an even spread beneath it, so **at Wild the first card was intensity
+  one**: `flirt_across_the_room`, "stand at opposite ends of the room". Measured: 590 cards
+  available at Wild, and six reached, the same six, for ever (D-124).
+- The twelve packs were **not in the app at all**. `ContentPack` was parsed and read by one screen:
+  the debug inspector, which has no release twin. Hence not being able to find After dark (D-125).
+
+### Shipped
+- **`InstantDeck.next(position, heat, seed, exclude)`** — the deal is its own thing now. A run
+  climbs over two cards and then sits at the ceiling (at Wild: 3, 4, 5, 5, 5, 5), nothing repeats
+  while there is anything left, and the draw is seeded so two evenings differ and a test can assert
+  one. "Keep going" reshuffles rather than continuing down one list.
+- **`playedCardIds` in DataStore**, so no-repeats survives a launch, reset once it covers the deck.
+  Done and Skip both count as seen; a skip is still not a refusal.
+- **Lanes** (D-125): the packs are a chip row under the heat picker — Anything, Flirt, Tease,
+  Confessions, After dark, and so on. Only lanes with cards at this heat and mode are offered, a lane
+  can only ever be narrower than the open deck, and the lane's name goes on the card's eyebrow.
+- The pool's own contract is untouched: built in the content's own order, and `narrow` still only
+  ever removes (D-048).
+
+### Verified
+```
+:core:engine InstantDeckTest              8 new tests (the climb, no repeats, seeds, lanes)
+:feature:instant InstantPlayViewModelTest 5 new tests; one rewritten, because "keep going"
+                                          deliberately no longer deals the same card
+./gradlew check                           BUILD SUCCESSFUL
+```
+**On a device, at Wild** — three runs, eighteen cards, **zero repeats**, every run climbing
+3 → 4 → 5 → 5 → 5 → 5, drawing from eight different packs:
+```
+run 1   L3 SURPRISE Checked In · L4 POWER Earned It · L5 AFTER_DARK A Private Show
+        L5 AFTER_DARK The Whole Night, Theirs · L5 FANTASY The Ending · L5 FLIRT The Confident One
+run 2   L3 DEEP_TALK Desire, Then and Now · L4 POWER Hold Still · L5 CONFESSIONS ×2
+        L5 TEASE The Whole Evening · L5 CHALLENGES Three Rounds, Rising
+lane    Tease only: L3 Just There · L4 Sealed Instructions · L5 One-Word Requests · L5 You First
+```
+- **The lesson, recorded because it cost a whole wave**: the content gates are thorough and every one
+  of them passed while the app showed six cards. `validateContent` proves the catalogue is sound;
+  it cannot prove anything is dealt from it. A content change is not verified until it has been seen
+  on a screen.
+
+---
+
 ## Content — the packs and the prompts, rewritten upward ✅
 
 The content read as "generic, predictable and repetitive" on a device, and two measurements said why.

@@ -66,6 +66,23 @@ data class AppPreferences(
      */
     val refusedCardIds: Set<String> = emptySet(),
     val refusedThemes: Set<String> = emptySet(),
+
+    /**
+     * Cards this phone has already played, so the deck does not deal them again (D-124).
+     *
+     * Not a refusal and not a judgement: a card they did and a card they skipped both land here,
+     * because both have been seen. Cleared the moment it covers the whole deck, which is how an
+     * evening gets a second pass at content rather than an empty screen.
+     */
+    val playedCardIds: Set<String> = emptySet(),
+
+    /**
+     * The pack this phone is dealing from, or null for all of them (D-125).
+     *
+     * Kept rather than asked each time: picking "After dark" is a statement about the couple, and
+     * making them say it again every evening is the setup form the rebuild removed.
+     */
+    val lane: String? = null,
 ) {
     companion object {
         const val DEFAULT_LOCK_TIMEOUT_MILLIS: Long = 60_000L

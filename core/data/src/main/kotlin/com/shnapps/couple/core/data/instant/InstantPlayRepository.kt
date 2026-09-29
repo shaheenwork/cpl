@@ -6,6 +6,7 @@ import com.shnapps.couple.core.datastore.PlaySettingsStore
 import com.shnapps.couple.core.engine.InstantCard
 import com.shnapps.couple.core.engine.InstantDeck
 import com.shnapps.couple.core.engine.game.ReleasedGame
+import com.shnapps.couple.core.model.ContentPack
 import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.Heat
@@ -29,12 +30,29 @@ import javax.inject.Singleton
  * nobody: something to do, now, inside a ceiling this phone set for itself.
  */
 interface InstantPlayRepository {
-    /** The deck as it stands: the shipped content, this phone's heat, minus what was refused. */
+    /**
+     * The deck as it stands: the shipped content, this phone's heat and lane, minus what was
+     * refused. The pool, not the running order — which card comes next is `InstantDeck.next`.
+     */
     val deck: Flow<InstantDeck>
 
     val heat: Flow<Heat>
 
     suspend fun setHeat(heat: Heat)
+
+    /** The packs the app ships, as a couple would name them: the lanes they can ask for (D-125). */
+    val packs: Flow<List<ContentPack>>
+
+    /** The pack being dealt from, or null for all of them. */
+    val lane: Flow<String?>
+
+    suspend fun setLane(pack: String?)
+
+    /** What this phone has already been dealt, so a deck of 790 stops behaving like a deck of 6. */
+    val played: Flow<Set<String>>
+
+    /** This card has been seen. [deckSize] is what the record is reset against when it is full. */
+    suspend fun markPlayed(card: InstantCard, deckSize: Int)
 
     /** "Not this kind of thing." Silent, immediate, and never sent anywhere. */
     suspend fun refuse(card: InstantCard, alsoItsKind: Boolean)
@@ -76,10 +94,38 @@ class DefaultInstantPlayRepository @Inject constructor(
                 mode = Mode.TOGETHER,
                 skippedIds = prefs.refusedCardIds,
                 refusedThemes = prefs.refusedThemes,
+                pack = prefs.lane,
             )
         }
 
     override val heat: Flow<Heat> = preferences.preferences.map { it.heat }
+
+    /**
+     * Only the packs that have something to deal at this heat, in this mode.
+     *
+     * A lane offered and then empty is worse than one not offered: "After dark" starts at level
+     * three, so at Playful it has nothing, and Long distance is written for two people who are not
+     * in the same room. Both would be a dead end, which §6 of the rebuild does not allow.
+     */
+    override val packs: Flow<List<ContentPack>> =
+        combine(content.packs, content.items, preferences.preferences) { packs, items, prefs ->
+            val dealable = InstantDeck.of(
+                items = items,
+                heat = prefs.heat,
+                mode = Mode.TOGETHER,
+                skippedIds = prefs.refusedCardIds,
+                refusedThemes = prefs.refusedThemes,
+            ).packs
+            packs.filter { it.id in dealable }
+        }
+
+    override val lane: Flow<String?> = preferences.preferences.map { it.lane }
+
+    override suspend fun setLane(pack: String?) = play.setLane(pack)
+
+    override val played: Flow<Set<String>> = preferences.preferences.map { it.playedCardIds }
+
+    override suspend fun markPlayed(card: InstantCard, deckSize: Int) = play.markPlayed(card.id, deckSize)
 
     override val games: Flow<List<Game>> = content.games
 

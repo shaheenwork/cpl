@@ -7,6 +7,7 @@ import com.shnapps.couple.core.engine.InstantDeck
 import com.shnapps.couple.core.engine.game.ReleasedGame
 import com.shnapps.couple.core.model.ChapterKind
 import com.shnapps.couple.core.model.ContentItem
+import com.shnapps.couple.core.model.ContentPack
 import com.shnapps.couple.core.model.ContentStatus
 import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.GamePlayers
@@ -189,18 +190,81 @@ class InstantPlayViewModelTest {
     }
 
     @Test
-    fun `keeping going starts the count again and keeps the deck moving`() = runTest {
+    fun `keeping going starts the count again and deals on`() = runTest {
         val viewModel = viewModel()
         repeat(6) { viewModel.skip() }
         advanceUntilIdle()
-        val card = viewModel.uiState.value.card
+        val seen = instant.seen.map { it.first }
 
         viewModel.keepGoing()
+        advanceUntilIdle()
 
         assertThat(viewModel.uiState.value.runComplete).isFalse()
         assertThat(viewModel.uiState.value.position).isEqualTo(0)
-        assertThat(viewModel.uiState.value.card).isEqualTo(card)
         assertThat(viewModel.uiState.value.played).isEqualTo(6)
+        // A second run is a second run: not card seven of one list, and not one they just had.
+        assertThat(seen).doesNotContain(viewModel.uiState.value.card!!.id)
+    }
+
+    @Test
+    fun `a card never comes round twice while there is anything left`() = runTest {
+        val viewModel = viewModel()
+
+        // The bug this replaces: the deck was dealt from index zero in bundle order on every
+        // launch, so an evening only ever reached the first few cards of the first pack (D-124).
+        repeat(items.size) {
+            viewModel.done()
+            viewModel.keepGoing()
+            advanceUntilIdle()
+        }
+
+        val ids = instant.seen.map { it.first }
+        assertThat(ids).containsNoDuplicates()
+        assertThat(ids).hasSize(items.size)
+    }
+
+    @Test
+    fun `both done and skip count as seen, and a refusal does too`() = runTest {
+        val viewModel = viewModel()
+
+        viewModel.done()
+        advanceUntilIdle()
+        viewModel.skip()
+        advanceUntilIdle()
+
+        assertThat(instant.seen).hasSize(2)
+        // Measured against the deck, so the record can reset once it covers all of it.
+        assertThat(instant.seen.map { it.second }.toSet()).containsExactly(items.size)
+    }
+
+    @Test
+    fun `asking for a lane deals from it, and starts the run again`() = runTest {
+        val viewModel = viewModel()
+        repeat(3) { viewModel.skip() }
+        advanceUntilIdle()
+
+        viewModel.setLane("AFTER_DARK")
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.lane).isEqualTo("AFTER_DARK")
+        assertThat(viewModel.uiState.value.laneLabel).isEqualTo("After dark")
+        assertThat(viewModel.uiState.value.position).isEqualTo(0)
+        assertThat(viewModel.uiState.value.card!!.pack).isEqualTo("AFTER_DARK")
+    }
+
+    @Test
+    fun `dealing from everything again is one tap back`() = runTest {
+        val viewModel = viewModel()
+        viewModel.setLane("AFTER_DARK")
+        advanceUntilIdle()
+
+        viewModel.setLane(null)
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.lane).isNull()
+        assertThat(viewModel.uiState.value.laneLabel).isNull()
+        assertThat(viewModel.uiState.value.lanes.map { it.id })
+            .containsExactly("FLIRT", "AFTER_DARK")
     }
 
     @Test
@@ -228,8 +292,33 @@ class InstantPlayViewModelTest {
             private set
         val refusals = mutableListOf<Pair<InstantCard, Boolean>>()
 
+        val laneState = MutableStateFlow<String?>(null)
+        val playedState = MutableStateFlow(emptySet<String>())
+        val packsState = MutableStateFlow(
+            listOf(
+                ContentPack("FLIRT", "Flirt", "The fun of wanting each other.", 1..5),
+                ContentPack("AFTER_DARK", "After dark", "Later, bolder.", 3..5),
+            ),
+        )
+
+        /** Every card the player said was seen, with the deck size it was measured against. */
+        val seen = mutableListOf<Pair<String, Int>>()
+
         override val deck: Flow<InstantDeck> = deckState
         override val heat: Flow<Heat> = heatState
+        override val packs: Flow<List<ContentPack>> = packsState
+        override val lane: Flow<String?> = laneState
+        override val played: Flow<Set<String>> = playedState
+
+        override suspend fun setLane(pack: String?) {
+            laneState.value = pack
+            deckState.value = InstantDeck.of(items, Heat.WILD, pack = pack)
+        }
+
+        override suspend fun markPlayed(card: InstantCard, deckSize: Int) {
+            seen += card.id to deckSize
+            playedState.value = playedState.value + card.id
+        }
 
         /** The card player never asks for names; it is kept here only to satisfy the contract. */
         override val players: Flow<GamePlayers> = MutableStateFlow(GamePlayers.UNNAMED)
@@ -252,10 +341,10 @@ class InstantPlayViewModelTest {
     }
 
     private companion object {
-        fun item(id: String, intensity: Intensity) = ContentItem(
+        fun item(id: String, intensity: Intensity, pack: String = "FLIRT") = ContentItem(
             id = id,
             version = 1,
-            pack = "FLIRT",
+            pack = pack,
             category = "communication",
             title = "Card $id",
             subtitle = "",
@@ -276,6 +365,7 @@ class InstantPlayViewModelTest {
             status = ContentStatus.PUBLISHED,
         )
 
-        val items = List(12) { item("card_$it", Intensity.SOFT) }
+        val items = List(12) { item("card_$it", Intensity.SOFT) } +
+            List(4) { item("dark_$it", Intensity.WILD, pack = "AFTER_DARK") }
     }
 }

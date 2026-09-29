@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.shnapps.couple.core.data.instant.InstantPlayRepository
 import com.shnapps.couple.core.engine.InstantCard
 import com.shnapps.couple.core.engine.InstantDeck
+import com.shnapps.couple.core.model.ContentPack
 import com.shnapps.couple.core.model.Heat
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -27,6 +28,9 @@ data class CardTimer(val totalSeconds: Int, val remainingSeconds: Int) {
 data class InstantPlayUiState(
     val card: InstantCard? = null,
     val heat: Heat = Heat.DEFAULT,
+    /** The lanes this heat has cards in, and the one being dealt from (D-125). */
+    val lanes: List<ContentPack> = emptyList(),
+    val lane: String? = null,
     val played: Int = 0,
     val streak: Int = 0,
     val loading: Boolean = true,
@@ -42,6 +46,9 @@ data class InstantPlayUiState(
     /** The heat is reachable while a card is up, and not while the screen is asking something. */
     val showsHeatPicker: Boolean
         get() = card != null && refusing == null && offeringHotter == null && !runComplete
+
+    /** What the lane is called, for the card's own eyebrow. Null while dealing from all of them. */
+    val laneLabel: String? get() = lanes.firstOrNull { it.id == lane }?.title
 }
 
 /**
@@ -67,19 +74,51 @@ class InstantPlayViewModel @Inject constructor(
     private var position = 0
     private var ticking: Job? = null
 
+    /**
+     * What this run has already been dealt, on top of what the phone remembers (D-124).
+     *
+     * Kept here as well as in DataStore so the next card is chosen without waiting for a write to
+     * come back round through the flow.
+     */
+    private var dealt = emptySet<String>()
+
+    /** This evening's shuffle. A new run gets a new one, which is why two evenings differ. */
+    private var seed = System.currentTimeMillis()
+
+    /** Everything this phone has ever been dealt, as the deck last saw it. */
+    private var played = emptySet<String>()
+
     init {
         viewModelScope.launch {
-            combine(instant.deck, instant.heat) { deck, heat -> deck to heat }.collect { (cards, heat) ->
-                deck = cards
-                _uiState.update {
-                    it.copy(card = cards.cardAt(position), heat = heat, loading = false)
+            combine(instant.deck, instant.heat, instant.played, instant.packs, instant.lane, ::Deal)
+                .collect { deal ->
+                    deck = deal.deck
+                    played = deal.played
+                    _uiState.update {
+                        it.copy(
+                            card = deal.deck.next(position, deal.heat, seed, played + dealt),
+                            heat = deal.heat,
+                            lanes = deal.lanes,
+                            lane = deal.lane,
+                            loading = false,
+                        )
+                    }
                 }
-            }
         }
     }
 
+    /** The five things a card depends on, named so the combine above reads as one thing. */
+    private data class Deal(
+        val deck: InstantDeck,
+        val heat: Heat,
+        val played: Set<String>,
+        val lanes: List<ContentPack>,
+        val lane: String?,
+    )
+
     /** They did it. Five in a row is when the app asks whether to turn things up. */
     fun done() {
+        seen()
         val streak = _uiState.value.streak + 1
         val hotter = _uiState.value.heat.hotter()
         if (streak >= STREAK_BEFORE_OFFERING && hotter != null) {
@@ -117,15 +156,52 @@ class InstantPlayViewModel @Inject constructor(
         _uiState.update { it.copy(timer = null) }
     }
 
-    /** Six cards in, the app says so and asks. It never decides the evening is over. */
+    /**
+     * Six cards in, the app says so and asks. It never decides the evening is over.
+     *
+     * Carrying on is a new run: a new shuffle and a fresh climb, rather than card seven of one
+     * long list. What has been seen is still remembered, so nothing comes round twice.
+     */
     fun keepGoing() {
-        _uiState.update { it.copy(runComplete = false, position = 0) }
+        seed = System.currentTimeMillis()
+        position = 0
+        _uiState.update { it.copy(runComplete = false, position = 0, card = card()) }
     }
 
-    /** Not that one. Nothing is asked and nothing is recorded. */
+    /** Not that one. Nothing is asked, and it is recorded as seen rather than as refused. */
     fun skip() {
+        seen()
         _uiState.update { it.copy(streak = 0) }
         advance()
+    }
+
+    /**
+     * Deal from one pack, or from all of them (D-125).
+     *
+     * A new lane starts a new run for the same reason "keep going" does: the point of asking for
+     * After dark is to get one now, not behind the cards already queued from the old lane.
+     */
+    fun setLane(pack: String?) {
+        if (pack == _uiState.value.lane) return
+        seed = System.currentTimeMillis()
+        position = 0
+        dealt = emptySet()
+        stopTimer()
+        _uiState.update { it.copy(lane = pack, position = 0, runComplete = false, streak = 0) }
+        viewModelScope.launch { instant.setLane(pack) }
+    }
+
+    /**
+     * That card has been seen, so it does not come round again (D-124).
+     *
+     * Both "done" and "skip" record it: a skip is not a refusal, but it is not a card anybody
+     * wants dealt again ten minutes later either.
+     */
+    private fun seen() {
+        val card = _uiState.value.card ?: return
+        val size = deck?.size ?: return
+        dealt = dealt + card.id
+        viewModelScope.launch { instant.markPlayed(card, size) }
     }
 
     fun tooFar() {
@@ -139,6 +215,7 @@ class InstantPlayViewModel @Inject constructor(
     /** "Just this one", or "never show me these again" — the second writes the card's own themes. */
     fun refuse(alsoItsKind: Boolean) {
         val card = _uiState.value.refusing ?: return
+        dealt = dealt + card.id
         _uiState.update { it.copy(refusing = null, streak = 0) }
         viewModelScope.launch {
             instant.refuse(card, alsoItsKind)
@@ -167,13 +244,17 @@ class InstantPlayViewModel @Inject constructor(
         _uiState.update {
             val place = it.position + 1
             it.copy(
-                card = deck?.cardAt(position),
+                card = card(),
                 played = it.played + 1,
                 position = place,
                 runComplete = place >= RUN_LENGTH,
             )
         }
     }
+
+    /** The card for where the run is now: at the heat, and one they have not had (D-124). */
+    private fun card(): InstantCard? =
+        deck?.next(position, _uiState.value.heat, seed, played + dealt)
 
     companion object {
         /** Long enough to mean they are enjoying it, short enough to arrive in one evening. */
