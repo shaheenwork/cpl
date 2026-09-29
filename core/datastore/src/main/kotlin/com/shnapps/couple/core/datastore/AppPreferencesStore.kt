@@ -2,6 +2,8 @@ package com.shnapps.couple.core.datastore
 
 import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.Intensity
+import com.shnapps.couple.core.model.LimitAnswer
+import com.shnapps.couple.core.model.LimitTag
 import com.shnapps.couple.core.model.Mode
 import kotlinx.coroutines.flow.Flow
 
@@ -63,4 +65,12 @@ interface PlaySettingsStore {
 
     /** Deal from one pack, or from all of them when null (D-125). */
     suspend fun setLane(pack: String?)
+
+    /**
+     * One answer in the limits profile, or null to unset it (M3).
+     *
+     * On the phone rather than in the account, because the profile is offered after the first
+     * session and there may not be an account. `LimitsRepository` is what writes it to both.
+     */
+    suspend fun setLimit(tag: LimitTag, answer: LimitAnswer?)
 }

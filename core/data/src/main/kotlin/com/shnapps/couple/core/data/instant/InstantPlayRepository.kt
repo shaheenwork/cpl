@@ -1,6 +1,7 @@
 package com.shnapps.couple.core.data.instant
 
 import com.shnapps.couple.core.data.content.ContentRepository
+import com.shnapps.couple.core.data.limits.LimitsRepository
 import com.shnapps.couple.core.datastore.AppPreferencesStore
 import com.shnapps.couple.core.datastore.PlaySettingsStore
 import com.shnapps.couple.core.engine.InstantCard
@@ -84,16 +85,19 @@ class DefaultInstantPlayRepository @Inject constructor(
     private val content: ContentRepository,
     private val preferences: AppPreferencesStore,
     private val play: PlaySettingsStore,
+    private val limits: LimitsRepository,
 ) : InstantPlayRepository {
 
     override val deck: Flow<InstantDeck> =
-        combine(content.items, preferences.preferences) { items, prefs ->
+        combine(content.items, preferences.preferences, limits.refusedThemes) { items, prefs, refused ->
             InstantDeck.of(
                 items = items,
                 tier = prefs.tier,
                 mode = Mode.TOGETHER,
                 skippedIds = prefs.refusedCardIds,
-                refusedThemes = prefs.refusedThemes,
+                // The profile's noes and the in-the-moment refusals are the same kind of
+                // statement, so the deck takes both from one place (M3).
+                refusedThemes = refused,
                 pack = prefs.lane,
             )
         }
@@ -104,17 +108,20 @@ class DefaultInstantPlayRepository @Inject constructor(
      * Only the packs that have something to deal at this tier, in this mode.
      *
      * A lane offered and then empty is worse than one not offered: "After dark" starts at level
-     * three, so at Mild and Flirty it has nothing, and Long distance is written for two people who are not
-     * in the same room. Both would be a dead end, which §6 of the rebuild does not allow.
+     * three, so at Mild and Flirty it has nothing, and Long distance is written for two people who
+     * are not in the same room. Both would be a dead end, which §6 of the rebuild does not allow —
+     * and so is a lane the limits profile has just emptied, which is why it narrows on the same
+     * refusals the deck does.
      */
     override val packs: Flow<List<ContentPack>> =
-        combine(content.packs, content.items, preferences.preferences) { packs, items, prefs ->
+        combine(content.packs, content.items, preferences.preferences, limits.refusedThemes) {
+                packs, items, prefs, refused ->
             val dealable = InstantDeck.of(
                 items = items,
                 tier = prefs.tier,
                 mode = Mode.TOGETHER,
                 skippedIds = prefs.refusedCardIds,
-                refusedThemes = prefs.refusedThemes,
+                refusedThemes = refused,
             ).packs
             packs.filter { it.id in dealable }
         }
@@ -141,7 +148,7 @@ class DefaultInstantPlayRepository @Inject constructor(
             game = game,
             prompts = content.prompts.first(),
             ceiling = prefs.tier.level,
-            refusedThemes = prefs.refusedThemes,
+            refusedThemes = limits.refusedThemes.first(),
             // A new deal each time it is started, and the same one for as long as it is played.
             seed = System.currentTimeMillis(),
         )

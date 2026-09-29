@@ -3,6 +3,8 @@ package com.shnapps.couple.core.datastore
 import com.shnapps.couple.core.model.AppLockMode
 import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.Intensity
+import com.shnapps.couple.core.model.LimitAnswer
+import com.shnapps.couple.core.model.LimitTag
 import com.shnapps.couple.core.model.Mode
 
 /**
@@ -66,6 +68,16 @@ data class AppPreferences(
      */
     val refusedCardIds: Set<String> = emptySet(),
     val refusedThemes: Set<String> = emptySet(),
+
+    /**
+     * The limits profile as this phone holds it: one answer per tag (M3).
+     *
+     * Kept here as well as in the account because the profile is offered after the first session,
+     * and there may not be an account yet. `LocalPlayReconciler` carries it across when there is.
+     * An absent tag is a real state — the profile is optional, and most couples will open it late
+     * or never.
+     */
+    val limits: Map<LimitTag, LimitAnswer> = emptyMap(),
 
     /**
      * Cards this phone has already played, so the deck does not deal them again (D-124).

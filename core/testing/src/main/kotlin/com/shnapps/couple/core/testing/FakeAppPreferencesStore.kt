@@ -6,6 +6,8 @@ import com.shnapps.couple.core.datastore.PlaySettingsStore
 import com.shnapps.couple.core.model.AppLockMode
 import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.Intensity
+import com.shnapps.couple.core.model.LimitAnswer
+import com.shnapps.couple.core.model.LimitTag
 import com.shnapps.couple.core.model.Mode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
@@ -56,6 +58,12 @@ class FakeAppPreferencesStore(initial: AppPreferences = AppPreferences()) : AppP
         // The real store's rule: seen all of it, and the deck comes round again (D-124).
         state.value = state.value.copy(
             playedCardIds = if (deckSize in 1..played.size) setOf(cardId) else played,
+        )
+    }
+
+    override suspend fun setLimit(tag: LimitTag, answer: LimitAnswer?) {
+        state.value = state.value.copy(
+            limits = if (answer == null) state.value.limits - tag else state.value.limits + (tag to answer),
         )
     }
 

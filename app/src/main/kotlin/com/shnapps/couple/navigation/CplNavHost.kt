@@ -16,7 +16,7 @@ import com.shnapps.couple.feature.applock.AppLockScreen
 import com.shnapps.couple.feature.applock.AppLockSetupScreen
 import com.shnapps.couple.feature.auth.AuthScreen
 import com.shnapps.couple.feature.auth.SignOutViewModel
-import com.shnapps.couple.feature.boundaries.BoundariesScreen
+import com.shnapps.couple.feature.boundaries.LimitsScreen
 import com.shnapps.couple.feature.games.DealtGameScreen
 import com.shnapps.couple.feature.games.GameScreen
 import com.shnapps.couple.feature.home.HomeActions
@@ -178,7 +178,7 @@ fun CplNavHost(
         }
 
         composable<Route.Boundaries> {
-            BoundariesScreen(onBack = { navController.popBackStack() })
+            LimitsScreen(onBack = { navController.popBackStack() })
         }
 
         composable<Route.Send> {

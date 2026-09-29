@@ -12,6 +12,8 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.shnapps.couple.core.model.AppLockMode
 import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.Intensity
+import com.shnapps.couple.core.model.LimitAnswer
+import com.shnapps.couple.core.model.LimitTag
 import com.shnapps.couple.core.model.Mode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -47,6 +49,7 @@ class AppPreferencesDataSource @Inject constructor(
             refusedCardIds = prefs[Keys.REFUSED_CARDS].orEmpty(),
             refusedThemes = prefs[Keys.REFUSED_THEMES].orEmpty(),
             playedCardIds = prefs[Keys.PLAYED_CARDS].orEmpty(),
+            limits = prefs[Keys.LIMITS].orEmpty().mapNotNull(::readLimit).toMap(),
             lane = prefs[Keys.LANE],
         )
     }
@@ -115,6 +118,16 @@ class AppPreferencesDataSource @Inject constructor(
         }
     }
 
+    override suspend fun setLimit(tag: LimitTag, answer: LimitAnswer?) {
+        context.dataStore.edit { prefs ->
+            val kept = prefs[Keys.LIMITS].orEmpty().filterNot { it.startsWith("${'$'}{tag.name}=") }
+            prefs[Keys.LIMITS] = when (answer) {
+                null -> kept.toSet()
+                else -> kept.toSet() + "${'$'}{tag.name}=${'$'}{answer.name}"
+            }
+        }
+    }
+
     override suspend fun setLane(pack: String?) {
         context.dataStore.edit { prefs ->
             if (pack == null) prefs.remove(Keys.LANE) else prefs[Keys.LANE] = pack
@@ -130,6 +143,14 @@ class AppPreferencesDataSource @Inject constructor(
 
     override suspend fun clear() {
         context.dataStore.edit { it.clear() }
+    }
+
+    /** One stored "TAG=ANSWER", or null when either half no longer names anything. */
+    private fun readLimit(entry: String): Pair<LimitTag, LimitAnswer>? {
+        val (tag, answer) = entry.split("=", limit = 2).takeIf { it.size == 2 } ?: return null
+        val known = LimitTag.entries.firstOrNull { it.name == tag } ?: return null
+        val said = LimitAnswer.entries.firstOrNull { it.name == answer } ?: return null
+        return known to said
     }
 
     private object Keys {
@@ -158,6 +179,9 @@ class AppPreferencesDataSource @Inject constructor(
         val REFUSED_CARDS = stringSetPreferencesKey("refused_card_ids")
         val REFUSED_THEMES = stringSetPreferencesKey("refused_themes")
         val PLAYED_CARDS = stringSetPreferencesKey("played_card_ids")
+
+        /** The profile, as "TAG=ANSWER" entries. One set rather than eight keys. */
+        val LIMITS = stringSetPreferencesKey("limits")
         val LANE = stringPreferencesKey("deck_lane")
     }
 }

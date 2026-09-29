@@ -2,6 +2,7 @@ package com.shnapps.couple.core.data.taxonomy
 
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
+import com.shnapps.couple.core.model.LimitTag
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.junit.Test
@@ -62,6 +63,32 @@ class TaxonomyFileTest {
         assertThat(categories.map { it.id }).containsNoDuplicates()
         assertThat(themes.map { it.id }).containsNoDuplicates()
         assertThat(items.map { it.id }).containsNoDuplicates()
+    }
+
+    /**
+     * Every theme is either asked about by a tag or governed by the tier (M3).
+     *
+     * This is the assertion that keeps a limits profile honest. The profile asks eight questions
+     * over twenty-seven themes, so a theme nobody owns is a card no answer can ever refuse — and
+     * nothing about the app would look wrong. A theme added to the taxonomy has to be decided
+     * about here before it ships.
+     */
+    @Test
+    fun `every theme is owned by a tag or governed by the tier`() {
+        themes.forEach { theme ->
+            assertWithMessage("theme '${theme.id}' belongs to no limit tag and is not a mood")
+                .that(theme.id in LimitTag.OWNED || theme.id in LimitTag.GOVERNED_BY_TIER)
+                .isTrue()
+        }
+    }
+
+    /** And the other way: a tag may not own a theme the taxonomy does not have. */
+    @Test
+    fun `no tag claims a theme that does not exist`() {
+        val known = themes.map { it.id }.toSet()
+        (LimitTag.OWNED + LimitTag.GOVERNED_BY_TIER).forEach { claimed ->
+            assertWithMessage("no theme '$claimed' in the taxonomy").that(known).contains(claimed)
+        }
     }
 
     @Test
