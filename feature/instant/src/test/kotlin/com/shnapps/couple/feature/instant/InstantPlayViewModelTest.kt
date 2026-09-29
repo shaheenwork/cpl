@@ -336,7 +336,7 @@ class InstantPlayViewModelTest {
         // The card player never starts a game; these exist so the fake is the whole repository.
         override val games: Flow<List<Game>> = MutableStateFlow(emptyList())
 
-        override suspend fun startGame(gameId: String): ReleasedGame? = null
+        override suspend fun startGame(gameId: String, autoHeat: Boolean): ReleasedGame? = null
     }
 
     private companion object {

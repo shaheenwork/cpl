@@ -77,7 +77,7 @@ interface InstantPlayRepository {
      * content has nothing for it. Nothing is sent and nothing is stored: the game exists for as
      * long as it is being played.
      */
-    suspend fun startGame(gameId: String): ReleasedGame?
+    suspend fun startGame(gameId: String, autoHeat: Boolean = true): ReleasedGame?
 }
 
 @Singleton
@@ -141,7 +141,7 @@ class DefaultInstantPlayRepository @Inject constructor(
 
     override suspend fun rememberPlayers(players: GamePlayers) = preferences.setGamePlayers(players)
 
-    override suspend fun startGame(gameId: String): ReleasedGame? {
+    override suspend fun startGame(gameId: String, autoHeat: Boolean): ReleasedGame? {
         val game = content.games.first().firstOrNull { it.id == gameId } ?: return null
         val prefs = preferences.preferences.first()
         return ReleasedGame.forHeat(
@@ -151,6 +151,7 @@ class DefaultInstantPlayRepository @Inject constructor(
             refusedThemes = limits.refusedThemes.first(),
             // A new deal each time it is started, and the same one for as long as it is played.
             seed = System.currentTimeMillis(),
+            autoHeat = autoHeat,
         )
     }
 

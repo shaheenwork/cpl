@@ -2,12 +2,12 @@
   "description": "The core games (BUILD_PROMPT.md section 11.2). Each is a declarative composition of primitives (section 11.1): the steps below are played every round, over prompts from content/prompts/<file>. A new game is an entry here and a prompt file, not new code. Players: ACTIVE is whose turn it is (it alternates in ALTERNATE games), OTHER the partner, EACH both in turn, TOGETHER both at once. Private answers stay hidden until a REVEAL.",
   "games": [
     {
-      "id": "DIRTY_DICE",
+      "id": "HEAT_DICE",
       "prefix": "dice",
-      "file": "dirty-dice.json",
-      "title": "Dirty Dice",
-      "tagline": "Roll, then run the clock.",
-      "description": "Chance picks how, and a timer says how long. Stop when it stops.",
+      "file": "heat-dice.json",
+      "title": "Heat Dice",
+      "tagline": "Three dice. Do what they say.",
+      "description": "One die picks the action, one picks the place, and the clock is the third.",
       "modes": [
         "TOGETHER"
       ],
@@ -21,6 +21,19 @@
       ],
       "minPrompts": 19,
       "steps": [
+        {
+          "primitive": "DRAW",
+          "who": "TOGETHER",
+          "text": "What the first die says",
+          "options": [
+            "Kiss",
+            "Use your hands",
+            "Use your mouth",
+            "Tease",
+            "Whisper it",
+            "Their choice"
+          ]
+        },
         {
           "primitive": "DRAW",
           "who": "TOGETHER",

@@ -84,6 +84,7 @@ class ReleasedGame internal constructor(
             ceiling: Int,
             refusedThemes: Set<String> = emptySet(),
             seed: Long = 0,
+            autoHeat: Boolean = true,
         ): ReleasedGame {
             val kinds = game.promptKinds.ifEmpty { listOf(null) }
             val usable = prompts
@@ -94,7 +95,9 @@ class ReleasedGame internal constructor(
 
             val used = mutableSetOf<String>()
             val rng = Rng(seed)
-            val start = maxOf(1, ceiling - CLIMB_FROM)
+            // Auto-heat is the climb. With it off, every round is dealt at the tier itself —
+            // which is what a couple who set Extreme and meant it is asking for.
+            val start = if (autoHeat) maxOf(1, ceiling - CLIMB_FROM) else ceiling
             val rounds = (0 until game.rounds).map { index ->
                 val target = targetFor(index, game.rounds, start, ceiling)
                 val picked = kinds.mapNotNull { kind ->
@@ -106,7 +109,14 @@ class ReleasedGame internal constructor(
             return ReleasedGame(game, rounds, alternates, ceiling)
         }
 
-        /** A climb towards the ceiling rather than a flat evening (SPEC §10, step 3). */
+        /**
+         * A climb towards the ceiling rather than a flat evening (SPEC §10, step 3).
+         *
+         * This is what the brief calls auto-heat, and it is the only form it can take: the ceiling
+         * is the couple's own and the device may never deal past what was released (D-070), so a
+         * tier that rose mid-game would have nothing to rise into. The climb happens at the deal,
+         * across the rounds, ending at the ceiling and never above it.
+         */
         private fun targetFor(round: Int, rounds: Int, start: Int, ceiling: Int): Int =
             if (rounds <= 1) ceiling else start + ((ceiling - start) * round) / (rounds - 1)
 

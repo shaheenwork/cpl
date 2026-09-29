@@ -227,12 +227,31 @@ function validateSteps(
           check(refs.every((ref) => earlier(ref)?.who === 'EACH'), `${s}: a gap needs a dial from each of them`);
         }
         break;
-      case 'DRAW':
-        // Chance needs something to choose between, and the pool is the round's own prompt: a
-        // fixed list in the game would be the same spin every round.
-        check(step.options === 'PROMPT', `${s}: a draw takes its pool from the prompt`);
-        check(game.promptOptions[0] >= 2, `${s}: a draw needs prompts carrying at least 2 options`);
+      case 'DRAW': {
+        // Chance needs something to choose between, and it comes from one of two places.
+        //
+        // From the round's own prompt, which is how a card varies what is spun for: every prompt
+        // carries its own pool, so the spin changes with the card and with the tier.
+        //
+        // Or from a fixed list on the step itself, which is how dice work. A die has the same
+        // faces every roll — that is what makes it a die — and a game that rolls more than one at
+        // once cannot take them all from a prompt that carries a single pool. What varies by tier
+        // there is the prompt's text, the rule laid over the roll, rather than the faces.
+        const pool = step.options;
+        if (pool === 'PROMPT') {
+          check(game.promptOptions[0] >= 2, `${s}: a draw needs prompts carrying at least 2 options`);
+        } else if (Array.isArray(pool)) {
+          check(pool.length >= 2, `${s}: a die needs at least two faces`);
+          pool.forEach((face, i) => checkText(check, face, `${s}: face ${i}`, LIMITS.option[0], LIMITS.option[1]));
+          check(
+            new Set(pool.map((face) => String(face).toLowerCase())).size === pool.length,
+            `${s}: a die repeats a face`,
+          );
+        } else {
+          check(false, `${s}: a draw takes its pool from the prompt or from at least two fixed faces`);
+        }
         break;
+      }
       case 'MEDIA':
         // A recording answers the round and stays on the phone that made it; the step still has to
         // say which kind, because the screen cannot guess.

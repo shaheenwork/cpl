@@ -70,6 +70,32 @@ class LocalGameTest {
     }
 
     @Test
+    fun `auto-heat off deals at the tier rather than up to it`() {
+        // The brief makes the climb an option, and a couple who picked Extreme and meant it is
+        // asking for Extreme rather than for a warm-up to it (M4).
+        val flat = ReleasedGame.forHeat(simple, prompts, ceiling = 5, autoHeat = false)
+        val climbing = ReleasedGame.forHeat(simple, prompts, ceiling = 5, autoHeat = true)
+
+        fun opens(game: ReleasedGame) = game.rounds.first().prompts.maxOf { it.intensity.level }
+
+        // It opens at the tier rather than two below it. Later rounds may still fall back when the
+        // content at that level runs out, which is the deal being honest rather than empty.
+        assertThat(opens(flat)).isEqualTo(5)
+        assertThat(opens(climbing)).isLessThan(opens(flat))
+    }
+
+    @Test
+    fun `auto-heat never deals above the ceiling, on or off`() {
+        // The one thing the climb may not do. The device plays only what was released (D-070), so
+        // a tier that rose past the ceiling would have nothing to rise into.
+        listOf(true, false).forEach { autoHeat ->
+            val released = ReleasedGame.forHeat(simple, prompts, ceiling = 3, autoHeat = autoHeat)
+            val levels = released.rounds.flatMap { it.prompts }.map { it.intensity.level }
+            assertThat(levels.max()).isAtMost(3)
+        }
+    }
+
+    @Test
     fun `the same game deals the same way twice, and differently with another seed`() {
         val once = ReleasedGame.forHeat(simple, prompts, ceiling = 5, seed = 7)
         val again = ReleasedGame.forHeat(simple, prompts, ceiling = 5, seed = 7)

@@ -34,6 +34,9 @@ class FakeInstantPlayRepository(
     /** Every game this phone dealt itself, in order. */
     val dealt = mutableListOf<String>()
 
+    /** Whether each deal climbed to the tier or opened at it (M4). */
+    val dealtWithAutoHeat = mutableListOf<Boolean>()
+
     /** What [startGame] hands back. Null stands for content that has nothing at this tier. */
     var released: ReleasedGame? = null
 
@@ -74,8 +77,9 @@ class FakeInstantPlayRepository(
         refused += card.id to alsoItsKind
     }
 
-    override suspend fun startGame(gameId: String): ReleasedGame? {
+    override suspend fun startGame(gameId: String, autoHeat: Boolean): ReleasedGame? {
         dealt += gameId
+        dealtWithAutoHeat += autoHeat
         return released
     }
 }

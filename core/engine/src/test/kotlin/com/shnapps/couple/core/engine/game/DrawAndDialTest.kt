@@ -119,6 +119,36 @@ class DrawAndDialTest {
 
     // ---- fixtures -------------------------------------------------------------------------------
 
+    @Test
+    fun `a die rolls its own faces, and a round may roll more than one`() {
+        // Heat Dice rolls an action die whose faces are the game's, then a place drawn from the
+        // card's own pool. One pool could not do both: a prompt carries a single list, and a die
+        // has the same faces every roll — that is what makes it a die (M4).
+        var run = startDice()
+
+        val action = run.draw()
+        assertThat(action.options.map { it.label }).containsExactly("Kiss", "Tease", "Whisper it").inOrder()
+        assertThat(action.options).contains(action.landed)
+
+        run = run.submit(Answer.Done)!!.ready()
+        val place = run.draw()
+        assertThat(place.options.map { it.label }).containsExactly("Neck", "Wrist", "Shoulder", "Hip").inOrder()
+        assertThat(place.options).contains(place.landed)
+
+        // Two dice in one round are two separate decisions, not the same one shown twice.
+        assertThat(place.step).isNotEqualTo(action.step)
+    }
+
+    @Test
+    fun `a die lands the same way for the same round, on any phone`() {
+        // The same rule the prompt-pooled draw follows (D-047): the seed is the round's own, so a
+        // restarted phone and a partner's phone both see the face that already landed.
+        val first = startDice().draw()
+        val again = startDice().draw()
+
+        assertThat(again.landed).isEqualTo(first.landed)
+    }
+
     private fun GameRun.draw() = (moment as GameMoment.Turn).primitive as RoundPrimitive.Draw
 
     private fun GameRun.dial() = (ready().moment as GameMoment.Turn).primitive as RoundPrimitive.Dial
@@ -146,6 +176,8 @@ class DrawAndDialTest {
 
     private fun startRating(): GameRun = start(rating, ratingRounds, 0)
 
+    private fun startDice(): GameRun = start(dice, spinRounds, 0)
+
     private fun start(game: Game, rounds: List<List<GamePrompt>>, fromRound: Int): GameRun {
         val all = rounds.flatten().associate { it.id to it.copy(game = game.id) }
         val released = ReleasedGame.fromServer(
@@ -169,6 +201,37 @@ class DrawAndDialTest {
             scoring = Scoring.NONE,
             promptKinds = emptyList(),
             steps = listOf(
+                GameStep(
+                    primitive = GamePrimitive.DRAW,
+                    who = StepAudience.TOGETHER,
+                    isPrivate = false,
+                    text = StepText.Prompt,
+                    options = StepOptions.FromPrompt,
+                    answer = null,
+                    of = emptyList(),
+                    outcome = null,
+                    seconds = null,
+                    kindFrom = null,
+                ),
+            ),
+        )
+
+        /** Shaped like Heat Dice: a die of the game's own faces, then the card's own pool. */
+        val dice = spin.copy(
+            id = "SHAPED_LIKE_HEAT_DICE",
+            steps = listOf(
+                GameStep(
+                    primitive = GamePrimitive.DRAW,
+                    who = StepAudience.TOGETHER,
+                    isPrivate = false,
+                    text = StepText.Literal("What the first die says"),
+                    options = StepOptions.Fixed(listOf("Kiss", "Tease", "Whisper it")),
+                    answer = null,
+                    of = emptyList(),
+                    outcome = null,
+                    seconds = null,
+                    kindFrom = null,
+                ),
                 GameStep(
                     primitive = GamePrimitive.DRAW,
                     who = StepAudience.TOGETHER,
