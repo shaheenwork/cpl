@@ -95,6 +95,18 @@ data class AppPreferences(
      * making them say it again every evening is the setup form the rebuild removed.
      */
     val lane: String? = null,
+
+    /**
+     * What the free tier has used, and on which day and week (M9).
+     *
+     * On the phone because the deck is, and because nothing may require signing up before the first
+     * card. A determined person can clear it by clearing app data; asking everyone to sign in first
+     * is the worse trade.
+     */
+    val cardsDealt: Int = 0,
+    val cardDay: Long = 0,
+    val nightsPlanned: Int = 0,
+    val nightWeek: Long = 0,
 ) {
     companion object {
         const val DEFAULT_LOCK_TIMEOUT_MILLIS: Long = 60_000L

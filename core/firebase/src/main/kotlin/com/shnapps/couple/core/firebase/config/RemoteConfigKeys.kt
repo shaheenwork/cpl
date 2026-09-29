@@ -24,6 +24,16 @@ object RemoteConfigKeys {
     const val FEATURE_PHOTO_CHALLENGES = "feature_photo_challenges"
     const val FEATURE_SUBSCRIPTION = "feature_subscription"
 
+    /**
+     * The launch period (M9): everything free, until a date.
+     *
+     * The switch decides and the date only ever gets shown, so a date that slips cannot start
+     * charging anybody by itself. Turning the switch off is a console change, not a release.
+     */
+    const val EVERYTHING_FREE = "everything_free"
+
+    const val EVERYTHING_FREE_UNTIL = "everything_free_until"
+
     // Reveal timing (§5.3) is not here on purpose: the server alone decides when a match is
     // released, from its own Remote Config template (DECISIONS.md D-045).
 

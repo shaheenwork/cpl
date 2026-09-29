@@ -16,6 +16,8 @@ import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.InteractionType
 import com.shnapps.couple.core.model.Mode
+import com.shnapps.couple.core.testing.FakeAllowances
+import com.shnapps.couple.core.testing.FakeLaunchOffer
 import com.shnapps.couple.core.testing.MainDispatcherRule
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +38,8 @@ class InstantPlayViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val instant = FakeInstantPlayRepository()
+    private val allowances = FakeAllowances()
+    private val launchOffer = FakeLaunchOffer()
 
     @Test
     fun `a card is on screen without an account, a partner, or a network`() = runTest {
@@ -380,7 +384,7 @@ class InstantPlayViewModelTest {
     }
 
     private fun viewModel(): InstantPlayViewModel {
-        val viewModel = InstantPlayViewModel(instant)
+        val viewModel = InstantPlayViewModel(instant, allowances, launchOffer)
         mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
         return viewModel
     }

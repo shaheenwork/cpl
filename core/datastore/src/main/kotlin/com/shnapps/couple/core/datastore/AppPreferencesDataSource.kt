@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
@@ -50,6 +51,10 @@ class AppPreferencesDataSource @Inject constructor(
             refusedThemes = prefs[Keys.REFUSED_THEMES].orEmpty(),
             playedCardIds = prefs[Keys.PLAYED_CARDS].orEmpty(),
             limits = prefs[Keys.LIMITS].orEmpty().mapNotNull(::readLimit).toMap(),
+            cardsDealt = prefs[Keys.CARDS_DEALT] ?: 0,
+            cardDay = prefs[Keys.CARD_DAY] ?: 0,
+            nightsPlanned = prefs[Keys.NIGHTS_PLANNED] ?: 0,
+            nightWeek = prefs[Keys.NIGHT_WEEK] ?: 0,
             lane = prefs[Keys.LANE],
         )
     }
@@ -118,6 +123,22 @@ class AppPreferencesDataSource @Inject constructor(
         }
     }
 
+    override suspend fun countCard(day: Long) {
+        context.dataStore.edit { prefs ->
+            val sameDay = prefs[Keys.CARD_DAY] == day
+            prefs[Keys.CARD_DAY] = day
+            prefs[Keys.CARDS_DEALT] = if (sameDay) (prefs[Keys.CARDS_DEALT] ?: 0) + 1 else 1
+        }
+    }
+
+    override suspend fun countNight(week: Long) {
+        context.dataStore.edit { prefs ->
+            val sameWeek = prefs[Keys.NIGHT_WEEK] == week
+            prefs[Keys.NIGHT_WEEK] = week
+            prefs[Keys.NIGHTS_PLANNED] = if (sameWeek) (prefs[Keys.NIGHTS_PLANNED] ?: 0) + 1 else 1
+        }
+    }
+
     override suspend fun setLimit(tag: LimitTag, answer: LimitAnswer?) {
         context.dataStore.edit { prefs ->
             val kept = prefs[Keys.LIMITS].orEmpty().filterNot { it.startsWith("${'$'}{tag.name}=") }
@@ -182,6 +203,15 @@ class AppPreferencesDataSource @Inject constructor(
 
         /** The profile, as "TAG=ANSWER" entries. One set rather than eight keys. */
         val LIMITS = stringSetPreferencesKey("limits")
+
+        /** The free tier's counters, each with the day or week it belongs to (M9). */
+        val CARDS_DEALT = intPreferencesKey("cards_dealt")
+
+        val CARD_DAY = longPreferencesKey("card_day")
+
+        val NIGHTS_PLANNED = intPreferencesKey("nights_planned")
+
+        val NIGHT_WEEK = longPreferencesKey("night_week")
         val LANE = stringPreferencesKey("deck_lane")
     }
 }

@@ -14,6 +14,10 @@ import com.shnapps.couple.core.data.content.DefaultContentRepository
 import com.shnapps.couple.core.data.content.ShippedContent
 import com.shnapps.couple.core.data.couple.CoupleRepository
 import com.shnapps.couple.core.data.couple.DefaultCoupleRepository
+import com.shnapps.couple.core.data.entitlement.Allowances
+import com.shnapps.couple.core.data.entitlement.DefaultAllowances
+import com.shnapps.couple.core.data.entitlement.LaunchOffer
+import com.shnapps.couple.core.data.entitlement.RemoteLaunchOffer
 import com.shnapps.couple.core.data.game.DefaultGameRepository
 import com.shnapps.couple.core.data.game.GameRepository
 import com.shnapps.couple.core.data.instant.ContentLevelWriter
@@ -83,6 +87,12 @@ abstract class DataModule {
 
     @Binds
     abstract fun bindLimitsRepository(impl: DefaultLimitsRepository): LimitsRepository
+
+    @Binds
+    abstract fun bindAllowances(impl: DefaultAllowances): Allowances
+
+    @Binds
+    abstract fun bindLaunchOffer(impl: RemoteLaunchOffer): LaunchOffer
 
     @Binds
     @Singleton

@@ -2,6 +2,8 @@ package com.shnapps.couple.feature.instant
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.shnapps.couple.core.data.entitlement.Allowances
+import com.shnapps.couple.core.data.entitlement.LaunchOffer
 import com.shnapps.couple.core.data.instant.InstantPlayRepository
 import com.shnapps.couple.core.engine.InstantCard
 import com.shnapps.couple.core.engine.InstantDeck
@@ -14,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -53,16 +56,27 @@ data class InstantPlayUiState(
     val gating: Boolean = false,
     /** The card written to land on, offered once a Hot or Extreme run is done (M7). */
     val aftercare: InstantCard? = null,
+    /**
+     * The free tier is out of cards for today (M9).
+     *
+     * Checked when a run *starts*, never mid-run: a couple who are already playing finish what they
+     * started, because a limit that stops somebody mid-card is an interruption rather than a limit.
+     */
+    val outOfCards: Boolean = false,
+    /** Everything is free until this moment, for the banner. Null outside the launch period. */
+    val freeUntilMillis: Long? = null,
+    /** Whether to say so now: at the start, and again at fourteen days and three (M9). */
+    val remindAboutFree: Boolean = false,
 ) {
     /** The tier is reachable while a card is up, and not while the screen is asking something. */
     val showsTierPicker: Boolean
         get() = card != null && refusing == null && offeringHotter == null &&
-            !runComplete && !stopped && !gating
+            !runComplete && !stopped && !gating && !outOfCards
 
     /** Whether a card is actually being played, which is the only time a stop means anything. */
     val playing: Boolean
         get() = card != null && refusing == null && offeringHotter == null &&
-            !runComplete && !stopped && !gating
+            !runComplete && !stopped && !gating && !outOfCards
 
     /** What the lane is called, for the card's own eyebrow. Null while dealing from all of them. */
     val laneLabel: String? get() = lanes.firstOrNull { it.id == lane }?.title
@@ -82,6 +96,8 @@ data class InstantPlayUiState(
 @HiltViewModel
 class InstantPlayViewModel @Inject constructor(
     private val instant: InstantPlayRepository,
+    private val allowances: Allowances,
+    private val launch: LaunchOffer,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(InstantPlayUiState())
@@ -109,6 +125,18 @@ class InstantPlayViewModel @Inject constructor(
     private var extremeConfirmed = false
 
     init {
+        // What the free tier has left, and whether the launch period is still on (M9). Checked on
+        // arrival, so a run that starts is a run that finishes.
+        viewModelScope.launch {
+            val allowance = allowances.allowance.first()
+            _uiState.update {
+                it.copy(
+                    outOfCards = !allowance.canDealCard,
+                    freeUntilMillis = allowance.everythingFreeUntilMillis,
+                    remindAboutFree = launch.shouldRemind,
+                )
+            }
+        }
         viewModelScope.launch {
             combine(instant.deck, instant.tier, instant.played, instant.packs, instant.lane, ::Deal)
                 .collect { deal ->
@@ -187,6 +215,11 @@ class InstantPlayViewModel @Inject constructor(
         seed = System.currentTimeMillis()
         position = 0
         _uiState.update { it.copy(runComplete = false, position = 0, card = card()) }
+        // Carrying on starts a new run, so the allowance is asked again here — and only here.
+        viewModelScope.launch {
+            val allowance = allowances.allowance.first()
+            _uiState.update { it.copy(outOfCards = !allowance.canDealCard) }
+        }
     }
 
     /** Not that one. Nothing is asked, and it is recorded as seen rather than as refused. */
@@ -222,7 +255,11 @@ class InstantPlayViewModel @Inject constructor(
         val card = _uiState.value.card ?: return
         val size = deck?.size ?: return
         dealt = dealt + card.id
-        viewModelScope.launch { instant.markPlayed(card, size) }
+        viewModelScope.launch {
+            instant.markPlayed(card, size)
+            // Counted after it was shown, never as a gate on showing it (M9).
+            allowances.cardDealt()
+        }
     }
 
     fun tooFar() {

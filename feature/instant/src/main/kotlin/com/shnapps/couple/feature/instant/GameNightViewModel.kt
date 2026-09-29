@@ -2,6 +2,7 @@ package com.shnapps.couple.feature.instant
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.shnapps.couple.core.data.entitlement.Allowances
 import com.shnapps.couple.core.data.instant.InstantPlayRepository
 import com.shnapps.couple.core.engine.GameNight
 import com.shnapps.couple.core.engine.NightCard
@@ -26,6 +27,8 @@ data class GameNightUiState(
     val planning: Boolean = false,
     /** The plan was asked for and the content could not fill it. Said, never shown as blank. */
     val nothingToPlan: Boolean = false,
+    /** One guided evening a week on the free plan, and this week's is used (M9). */
+    val outOfNights: Boolean = false,
 ) {
     val card: NightCard? get() = night?.cardAt(position)
     val total: Int get() = night?.size ?: 0
@@ -51,6 +54,7 @@ data class GameNightUiState(
 @HiltViewModel
 class GameNightViewModel @Inject constructor(
     private val instant: InstantPlayRepository,
+    private val allowances: Allowances,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GameNightUiState())
@@ -59,6 +63,12 @@ class GameNightViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             instant.tier.collect { tier -> _uiState.update { it.copy(tier = tier) } }
+        }
+        viewModelScope.launch {
+            allowances.allowance.collect { allowance ->
+                // Only ever while choosing: an evening already under way is never interrupted (M9).
+                _uiState.update { it.copy(outOfNights = it.night == null && !allowance.canPlanNight) }
+            }
         }
     }
 
@@ -69,6 +79,7 @@ class GameNightViewModel @Inject constructor(
         _uiState.update { it.copy(planning = true, nothingToPlan = false) }
         viewModelScope.launch {
             val night = instant.planNight(_uiState.value.length)
+            if (night.size > 0) allowances.nightPlanned()
             _uiState.update {
                 it.copy(
                     night = night.takeIf { planned -> planned.size > 0 },

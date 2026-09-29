@@ -61,6 +61,22 @@ class FakeAppPreferencesStore(initial: AppPreferences = AppPreferences()) : AppP
         )
     }
 
+    override suspend fun countCard(day: Long) {
+        val sameDay = state.value.cardDay == day
+        state.value = state.value.copy(
+            cardDay = day,
+            cardsDealt = if (sameDay) state.value.cardsDealt + 1 else 1,
+        )
+    }
+
+    override suspend fun countNight(week: Long) {
+        val sameWeek = state.value.nightWeek == week
+        state.value = state.value.copy(
+            nightWeek = week,
+            nightsPlanned = if (sameWeek) state.value.nightsPlanned + 1 else 1,
+        )
+    }
+
     override suspend fun setLimit(tag: LimitTag, answer: LimitAnswer?) {
         state.value = state.value.copy(
             limits = if (answer == null) state.value.limits - tag else state.value.limits + (tag to answer),

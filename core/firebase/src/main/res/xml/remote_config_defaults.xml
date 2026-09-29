@@ -68,4 +68,17 @@
         <key>weight_repetition_penalty</key>
         <value>3.0</value>
     </entry>
+    <!--
+      The launch period (M9). Free is the default, so a first launch before any fetch lands is
+      free rather than charging: the app must behave correctly with no network, and erring towards
+      free is the only direction that cannot take something away from a couple.
+    -->
+    <entry>
+        <key>everything_free</key>
+        <value>true</value>
+    </entry>
+    <entry>
+        <key>everything_free_until</key>
+        <value>0</value>
+    </entry>
 </defaultsMap>

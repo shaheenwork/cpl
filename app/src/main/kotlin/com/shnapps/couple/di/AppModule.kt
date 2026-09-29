@@ -6,7 +6,10 @@ import com.shnapps.couple.core.common.Clock
 import com.shnapps.couple.core.common.DefaultDispatcherProvider
 import com.shnapps.couple.core.common.DispatcherProvider
 import com.shnapps.couple.core.common.SystemClock
+import com.shnapps.couple.core.data.entitlement.LaunchConfig
 import com.shnapps.couple.core.firebase.FirebaseEnvironment
+import com.shnapps.couple.core.firebase.config.RemoteConfigKeys
+import com.shnapps.couple.core.firebase.config.RemoteConfigSource
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -48,4 +51,18 @@ object AppModule {
     @ApplicationScope
     fun provideApplicationScope(dispatchers: DispatcherProvider): CoroutineScope =
         CoroutineScope(SupervisorJob() + dispatchers.default)
+
+    /**
+     * The launch period's two values, read from Remote Config (M9).
+     *
+     * Here rather than in `:core:data`, which may not import `:core:firebase` (BUILD_PROMPT.md §4).
+     * The seam is one interface with two methods, so a test binds two numbers instead of a client.
+     */
+    @Provides
+    @Singleton
+    fun launchConfig(config: RemoteConfigSource): LaunchConfig = object : LaunchConfig {
+        override fun everythingFree(): Boolean = config.boolean(RemoteConfigKeys.EVERYTHING_FREE)
+
+        override fun freeUntilMillis(): Long = config.long(RemoteConfigKeys.EVERYTHING_FREE_UNTIL)
+    }
 }

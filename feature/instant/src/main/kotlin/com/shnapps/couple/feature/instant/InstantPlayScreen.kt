@@ -134,6 +134,16 @@ internal fun InstantPlayContent(
             state.gating -> {
                 { ExtremeGateDock(confirmed = false, onConfirm = onConfirmExtreme, onDown = onDeclineExtreme) }
             }
+            state.outOfCards -> {
+                {
+                    GlowButton(
+                        text = "Back",
+                        onClick = onBack,
+                        leadingIcon = AfterhoursIcons.Forward,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
             state.stopped -> {
                 { PausedDock(onGentle = onGentle, onEnd = onBack) }
             }
@@ -195,6 +205,14 @@ internal fun InstantPlayContent(
             when {
                 // The stop comes before everything, including a question the screen was asking.
                 state.stopped -> PausedContent()
+                // Out of cards for today. Said plainly, with what it would take, and never over a
+                // run that had already started (M9).
+                state.outOfCards -> AfterhoursCard(
+                    eyebrow = "That's today",
+                    title = "Thirty cards a day on the free plan.",
+                    body = "Every game and every tier is free, always — this is only how many " +
+                        "cards a day. Premium takes the count off for both of you.",
+                )
                 state.gating -> ExtremeGateContent(tier = state.tier)
                 state.refusing != null -> RefusalQuestion(onRefuse = onRefuse)
                 state.offeringHotter != null -> HotterQuestion(
