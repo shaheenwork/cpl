@@ -2,39 +2,6 @@
   "description": "The core games (BUILD_PROMPT.md section 11.2). Each is a declarative composition of primitives (section 11.1): the steps below are played every round, over prompts from content/prompts/<file>. A new game is an entry here and a prompt file, not new code. Players: ACTIVE is whose turn it is (it alternates in ALTERNATE games), OTHER the partner, EACH both in turn, TOGETHER both at once. Private answers stay hidden until a REVEAL.",
   "games": [
     {
-      "id": "SPIN",
-      "prefix": "spin",
-      "file": "spin.json",
-      "title": "Spin",
-      "tagline": "It decides. You just do it.",
-      "description": "Chance picks where, the card says what. Nobody has to ask for anything.",
-      "modes": [
-        "TOGETHER"
-      ],
-      "rounds": 6,
-      "turns": "ALTERNATE",
-      "scoring": "NONE",
-      "promptKinds": [],
-      "promptOptions": [
-        4,
-        4
-      ],
-      "minPrompts": 19,
-      "steps": [
-        {
-          "primitive": "DRAW",
-          "who": "TOGETHER",
-          "text": "PROMPT",
-          "options": "PROMPT"
-        },
-        {
-          "primitive": "CHALLENGE",
-          "who": "ACTIVE",
-          "text": "PROMPT"
-        }
-      ]
-    },
-    {
       "id": "DIRTY_DICE",
       "prefix": "dice",
       "file": "dirty-dice.json",
@@ -119,42 +86,6 @@
       ]
     },
     {
-      "id": "RATE_IT",
-      "prefix": "rate",
-      "file": "rate-it.json",
-      "title": "Rate It",
-      "tagline": "How much, without saying a number.",
-      "description": "You each set a dial in private. It shows how far apart you were, never who was higher.",
-      "modes": [
-        "TOGETHER"
-      ],
-      "rounds": 6,
-      "turns": "SHARED",
-      "scoring": "MATCHES",
-      "promptKinds": [],
-      "promptOptions": [
-        0,
-        0
-      ],
-      "minPrompts": 19,
-      "steps": [
-        {
-          "primitive": "DIAL",
-          "who": "EACH",
-          "private": true,
-          "text": "PROMPT"
-        },
-        {
-          "primitive": "REVEAL",
-          "who": "TOGETHER",
-          "of": [
-            0
-          ],
-          "outcome": "DISTANCE"
-        }
-      ]
-    },
-    {
       "id": "THREE_MINUTES",
       "prefix": "three",
       "file": "three-minutes.json",
@@ -225,48 +156,6 @@
             0
           ],
           "outcome": "MATCH"
-        }
-      ]
-    },
-    {
-      "id": "STRIP_ROUND",
-      "prefix": "strip",
-      "file": "strip-round.json",
-      "title": "Strip Round",
-      "tagline": "Guess wrong, lose a layer.",
-      "description": "You both answer the same question about each other. Whoever guessed wrong takes something off.",
-      "modes": [
-        "TOGETHER"
-      ],
-      "rounds": 6,
-      "turns": "SHARED",
-      "scoring": "MATCHES",
-      "promptKinds": [],
-      "promptOptions": [
-        2,
-        2
-      ],
-      "minPrompts": 19,
-      "steps": [
-        {
-          "primitive": "CHOICE",
-          "who": "EACH",
-          "private": true,
-          "text": "PROMPT",
-          "options": "PROMPT"
-        },
-        {
-          "primitive": "REVEAL",
-          "who": "TOGETHER",
-          "of": [
-            0
-          ],
-          "outcome": "MATCH"
-        },
-        {
-          "primitive": "CHALLENGE",
-          "who": "TOGETHER",
-          "text": "Didn't match? One layer each."
         }
       ]
     },
@@ -345,59 +234,6 @@
       ]
     },
     {
-      "id": "EARN_IT",
-      "prefix": "earn",
-      "file": "earn-it.json",
-      "title": "Earn It",
-      "tagline": "Guess what they want. Get it right, give it.",
-      "description": "One answers in private, the other guesses. Right, and it happens; wrong, and they wait.",
-      "modes": [
-        "TOGETHER"
-      ],
-      "rounds": 6,
-      "turns": "ALTERNATE",
-      "scoring": "POINTS",
-      "promptKinds": [],
-      "promptOptions": [
-        4,
-        4
-      ],
-      "minPrompts": 19,
-      "steps": [
-        {
-          "primitive": "CHOICE",
-          "who": "ACTIVE",
-          "private": true,
-          "text": "PROMPT",
-          "options": "PROMPT"
-        },
-        {
-          "primitive": "PREDICTION",
-          "who": "OTHER",
-          "private": true,
-          "text": "What did they pick?",
-          "options": "PROMPT",
-          "of": [
-            0
-          ]
-        },
-        {
-          "primitive": "REVEAL",
-          "who": "TOGETHER",
-          "of": [
-            0,
-            1
-          ],
-          "outcome": "PREDICTED"
-        },
-        {
-          "primitive": "CHALLENGE",
-          "who": "OTHER",
-          "text": "Right? Do it now. Wrong? They decide when."
-        }
-      ]
-    },
-    {
       "id": "DONT_MOVE",
       "prefix": "still",
       "file": "dont-move.json",
@@ -445,78 +281,6 @@
             2
           ],
           "outcome": "AGREEMENT"
-        }
-      ]
-    },
-    {
-      "id": "BLIND_TASTE",
-      "prefix": "blind",
-      "file": "blind-taste.json",
-      "title": "Blind Taste",
-      "tagline": "They can't see. They still have to guess.",
-      "description": "A blindfold, something to work out, and a question at the end.",
-      "modes": [
-        "TOGETHER"
-      ],
-      "rounds": 6,
-      "turns": "ALTERNATE",
-      "scoring": "NONE",
-      "promptKinds": [],
-      "promptOptions": [
-        0,
-        0
-      ],
-      "minPrompts": 19,
-      "steps": [
-        {
-          "primitive": "CHALLENGE",
-          "who": "ACTIVE",
-          "text": "PROMPT"
-        },
-        {
-          "primitive": "TIMER",
-          "who": "ACTIVE",
-          "seconds": "PROMPT"
-        },
-        {
-          "primitive": "QUESTION",
-          "who": "OTHER",
-          "text": "What was it?",
-          "answer": "SPOKEN"
-        }
-      ]
-    },
-    {
-      "id": "SAY_IT_OUT_LOUD",
-      "prefix": "said",
-      "file": "say-it-out-loud.json",
-      "title": "Say It Out Loud",
-      "tagline": "Record it. Hand the phone over.",
-      "description": "You answer by recording it, they listen, and the recording never leaves this phone.",
-      "modes": [
-        "TOGETHER"
-      ],
-      "rounds": 6,
-      "turns": "ALTERNATE",
-      "scoring": "NONE",
-      "promptKinds": [],
-      "promptOptions": [
-        0,
-        0
-      ],
-      "minPrompts": 19,
-      "steps": [
-        {
-          "primitive": "MEDIA",
-          "who": "ACTIVE",
-          "private": true,
-          "text": "PROMPT",
-          "media": "VOICE"
-        },
-        {
-          "primitive": "REACTION",
-          "who": "OTHER",
-          "text": "How was that to hear?"
         }
       ]
     },
@@ -630,94 +394,6 @@
             0
           ],
           "outcome": "MATCH"
-        }
-      ]
-    },
-    {
-      "id": "TWO_TRUTHS_AND_A_LIE",
-      "prefix": "twotruths",
-      "file": "two-truths-and-a-lie.json",
-      "title": "Two Truths & A Lie",
-      "tagline": "Three stories. One of them isn't true.",
-      "description": "Write three things about the topic — two true, one invented. Your partner finds the lie.",
-      "modes": [
-        "TOGETHER"
-      ],
-      "rounds": 6,
-      "turns": "ALTERNATE",
-      "scoring": "POINTS",
-      "promptKinds": [],
-      "promptOptions": [
-        0,
-        0
-      ],
-      "minPrompts": 40,
-      "steps": [
-        {
-          "primitive": "QUESTION",
-          "who": "ACTIVE",
-          "private": true,
-          "text": "PROMPT",
-          "answer": "STATEMENTS"
-        },
-        {
-          "primitive": "CHOICE",
-          "who": "OTHER",
-          "private": false,
-          "text": "Which one is the lie?",
-          "options": "STATEMENTS",
-          "of": [
-            0
-          ]
-        },
-        {
-          "primitive": "REVEAL",
-          "who": "TOGETHER",
-          "of": [
-            0,
-            1
-          ],
-          "outcome": "LIE_FOUND"
-        }
-      ]
-    },
-    {
-      "id": "ME_OR_YOU",
-      "prefix": "meoryou",
-      "file": "me-or-you.json",
-      "title": "Me or You",
-      "tagline": "Who's more likely? Point in secret.",
-      "description": "You each say who is more likely — you or them — then see whether you agree.",
-      "modes": [
-        "TOGETHER"
-      ],
-      "rounds": 8,
-      "turns": "SHARED",
-      "scoring": "MATCHES",
-      "promptKinds": [],
-      "promptOptions": [
-        0,
-        0
-      ],
-      "minPrompts": 40,
-      "steps": [
-        {
-          "primitive": "VOTE",
-          "who": "EACH",
-          "private": true,
-          "text": "PROMPT",
-          "options": [
-            "ME",
-            "YOU"
-          ]
-        },
-        {
-          "primitive": "REVEAL",
-          "who": "TOGETHER",
-          "of": [
-            0
-          ],
-          "outcome": "AGREEMENT"
         }
       ]
     },
@@ -865,39 +541,6 @@
             2
           ],
           "outcome": "WINNER"
-        }
-      ]
-    },
-    {
-      "id": "DEEP_TALK",
-      "prefix": "deeptalk",
-      "file": "deep-talk-game.json",
-      "title": "Deep Talk",
-      "tagline": "Questions worth putting the phone down for.",
-      "description": "One question at a time. Take as long as it takes.",
-      "modes": [
-        "TOGETHER"
-      ],
-      "rounds": 6,
-      "turns": "SHARED",
-      "scoring": "NONE",
-      "promptKinds": [],
-      "promptOptions": [
-        0,
-        0
-      ],
-      "minPrompts": 40,
-      "steps": [
-        {
-          "primitive": "QUESTION",
-          "who": "TOGETHER",
-          "text": "PROMPT",
-          "answer": "SPOKEN"
-        },
-        {
-          "primitive": "REACTION",
-          "who": "TOGETHER",
-          "text": "How was that one?"
         }
       ]
     }

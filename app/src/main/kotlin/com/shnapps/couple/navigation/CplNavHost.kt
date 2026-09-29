@@ -8,7 +8,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.shnapps.couple.core.designsystem.gallery.ComponentGallery
 import com.shnapps.couple.core.model.AccountOffer
-import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.navigation.Route
 import com.shnapps.couple.core.security.BiometricAuthenticator
 import com.shnapps.couple.debug.CONTENT_INSPECTOR_AVAILABLE
@@ -18,25 +17,18 @@ import com.shnapps.couple.feature.applock.AppLockSetupScreen
 import com.shnapps.couple.feature.auth.AuthScreen
 import com.shnapps.couple.feature.auth.SignOutViewModel
 import com.shnapps.couple.feature.boundaries.BoundariesScreen
-import com.shnapps.couple.feature.discovery.MutualDiscoveryScreen
 import com.shnapps.couple.feature.games.DealtGameScreen
 import com.shnapps.couple.feature.games.GameScreen
 import com.shnapps.couple.feature.home.HomeActions
 import com.shnapps.couple.feature.home.HomeScreen
 import com.shnapps.couple.feature.instant.InstantPlayScreen
 import com.shnapps.couple.feature.instant.StartScreen
-import com.shnapps.couple.feature.memories.MemoriesScreen
-import com.shnapps.couple.feature.memories.SaveMemoryScreen
-import com.shnapps.couple.feature.night.BuildNightScreen
-import com.shnapps.couple.feature.night.NightScreen
 import com.shnapps.couple.feature.onboarding.AgeGateScreen
 import com.shnapps.couple.feature.onboarding.SplashScreen
 import com.shnapps.couple.feature.onboarding.StartDestination
 import com.shnapps.couple.feature.onboarding.WelcomeScreen
 import com.shnapps.couple.feature.pairing.PairingScreen
 import com.shnapps.couple.feature.paywall.PaywallScreen
-import com.shnapps.couple.feature.preferences.PreferenceDiscoveryScreen
-import com.shnapps.couple.feature.send.ArcScreen
 import com.shnapps.couple.feature.send.LaterScreen
 import com.shnapps.couple.feature.send.SendScreen
 import com.shnapps.couple.feature.settings.DeleteAccountScreen
@@ -185,62 +177,8 @@ fun CplNavHost(
             )
         }
 
-        composable<Route.PreferenceDiscovery> {
-            PreferenceDiscoveryScreen(
-                onFinished = {
-                    // Reached from Home: go back to it. On first run Home is not on the stack
-                    // yet, and the journey continues into mutual discovery (§14.1).
-                    if (!navController.popBackStack(Route.Home, inclusive = false)) {
-                        navController.navigate(Route.MutualDiscovery) {
-                            popUpTo(Route.PreferenceDiscovery) { inclusive = true }
-                        }
-                    }
-                },
-            )
-        }
-
-        composable<Route.MutualDiscovery> {
-            MutualDiscoveryScreen(
-                // Every reveal ends with one tap into a night built around it (§14.7).
-                onBuildNight = { itemId -> navController.navigate(Route.BuildNight(focus = itemId)) },
-                onDone = {
-                    if (!navController.popBackStack(Route.Home, inclusive = false)) {
-                        navController.navigate(Route.Home) {
-                            popUpTo(Route.MutualDiscovery) { inclusive = true }
-                        }
-                    }
-                },
-            )
-        }
-
         composable<Route.Boundaries> {
             BoundariesScreen(onBack = { navController.popBackStack() })
-        }
-
-        composable<Route.BuildNight> {
-            BuildNightScreen(
-                onPaywall = { gate -> navController.navigate(Route.Paywall(gate.name)) },
-                // The builder has done its job once a night exists: back from the night is home.
-                onBuilt = { experienceId ->
-                    navController.navigate(Route.Night(experienceId)) {
-                        popUpTo<Route.BuildNight> { inclusive = true }
-                    }
-                },
-                onOpenNight = { experienceId -> navController.navigate(Route.Night(experienceId)) },
-                onBack = { navController.popBackStack() },
-            )
-        }
-
-        composable<Route.Night> {
-            NightScreen(
-                onHome = {
-                    if (!navController.popBackStack(Route.Home, inclusive = false)) {
-                        navController.navigate(Route.Home) { popUpTo(0) { inclusive = true } }
-                    }
-                },
-                onAdjustLimits = { navController.navigate(Route.Boundaries) },
-                onKeepIt = { experienceId -> navController.navigate(Route.SaveMemory(experienceId)) },
-            )
         }
 
         composable<Route.Send> {
@@ -258,22 +196,6 @@ fun CplNavHost(
             PaywallScreen(onBack = { navController.popBackStack() })
         }
 
-        composable<Route.Memories> {
-            MemoriesScreen(onBack = { navController.popBackStack() })
-        }
-
-        composable<Route.SaveMemory> {
-            SaveMemoryScreen(
-                // Kept, and then the library, so they see it land — with the night behind them.
-                onSaved = {
-                    navController.navigate(Route.Memories) {
-                        popUpTo(Route.Home) { inclusive = false }
-                    }
-                },
-                onBack = { navController.popBackStack() },
-            )
-        }
-
         composable<Route.Settings> {
             val signOutViewModel: SignOutViewModel = hiltViewModel()
             val leave: () -> Unit = {
@@ -283,11 +205,9 @@ fun CplNavHost(
             }
             SettingsScreen(
                 routes = SettingsRoutes(
-                    onPreferences = { navController.navigate(Route.PreferenceDiscovery) },
                     onBoundaries = { navController.navigate(Route.Boundaries) },
                     onNotifications = { navController.navigate(Route.NotificationSettings) },
                     onAppLock = { navController.navigate(Route.AppLockSetup) },
-                    onMemories = { navController.navigate(Route.Memories) },
                     onPremium = { navController.navigate(Route.Paywall()) },
                     onDeleteAccount = { navController.navigate(Route.DeleteAccount) },
                     onSignOut = leave,
@@ -308,14 +228,6 @@ fun CplNavHost(
 
         composable<Route.NotificationSettings> {
             NotificationSettingsScreen(onBack = { navController.popBackStack() })
-        }
-
-        composable<Route.Arc> {
-            ArcScreen(
-                onNight = { experienceId -> navController.navigate(Route.Night(experienceId)) },
-                onPaywall = { gate -> navController.navigate(Route.Paywall(gate.name)) },
-                onBack = { navController.popBackStack() },
-            )
         }
 
         composable<Route.Game> {
@@ -349,12 +261,6 @@ fun CplNavHost(
     }
 }
 
-/** The player for what is under way: a night's, or a game's. */
-private fun experienceRoute(experienceId: String, type: ExperienceType): Any = when (type) {
-    ExperienceType.NIGHT -> Route.Night(experienceId)
-    ExperienceType.GAME -> Route.Game(experienceId)
-}
-
 private fun StartDestination.toRoute(): Any = when (this) {
     StartDestination.Auth -> Route.Auth()
     StartDestination.Start -> Route.Start
@@ -378,19 +284,14 @@ private fun Home(navController: NavHostController) {
     HomeScreen(
         actions = HomeActions(
             onCards = { navController.navigate(Route.InstantPlay) },
-            onPlan = { navController.navigate(Route.BuildNight()) },
-            onExpress = { navController.navigate(Route.BuildNight(express = true)) },
             onApart = { navController.navigate(Route.Send) },
-            onPlanForThem = { navController.navigate(Route.BuildNight(forPartner = true)) },
-            onMemories = { navController.navigate(Route.Memories) },
-            onCuriosities = { navController.navigate(Route.PreferenceDiscovery) },
             onSettings = { navController.navigate(Route.Settings) },
             onPairPartner = { navController.navigate(Route.CoupleSetup) },
             // An account, asked for where it buys something and never before (§6).
             onAccount = { offer -> navController.navigate(Route.Auth(offer.name)) },
             onPaywall = { gate -> navController.navigate(Route.Paywall(gate.name)) },
             onDealtGame = { gameId -> navController.navigate(Route.DealtGame(gameId)) },
-            onOpen = { experienceId, type -> navController.navigate(experienceRoute(experienceId, type)) },
+            onOpen = { experienceId, _ -> navController.navigate(Route.Game(experienceId)) },
             onGallery = { navController.navigate(Route.DesignGallery) },
             onInspector = if (CONTENT_INSPECTOR_AVAILABLE) {
                 { navController.navigate(Route.ContentInspector) }

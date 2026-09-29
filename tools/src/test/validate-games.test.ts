@@ -52,12 +52,12 @@ test('every game ships with a playable definition and enough prompts', () => {
 });
 
 test('a prompt is held to the same safety standard as an item', () => {
-  const prohibited = introducedBy(withPrompt('ME_OR_YOU', 0, (prompt) => {
+  const prohibited = introducedBy(withPrompt('WHO_KNOWS_WHO', 0, (prompt) => {
     prompt.text = `${prompt.text} Invite a third.`;
   }));
   assert.ok(prohibited.some((line) => line.includes('prohibited term /third/')));
 
-  const uncovered = introducedBy(withPrompt('ME_OR_YOU', 0, (prompt) => {
+  const uncovered = introducedBy(withPrompt('WHO_KNOWS_WHO', 0, (prompt) => {
     prompt.text = `${prompt.text} Blindfold on.`;
   }));
   assert.ok(uncovered.some((line) => line.includes('mentions /blindfold')));
@@ -76,7 +76,7 @@ test('a prompt must fit its game: options, seconds and kind', () => {
   }));
   assert.ok(tooFew.some((line) => line.includes('needs 2..2 options')));
 
-  const timed = introducedBy(withPrompt('DEEP_TALK', 0, (prompt) => {
+  const timed = introducedBy(withPrompt('BUILD_THE_FANTASY', 0, (prompt) => {
     prompt.seconds = 60;
   }));
   assert.ok(timed.some((line) => line.includes('seconds must be null')));
@@ -93,13 +93,13 @@ test('a prompt must fit its game: options, seconds and kind', () => {
 });
 
 test('a prompt id must carry its game prefix and be unique across items and prompts', () => {
-  const misnamed = introducedBy(withPrompt('ME_OR_YOU', 0, (prompt) => {
+  const misnamed = introducedBy(withPrompt('WHO_KNOWS_WHO', 0, (prompt) => {
     prompt.id = 'wyr_stray_prompt';
   }));
-  assert.ok(misnamed.some((line) => line.includes('id must start with "meoryou_"')));
+  assert.ok(misnamed.some((line) => line.includes('id must start with "knows_"')));
 
   const itemId = [...repo.itemsByPack.values()][0][0] as { id: string };
-  const clash = introducedBy(withPrompt('ME_OR_YOU', 0, (prompt) => {
+  const clash = introducedBy(withPrompt('WHO_KNOWS_WHO', 0, (prompt) => {
     prompt.id = itemId.id;
   }));
   assert.ok(clash.some((line) => line.includes('duplicate id')));
@@ -118,8 +118,8 @@ test('the same prompt twice is refused, but a shared stem with other options is 
 });
 
 test('a game keeps its minimum per level, and draft prompts do not count', () => {
-  const noWild = prompts('DEEP_TALK').filter((prompt) => prompt.intensity !== 5);
-  assert.ok(introducedBy(withPrompts('DEEP_TALK', noWild)).some((line) => line.includes('DEEP_TALK: only 0 prompts at intensity 5')));
+  const noWild = prompts('BUILD_THE_FANTASY').filter((prompt) => prompt.intensity !== 5);
+  assert.ok(introducedBy(withPrompts('BUILD_THE_FANTASY', noWild)).some((line) => line.includes('BUILD_THE_FANTASY: only 0 prompts at intensity 5')));
 
   const drafts = prompts('TRUTH_OR_DARE').map((prompt) =>
     prompt.kind === 'DARE' && prompt.intensity === 4 ? { ...prompt, status: 'draft' } : prompt,
@@ -148,7 +148,7 @@ test('nobody predicts their own answer', () => {
 });
 
 test('a reveal needs an outcome and answers to reveal', () => {
-  const noOutcome = game('ME_OR_YOU');
+  const noOutcome = game('WHO_KNOWS_WHO');
   const reveal = noOutcome.steps.findIndex((step) => step.primitive === 'REVEAL');
   delete noOutcome.steps[reveal].outcome;
   assert.ok(introducedBy(withGame(noOutcome)).some((line) => line.includes('outcome must be one of')));
@@ -167,17 +167,17 @@ test('a game with prompt kinds must say which choice picks the kind', () => {
 });
 
 test('a game that never shows its prompt, or scores without a reveal, is refused', () => {
-  const silent = game('DEEP_TALK');
+  const silent = game('BUILD_THE_FANTASY');
   silent.steps = silent.steps.map((step) => ({ ...step, text: step.text === 'PROMPT' ? 'Talk.' : step.text }));
   assert.ok(introducedBy(withGame(silent)).some((line) => line.includes('no step shows the round\'s prompt')));
 
-  const unscored = game('ME_OR_YOU');
+  const unscored = game('WHO_KNOWS_WHO');
   unscored.steps = unscored.steps.filter((step) => step.primitive !== 'REVEAL');
   assert.ok(introducedBy(withGame(unscored)).some((line) => line.includes('a scored game needs a REVEAL')));
 });
 
 test('unknown primitives, audiences and outcomes are refused', () => {
-  const broken = game('ME_OR_YOU');
+  const broken = game('WHO_KNOWS_WHO');
   broken.steps[0].primitive = 'ROULETTE';
   broken.steps[0].who = 'EVERYONE';
   const problems = introducedBy(withGame(broken));

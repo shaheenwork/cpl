@@ -51,12 +51,6 @@ object Route {
     @Serializable
     data object CoupleSetup
 
-    @Serializable
-    data object PreferenceDiscovery
-
-    @Serializable
-    data object MutualDiscovery
-
     // --- Main ---
 
     @Serializable
@@ -66,21 +60,6 @@ object Route {
     @Serializable
     data object Boundaries
 
-    /**
-     * Build Our Night (§14.5). [focus] is a revealed mutual match to build it around, from
-     * "Build a night around this" (§14.7), or null. [express] is "We have 15 minutes": one tap
-     * and at most one choice, rather than five dials (§14.5).
-     */
-    @Serializable
-    data class BuildNight(
-        val focus: String? = null,
-        val express: Boolean = false,
-        /** Planned for the partner, who finds it later (§2.5 #2): the planner never sees it. */
-        val forPartner: Boolean = false,
-        /** Built for being apart rather than in the same room (§13). */
-        val apart: Boolean = false,
-    )
-
     /** Send something, and what they have sent back (§13): voice notes and photos. */
     @Serializable
     data object Send
@@ -88,10 +67,6 @@ object Route {
     /** Something left for later (§13): a surprise, an "Open when…", a countdown. */
     @Serializable
     data object Later
-
-    /** A few days of this (§13): one, three, seven or fourteen, a night each. */
-    @Serializable
-    data object Arc
 
     /** Everything about this account and this couple, in one place (§14.9). */
     @Serializable
@@ -111,18 +86,6 @@ object Route {
      */
     @Serializable
     data class Paywall(val gate: String? = null)
-
-    /** The couple's own library of the nights they kept (§14.8). */
-    @Serializable
-    data object Memories
-
-    /** Keeping the night just played, in their own words (§14.8). */
-    @Serializable
-    data class SaveMemory(val experienceId: String)
-
-    /** A night being played — or waiting to be — on either partner's phone (§14.6). */
-    @Serializable
-    data class Night(val experienceId: String)
 
     /**
      * A game dealt on this phone: no session, no server, nobody waiting. What a phone with no
