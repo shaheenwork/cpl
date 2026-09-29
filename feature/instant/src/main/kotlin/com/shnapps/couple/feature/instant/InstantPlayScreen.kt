@@ -30,8 +30,13 @@ import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.ui.AfterhoursCard
 import com.shnapps.couple.core.ui.BarAction
 import com.shnapps.couple.core.ui.Dealt
+import com.shnapps.couple.core.ui.ExtremeGateContent
+import com.shnapps.couple.core.ui.ExtremeGateDock
 import com.shnapps.couple.core.ui.LanePicker
+import com.shnapps.couple.core.ui.PausedContent
+import com.shnapps.couple.core.ui.PausedDock
 import com.shnapps.couple.core.ui.RunProgress
+import com.shnapps.couple.core.ui.SafeWordAction
 import com.shnapps.couple.core.ui.ScreenScaffold
 import com.shnapps.couple.core.ui.SecureScreen
 import com.shnapps.couple.core.ui.TierPicker
@@ -69,6 +74,10 @@ fun InstantPlayScreen(
         onKeepGoing = viewModel::keepGoing,
         onKeepThis = onKeepThis,
         onLane = viewModel::setLane,
+        onStop = viewModel::stop,
+        onGentle = viewModel::carryOnGently,
+        onConfirmExtreme = viewModel::confirmExtreme,
+        onDeclineExtreme = viewModel::declineExtreme,
     )
 }
 
@@ -89,17 +98,27 @@ internal fun InstantPlayContent(
     onKeepGoing: () -> Unit,
     onKeepThis: () -> Unit,
     onLane: (String?) -> Unit = {},
+    onStop: () -> Unit = {},
+    onGentle: () -> Unit = {},
+    onConfirmExtreme: () -> Unit = {},
+    onDeclineExtreme: () -> Unit = {},
 ) {
     // Everything on this screen takes the run's tier: the card's rim, the primary action,
     // the eyebrow (DESIGN_PROMPT.md §4.4). One setting, and the whole room changes.
     ProvideTier(state.tier) {
-        val playing = state.card != null && state.refusing == null &&
-            state.offeringHotter == null && !state.runComplete
+        val playing = state.playing
 
         // Typed up front rather than inline: a `when` whose branches are composable lambdas
         // needs the expected type to be stated somewhere, and a slot is easier to read here.
         val trailing: (@Composable () -> Unit)? = if (playing) {
-            { BarAction(label = "Too far", icon = AfterhoursIcons.Shield, onClick = onTooFar) }
+            {
+                // Two different things, and the difference is the point: "Too far" is about this
+                // card, "Stop" is about the evening (M7).
+                Row {
+                    BarAction(label = "Too far", icon = AfterhoursIcons.Skip, onClick = onTooFar)
+                    SafeWordAction(onStop = onStop)
+                }
+            }
         } else {
             null
         }
@@ -112,6 +131,12 @@ internal fun InstantPlayContent(
         }
         val dock: (@Composable ColumnScope.() -> Unit)? = when {
             state.refusing != null || state.offeringHotter != null -> null
+            state.gating -> {
+                { ExtremeGateDock(confirmed = false, onConfirm = onConfirmExtreme, onDown = onDeclineExtreme) }
+            }
+            state.stopped -> {
+                { PausedDock(onGentle = onGentle, onEnd = onBack) }
+            }
             state.runComplete -> {
                 {
                     GlowButton(
@@ -168,13 +193,16 @@ internal fun InstantPlayContent(
             centred = true,
         ) {
             when {
+                // The stop comes before everything, including a question the screen was asking.
+                state.stopped -> PausedContent()
+                state.gating -> ExtremeGateContent(tier = state.tier)
                 state.refusing != null -> RefusalQuestion(onRefuse = onRefuse)
                 state.offeringHotter != null -> HotterQuestion(
                     next = state.offeringHotter,
                     onTurnUp = onTurnUp,
                     onKeep = onKeepHeat,
                 )
-                state.runComplete -> RunComplete(played = state.played)
+                state.runComplete -> RunComplete(played = state.played, aftercare = state.aftercare)
                 state.card != null -> Playing(
                     card = state.card,
                     tier = state.tier,
@@ -263,7 +291,7 @@ private fun Dealing() {
  * anything, so it is the first moment one is offered (REDESIGN_PROMPT.md §4.2).
  */
 @Composable
-private fun RunComplete(played: Int) {
+private fun RunComplete(played: Int, aftercare: InstantCard?) {
     AfterhoursCard(
         eyebrow = "That's $played",
         title = "Stop here, or keep going?",
@@ -271,9 +299,19 @@ private fun RunComplete(played: Int) {
         meta = "An account keeps what you saved and lets you play when you're apart. " +
             "What you've said no to comes with you.",
     )
+
+    // After a Hot or Extreme run, something written to land on (M7). Offered rather than counted
+    // as a card: the run is over, and this is not a seventh of six.
+    aftercare?.let { card ->
+        AfterhoursCard(
+            eyebrow = "Before you put it down",
+            title = card.title,
+            body = card.body,
+            lit = false,
+        )
+    }
 }
 
-/** Seconds as a clock reads them. */
 /** Two taps, and nobody is told: the whole of how a limit is set now. */
 @Composable
 private fun RefusalQuestion(onRefuse: (Boolean) -> Unit) {

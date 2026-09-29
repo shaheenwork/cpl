@@ -42,10 +42,27 @@ data class InstantPlayUiState(
     val timer: CardTimer? = null,
     /** The run is over. Nothing ends the evening — it offers to carry on. */
     val runComplete: Boolean = false,
+    /** The safe word was used. Everything stops until they say which way on (M7). */
+    val stopped: Boolean = false,
+    /**
+     * Extreme was chosen and has not been confirmed for this session yet (M7).
+     *
+     * Asked once a session rather than once ever: "we are both up for this tonight" is a different
+     * statement from having said so in March.
+     */
+    val gating: Boolean = false,
+    /** The card written to land on, offered once a Hot or Extreme run is done (M7). */
+    val aftercare: InstantCard? = null,
 ) {
-    /** The heat is reachable while a card is up, and not while the screen is asking something. */
+    /** The tier is reachable while a card is up, and not while the screen is asking something. */
     val showsTierPicker: Boolean
-        get() = card != null && refusing == null && offeringHotter == null && !runComplete
+        get() = card != null && refusing == null && offeringHotter == null &&
+            !runComplete && !stopped && !gating
+
+    /** Whether a card is actually being played, which is the only time a stop means anything. */
+    val playing: Boolean
+        get() = card != null && refusing == null && offeringHotter == null &&
+            !runComplete && !stopped && !gating
 
     /** What the lane is called, for the card's own eyebrow. Null while dealing from all of them. */
     val laneLabel: String? get() = lanes.firstOrNull { it.id == lane }?.title
@@ -88,6 +105,9 @@ class InstantPlayViewModel @Inject constructor(
     /** Everything this phone has ever been dealt, as the deck last saw it. */
     private var played = emptySet<String>()
 
+    /** Whether the top tier has been confirmed for this session (M7). */
+    private var extremeConfirmed = false
+
     init {
         viewModelScope.launch {
             combine(instant.deck, instant.tier, instant.played, instant.packs, instant.lane, ::Deal)
@@ -101,6 +121,7 @@ class InstantPlayViewModel @Inject constructor(
                             lanes = deal.lanes,
                             lane = deal.lane,
                             loading = false,
+                            gating = deal.tier == Intensity.EXTREME && !extremeConfirmed,
                         )
                     }
                 }
@@ -208,6 +229,35 @@ class InstantPlayViewModel @Inject constructor(
         _uiState.update { it.copy(refusing = it.card) }
     }
 
+    /**
+     * The safe word. Stops everything, asks nothing (M7).
+     *
+     * No confirmation: a couple who reach for this need it now, and the app arguing with the one
+     * control it promised would not is worse than a mis-tap.
+     */
+    fun stop() {
+        stopTimer()
+        _uiState.update { it.copy(stopped = true, refusing = null, offeringHotter = null, streak = 0) }
+    }
+
+    /** From a stop: right down to the gentlest tier, and carry on. */
+    fun carryOnGently() {
+        _uiState.update { it.copy(stopped = false, streak = 0) }
+        viewModelScope.launch { instant.setTier(Intensity.MILD) }
+    }
+
+    /** Both of them said yes to the top tier, for this session. */
+    fun confirmExtreme() {
+        extremeConfirmed = true
+        _uiState.update { it.copy(gating = false) }
+    }
+
+    /** Not tonight. The tier comes down rather than the screen simply closing. */
+    fun declineExtreme() {
+        _uiState.update { it.copy(gating = false) }
+        viewModelScope.launch { instant.setTier(Intensity.HOT) }
+    }
+
     fun dismissSheet() {
         _uiState.update { it.copy(refusing = null, offeringHotter = null) }
     }
@@ -243,13 +293,26 @@ class InstantPlayViewModel @Inject constructor(
         stopTimer()
         _uiState.update {
             val place = it.position + 1
+            val over = place >= RUN_LENGTH
             it.copy(
                 card = card(),
                 played = it.played + 1,
                 position = place,
-                runComplete = place >= RUN_LENGTH,
+                runComplete = over,
+                // The brief asks for an aftercare card after any Hot or Extreme session. A run that
+                // reached that far has an end, so it is offered here rather than left to anyone to
+                // think of (M7).
+                aftercare = if (over && it.tier.level >= Intensity.HOT.level) aftercareCard() else null,
             )
         }
+    }
+
+    /** Something written to land on, inside the tier and not already had. */
+    private fun aftercareCard(): InstantCard? {
+        val deck = deck ?: return null
+        val tier = _uiState.value.tier
+        val care = deck.cards.filter { it.aftercare && tier.allows(it.intensity) }
+        return care.firstOrNull { it.id !in played + dealt } ?: care.firstOrNull()
     }
 
     /** The card for where the run is now: at the tier, and one they have not had (D-124). */

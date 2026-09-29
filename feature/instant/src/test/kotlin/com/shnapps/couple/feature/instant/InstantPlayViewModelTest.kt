@@ -278,6 +278,107 @@ class InstantPlayViewModelTest {
         assertThat(viewModel.uiState.value.loading).isFalse()
     }
 
+    @Test
+    fun `the safe word stops everything and asks nothing`() = runTest {
+        val viewModel = viewModel()
+        viewModel.startTimer()
+
+        viewModel.stop()
+
+        assertThat(viewModel.uiState.value.stopped).isTrue()
+        // No confirmation, and nothing left running: a couple who reach for this need it now.
+        assertThat(viewModel.uiState.value.timer).isNull()
+        assertThat(viewModel.uiState.value.playing).isFalse()
+        assertThat(viewModel.uiState.value.showsTierPicker).isFalse()
+    }
+
+    @Test
+    fun `a stop can be carried on from, at the gentlest tier`() = runTest {
+        val viewModel = viewModel()
+        viewModel.stop()
+
+        viewModel.carryOnGently()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.stopped).isFalse()
+        assertThat(instant.tierSet).isEqualTo(Intensity.MILD)
+    }
+
+    @Test
+    fun `the stop does not refuse the card it interrupted`() = runTest {
+        val viewModel = viewModel()
+        viewModel.tooFar()
+
+        viewModel.stop()
+        advanceUntilIdle()
+
+        // Stopping is not a judgement on anything: it is a stop.
+        assertThat(instant.refusals).isEmpty()
+        assertThat(viewModel.uiState.value.refusing).isNull()
+    }
+
+    @Test
+    fun `the top tier is confirmed once a session, and declining turns it down`() = runTest {
+        instant.tierState.value = Intensity.EXTREME
+        val viewModel = viewModel()
+
+        assertThat(viewModel.uiState.value.gating).isTrue()
+        assertThat(viewModel.uiState.value.playing).isFalse()
+
+        viewModel.confirmExtreme()
+
+        assertThat(viewModel.uiState.value.gating).isFalse()
+        assertThat(viewModel.uiState.value.playing).isTrue()
+    }
+
+    @Test
+    fun `declining the top tier comes down rather than closing the screen`() = runTest {
+        instant.tierState.value = Intensity.EXTREME
+        val viewModel = viewModel()
+
+        viewModel.declineExtreme()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.gating).isFalse()
+        assertThat(instant.tierSet).isEqualTo(Intensity.HOT)
+    }
+
+    @Test
+    fun `nothing below the top tier is gated`() = runTest {
+        instant.tierState.value = Intensity.HOT
+        val viewModel = viewModel()
+
+        // Adding a confirmation to every tier would make the control meaningless by repetition.
+        assertThat(viewModel.uiState.value.gating).isFalse()
+    }
+
+    @Test
+    fun `a hot run ends with something written to land on`() = runTest {
+        instant.tierState.value = Intensity.HOT
+        val viewModel = viewModel()
+        viewModel.confirmExtreme()
+
+        repeat(6) { viewModel.skip() }
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.runComplete).isTrue()
+        assertThat(viewModel.uiState.value.aftercare).isNotNull()
+        assertThat(viewModel.uiState.value.aftercare!!.aftercare).isTrue()
+    }
+
+    @Test
+    fun `a mild run does not`() = runTest {
+        instant.tierState.value = Intensity.MILD
+        val viewModel = viewModel()
+
+        repeat(6) { viewModel.skip() }
+        advanceUntilIdle()
+
+        // An evening that never went anywhere does not need landing from.
+        assertThat(viewModel.uiState.value.runComplete).isTrue()
+        assertThat(viewModel.uiState.value.aftercare).isNull()
+    }
+
     private fun viewModel(): InstantPlayViewModel {
         val viewModel = InstantPlayViewModel(instant)
         mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
@@ -350,7 +451,12 @@ class InstantPlayViewModelTest {
     }
 
     private companion object {
-        fun item(id: String, intensity: Intensity, pack: String = "FLIRT") = ContentItem(
+        fun item(
+            id: String,
+            intensity: Intensity,
+            pack: String = "FLIRT",
+            tags: Set<String> = setOf("flirting"),
+        ) = ContentItem(
             id = id,
             version = 1,
             pack = pack,
@@ -358,7 +464,7 @@ class InstantPlayViewModelTest {
             title = "Card $id",
             subtitle = "",
             body = "Something to do, for $id.",
-            tags = setOf("flirting"),
+            tags = tags,
             intensity = intensity,
             modes = setOf(Mode.TOGETHER),
             interactionType = InteractionType.CHALLENGE,
@@ -375,6 +481,8 @@ class InstantPlayViewModelTest {
         )
 
         val items = List(12) { item("card_$it", Intensity.MILD) } +
-            List(4) { item("dark_$it", Intensity.EXTREME, pack = "AFTER_DARK") }
+            List(4) { item("dark_$it", Intensity.EXTREME, pack = "AFTER_DARK") } +
+            List(4) { item("hot_$it", Intensity.HOT) } +
+            listOf(item("care_1", Intensity.HOT, tags = setOf("aftercare")))
     }
 }
