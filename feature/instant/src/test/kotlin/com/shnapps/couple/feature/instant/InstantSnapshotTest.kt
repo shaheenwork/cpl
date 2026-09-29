@@ -155,6 +155,7 @@ class InstantSnapshotTest {
             minutes = 5,
             intensity = Intensity.SPICY,
             pack = "TEASE",
+            aftercare = false,
             themes = setOf("teasing_anticipation"),
         )
     }

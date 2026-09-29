@@ -1,8 +1,10 @@
 package com.shnapps.couple.core.testing
 
 import com.shnapps.couple.core.data.instant.InstantPlayRepository
+import com.shnapps.couple.core.engine.GameNight
 import com.shnapps.couple.core.engine.InstantCard
 import com.shnapps.couple.core.engine.InstantDeck
+import com.shnapps.couple.core.engine.NightLength
 import com.shnapps.couple.core.engine.game.ReleasedGame
 import com.shnapps.couple.core.model.ContentItem
 import com.shnapps.couple.core.model.Game
@@ -11,6 +13,7 @@ import com.shnapps.couple.core.model.Intensity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 
 /**
  * In-memory [InstantPlayRepository]: what a phone with no account can play on its own.
@@ -75,6 +78,14 @@ class FakeInstantPlayRepository(
 
     override suspend fun refuse(card: InstantCard, alsoItsKind: Boolean) {
         refused += card.id to alsoItsKind
+    }
+
+    /** Every evening this phone planned, by length. */
+    val planned = mutableListOf<NightLength>()
+
+    override suspend fun planNight(length: NightLength): GameNight {
+        planned += length
+        return GameNight.plan(deck = deck.first(), tier = tier.value, length = length)
     }
 
     override suspend fun startGame(gameId: String, autoHeat: Boolean): ReleasedGame? {

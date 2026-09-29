@@ -2,8 +2,10 @@ package com.shnapps.couple.feature.instant
 
 import com.google.common.truth.Truth.assertThat
 import com.shnapps.couple.core.data.instant.InstantPlayRepository
+import com.shnapps.couple.core.engine.GameNight
 import com.shnapps.couple.core.engine.InstantCard
 import com.shnapps.couple.core.engine.InstantDeck
+import com.shnapps.couple.core.engine.NightLength
 import com.shnapps.couple.core.engine.game.ReleasedGame
 import com.shnapps.couple.core.model.ChapterKind
 import com.shnapps.couple.core.model.ContentItem
@@ -335,6 +337,10 @@ class InstantPlayViewModelTest {
 
         // The card player never starts a game; these exist so the fake is the whole repository.
         override val games: Flow<List<Game>> = MutableStateFlow(emptyList())
+
+        // The card player never plans an evening; these exist so the fake is the whole repository.
+        override suspend fun planNight(length: NightLength): GameNight =
+            GameNight.plan(deckState.value, Intensity.DEFAULT, length)
 
         override suspend fun startGame(gameId: String, autoHeat: Boolean): ReleasedGame? = null
     }

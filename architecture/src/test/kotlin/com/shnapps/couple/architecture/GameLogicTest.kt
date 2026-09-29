@@ -95,7 +95,15 @@ class GameLogicTest {
     private companion object {
         // Test tasks run with the module directory (architecture/) as the working directory.
         const val GAMES_FILE = "../content/games.json"
-        const val MIN_GAMES = 8
+
+        /**
+         * The prompt-based games v1 ships.
+         *
+         * Six, not seven: Game Night is the seventh and is a plan over the whole catalogue rather
+         * than a prompt pool, so it has no entry in games.json (M5).
+         */
+        const val MIN_GAMES = 6
+
         const val MIN_PRIMITIVES = 8
         const val RENDERER = "Renderer"
 

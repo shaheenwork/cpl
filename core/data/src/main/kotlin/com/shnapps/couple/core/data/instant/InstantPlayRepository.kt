@@ -4,8 +4,10 @@ import com.shnapps.couple.core.data.content.ContentRepository
 import com.shnapps.couple.core.data.limits.LimitsRepository
 import com.shnapps.couple.core.datastore.AppPreferencesStore
 import com.shnapps.couple.core.datastore.PlaySettingsStore
+import com.shnapps.couple.core.engine.GameNight
 import com.shnapps.couple.core.engine.InstantCard
 import com.shnapps.couple.core.engine.InstantDeck
+import com.shnapps.couple.core.engine.NightLength
 import com.shnapps.couple.core.engine.game.ReleasedGame
 import com.shnapps.couple.core.model.ContentPack
 import com.shnapps.couple.core.model.Game
@@ -77,6 +79,14 @@ interface InstantPlayRepository {
      * content has nothing for it. Nothing is sent and nothing is stored: the game exists for as
      * long as it is being played.
      */
+    /**
+     * A guided evening planned on this phone: four phases over the whole catalogue (M5).
+     *
+     * The same pool, tier, limits and no-repeats record as a single card — it is the deck with a
+     * shape over it, not a second source of content.
+     */
+    suspend fun planNight(length: NightLength): GameNight
+
     suspend fun startGame(gameId: String, autoHeat: Boolean = true): ReleasedGame?
 }
 
@@ -140,6 +150,18 @@ class DefaultInstantPlayRepository @Inject constructor(
         preferences.preferences.map { it.gamePlayers ?: GamePlayers.UNNAMED }
 
     override suspend fun rememberPlayers(players: GamePlayers) = preferences.setGamePlayers(players)
+
+    override suspend fun planNight(length: NightLength): GameNight {
+        val prefs = preferences.preferences.first()
+        return GameNight.plan(
+            deck = deck.first(),
+            tier = prefs.tier,
+            length = length,
+            // A new evening each time it is planned, and the same one for as long as it is played.
+            seed = System.currentTimeMillis(),
+            exclude = prefs.playedCardIds,
+        )
+    }
 
     override suspend fun startGame(gameId: String, autoHeat: Boolean): ReleasedGame? {
         val game = content.games.first().firstOrNull { it.id == gameId } ?: return null

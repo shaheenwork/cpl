@@ -99,47 +99,10 @@
       ]
     },
     {
-      "id": "THREE_MINUTES",
-      "prefix": "three",
-      "file": "three-minutes.json",
-      "title": "Three Minutes Yours",
-      "tagline": "One leads. The clock ends it.",
-      "description": "Three minutes belong to one of you. The other agreed before it started.",
-      "modes": [
-        "TOGETHER"
-      ],
-      "rounds": 6,
-      "turns": "ALTERNATE",
-      "scoring": "NONE",
-      "promptKinds": [],
-      "promptOptions": [
-        0,
-        0
-      ],
-      "minPrompts": 19,
-      "steps": [
-        {
-          "primitive": "CHALLENGE",
-          "who": "ACTIVE",
-          "text": "PROMPT"
-        },
-        {
-          "primitive": "TIMER",
-          "who": "ACTIVE",
-          "seconds": 180
-        },
-        {
-          "primitive": "REACTION",
-          "who": "EACH",
-          "text": "How was that?"
-        }
-      ]
-    },
-    {
-      "id": "YES_NO_MAYBE",
+      "id": "FANTASY_MATCH",
       "prefix": "ynm",
-      "file": "yes-no-maybe.json",
-      "title": "Yes, No, Maybe",
+      "file": "fantasy-match.json",
+      "title": "Fantasy Match",
       "tagline": "Only what you both said yes to.",
       "description": "You each answer in private. A no is never shown to the other — only a match is.",
       "modes": [
@@ -173,11 +136,11 @@
       ]
     },
     {
-      "id": "THE_BET",
+      "id": "WIN_IT_OWE_IT",
       "prefix": "bet",
-      "file": "the-bet.json",
-      "title": "The Bet",
-      "tagline": "Stake it in private. Match, and it's on.",
+      "file": "win-it-owe-it.json",
+      "title": "Win It / Owe It",
+      "tagline": "Stake it in private. Match, and it is on.",
       "description": "You each stake the same thing without seeing the other's. Matching means you both meant it.",
       "modes": [
         "TOGETHER"
@@ -206,170 +169,6 @@
             0
           ],
           "outcome": "MATCH"
-        }
-      ]
-    },
-    {
-      "id": "RED_LIGHT",
-      "prefix": "red",
-      "file": "red-light.json",
-      "title": "Red Light",
-      "tagline": "They start. You say when to stop.",
-      "description": "One of you begins, the other ends it whenever they like — and the clock ends it either way.",
-      "modes": [
-        "TOGETHER"
-      ],
-      "rounds": 6,
-      "turns": "ALTERNATE",
-      "scoring": "NONE",
-      "promptKinds": [],
-      "promptOptions": [
-        0,
-        0
-      ],
-      "minPrompts": 19,
-      "steps": [
-        {
-          "primitive": "CHALLENGE",
-          "who": "ACTIVE",
-          "text": "PROMPT"
-        },
-        {
-          "primitive": "TIMER",
-          "who": "ACTIVE",
-          "seconds": "PROMPT"
-        },
-        {
-          "primitive": "REACTION",
-          "who": "EACH",
-          "text": "How was that?"
-        }
-      ]
-    },
-    {
-      "id": "DONT_MOVE",
-      "prefix": "still",
-      "file": "dont-move.json",
-      "title": "Don't Move",
-      "tagline": "Whoever moves first has lost.",
-      "description": "Stay exactly as you are for as long as the clock says. You both name who broke first.",
-      "modes": [
-        "TOGETHER"
-      ],
-      "rounds": 6,
-      "turns": "SHARED",
-      "scoring": "MATCHES",
-      "promptKinds": [],
-      "promptOptions": [
-        0,
-        0
-      ],
-      "minPrompts": 19,
-      "steps": [
-        {
-          "primitive": "CHALLENGE",
-          "who": "TOGETHER",
-          "text": "PROMPT"
-        },
-        {
-          "primitive": "TIMER",
-          "who": "TOGETHER",
-          "seconds": "PROMPT"
-        },
-        {
-          "primitive": "VOTE",
-          "who": "EACH",
-          "private": true,
-          "text": "Who moved first?",
-          "options": [
-            "ME",
-            "YOU",
-            "TIE"
-          ]
-        },
-        {
-          "primitive": "REVEAL",
-          "who": "TOGETHER",
-          "of": [
-            2
-          ],
-          "outcome": "AGREEMENT"
-        }
-      ]
-    },
-    {
-      "id": "IN_YOUR_WORDS",
-      "prefix": "words",
-      "file": "in-your-words.json",
-      "title": "In Your Words",
-      "tagline": "Write it down. Read it at the same moment.",
-      "description": "You each write it in private. Both are shown together, and nobody wins.",
-      "modes": [
-        "TOGETHER"
-      ],
-      "rounds": 6,
-      "turns": "SHARED",
-      "scoring": "NONE",
-      "promptKinds": [],
-      "promptOptions": [
-        0,
-        0
-      ],
-      "minPrompts": 19,
-      "steps": [
-        {
-          "primitive": "QUESTION",
-          "who": "EACH",
-          "private": true,
-          "text": "PROMPT",
-          "answer": "TEXT"
-        },
-        {
-          "primitive": "REVEAL",
-          "who": "TOGETHER",
-          "of": [
-            0
-          ],
-          "outcome": "SHARED"
-        }
-      ]
-    },
-    {
-      "id": "BUILD_THE_FANTASY",
-      "prefix": "fant",
-      "file": "build-the-fantasy.json",
-      "title": "Build the Fantasy",
-      "tagline": "One line each, until somebody stops.",
-      "description": "One of you starts the story. The other adds the next line. It goes where it goes.",
-      "modes": [
-        "TOGETHER"
-      ],
-      "rounds": 6,
-      "turns": "ALTERNATE",
-      "scoring": "NONE",
-      "promptKinds": [],
-      "promptOptions": [
-        0,
-        0
-      ],
-      "minPrompts": 19,
-      "steps": [
-        {
-          "primitive": "QUESTION",
-          "who": "ACTIVE",
-          "text": "PROMPT",
-          "answer": "SPOKEN"
-        },
-        {
-          "primitive": "QUESTION",
-          "who": "OTHER",
-          "text": "Add the next line. Don't think about it.",
-          "answer": "SPOKEN"
-        },
-        {
-          "primitive": "REACTION",
-          "who": "EACH",
-          "text": "Where did that go?"
         }
       ]
     },
@@ -411,12 +210,12 @@
       ]
     },
     {
-      "id": "PREDICT_MY_ANSWER",
+      "id": "HOT_OR_NOT",
       "prefix": "predict",
-      "file": "predict-my-answer.json",
-      "title": "Predict My Answer",
-      "tagline": "You answer. They guess. Points for knowing you.",
-      "description": "One of you answers in secret; the other predicts what they chose. Swap every round.",
+      "file": "hot-or-not.json",
+      "title": "Hot or Not Quiz",
+      "tagline": "Guess what they said. Score the ones you knew.",
+      "description": "One of you answers in private and the other guesses. Every right guess is a point.",
       "modes": [
         "TOGETHER"
       ],
@@ -455,105 +254,6 @@
             1
           ],
           "outcome": "PREDICTED"
-        }
-      ]
-    },
-    {
-      "id": "WHO_KNOWS_WHO",
-      "prefix": "knows",
-      "file": "who-knows-who.json",
-      "title": "Who Knows Who",
-      "tagline": "How well do you really know them?",
-      "description": "One of you answers about yourself in secret; the other guesses. The one who answered judges.",
-      "modes": [
-        "TOGETHER"
-      ],
-      "rounds": 8,
-      "turns": "ALTERNATE",
-      "scoring": "POINTS",
-      "promptKinds": [],
-      "promptOptions": [
-        0,
-        0
-      ],
-      "minPrompts": 40,
-      "steps": [
-        {
-          "primitive": "QUESTION",
-          "who": "ACTIVE",
-          "private": true,
-          "text": "PROMPT",
-          "answer": "TEXT"
-        },
-        {
-          "primitive": "PREDICTION",
-          "who": "OTHER",
-          "private": true,
-          "text": "What did they answer?",
-          "answer": "TEXT",
-          "of": [
-            0
-          ]
-        },
-        {
-          "primitive": "REVEAL",
-          "who": "ACTIVE",
-          "of": [
-            0,
-            1
-          ],
-          "outcome": "JUDGED"
-        }
-      ]
-    },
-    {
-      "id": "COUPLE_BATTLE",
-      "prefix": "battle",
-      "file": "couple-battle.json",
-      "title": "Couple Battle",
-      "tagline": "Quick contests. Somebody's getting bragging rights.",
-      "description": "A contest, a clock, and an honest verdict on who won.",
-      "modes": [
-        "TOGETHER"
-      ],
-      "rounds": 8,
-      "turns": "SHARED",
-      "scoring": "POINTS",
-      "promptKinds": [],
-      "promptOptions": [
-        0,
-        0
-      ],
-      "minPrompts": 40,
-      "steps": [
-        {
-          "primitive": "CHALLENGE",
-          "who": "TOGETHER",
-          "text": "PROMPT"
-        },
-        {
-          "primitive": "TIMER",
-          "who": "TOGETHER",
-          "seconds": "PROMPT"
-        },
-        {
-          "primitive": "VOTE",
-          "who": "TOGETHER",
-          "private": false,
-          "text": "Who won?",
-          "options": [
-            "ME",
-            "YOU",
-            "TIE"
-          ]
-        },
-        {
-          "primitive": "REVEAL",
-          "who": "TOGETHER",
-          "of": [
-            2
-          ],
-          "outcome": "WINNER"
         }
       ]
     }

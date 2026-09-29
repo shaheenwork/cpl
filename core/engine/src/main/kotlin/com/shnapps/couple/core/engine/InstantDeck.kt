@@ -146,6 +146,13 @@ data class InstantCard(
     val intensity: Intensity,
     /** The pack it was authored in: the lane a couple can ask for by name (D-125). */
     val pack: String,
+    /**
+     * Written to land on after an evening rather than to raise it (M5).
+     *
+     * A card, not a mood: `GameNight` plans one in as the last thing that happens, and taking the
+     * highest-scoring peak card instead would be one more peak card with a different label on it.
+     */
+    val aftercare: Boolean,
     /** The boundary themes this card belongs to: what "never show me these again" writes down. */
     val themes: Set<String>,
 ) {
@@ -156,6 +163,10 @@ data class InstantCard(
         minutes = item.durationMin,
         intensity = item.intensity,
         pack = item.pack,
+        aftercare = AFTERCARE_TAG in item.tags,
         themes = item.excludedByBoundaries,
     )
 }
+
+/** The tag the content uses for a card written to land on. */
+private const val AFTERCARE_TAG = "aftercare"
