@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">Afterhours</string>
+
+    <!--
+      Discreet launcher names (M8). A name and an icon that do not say what the app is, for a
+      phone somebody else might pick up. Deliberately generic: neither is another product's
+      name, which is what Play's deceptive-behaviour policy is about.
+    -->
+    <string name="app_name_notes">Notes</string>
+    <string name="app_name_calculator">Calculator</string>
 </resources>

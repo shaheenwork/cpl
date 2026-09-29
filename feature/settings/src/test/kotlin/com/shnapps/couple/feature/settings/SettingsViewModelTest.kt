@@ -4,10 +4,12 @@ import com.google.common.truth.Truth.assertThat
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.model.AuthUser
 import com.shnapps.couple.core.model.UserProfile
+import com.shnapps.couple.core.security.DiscreetIcon
 import com.shnapps.couple.core.testing.FakeAccountRepository
 import com.shnapps.couple.core.testing.FakeAuthRepository
 import com.shnapps.couple.core.testing.FakeBillingRepository
 import com.shnapps.couple.core.testing.FakeCoupleRepository
+import com.shnapps.couple.core.testing.FakeDiscreetIcons
 import com.shnapps.couple.core.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -34,10 +36,23 @@ class SettingsViewModelTest {
     private val auth = FakeAuthRepository()
     private val billing = FakeBillingRepository()
     private val directory = File("exports")
+    private val icons = FakeDiscreetIcons()
+
+    @Test
+    fun `the launcher icon can be changed, and is read back from the platform`() = test {
+        val screen = screen()
+        assertThat(screen.uiState.value.icon).isEqualTo(DiscreetIcon.AFTERHOURS)
+
+        act { screen.setIcon(DiscreetIcon.CALCULATOR) }
+
+        assertThat(icons.shown).containsExactly(DiscreetIcon.CALCULATOR)
+        // Read back rather than assumed: the platform is the record of which alias is enabled.
+        assertThat(screen.uiState.value.icon).isEqualTo(DiscreetIcon.CALCULATOR)
+    }
 
     private fun test(body: suspend TestScope.() -> Unit) = runTest(mainDispatcherRule.testDispatcher) { body() }
 
-    private fun TestScope.screen() = SettingsViewModel(account, couples, auth, billing).also { vm ->
+    private fun TestScope.screen() = SettingsViewModel(account, couples, icons, auth, billing).also { vm ->
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         advanceUntilIdle()
     }

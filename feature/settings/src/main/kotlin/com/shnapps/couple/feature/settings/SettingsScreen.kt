@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -24,6 +25,7 @@ import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
+import com.shnapps.couple.core.security.DiscreetIcon
 import com.shnapps.couple.core.ui.ErrorBanner
 import com.shnapps.couple.core.ui.LegalUrls
 import com.shnapps.couple.core.ui.ScreenHeading
@@ -57,6 +59,7 @@ fun SettingsScreen(
         state = state,
         routes = routes,
         actions = SettingsActions(
+            onIcon = viewModel::setIcon,
             onExport = { viewModel.export(exportsDirectory) },
             onUnpair = viewModel::unpair,
             onDismissError = viewModel::dismissError,
@@ -68,19 +71,51 @@ fun SettingsScreen(
 
 /** Where each row goes. The screen knows the words; the host knows the routes. */
 data class SettingsRoutes(
-    val onPreferences: () -> Unit = {},
     val onBoundaries: () -> Unit = {},
     val onNotifications: () -> Unit = {},
     val onAppLock: () -> Unit = {},
-    val onMemories: () -> Unit = {},
     val onPremium: () -> Unit = {},
     val onDeleteAccount: () -> Unit = {},
     val onSignOut: () -> Unit = {},
     val onBack: () -> Unit = {},
 )
 
+/**
+ * Which icon the launcher shows (M8).
+ *
+ * Three across, with what each one looks like under the name, because "Notes" on its own does not
+ * tell anybody what they will be tapping tomorrow.
+ */
+@Composable
+private fun DiscreetIconRow(selected: DiscreetIcon, onIcon: (DiscreetIcon) -> Unit) {
+    val spacing = AfterhoursTheme.spacing
+    Column(verticalArrangement = Arrangement.spacedBy(spacing.xs)) {
+        Text(
+            text = "HOW IT LOOKS ON YOUR HOME SCREEN",
+            style = MaterialTheme.typography.labelSmall,
+            color = AfterhoursTheme.colors.textFaint,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(spacing.xs)) {
+            DiscreetIcon.entries.forEach { icon ->
+                GlowButton(
+                    text = icon.label,
+                    onClick = { onIcon(icon) },
+                    style = if (icon == selected) GlowButtonStyle.Secondary else GlowButtonStyle.Quiet,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        Text(
+            text = selected.describes,
+            style = MaterialTheme.typography.bodySmall,
+            color = AfterhoursTheme.colors.textMuted,
+        )
+    }
+}
+
 /** What this screen does on its own. */
 internal data class SettingsActions(
+    val onIcon: (DiscreetIcon) -> Unit = {},
     val onExport: () -> Unit = {},
     val onUnpair: () -> Unit = {},
     val onDismissError: () -> Unit = {},
@@ -106,14 +141,23 @@ internal fun SettingsContent(
         )
 
         Group("You") {
-            Row("Your private curiosities", "Only ever yours.", routes.onPreferences)
             Row("Your limits", "What you are up for, and what you are not.", routes.onBoundaries)
             Row("Notifications", "What this phone may say out loud.", routes.onNotifications)
             Row("App lock", "A PIN or your fingerprint, on this phone.", routes.onAppLock)
         }
 
+        Group("On this phone") {
+            // What the home screen shows. Not a lock and not a disguise: a name and an icon that
+            // do not announce what the app is, for a phone somebody else might pick up (M8).
+            DiscreetIconRow(selected = state.icon, onIcon = actions.onIcon)
+            Row(
+                title = "Panic",
+                detail = "Two taps of back locks the app. Set a PIN above and it asks for it.",
+                onClick = routes.onAppLock,
+            )
+        }
+
         Group("The two of you") {
-            Row("Our memories", "The evenings you kept.", routes.onMemories)
             Row(
                 title = if (state.entitlement.premium) "Premium" else "Afterhours premium",
                 detail = if (state.entitlement.premium) "You're in, both of you." else "What's included.",

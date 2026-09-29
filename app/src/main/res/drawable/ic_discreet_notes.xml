@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A discreet launcher icon: a notes page (M8).
+
+  Drawn rather than borrowed. Nothing here imitates a real product's mark — no other app's
+  name, colours or glyph — because an icon that passes for somebody else's app is what Play's
+  deceptive-behaviour policy is about. This is a generic page with three rules on it, which is
+  what a notes icon has looked like since before any of them.
+
+  Inside the 66 dp safe zone of a 108 dp adaptive icon, so no launcher mask clips it.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="#F2E6DA"
+        android:pathData="M34,26h34l10,10v46a4,4 0 0 1 -4,4H38a4,4 0 0 1 -4,-4V30a4,4 0 0 1 4,-4z" />
+    <path
+        android:fillColor="#CBBAAE"
+        android:pathData="M68,26l10,10h-10z" />
+    <path
+        android:strokeColor="#8A6D32"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M44,48h20 M44,58h20 M44,68h12" />
+</vector>

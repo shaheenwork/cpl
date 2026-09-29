@@ -47,10 +47,12 @@ class AccountSnapshotTest {
         )
         capture("settings-hub") { SettingsContent(state, SettingsRoutes(), SettingsActions()) }
         composeRule.onNodeWithText("Signed in as alex@example.com.").assertIsDisplayed()
-        composeRule.onNodeWithText("Export my data").assertIsDisplayed()
-        // Further down the page than it was: a screen has real section rhythm now (§4.6).
+        // The discreet icon and panic are a new group on this page, so what was on the first
+        // screen is now below it (M8).
+        composeRule.onNodeWithText("HOW IT LOOKS ON YOUR HOME SCREEN").assertIsDisplayed()
+        composeRule.onNodeWithText("Export my data").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Delete my account").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Unpair").assertIsDisplayed()
+        composeRule.onNodeWithText("Unpair").performScrollTo().assertIsDisplayed()
     }
 
     @Test

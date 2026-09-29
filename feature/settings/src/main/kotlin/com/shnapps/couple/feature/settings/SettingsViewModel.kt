@@ -9,6 +9,8 @@ import com.shnapps.couple.core.data.auth.AuthRepository
 import com.shnapps.couple.core.data.billing.BillingRepository
 import com.shnapps.couple.core.data.couple.CoupleRepository
 import com.shnapps.couple.core.model.Entitlement
+import com.shnapps.couple.core.security.DiscreetIcon
+import com.shnapps.couple.core.security.DiscreetIcons
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -37,6 +39,8 @@ data class SettingsUiState(
     /** Set once the account is gone: the screen leaves for the beginning. */
     val deleted: Boolean = false,
     val unpaired: Boolean = false,
+    /** Which launcher icon is showing (M8). Read from the components, not from a stored guess. */
+    val icon: DiscreetIcon = DiscreetIcon.DEFAULT,
 )
 
 /**
@@ -47,11 +51,23 @@ data class SettingsUiState(
 class SettingsViewModel @Inject constructor(
     private val account: AccountRepository,
     private val couples: CoupleRepository,
+    private val icons: DiscreetIcons,
     auth: AuthRepository,
     billing: BillingRepository,
 ) : ViewModel() {
 
-    private val local = MutableStateFlow(SettingsUiState())
+    private val local = MutableStateFlow(SettingsUiState(icon = icons.current()))
+
+    /**
+     * Shows [icon] on the home screen (M8).
+     *
+     * Read back from the components rather than trusted: the platform is the record of which alias
+     * is enabled, and a stored copy of it would be a second answer that could disagree.
+     */
+    fun setIcon(icon: DiscreetIcon) {
+        icons.show(icon)
+        local.update { it.copy(icon = icons.current()) }
+    }
 
     val uiState: StateFlow<SettingsUiState> =
         combine(local, auth.currentProfile, auth.authState, billing.entitlement) { state, profile, user, tier ->

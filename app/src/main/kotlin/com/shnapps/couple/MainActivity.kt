@@ -6,12 +6,16 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.SystemBarStyle
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -89,6 +93,28 @@ class MainActivity : FragmentActivity() {
                 LaunchedEffect(lockState) {
                     if (lockState == LockState.Locked) {
                         navController.navigate(Route.AppLock) { launchSingleTop = true }
+                    }
+                }
+
+                // Panic: two taps of back, and the app is locked (M8).
+                //
+                // The brief asks for a shake or a double back-press onto a neutral screen. Shake
+                // is Heat Dice's gesture, and one gesture cannot both roll the dice and hide the
+                // app, so panic is the back-press alone. Where it lands is this app's own lock
+                // screen rather than an imitation of some other app: the user gets the same
+                // benefit — nothing on screen says what this is — without the app pretending to
+                // be a product it is not, which is what Play's deceptive-behaviour policy covers.
+                //
+                // With no lock set there is nothing to show, so the second press does what a
+                // second press does and leaves. That is discreet enough on its own.
+                var armed by remember { mutableStateOf(false) }
+                BackHandler(enabled = lockState == LockState.Unlocked) {
+                    if (armed) {
+                        appLockManager.lockNow()
+                        armed = false
+                    } else {
+                        armed = true
+                        navController.popBackStack()
                     }
                 }
 

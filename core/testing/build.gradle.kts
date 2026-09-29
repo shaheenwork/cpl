@@ -14,6 +14,8 @@ dependencies {
     api(project(":core:datastore"))
     // The game fake releases games the only way there is: ReleasedGame.fromServer.
     implementation(project(":core:engine"))
+    // The launcher-icon fake stands in for the one that talks to the package manager (M8).
+    api(project(":core:security"))
     api(libs.junit)
     api(libs.truth)
     api(libs.kotlin.test)

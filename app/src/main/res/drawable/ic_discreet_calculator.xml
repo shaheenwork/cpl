@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A discreet launcher icon: a calculator (M8).
+
+  Drawn rather than borrowed, for the reason the notes icon is: a keypad and a display are what
+  a calculator has looked like for fifty years, and nothing here carries another product's name,
+  colours or mark.
+
+  Inside the 66 dp safe zone of a 108 dp adaptive icon.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="#E8E4DE"
+        android:pathData="M34,24h40a4,4 0 0 1 4,4v52a4,4 0 0 1 -4,4H34a4,4 0 0 1 -4,-4V28a4,4 0 0 1 4,-4z" />
+    <path
+        android:fillColor="#2B2F33"
+        android:pathData="M38,32h32v12H38z" />
+    <path
+        android:fillColor="#6B7075"
+        android:pathData="M38,52h9v8h-9z M51,52h9v8h-9z M64,52h6v8h-6z M38,64h9v8h-9z M51,64h9v8h-9z M64,64h6v8h-6z" />
+</vector>
