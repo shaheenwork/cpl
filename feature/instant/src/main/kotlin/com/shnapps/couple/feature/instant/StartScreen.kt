@@ -13,11 +13,11 @@ import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
-import com.shnapps.couple.core.model.Heat
-import com.shnapps.couple.core.ui.HeatPicker
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.ui.ScreenColumn
 import com.shnapps.couple.core.ui.ScreenHeading
 import com.shnapps.couple.core.ui.SecureScreen
+import com.shnapps.couple.core.ui.TierPicker
 
 /**
  * First launch, whole (REDESIGN_PROMPT.md §5.1).
@@ -42,7 +42,7 @@ fun StartScreen(
 
     StartContent(
         state = state,
-        onHeat = viewModel::setHeat,
+        onTier = viewModel::setTier,
         onConfirm = viewModel::confirmAge,
         onNotOldEnough = onNotOldEnough,
         onPairInstead = onPairInstead,
@@ -52,7 +52,7 @@ fun StartScreen(
 @Composable
 internal fun StartContent(
     state: StartUiState,
-    onHeat: (Heat) -> Unit,
+    onTier: (Intensity) -> Unit,
     onConfirm: () -> Unit,
     onNotOldEnough: () -> Unit,
     onPairInstead: () -> Unit,
@@ -69,7 +69,7 @@ internal fun StartContent(
             style = EyebrowTextStyle,
             color = AfterhoursTheme.colors.textFaint,
         )
-        HeatPicker(selected = state.heat, onHeat = onHeat)
+        TierPicker(selected = state.tier, onTier = onTier)
         Text(
             text = "Change it any time, mid-game, with one thumb.",
             style = MaterialTheme.typography.bodyMedium,

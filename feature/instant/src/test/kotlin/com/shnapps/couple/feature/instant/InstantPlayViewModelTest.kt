@@ -11,7 +11,6 @@ import com.shnapps.couple.core.model.ContentPack
 import com.shnapps.couple.core.model.ContentStatus
 import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.GamePlayers
-import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.InteractionType
 import com.shnapps.couple.core.model.Mode
@@ -74,13 +73,13 @@ class InstantPlayViewModelTest {
         repeat(5) { viewModel.done() }
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.offeringHotter).isEqualTo(Heat.HOT)
-        assertThat(instant.heatSet).isNull()
+        assertThat(viewModel.uiState.value.offeringHotter).isEqualTo(Intensity.SPICY)
+        assertThat(instant.tierSet).isNull()
     }
 
     @Test
     fun `at the top, nothing is offered`() = runTest {
-        instant.heatState.value = Heat.WILD
+        instant.tierState.value = Intensity.EXTREME
         val viewModel = viewModel()
 
         repeat(6) { viewModel.done() }
@@ -90,17 +89,17 @@ class InstantPlayViewModelTest {
     }
 
     @Test
-    fun `keeping the heat carries on rather than stopping`() = runTest {
+    fun `keeping the tier carries on rather than stopping`() = runTest {
         val viewModel = viewModel()
         repeat(5) { viewModel.done() }
         advanceUntilIdle()
 
-        viewModel.keepHeat()
+        viewModel.keepTier()
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value.offeringHotter).isNull()
         assertThat(viewModel.uiState.value.card).isNotNull()
-        assertThat(instant.heatSet).isNull()
+        assertThat(instant.tierSet).isNull()
     }
 
     @Test
@@ -269,7 +268,7 @@ class InstantPlayViewModelTest {
 
     @Test
     fun `a deck with nothing left says so instead of showing nothing`() = runTest {
-        instant.deckState.value = InstantDeck.of(emptyList(), Heat.PLAYFUL)
+        instant.deckState.value = InstantDeck.of(emptyList(), Intensity.MILD)
         val viewModel = viewModel()
         advanceUntilIdle()
 
@@ -285,10 +284,10 @@ class InstantPlayViewModelTest {
 
     /** A real object with real state, not a mock: the fakes rule (DECISIONS.md D-013). */
     private class FakeInstantPlayRepository : InstantPlayRepository {
-        val deckState = MutableStateFlow(InstantDeck.of(items, Heat.WILD))
-        val heatState = MutableStateFlow(Heat.PLAYFUL)
+        val deckState = MutableStateFlow(InstantDeck.of(items, Intensity.EXTREME))
+        val tierState = MutableStateFlow(Intensity.DEFAULT)
 
-        var heatSet: Heat? = null
+        var tierSet: Intensity? = null
             private set
         val refusals = mutableListOf<Pair<InstantCard, Boolean>>()
 
@@ -305,14 +304,14 @@ class InstantPlayViewModelTest {
         val seen = mutableListOf<Pair<String, Int>>()
 
         override val deck: Flow<InstantDeck> = deckState
-        override val heat: Flow<Heat> = heatState
+        override val tier: Flow<Intensity> = tierState
         override val packs: Flow<List<ContentPack>> = packsState
         override val lane: Flow<String?> = laneState
         override val played: Flow<Set<String>> = playedState
 
         override suspend fun setLane(pack: String?) {
             laneState.value = pack
-            deckState.value = InstantDeck.of(items, Heat.WILD, pack = pack)
+            deckState.value = InstantDeck.of(items, Intensity.EXTREME, pack = pack)
         }
 
         override suspend fun markPlayed(card: InstantCard, deckSize: Int) {
@@ -325,9 +324,9 @@ class InstantPlayViewModelTest {
 
         override suspend fun rememberPlayers(players: GamePlayers) = Unit
 
-        override suspend fun setHeat(heat: Heat) {
-            heatSet = heat
-            heatState.value = heat
+        override suspend fun setTier(tier: Intensity) {
+            tierSet = tier
+            tierState.value = tier
         }
 
         override suspend fun refuse(card: InstantCard, alsoItsKind: Boolean) {
@@ -365,7 +364,7 @@ class InstantPlayViewModelTest {
             status = ContentStatus.PUBLISHED,
         )
 
-        val items = List(12) { item("card_$it", Intensity.SOFT) } +
-            List(4) { item("dark_$it", Intensity.WILD, pack = "AFTER_DARK") }
+        val items = List(12) { item("card_$it", Intensity.MILD) } +
+            List(4) { item("dark_$it", Intensity.EXTREME, pack = "AFTER_DARK") }
     }
 }

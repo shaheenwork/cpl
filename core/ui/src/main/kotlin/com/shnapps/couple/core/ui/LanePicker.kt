@@ -38,7 +38,7 @@ import com.shnapps.couple.core.model.ContentPack
  * and until now **nothing in the app could name one of them**. `ContentPack` was parsed out of the
  * bundle and used by exactly one screen, the debug inspector, which has no release twin. So a
  * couple who wanted the bold half of the content had no way to ask for it, and no way to find out
- * it existed: the only dial was the heat, and the heat is a ceiling rather than a subject.
+ * it existed: the only dial was the tier, and the heat is a ceiling rather than a subject.
  *
  * It is a scrolling row rather than a grid because it is the second question on the screen, not the
  * first. The heat still decides how far; this decides what kind.
@@ -88,15 +88,15 @@ fun LanePicker(
 private fun Lane(label: String, isSelected: Boolean, onClick: () -> Unit) {
     val spacing = AfterhoursTheme.spacing
     val reduceMotion = AfterhoursTheme.reduceMotion
-    val heat = AfterhoursTheme.heat
+    val tier = AfterhoursTheme.tier
 
     val fill by animateColorAsState(
-        targetValue = if (isSelected) heat.container else Color.Transparent,
+        targetValue = if (isSelected) tier.container else Color.Transparent,
         animationSpec = decorativeTween(AfterhoursTheme.motion.standard, reduceMotion, AfterhoursEasing.Standard),
         label = "laneFill",
     )
     val text by animateColorAsState(
-        targetValue = if (isSelected) heat.onContainer else AfterhoursTheme.colors.textMuted,
+        targetValue = if (isSelected) tier.onContainer else AfterhoursTheme.colors.textMuted,
         animationSpec = decorativeTween(AfterhoursTheme.motion.standard, reduceMotion, AfterhoursEasing.Standard),
         label = "laneLabel",
     )

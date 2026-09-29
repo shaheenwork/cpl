@@ -21,7 +21,6 @@ import com.google.common.truth.Truth.assertThat
 import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.engine.InstantCard
-import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.Intensity
 import org.junit.Rule
 import org.junit.Test
@@ -49,8 +48,8 @@ class InstantAccessibilityTest {
     fun `the first screen holds at 200 percent`() {
         capture("a11y-instant-start-200", LARGEST) {
             StartContent(
-                state = StartUiState(heat = Heat.HOT),
-                onHeat = {},
+                state = StartUiState(tier = Intensity.HOT),
+                onTier = {},
                 onConfirm = {},
                 onNotOldEnough = {},
                 onPairInstead = {},
@@ -102,7 +101,7 @@ class InstantAccessibilityTest {
     @Composable
     private fun play() {
         InstantPlayContent(
-            state = InstantPlayUiState(card = card, heat = Heat.HOT, loading = false, position = 2),
+            state = InstantPlayUiState(card = card, tier = Intensity.HOT, loading = false, position = 2),
             onBack = {},
             onDone = {},
             onSkip = {},
@@ -110,7 +109,7 @@ class InstantAccessibilityTest {
             onRefuse = {},
             onTurnUp = {},
             onKeepHeat = {},
-            onHeat = {},
+            onTier = {},
             onStartTimer = {},
             onStopTimer = {},
             onKeepGoing = {},
@@ -147,7 +146,7 @@ class InstantAccessibilityTest {
             title = "Opposite Corners",
             body = "Sit at opposite sides of the room and talk only by message.",
             minutes = 5,
-            intensity = Intensity.NAUGHTY,
+            intensity = Intensity.SPICY,
             pack = "TEASE",
             themes = setOf("teasing_anticipation"),
         )

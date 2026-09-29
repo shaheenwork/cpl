@@ -5,7 +5,7 @@ import com.shnapps.couple.core.datastore.AppPreferencesStore
 import com.shnapps.couple.core.datastore.PlaySettingsStore
 import com.shnapps.couple.core.model.AppLockMode
 import com.shnapps.couple.core.model.GamePlayers
-import com.shnapps.couple.core.model.Heat
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Mode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
@@ -40,8 +40,8 @@ class FakeAppPreferencesStore(initial: AppPreferences = AppPreferences()) : AppP
     override suspend fun setShowNotificationContent(show: Boolean) =
         state.update { it.copy(showNotificationContent = show) }
 
-    override suspend fun setHeat(heat: Heat) {
-        state.value = state.value.copy(heat = heat)
+    override suspend fun setTier(tier: Intensity) {
+        state.value = state.value.copy(tier = tier)
     }
 
     override suspend fun refuse(cardId: String, themes: Set<String>) {

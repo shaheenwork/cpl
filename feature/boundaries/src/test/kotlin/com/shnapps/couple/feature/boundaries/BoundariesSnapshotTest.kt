@@ -30,7 +30,7 @@ class BoundariesSnapshotTest {
 
     private val list = BoundariesUiState(
         stage = BoundariesStage.List,
-        contentLevel = Intensity.NAUGHTY,
+        contentLevel = Intensity.SPICY,
         setCount = 3,
         sections = listOf(
             BoundarySection(

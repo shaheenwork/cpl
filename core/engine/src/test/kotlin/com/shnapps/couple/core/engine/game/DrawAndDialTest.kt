@@ -232,7 +232,7 @@ class DrawAndDialTest {
             seconds = null,
             category = "communication",
             tags = setOf("game"),
-            intensity = Intensity.SOFT,
+            intensity = Intensity.MILD,
             modes = setOf(Mode.TOGETHER),
             moods = emptySet(),
             requiredMutualPreferences = emptySet(),

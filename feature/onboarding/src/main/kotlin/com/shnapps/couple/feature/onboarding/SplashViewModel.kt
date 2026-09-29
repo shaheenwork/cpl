@@ -20,7 +20,7 @@ import javax.inject.Inject
 sealed interface StartDestination {
     data object Loading : StartDestination
 
-    /** Not signed in, and nothing set up: age and heat, then a card (REDESIGN_PROMPT.md §5.1). */
+    /** Not signed in, and nothing set up: age and tier, then a card (REDESIGN_PROMPT.md §5.1). */
     data object Start : StartDestination
 
     /** Not signed in, and asking to be: the sign-in screen. */

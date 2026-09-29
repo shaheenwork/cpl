@@ -8,7 +8,7 @@ import com.shnapps.couple.core.engine.game.Answer
 import com.shnapps.couple.core.engine.game.GameMoment
 import com.shnapps.couple.core.engine.game.GameRun
 import com.shnapps.couple.core.model.GamePlayers
-import com.shnapps.couple.core.model.Heat
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.navigation.Route
 import com.shnapps.couple.core.ui.namesReady
 import com.shnapps.couple.core.ui.voice.VoiceRecorder
@@ -35,7 +35,7 @@ data class DealtGameUiState(
     /** They said not now: the game carries on without names, this time and every time. */
     val skippedNames: Boolean = false,
     /** How far this phone is playing, so the screen can take its colour (DESIGN_PROMPT.md §4.4). */
-    val heat: Heat = Heat.DEFAULT,
+    val tier: Intensity = Intensity.DEFAULT,
 ) {
     /**
      * Asked once, at the first hand-off, and never again (D-121).
@@ -83,9 +83,9 @@ class DealtGameViewModel @Inject constructor(
         viewModelScope.launch {
             instant.players.collect { players -> _uiState.update { it.copy(players = players) } }
         }
-        // The heat is the phone's, not the game's: a game dealt at Wild should look like it.
+        // The tier is the phone's, not the game's: a game dealt at Extreme should look like it.
         viewModelScope.launch {
-            instant.heat.collect { heat -> _uiState.update { it.copy(heat = heat) } }
+            instant.tier.collect { tier -> _uiState.update { it.copy(tier = tier) } }
         }
     }
 

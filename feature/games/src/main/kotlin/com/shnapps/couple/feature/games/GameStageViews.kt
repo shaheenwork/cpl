@@ -396,7 +396,7 @@ internal fun ResultsStage(state: GameUiState, actions: GameActions) {
 /** How far the game goes: its most intense round. */
 private fun peakOf(state: GameUiState): String =
     state.started?.released?.rounds?.flatMap { it.prompts }?.maxOfOrNull { it.intensity.level }
-        ?.let { level -> Intensity.ofLevel(level).name } ?: Intensity.BOLD.name
+        ?.let { level -> Intensity.ofLevel(level).name } ?: Intensity.HOT.name
 
 /** The score so far, as the game keeps it — or nothing, for a game that keeps none. */
 private fun scoreLine(state: GameUiState): String? {

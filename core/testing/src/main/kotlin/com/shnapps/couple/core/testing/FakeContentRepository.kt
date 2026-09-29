@@ -53,9 +53,9 @@ object TestContent {
         ContentPack("AFTER_DARK", "After dark", "Later, bolder.", 3..5),
     )
 
-    val softTogether = item("flirt_soft", "FLIRT", Intensity.SOFT, setOf(Mode.TOGETHER))
+    val softTogether = item("flirt_soft", "FLIRT", Intensity.MILD, setOf(Mode.TOGETHER))
     val flirtyApart = item("flirt_apart", "FLIRT", Intensity.FLIRTY, setOf(Mode.APART))
-    val boldBoth = item("afterdark_bold", "AFTER_DARK", Intensity.BOLD, setOf(Mode.TOGETHER, Mode.APART))
+    val boldBoth = item("afterdark_bold", "AFTER_DARK", Intensity.HOT, setOf(Mode.TOGETHER, Mode.APART))
 
     val items = listOf(softTogether, flirtyApart, boldBoth)
 

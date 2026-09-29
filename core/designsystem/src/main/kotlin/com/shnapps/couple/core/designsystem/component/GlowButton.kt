@@ -62,7 +62,7 @@ fun GlowButton(
     leadingIcon: ImageVector? = null,
 ) {
     val spacing = AfterhoursTheme.spacing
-    val heat = AfterhoursTheme.heat
+    val tier = AfterhoursTheme.tier
     val reduceMotion = AfterhoursTheme.reduceMotion
 
     val haptics = LocalHapticFeedback.current
@@ -89,9 +89,9 @@ fun GlowButton(
     )
     val fill by animateColorAsState(
         targetValue = when {
-            !enabled -> heat.accent.copy(alpha = DISABLED_FILL)
-            pressed -> heat.accent.copy(alpha = PRESSED_FILL)
-            else -> heat.accent
+            !enabled -> tier.accent.copy(alpha = DISABLED_FILL)
+            pressed -> tier.accent.copy(alpha = PRESSED_FILL)
+            else -> tier.accent
         },
         animationSpec = decorativeTween(AfterhoursTheme.motion.quick, reduceMotion, AfterhoursEasing.Standard),
         label = "buttonFill",
@@ -126,7 +126,7 @@ fun GlowButton(
                 .then(
                     if (enabled) {
                         Modifier.bloom(
-                            color = heat.rim,
+                            color = tier.rim,
                             cornerRadius = BUTTON_CORNER,
                             spread = BLOOM_SPREAD,
                         )
@@ -140,9 +140,9 @@ fun GlowButton(
             shape = MaterialTheme.shapes.medium,
             colors = ButtonDefaults.buttonColors(
                 containerColor = fill,
-                contentColor = heat.onAccent,
+                contentColor = tier.onAccent,
                 disabledContainerColor = fill,
-                disabledContentColor = heat.onAccent.copy(alpha = DISABLED_LABEL),
+                disabledContentColor = tier.onAccent.copy(alpha = DISABLED_LABEL),
             ),
         ) { label() }
 

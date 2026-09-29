@@ -69,7 +69,7 @@ private fun Segment(state: SegmentState, modifier: Modifier) {
     val color by animateColorAsState(
         targetValue = when (state) {
             SegmentState.DONE -> onSurface.copy(alpha = DONE)
-            SegmentState.NOW -> AfterhoursTheme.heat.accent
+            SegmentState.NOW -> AfterhoursTheme.tier.accent
             SegmentState.TO_COME -> onSurface.copy(alpha = TO_COME)
         },
         animationSpec = decorativeTween(

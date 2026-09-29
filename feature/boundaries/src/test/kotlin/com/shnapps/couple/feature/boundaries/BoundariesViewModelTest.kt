@@ -168,9 +168,9 @@ class BoundariesViewModelTest {
         val vm = viewModel()
         assertThat(vm.state.contentLevel).isEqualTo(Intensity.FLIRTY)
 
-        act { vm.setContentLevel(Intensity.BOLD) }
+        act { vm.setContentLevel(Intensity.HOT) }
 
-        assertThat(vm.state.contentLevel).isEqualTo(Intensity.BOLD)
+        assertThat(vm.state.contentLevel).isEqualTo(Intensity.HOT)
     }
 
     @Test

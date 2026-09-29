@@ -5,7 +5,6 @@ import com.shnapps.couple.core.data.boundaries.BoundaryRepository
 import com.shnapps.couple.core.datastore.AppPreferencesStore
 import com.shnapps.couple.core.model.Boundary
 import com.shnapps.couple.core.model.BoundaryLevel
-import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.Intensity
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -55,7 +54,7 @@ class LocalPlayReconciler @Inject constructor(
             if (written is Outcome.Success) themes += 1
         }
 
-        val level = local.heat.asContentLevel()
+        val level = local.tier
         val levelCarried = contentLevel.setContentLevel(level) is Outcome.Success
 
         return Carried(themes = themes, contentLevel = level.takeIf { levelCarried })
@@ -74,6 +73,3 @@ data class Carried(val themes: Int, val contentLevel: Intensity?)
 interface ContentLevelWriter {
     suspend fun setContentLevel(level: Intensity): Outcome<Unit>
 }
-
-/** The heat this phone was set to, in the engine's own units. */
-fun Heat.asContentLevel(): Intensity = ceiling

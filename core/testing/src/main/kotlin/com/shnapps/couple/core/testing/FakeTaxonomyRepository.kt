@@ -24,13 +24,13 @@ class FakeTaxonomyRepository(
 object TestTaxonomy {
     const val VERSION = 3
 
-    val romantic = item("mood_romantic", "Romantic nights", Intensity.SOFT, "mood", "mood_gentle")
-    val playful = item("mood_playful", "Playful", Intensity.SOFT, "mood", "mood_gentle")
+    val romantic = item("mood_romantic", "Romantic nights", Intensity.MILD, "mood", "mood_gentle")
+    val playful = item("mood_playful", "Playful", Intensity.MILD, "mood", "mood_gentle")
     val flirty = item("mood_flirty", "Flirty", Intensity.FLIRTY, "mood", "mood_charged")
-    val intense = item("mood_intense", "Intense", Intensity.BOLD, "mood", "mood_charged")
+    val intense = item("mood_intense", "Intense", Intensity.HOT, "mood", "mood_charged")
     val takeTheLead = item("power_take_the_lead", "Taking the lead", Intensity.FLIRTY, "power", "power_leading")
     val followInstructions =
-        item("power_follow_instructions", "Following instructions", Intensity.NAUGHTY, "power", "power_yielding")
+        item("power_follow_instructions", "Following instructions", Intensity.SPICY, "power", "power_yielding")
 
     val taxonomy = Taxonomy(
         version = VERSION,

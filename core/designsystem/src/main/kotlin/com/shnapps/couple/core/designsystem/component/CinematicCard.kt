@@ -36,7 +36,7 @@ fun CinematicCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val spacing = AfterhoursTheme.spacing
-    val heat = AfterhoursTheme.heat
+    val tier = AfterhoursTheme.tier
     // Bound to a local so the semantics setter below is not shadowed by the parameter.
     val description = contentDescription
 
@@ -45,7 +45,7 @@ fun CinematicCard(
             .fillMaxWidth()
             .then(
                 if (glowing) {
-                    Modifier.bloom(color = heat.rim, cornerRadius = spacing.lg, spread = spacing.xl)
+                    Modifier.bloom(color = tier.rim, cornerRadius = spacing.lg, spread = spacing.xl)
                 } else {
                     Modifier
                 },
@@ -53,7 +53,7 @@ fun CinematicCard(
             .raised(
                 color = MaterialTheme.colorScheme.surfaceContainer,
                 shape = shape,
-                rimTop = if (glowing) heat.rim.copy(alpha = RIM_LIT) else AfterhoursTheme.colors.rimTop,
+                rimTop = if (glowing) tier.rim.copy(alpha = RIM_LIT) else AfterhoursTheme.colors.rimTop,
             )
             .clip(shape)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)

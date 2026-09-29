@@ -49,8 +49,8 @@ class ContentInspectorViewModelTest {
             assertThat(awaitState { it.mode == Mode.APART }.items).containsExactly(TestContent.flirtyApart)
 
             viewModel.selectPack("FLIRT")
-            viewModel.selectIntensity(Intensity.BOLD)
-            val filtered = awaitState { it.intensity == Intensity.BOLD && it.pack == null }
+            viewModel.selectIntensity(Intensity.HOT)
+            val filtered = awaitState { it.intensity == Intensity.HOT && it.pack == null }
             assertThat(filtered.items).containsExactly(TestContent.boldBoth)
         }
     }

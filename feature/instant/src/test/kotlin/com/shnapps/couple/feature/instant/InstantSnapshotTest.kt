@@ -11,7 +11,6 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.engine.InstantCard
-import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.Intensity
 import org.junit.Rule
 import org.junit.Test
@@ -39,15 +38,15 @@ class InstantSnapshotTest {
     fun `first launch is one screen`() {
         capture("instant-start") {
             StartContent(
-                state = StartUiState(heat = Heat.HOT),
-                onHeat = {},
+                state = StartUiState(tier = Intensity.HOT),
+                onTier = {},
                 onConfirm = {},
                 onNotOldEnough = {},
                 onPairInstead = {},
             )
         }
 
-        // Everything the first screen asks for, and nothing else: an age, a heat, a way in.
+        // Everything the first screen asks for, and nothing else: an age, a tier, a way in.
         composeRule.onNodeWithText("Two questions, then we start.").assertIsDisplayed()
         composeRule.onNodeWithText("We're both 18 or over — start").assertIsDisplayed()
     }
@@ -89,7 +88,7 @@ class InstantSnapshotTest {
 
     @Test
     fun `offering to turn it up`() {
-        capture("instant-hotter") { play(state(offeringHotter = Heat.WILD)) }
+        capture("instant-hotter") { play(state(offeringHotter = Intensity.EXTREME)) }
 
         composeRule.onNodeWithText("Turn it up?").assertIsDisplayed()
     }
@@ -113,7 +112,7 @@ class InstantSnapshotTest {
             onRefuse = {},
             onTurnUp = {},
             onKeepHeat = {},
-            onHeat = {},
+            onTier = {},
             onStartTimer = {},
             onStopTimer = {},
             onKeepGoing = {},
@@ -130,12 +129,12 @@ class InstantSnapshotTest {
     private fun state(
         timer: CardTimer? = null,
         refusing: InstantCard? = null,
-        offeringHotter: Heat? = null,
+        offeringHotter: Intensity? = null,
         runComplete: Boolean = false,
         played: Int = 2,
     ) = InstantPlayUiState(
         card = card,
-        heat = Heat.HOT,
+        tier = Intensity.HOT,
         played = played,
         loading = false,
         position = played,
@@ -154,7 +153,7 @@ class InstantSnapshotTest {
             body = "Sit at opposite sides of the room and talk only by message. " +
                 "Describe what you would do if they came closer. Nobody moves until someone gives in.",
             minutes = 5,
-            intensity = Intensity.NAUGHTY,
+            intensity = Intensity.SPICY,
             pack = "TEASE",
             themes = setOf("teasing_anticipation"),
         )

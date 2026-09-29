@@ -26,11 +26,11 @@ import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
-import com.shnapps.couple.core.designsystem.theme.ProvideHeat
+import com.shnapps.couple.core.designsystem.theme.ProvideTier
 import com.shnapps.couple.core.model.AccountOffer
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.Gate
-import com.shnapps.couple.core.model.Heat
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.MediaItem
 import com.shnapps.couple.core.model.MediaKind
 import com.shnapps.couple.core.model.NightPlan
@@ -40,17 +40,17 @@ import com.shnapps.couple.core.ui.ApartThread
 import com.shnapps.couple.core.ui.ChoiceRow
 import com.shnapps.couple.core.ui.Entrance
 import com.shnapps.couple.core.ui.ErrorBanner
-import com.shnapps.couple.core.ui.HeatPicker
 import com.shnapps.couple.core.ui.PremiumNudge
 import com.shnapps.couple.core.ui.ScreenHeading
 import com.shnapps.couple.core.ui.ScreenScaffold
 import com.shnapps.couple.core.ui.SecureScreen
+import com.shnapps.couple.core.ui.TierPicker
 import com.shnapps.couple.core.ui.Wordmark
 
 /**
  * Home — the only one (REDESIGN_PROMPT.md §6).
  *
- * One heading, one filled button, one list of games, one heat. Everything a person could be asked
+ * One heading, one filled button, one list of games, one tier. Everything a person could be asked
  * is behind the button; everything an account would add is on the screen from the first minute,
  * saying what it needs rather than appearing later on a screen they have never seen.
  */
@@ -82,7 +82,7 @@ fun HomeScreen(
         actions = actions.copy(
             onPlay = viewModel::play,
             onSurprise = viewModel::surprise,
-            onHeat = viewModel::setHeat,
+            onTier = viewModel::setTier,
             onOpenWaiting = viewModel::openWaiting,
             onDismissError = viewModel::dismissError,
             onDismissGate = viewModel::dismissGate,
@@ -117,7 +117,7 @@ data class HomeActions(
     val onInspector: (() -> Unit)? = null,
     val onPlay: (gameId: String) -> Unit = {},
     val onSurprise: (mystery: Boolean) -> Unit = {},
-    val onHeat: (Heat) -> Unit = {},
+    val onTier: (Intensity) -> Unit = {},
     val onOpenWaiting: () -> Unit = {},
     val onDismissError: () -> Unit = {},
     val onDismissGate: () -> Unit = {},
@@ -129,7 +129,7 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
     var choosing by remember { mutableStateOf(false) }
 
     // Everything on this screen takes tonight's heat (DESIGN_PROMPT.md §4.4).
-    ProvideHeat(state.heat) {
+    ProvideTier(state.tier) {
         // The one primary action docks, so it is in reach whatever the list below has grown to.
         // It used to sit at the top of a column that scrolled past it.
         val dock: (@Composable ColumnScope.() -> Unit) = {
@@ -179,7 +179,7 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
 
             // How far tonight goes belongs with the room it sets, directly under the heading.
             Entrance(index = 1) {
-                HeatPicker(selected = state.heat, onHeat = actions.onHeat)
+                TierPicker(selected = state.tier, onTier = actions.onTier)
             }
 
             Entrance(index = 2) { Apart(state, actions) }

@@ -6,7 +6,7 @@ import com.shnapps.couple.core.data.instant.InstantPlayRepository
 import com.shnapps.couple.core.engine.InstantCard
 import com.shnapps.couple.core.engine.InstantDeck
 import com.shnapps.couple.core.model.ContentPack
-import com.shnapps.couple.core.model.Heat
+import com.shnapps.couple.core.model.Intensity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -27,7 +27,7 @@ data class CardTimer(val totalSeconds: Int, val remainingSeconds: Int) {
 /** Immutable screen state (BUILD_PROMPT.md §4.1; enforced by :architecture). */
 data class InstantPlayUiState(
     val card: InstantCard? = null,
-    val heat: Heat = Heat.DEFAULT,
+    val tier: Intensity = Intensity.DEFAULT,
     /** The lanes this heat has cards in, and the one being dealt from (D-125). */
     val lanes: List<ContentPack> = emptyList(),
     val lane: String? = null,
@@ -35,7 +35,7 @@ data class InstantPlayUiState(
     val streak: Int = 0,
     val loading: Boolean = true,
     val refusing: InstantCard? = null,
-    val offeringHotter: Heat? = null,
+    val offeringHotter: Intensity? = null,
     /** Where they are in this run of cards: 0 until the first is done. */
     val position: Int = 0,
     val runLength: Int = InstantPlayViewModel.RUN_LENGTH,
@@ -44,7 +44,7 @@ data class InstantPlayUiState(
     val runComplete: Boolean = false,
 ) {
     /** The heat is reachable while a card is up, and not while the screen is asking something. */
-    val showsHeatPicker: Boolean
+    val showsTierPicker: Boolean
         get() = card != null && refusing == null && offeringHotter == null && !runComplete
 
     /** What the lane is called, for the card's own eyebrow. Null while dealing from all of them. */
@@ -90,14 +90,14 @@ class InstantPlayViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            combine(instant.deck, instant.heat, instant.played, instant.packs, instant.lane, ::Deal)
+            combine(instant.deck, instant.tier, instant.played, instant.packs, instant.lane, ::Deal)
                 .collect { deal ->
                     deck = deal.deck
                     played = deal.played
                     _uiState.update {
                         it.copy(
-                            card = deal.deck.next(position, deal.heat, seed, played + dealt),
-                            heat = deal.heat,
+                            card = deal.deck.next(position, deal.tier, seed, played + dealt),
+                            tier = deal.tier,
                             lanes = deal.lanes,
                             lane = deal.lane,
                             loading = false,
@@ -110,7 +110,7 @@ class InstantPlayViewModel @Inject constructor(
     /** The five things a card depends on, named so the combine above reads as one thing. */
     private data class Deal(
         val deck: InstantDeck,
-        val heat: Heat,
+        val tier: Intensity,
         val played: Set<String>,
         val lanes: List<ContentPack>,
         val lane: String?,
@@ -120,7 +120,7 @@ class InstantPlayViewModel @Inject constructor(
     fun done() {
         seen()
         val streak = _uiState.value.streak + 1
-        val hotter = _uiState.value.heat.hotter()
+        val hotter = _uiState.value.tier.hotter()
         if (streak >= STREAK_BEFORE_OFFERING && hotter != null) {
             stopTimer()
             _uiState.update { it.copy(streak = 0, offeringHotter = hotter) }
@@ -225,15 +225,15 @@ class InstantPlayViewModel @Inject constructor(
         }
     }
 
-    fun turnUp(heat: Heat) {
+    fun turnUp(tier: Intensity) {
         _uiState.update { it.copy(offeringHotter = null) }
         viewModelScope.launch {
-            instant.setHeat(heat)
+            instant.setTier(tier)
             advance()
         }
     }
 
-    fun keepHeat() {
+    fun keepTier() {
         _uiState.update { it.copy(offeringHotter = null) }
         advance()
     }
@@ -252,9 +252,9 @@ class InstantPlayViewModel @Inject constructor(
         }
     }
 
-    /** The card for where the run is now: at the heat, and one they have not had (D-124). */
+    /** The card for where the run is now: at the tier, and one they have not had (D-124). */
     private fun card(): InstantCard? =
-        deck?.next(position, _uiState.value.heat, seed, played + dealt)
+        deck?.next(position, _uiState.value.tier, seed, played + dealt)
 
     companion object {
         /** Long enough to mean they are enjoying it, short enough to arrive in one evening. */

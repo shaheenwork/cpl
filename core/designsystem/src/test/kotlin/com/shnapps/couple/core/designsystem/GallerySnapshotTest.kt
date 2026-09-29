@@ -16,7 +16,6 @@ import com.shnapps.couple.core.designsystem.gallery.AnticipationSpecimen
 import com.shnapps.couple.core.designsystem.gallery.ButtonsSpecimen
 import com.shnapps.couple.core.designsystem.gallery.CardsSpecimen
 import com.shnapps.couple.core.designsystem.gallery.EmptySpecimen
-import com.shnapps.couple.core.designsystem.gallery.HeatSpecimen
 import com.shnapps.couple.core.designsystem.gallery.IconSpecimen
 import com.shnapps.couple.core.designsystem.gallery.LightSpecimen
 import com.shnapps.couple.core.designsystem.gallery.MeasureSpecimen
@@ -26,6 +25,7 @@ import com.shnapps.couple.core.designsystem.gallery.RhythmSpecimen
 import com.shnapps.couple.core.designsystem.gallery.RimSpecimen
 import com.shnapps.couple.core.designsystem.gallery.SafetySpecimen
 import com.shnapps.couple.core.designsystem.gallery.SurfaceSpecimen
+import com.shnapps.couple.core.designsystem.gallery.TierSpecimen
 import com.shnapps.couple.core.designsystem.gallery.TypeSpecimen
 import com.shnapps.couple.core.designsystem.gallery.VoiceSpecimen
 import com.shnapps.couple.core.designsystem.gallery.WaitingSpecimen
@@ -64,7 +64,7 @@ class GallerySnapshotTest {
 
     @Test fun light() = capture("light") { LightSpecimen() }
 
-    @Test fun heat() = capture("heat") { HeatSpecimen() }
+    @Test fun tier() = capture("tier") { TierSpecimen() }
 
     @Test fun rhythm() = capture("rhythm") { RhythmSpecimen() }
 

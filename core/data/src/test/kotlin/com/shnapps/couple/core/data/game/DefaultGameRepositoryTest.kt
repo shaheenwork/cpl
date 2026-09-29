@@ -60,7 +60,7 @@ class DefaultGameRepositoryTest {
     fun `a started game holds exactly the rounds and alternates the server released`() = runTest {
         remote.next = payload(rounds, alternates = listOf("tod_t4", "tod_d4"))
 
-        val started = (repository.start(TestGames.TRUTH_OR_DARE, Intensity.NAUGHTY) as Outcome.Success).value
+        val started = (repository.start(TestGames.TRUTH_OR_DARE, Intensity.SPICY) as Outcome.Success).value
 
         assertThat(remote.started).containsExactly(TestGames.TRUTH_OR_DARE to 3)
         assertThat(started.experienceId).isEqualTo(EXPERIENCE)
@@ -75,7 +75,7 @@ class DefaultGameRepositoryTest {
             listOf(listOf("tod_t1", "tod_d1"), listOf("tod_t_new", "tod_d2"), listOf("tod_t3", "tod_d3")),
         )
 
-        val started = (repository.start(TestGames.TRUTH_OR_DARE, Intensity.NAUGHTY) as Outcome.Success).value
+        val started = (repository.start(TestGames.TRUTH_OR_DARE, Intensity.SPICY) as Outcome.Success).value
 
         assertThat(content.syncCalls).isEqualTo(1)
         assertThat(started.released.rounds.map { it.playable }).containsExactly(true, false, true).inOrder()
@@ -84,11 +84,11 @@ class DefaultGameRepositoryTest {
     @Test
     fun `a game this phone does not know, or cannot play at all, is refused`() = runTest {
         remote.next = payload(rounds).copy(gameId = "FROM_A_NEWER_APP")
-        val unknown = repository.start("FROM_A_NEWER_APP", Intensity.SOFT) as Outcome.Failure
+        val unknown = repository.start("FROM_A_NEWER_APP", Intensity.MILD) as Outcome.Failure
         assertThat((unknown.error as AppError.Validation).code).isEqualTo(DefaultGameRepository.GAME_UNKNOWN)
 
         remote.next = payload(listOf(listOf("gone_1", "gone_2")))
-        val empty = repository.start(TestGames.TRUTH_OR_DARE, Intensity.SOFT) as Outcome.Failure
+        val empty = repository.start(TestGames.TRUTH_OR_DARE, Intensity.MILD) as Outcome.Failure
         assertThat((empty.error as AppError.Validation).code).isEqualTo(DefaultGameRepository.CONTENT_OUT_OF_DATE)
     }
 
@@ -152,7 +152,7 @@ class DefaultGameRepositoryTest {
     @Test
     fun `the game just started opens without asking the server again`() = runTest {
         remote.next = payload(rounds)
-        repository.start(TestGames.TRUTH_OR_DARE, Intensity.SOFT)
+        repository.start(TestGames.TRUTH_OR_DARE, Intensity.MILD)
         assertThat((repository.load(EXPERIENCE) as Outcome.Success).value.experienceId).isEqualTo(EXPERIENCE)
         assertThat(remote.loaded).isEmpty()
     }

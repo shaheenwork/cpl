@@ -87,7 +87,7 @@ class DealtGameSnapshotTest {
         capture("dealt-game-nothing") { content(DealtGameUiState(loading = false, nothingToPlay = true)) }
 
         // Never a blank screen: what happened, and the two things that would fix it (§6, U6).
-        composeRule.onNodeWithText("Nothing to deal at this heat.").assertIsDisplayed()
+        composeRule.onNodeWithText("Nothing to deal at this tier.").assertIsDisplayed()
         composeRule.onNodeWithText("Pick something else").assertIsDisplayed()
     }
 

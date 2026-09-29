@@ -145,8 +145,8 @@ private fun Entry(
     onClick: () -> Unit,
 ) {
     val spacing = AfterhoursTheme.spacing
-    val heat = AfterhoursTheme.heat
-    val node = if (highlight) heat.accent else AfterhoursTheme.colors.edgeFaint
+    val tier = AfterhoursTheme.tier
+    val node = if (highlight) tier.accent else AfterhoursTheme.colors.edgeFaint
 
     Box(modifier = Modifier.fillMaxWidth()) {
         Box(
@@ -160,7 +160,7 @@ private fun Entry(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    color = if (mine) heat.container else MaterialTheme.colorScheme.surfaceContainer,
+                    color = if (mine) tier.container else MaterialTheme.colorScheme.surfaceContainer,
                     shape = MaterialTheme.shapes.small,
                 )
                 .clickable(onClick = onClick)
@@ -172,7 +172,7 @@ private fun Entry(
             Text(
                 text = line,
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (mine) heat.onContainer else MaterialTheme.colorScheme.onSurface,
+                color = if (mine) tier.onContainer else MaterialTheme.colorScheme.onSurface,
             )
             if (detail != null) {
                 Text(

@@ -22,7 +22,7 @@ import com.google.common.truth.Truth.assertThat
 import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.model.Game
-import com.shnapps.couple.core.model.Heat
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.Scoring
 import com.shnapps.couple.core.model.TurnOrder
@@ -84,7 +84,7 @@ class HomeAccessibilityTest {
     }
 
     private fun state(company: Company = Company.ALONE) =
-        HomeUiState(company = company, games = games, heat = Heat.HOT)
+        HomeUiState(company = company, games = games, tier = Intensity.HOT)
 
     private fun compose(fontScale: Float, content: @Composable () -> Unit) {
         composeRule.setContent {

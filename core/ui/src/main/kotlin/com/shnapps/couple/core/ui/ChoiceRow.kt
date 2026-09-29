@@ -129,7 +129,7 @@ fun ChoiceRow(
             )
         } else {
             trailing?.let {
-                Text(text = it.uppercase(), style = EyebrowTextStyle, color = AfterhoursTheme.heat.onDark)
+                Text(text = it.uppercase(), style = EyebrowTextStyle, color = AfterhoursTheme.tier.onDark)
             }
             Icon(
                 imageVector = AfterhoursIcons.Forward,

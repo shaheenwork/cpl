@@ -51,7 +51,7 @@ fun TimerRing(
     running: Boolean = true,
 ) {
     val spacing = AfterhoursTheme.spacing
-    val heat = AfterhoursTheme.heat
+    val tier = AfterhoursTheme.tier
     val reduceMotion = AfterhoursTheme.reduceMotion
     val onSurface = MaterialTheme.colorScheme.onSurface
 
@@ -61,7 +61,7 @@ fun TimerRing(
 
     val sweep by animateFloatAsStateCompat(fraction, reduceMotion)
     val color by animateColorAsState(
-        targetValue = if (ending) AfterhoursTheme.colors.ember else heat.accent,
+        targetValue = if (ending) AfterhoursTheme.colors.ember else tier.accent,
         animationSpec = decorativeTween(AfterhoursTheme.motion.slow, reduceMotion, AfterhoursEasing.Standard),
         label = "timerColor",
     )

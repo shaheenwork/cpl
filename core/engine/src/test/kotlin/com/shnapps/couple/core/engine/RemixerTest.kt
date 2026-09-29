@@ -144,7 +144,7 @@ class RemixerTest {
         val strays = listOf(
             byId.getValue(released[0]).copy(status = ContentStatus.DISABLED),
             byId.getValue(released[1]).copy(modes = setOf(Mode.APART)),
-            byId.getValue(released[2]).copy(intensity = Intensity.WILD),
+            byId.getValue(released[2]).copy(intensity = Intensity.EXTREME),
         ).associateBy { it.id }
         val withStray = serverNight.copy(alternates = serverNight.alternates + "no_such_item")
         val tampered = PermittedPool.fromServer(withStray) { strays[it] ?: byId[it] }

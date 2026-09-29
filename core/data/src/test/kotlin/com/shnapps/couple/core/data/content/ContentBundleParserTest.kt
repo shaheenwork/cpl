@@ -31,7 +31,7 @@ class ContentBundleParserTest {
     fun `maps an item onto the domain`() {
         val item = ContentBundleParser.parseItem(ContentFixtures.item("flirt_one", intensity = 3))!!
 
-        assertThat(item.intensity).isEqualTo(Intensity.NAUGHTY)
+        assertThat(item.intensity).isEqualTo(Intensity.SPICY)
         assertThat(item.modes).containsExactly(Mode.TOGETHER, Mode.APART)
         assertThat(item.interactionType).isEqualTo(InteractionType.CHALLENGE)
         assertThat(item.moods).containsExactly(Mood.NAUGHTY)

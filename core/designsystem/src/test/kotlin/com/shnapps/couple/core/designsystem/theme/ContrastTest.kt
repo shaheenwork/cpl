@@ -3,7 +3,7 @@ package com.shnapps.couple.core.designsystem.theme
 import androidx.compose.ui.graphics.Color
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
-import com.shnapps.couple.core.model.Heat
+import com.shnapps.couple.core.model.Intensity
 import org.junit.Test
 import kotlin.math.max
 import kotlin.math.min
@@ -125,21 +125,21 @@ class ContrastTest {
     }
 
     /**
-     * Every heat, on every ground it is drawn on (§4.4).
+     * Every tier, on every ground it is drawn on (§4.4).
      *
      * A heat owns the accent on a card, the label on a filled button and the text inside its
-     * own container. Wild is the one that had to be designed rather than picked: oxblood is
+     * own container. Hot is the one that had to be designed rather than picked: oxblood is
      * deep enough that dark text fails on it, which is why its filled state takes cream.
      */
     @Test
-    fun `every heat is legible on every ground it is drawn on`() {
-        Heat.entries.forEach { heat ->
-            val colors = heatColors(heat)
-            assertContrast("${heat.label} text on card", colors.onDark, Palette.Card, AA_NORMAL)
-            assertContrast("${heat.label} text on raised", colors.onDark, Palette.Raised, AA_NORMAL)
-            assertContrast("${heat.label} label on its fill", colors.onAccent, colors.accent, AA_NORMAL)
-            assertContrast("${heat.label} in its container", colors.onContainer, colors.container, AA_NORMAL)
-            assertContrast("${heat.label} fill on the scene", colors.accent, Palette.Scene, AA_LARGE)
+    fun `every tier is legible on every ground it is drawn on`() {
+        Intensity.entries.forEach { tier ->
+            val colors = tierColors(tier)
+            assertContrast("${tier.label} text on card", colors.onDark, Palette.Card, AA_NORMAL)
+            assertContrast("${tier.label} text on raised", colors.onDark, Palette.Raised, AA_NORMAL)
+            assertContrast("${tier.label} label on its fill", colors.onAccent, colors.accent, AA_NORMAL)
+            assertContrast("${tier.label} in its container", colors.onContainer, colors.container, AA_NORMAL)
+            assertContrast("${tier.label} fill on the scene", colors.accent, Palette.Scene, AA_LARGE)
         }
     }
 

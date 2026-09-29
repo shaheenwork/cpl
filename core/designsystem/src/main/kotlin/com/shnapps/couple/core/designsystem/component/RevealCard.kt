@@ -47,7 +47,7 @@ fun RevealCard(
     concealedLabel: String = "Not yet",
     concealedDescription: String = "Hidden until it is revealed",
     /** The bloom's colour. Brass marks the rarest reveal: both secretly curious (§14.7). */
-    glowColor: Color = AfterhoursTheme.heat.rim,
+    glowColor: Color = AfterhoursTheme.tier.rim,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val motion = AfterhoursTheme.motion

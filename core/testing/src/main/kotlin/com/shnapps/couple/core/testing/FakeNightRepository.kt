@@ -35,7 +35,7 @@ class FakeNightRepository(
 
     val session = MutableStateFlow<NightSession?>(null)
     override val activeSession: Flow<NightSession?> = session
-    val level = MutableStateFlow<Intensity?>(Intensity.WILD)
+    val level = MutableStateFlow<Intensity?>(Intensity.EXTREME)
     override val sharedLevel: Flow<Intensity?> = level
 
     /** Every call, in order: "build", "start", "consent", "begin", "finish:0", "stop"… */
@@ -212,7 +212,7 @@ object TestNights {
         experienceId = "night_gentle",
         settings = NightSettings(durationMin = 15, intensity = Intensity.FLIRTY),
         chapters = listOf(
-            chapter(0, ChapterKind.WARM_UP, "warm_glance", Intensity.SOFT),
+            chapter(0, ChapterKind.WARM_UP, "warm_glance", Intensity.MILD),
             chapter(1, ChapterKind.TEASE, "tease_whisper", Intensity.FLIRTY),
             chapter(2, ChapterKind.FINALE, "finale_slow_dance", Intensity.FLIRTY),
         ),
@@ -225,13 +225,13 @@ object TestNights {
     /** A night that climbs to BOLD: both partners must say "I'm in" first (§3.1). */
     val bold = PlannedNight(
         experienceId = "night_bold",
-        settings = NightSettings(durationMin = 15, intensity = Intensity.BOLD),
+        settings = NightSettings(durationMin = 15, intensity = Intensity.HOT),
         chapters = listOf(
-            chapter(0, ChapterKind.WARM_UP, "warm_dare", Intensity.NAUGHTY),
-            chapter(1, ChapterKind.CONTROL, "control_rules", Intensity.BOLD),
-            chapter(2, ChapterKind.FINALE, "finale_bold", Intensity.BOLD),
+            chapter(0, ChapterKind.WARM_UP, "warm_dare", Intensity.SPICY),
+            chapter(1, ChapterKind.CONTROL, "control_rules", Intensity.HOT),
+            chapter(2, ChapterKind.FINALE, "finale_bold", Intensity.HOT),
         ),
-        effectiveIntensity = Intensity.BOLD,
+        effectiveIntensity = Intensity.HOT,
         askFirstItems = emptySet(),
         focusIncluded = false,
         seed = 2L,

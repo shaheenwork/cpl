@@ -6,7 +6,6 @@ import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.datastore.AppPreferences
 import com.shnapps.couple.core.model.Boundary
 import com.shnapps.couple.core.model.BoundaryLevel
-import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.testing.FakeAppPreferencesStore
 import com.shnapps.couple.core.testing.FakeBoundaryRepository
@@ -57,13 +56,13 @@ class LocalPlayReconcilerTest {
     }
 
     @Test
-    fun `the heat this phone was set to becomes their own content level`() = runTest {
-        preferences.set(heat = Heat.HOT)
+    fun `the tier this phone was set to becomes their own content level`() = runTest {
+        preferences.set(tier = Intensity.HOT)
 
         val carried = reconciler().reconcile()
 
-        assertThat(level.written).isEqualTo(Intensity.BOLD)
-        assertThat(carried.contentLevel).isEqualTo(Intensity.BOLD)
+        assertThat(level.written).isEqualTo(Intensity.HOT)
+        assertThat(carried.contentLevel).isEqualTo(Intensity.HOT)
     }
 
     @Test
@@ -95,13 +94,15 @@ class LocalPlayReconcilerTest {
     }
 
     @Test
-    fun `a phone that refused nothing still carries its heat`() = runTest {
-        preferences.set(heat = Heat.PLAYFUL)
+    fun `a phone that refused nothing still carries its tier`() = runTest {
+        preferences.set(tier = Intensity.MILD)
 
         val carried = reconciler().reconcile()
 
         assertThat(carried.themes).isEqualTo(0)
-        assertThat(carried.contentLevel).isEqualTo(Intensity.FLIRTY)
+        // A tier is the engine's own unit now, so it carries across as itself rather than
+        // through the ceiling `Heat` used to name (M2).
+        assertThat(carried.contentLevel).isEqualTo(Intensity.MILD)
     }
 
     @Test
@@ -117,12 +118,12 @@ class LocalPlayReconcilerTest {
     private fun reconciler() = LocalPlayReconciler(preferences, boundaries, level)
 
     private fun FakeAppPreferencesStore.set(
-        heat: Heat = Heat.DEFAULT,
+        tier: Intensity = Intensity.DEFAULT,
         refusedThemes: Set<String> = emptySet(),
         refusedCardIds: Set<String> = emptySet(),
     ) {
         state.value = AppPreferences(
-            heat = heat,
+            tier = tier,
             refusedThemes = refusedThemes,
             refusedCardIds = refusedCardIds,
         )

@@ -283,7 +283,7 @@ class DefaultNightRepository @Inject constructor(
             mode = Mode.entries.firstOrNull { it.name == doc.mode } ?: Mode.TOGETHER,
             durationMin = doc.durationMin,
             moods = doc.moods.mapNotNullTo(LinkedHashSet()) { Mood.fromId(it) },
-            intensity = Intensity.entries.firstOrNull { it.level == doc.intensity } ?: Intensity.SOFT,
+            intensity = Intensity.entries.firstOrNull { it.level == doc.intensity } ?: Intensity.MILD,
             leadership = Leadership.entries.firstOrNull { it.name == doc.leadership } ?: Leadership.RANDOM,
             novelty = Novelty.entries.firstOrNull { it.name == doc.novelty } ?: Novelty.MIXED,
             focus = doc.focus,
@@ -484,7 +484,7 @@ private fun NightSettingsPayload.toSettings(): NightSettings = NightSettings(
     mode = Mode.entries.firstOrNull { it.name == mode } ?: Mode.TOGETHER,
     durationMin = durationMin,
     moods = moods.mapNotNullTo(LinkedHashSet()) { Mood.fromId(it) },
-    intensity = Intensity.entries.firstOrNull { it.level == intensity } ?: Intensity.SOFT,
+    intensity = Intensity.entries.firstOrNull { it.level == intensity } ?: Intensity.MILD,
     leadership = Leadership.entries.firstOrNull { it.name == leadership } ?: Leadership.RANDOM,
     novelty = Novelty.entries.firstOrNull { it.name == novelty } ?: Novelty.MIXED,
 )

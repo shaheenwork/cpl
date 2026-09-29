@@ -28,8 +28,8 @@ import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.CardBodyTextStyle
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.designsystem.theme.NumeralTextStyle
-import com.shnapps.couple.core.designsystem.theme.ProvideHeat
-import com.shnapps.couple.core.model.Heat
+import com.shnapps.couple.core.designsystem.theme.ProvideTier
+import com.shnapps.couple.core.model.Intensity
 
 /**
  * The foundations, as specimens (DESIGN_PROMPT.md §8, D1).
@@ -113,7 +113,7 @@ internal fun LightSpecimen() {
             modifier = Modifier
                 .weight(1f)
                 .height(PANEL)
-                .bloom(AfterhoursTheme.heat.rim, cornerRadius = spacing.md, spread = spacing.xl)
+                .bloom(AfterhoursTheme.tier.rim, cornerRadius = spacing.md, spread = spacing.xl)
                 .raised(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.shapes.medium),
             contentAlignment = Alignment.Center,
         ) { Caption("bloom") }
@@ -135,44 +135,44 @@ internal fun LightSpecimen() {
  * §4.4 — how far tonight goes, as a colour.
  *
  * All three heats used to be the same pink, so the one thing this product is actually
- * about was invisible. Wild goes deeper and redder rather than brighter: escalation here
+ * about was invisible. Hot goes deeper and redder rather than brighter: escalation here
  * is intimacy, not volume.
  */
 @Composable
-internal fun HeatSpecimen() {
+internal fun TierSpecimen() {
     val spacing = AfterhoursTheme.spacing
     Row(horizontalArrangement = Arrangement.spacedBy(spacing.sm), modifier = Modifier.fillMaxWidth()) {
-        Heat.entries.forEach { heat ->
-            ProvideHeat(heat) {
+        Intensity.entries.forEach { tier ->
+            ProvideTier(tier) {
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .background(AfterhoursTheme.heat.container, MaterialTheme.shapes.small)
-                        .rim(MaterialTheme.shapes.small, top = AfterhoursTheme.heat.rim.copy(alpha = RIM_SAMPLE))
+                        .background(AfterhoursTheme.tier.container, MaterialTheme.shapes.small)
+                        .rim(MaterialTheme.shapes.small, top = AfterhoursTheme.tier.rim.copy(alpha = RIM_SAMPLE))
                         .padding(spacing.md),
                     verticalArrangement = Arrangement.spacedBy(spacing.tight),
                 ) {
                     Text(
-                        text = heat.dots,
+                        text = tier.dots,
                         style = MaterialTheme.typography.labelMedium,
-                        color = AfterhoursTheme.heat.onDark,
+                        color = AfterhoursTheme.tier.onDark,
                     )
                     Text(
-                        text = heat.label,
+                        text = tier.label,
                         style = MaterialTheme.typography.titleMedium,
-                        color = AfterhoursTheme.heat.onDark,
+                        color = AfterhoursTheme.tier.onDark,
                     )
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(SWATCH)
-                            .background(AfterhoursTheme.heat.accent, MaterialTheme.shapes.extraSmall),
+                            .background(AfterhoursTheme.tier.accent, MaterialTheme.shapes.extraSmall),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = "Aa",
                             style = MaterialTheme.typography.labelMedium,
-                            color = AfterhoursTheme.heat.onAccent,
+                            color = AfterhoursTheme.tier.onAccent,
                         )
                     }
                 }
@@ -233,7 +233,7 @@ internal fun RhythmSpecimen() {
 
 @Composable
 private fun RhythmHeading(text: String) {
-    Text(text = text.uppercase(), style = EyebrowTextStyle, color = AfterhoursTheme.heat.onDark)
+    Text(text = text.uppercase(), style = EyebrowTextStyle, color = AfterhoursTheme.tier.onDark)
 }
 
 @Composable
@@ -258,7 +258,7 @@ internal fun MeasureSpecimen() {
             color = AfterhoursTheme.colors.textMuted,
             modifier = Modifier.width(MEASURE),
         )
-        Text(text = "04:38 · 2 of 6", style = NumeralTextStyle, color = AfterhoursTheme.heat.onDark)
+        Text(text = "04:38 · 2 of 6", style = NumeralTextStyle, color = AfterhoursTheme.tier.onDark)
     }
 }
 

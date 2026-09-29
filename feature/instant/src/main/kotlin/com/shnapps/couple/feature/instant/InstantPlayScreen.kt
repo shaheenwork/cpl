@@ -24,17 +24,17 @@ import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.component.raised
 import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
-import com.shnapps.couple.core.designsystem.theme.ProvideHeat
+import com.shnapps.couple.core.designsystem.theme.ProvideTier
 import com.shnapps.couple.core.engine.InstantCard
-import com.shnapps.couple.core.model.Heat
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.ui.AfterhoursCard
 import com.shnapps.couple.core.ui.BarAction
 import com.shnapps.couple.core.ui.Dealt
-import com.shnapps.couple.core.ui.HeatPicker
 import com.shnapps.couple.core.ui.LanePicker
 import com.shnapps.couple.core.ui.RunProgress
 import com.shnapps.couple.core.ui.ScreenScaffold
 import com.shnapps.couple.core.ui.SecureScreen
+import com.shnapps.couple.core.ui.TierPicker
 import com.shnapps.couple.core.ui.TimerRing
 
 /**
@@ -62,8 +62,8 @@ fun InstantPlayScreen(
         onTooFar = viewModel::tooFar,
         onRefuse = viewModel::refuse,
         onTurnUp = viewModel::turnUp,
-        onKeepHeat = viewModel::keepHeat,
-        onHeat = { heat -> viewModel.turnUp(heat) },
+        onKeepHeat = viewModel::keepTier,
+        onTier = { tier -> viewModel.turnUp(tier) },
         onStartTimer = viewModel::startTimer,
         onStopTimer = viewModel::stopTimer,
         onKeepGoing = viewModel::keepGoing,
@@ -81,18 +81,18 @@ internal fun InstantPlayContent(
     onSkip: () -> Unit,
     onTooFar: () -> Unit,
     onRefuse: (Boolean) -> Unit,
-    onTurnUp: (Heat) -> Unit,
+    onTurnUp: (Intensity) -> Unit,
     onKeepHeat: () -> Unit,
-    onHeat: (Heat) -> Unit,
+    onTier: (Intensity) -> Unit,
     onStartTimer: () -> Unit,
     onStopTimer: () -> Unit,
     onKeepGoing: () -> Unit,
     onKeepThis: () -> Unit,
     onLane: (String?) -> Unit = {},
 ) {
-    // Everything on this screen takes the run's heat: the card's rim, the primary action,
+    // Everything on this screen takes the run's tier: the card's rim, the primary action,
     // the eyebrow (DESIGN_PROMPT.md §4.4). One setting, and the whole room changes.
-    ProvideHeat(state.heat) {
+    ProvideTier(state.tier) {
         val playing = state.card != null && state.refusing == null &&
             state.offeringHotter == null && !state.runComplete
 
@@ -177,7 +177,7 @@ internal fun InstantPlayContent(
                 state.runComplete -> RunComplete(played = state.played)
                 state.card != null -> Playing(
                     card = state.card,
-                    heat = state.heat,
+                    tier = state.tier,
                     lane = state.laneLabel,
                     timer = state.timer,
                     position = state.position,
@@ -188,10 +188,10 @@ internal fun InstantPlayContent(
                 else -> Empty()
             }
 
-            if (state.showsHeatPicker) {
+            if (state.showsTierPicker) {
                 // How far, then what kind. Two dials, and the second one is the packs the app has
                 // always shipped and never offered (D-125).
-                HeatPicker(selected = state.heat, onHeat = onHeat)
+                TierPicker(selected = state.tier, onTier = onTier)
                 LanePicker(lanes = state.lanes, selected = state.lane, onLane = onLane)
             }
         }
@@ -201,7 +201,7 @@ internal fun InstantPlayContent(
 @Composable
 private fun Playing(
     card: InstantCard,
-    heat: Heat,
+    tier: Intensity,
     lane: String?,
     timer: CardTimer?,
     position: Int,
@@ -213,7 +213,7 @@ private fun Playing(
     // The one moment the app performs: a card being laid down, restarting on each new card.
     Dealt(key = card.id) {
         AfterhoursCard(
-            eyebrow = listOfNotNull(lane, heat.label, "${card.minutes} min").joinToString(" · "),
+            eyebrow = listOfNotNull(lane, tier.label, "${card.minutes} min").joinToString(" · "),
             title = card.title,
             body = card.body,
             meta = "Whoever's holding the phone",
@@ -300,7 +300,7 @@ private fun RefusalQuestion(onRefuse: (Boolean) -> Unit) {
 
 /** Offered after a run of yeses, never applied on their behalf. */
 @Composable
-private fun HotterQuestion(next: Heat, onTurnUp: (Heat) -> Unit, onKeep: () -> Unit) {
+private fun HotterQuestion(next: Intensity, onTurnUp: (Intensity) -> Unit, onKeep: () -> Unit) {
     CinematicCard(modifier = Modifier.fillMaxWidth(), glowing = true) {
         Text(
             text = "Turn it up?",
@@ -331,7 +331,7 @@ private fun HotterQuestion(next: Heat, onTurnUp: (Heat) -> Unit, onKeep: () -> U
 private fun Empty() {
     CinematicCard(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "Nothing left at this heat.",
+            text = "Nothing left at this tier.",
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface,
         )

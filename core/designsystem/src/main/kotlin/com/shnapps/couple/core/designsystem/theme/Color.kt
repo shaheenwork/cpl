@@ -2,7 +2,7 @@ package com.shnapps.couple.core.designsystem.theme
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
-import com.shnapps.couple.core.model.Heat
+import com.shnapps.couple.core.model.Intensity
 
 /**
  * The raw palette (BUILD_PROMPT.md §15.1, DESIGN_PROMPT.md §4.2 and §4.4).
@@ -14,7 +14,7 @@ import com.shnapps.couple.core.model.Heat
  * Reference: a luxury after-hours lounge. Explicitly NOT pink gradients, hearts, cartoon
  * flames or anything from an adult novelty store.
  *
- * Every foreground/background pairing used by [afterhoursColorScheme] and by [heatColors]
+ * Every foreground/background pairing used by [afterhoursColorScheme] and by [tierColors]
  * is checked against WCAG AA by `ContrastTest`, so these values are verified rather than
  * eyeballed.
  */
@@ -48,17 +48,33 @@ internal object Palette {
      */
     val BurgundyBright = Color(0xFFDE8AA1)
 
-    // --- Oxblood and ember: WILD --------------------------------------------
-    // Wild goes deeper and redder rather than brighter, because escalation in this
-    // product is intimacy, not volume. Oxblood is too dark to carry dark text, so its
-    // filled state takes cream instead — which is what a genuinely deep accent needs.
-    // Lifted from #A3243B, which measured 2.74:1 against the scene and so would have been a
-    // filled button a thumb could not find. This is the deepest red that still clears the
-    // non-text threshold, which is the real constraint on how dark Wild is allowed to go.
+    // --- Oxblood: HOT --------------------------------------------------------
+    // Hot goes deeper and redder rather than brighter, because escalation in this product is
+    // intimacy, not volume. Oxblood is too dark to carry dark text, so its filled state takes
+    // cream instead — which is what a genuinely deep accent needs. Lifted from #A3243B, which
+    // measured 2.74:1 against the scene and so would have been a filled button a thumb could not
+    // find. This is the deepest red that still clears the non-text threshold, which is the real
+    // constraint on how dark Hot is allowed to go.
     val Oxblood = Color(0xFFB02A42)
-    val Ember = Color(0xFFE2603F)
     val OxbloodContainer = Color(0xFF3D0F1A)
     val OnOxbloodContainer = Color(0xFFFFDCD2)
+
+    /**
+     * Oxblood as *text* on a raised or card ground.
+     *
+     * Oxblood itself is a fill, not a word: it measures 2.4:1 on the card. Ember used to do this
+     * job, and now that Extreme owns ember outright, Hot needs its own lifted tone. Measured at
+     * 4.74:1 on the card and 5.08:1 on raised.
+     */
+    val OxbloodBright = Color(0xFFE0566F)
+
+    // --- Ember: EXTREME ------------------------------------------------------
+    // The top of the ramp, and the one place the app is allowed to run hot rather than deep.
+    // Every tier below goes darker and redder in turn; ember breaks that on purpose, because the
+    // fifth tier should not look like the fourth with more of it.
+    val Ember = Color(0xFFE2603F)
+    val EmberContainer = Color(0xFF4A1A0F)
+    val OnEmberContainer = Color(0xFFFFDBCF)
 
     // --- Plum: the second light in the room ---------------------------------
     // Barely used as a fill on purpose. Its real job is the bounce wash in the scene,
@@ -107,7 +123,7 @@ internal object Palette {
  * the same colour as the fill.
  */
 @Immutable
-data class HeatColors(
+data class TierColors(
     val accent: Color,
     val onAccent: Color,
     val rim: Color,
@@ -116,9 +132,18 @@ data class HeatColors(
     val onContainer: Color,
 )
 
-/** The colours of one heat. The only place a heat becomes a colour. */
-fun heatColors(heat: Heat): HeatColors = when (heat) {
-    Heat.PLAYFUL -> HeatColors(
+/**
+ * The colours of one tier. The only place a tier becomes a colour.
+ *
+ * Five steps, and each is a different hue rather than one red at five brightnesses: gold, plum,
+ * rose, deep red, ember. Plum used to be kept off fills entirely — its job was the bounce wash in
+ * the scene — but five tiers need five accents a person can tell apart at a glance, and plum is
+ * the one that sits naturally between brass and burgundy.
+ *
+ * Every pairing here is measured by `ContrastTest`, which walks all five.
+ */
+fun tierColors(tier: Intensity): TierColors = when (tier) {
+    Intensity.MILD -> TierColors(
         accent = Palette.Brass,
         onAccent = Palette.Scene,
         rim = Palette.Brass,
@@ -126,7 +151,15 @@ fun heatColors(heat: Heat): HeatColors = when (heat) {
         container = Palette.BrassContainer,
         onContainer = Palette.OnBrassContainer,
     )
-    Heat.HOT -> HeatColors(
+    Intensity.FLIRTY -> TierColors(
+        accent = Palette.Plum,
+        onAccent = Palette.Scene,
+        rim = Palette.Plum,
+        onDark = Palette.Plum,
+        container = Palette.PlumContainer,
+        onContainer = Palette.OnPlumContainer,
+    )
+    Intensity.SPICY -> TierColors(
         accent = Palette.Burgundy,
         onAccent = Palette.Scene,
         rim = Palette.Burgundy,
@@ -134,15 +167,23 @@ fun heatColors(heat: Heat): HeatColors = when (heat) {
         container = Palette.BurgundyContainer,
         onContainer = Palette.OnBurgundyContainer,
     )
-    Heat.WILD -> HeatColors(
+    Intensity.HOT -> TierColors(
         accent = Palette.Oxblood,
-        // Oxblood is deep enough that dark text fails on it. Cream is what a deep accent
-        // wants, and it is the reason Wild can go darker instead of louder.
+        // Oxblood is deep enough that dark text fails on it. Cream is what a deep accent wants,
+        // and it is the reason Hot can go darker instead of louder.
         onAccent = Palette.Cream,
-        rim = Palette.Ember,
-        onDark = Palette.Ember,
+        rim = Palette.Oxblood,
+        onDark = Palette.OxbloodBright,
         container = Palette.OxbloodContainer,
         onContainer = Palette.OnOxbloodContainer,
+    )
+    Intensity.EXTREME -> TierColors(
+        accent = Palette.Ember,
+        onAccent = Palette.Scene,
+        rim = Palette.Ember,
+        onDark = Palette.Ember,
+        container = Palette.EmberContainer,
+        onContainer = Palette.OnEmberContainer,
     )
 }
 
@@ -185,7 +226,7 @@ data class AfterhoursColors(
      */
     val codePlate: Color,
     val codeModule: Color,
-    /** The last stretch of a clock: warmer than any heat, and not one of them. */
+    /** The last stretch of a clock: warmer than any tier, and not one of them. */
     val ember: Color,
 )
 

@@ -35,7 +35,7 @@ import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
  *
  * What makes it an object rather than a panel:
  *
- *  - The **heat's rim**, so a Playful card and a Wild card are visibly different things before a
+ *  - The **tier's rim**, so a Mild card and an Extreme card are visibly different things before a
  *    word is read.
  *  - An **index numeral** bled off the corner and clipped by the card — an editorial device that
  *    costs no data and is most of why a page looks composed rather than filled in. It is
@@ -58,7 +58,7 @@ fun AfterhoursCard(
     extra: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     val spacing = AfterhoursTheme.spacing
-    val heat = AfterhoursTheme.heat
+    val tier = AfterhoursTheme.tier
     val shape = MaterialTheme.shapes.extraLarge
 
     Box(
@@ -66,7 +66,7 @@ fun AfterhoursCard(
             .fillMaxWidth()
             .then(
                 if (lit) {
-                    Modifier.bloom(color = heat.rim, cornerRadius = spacing.lg, spread = spacing.xl)
+                    Modifier.bloom(color = tier.rim, cornerRadius = spacing.lg, spread = spacing.xl)
                 } else {
                     Modifier
                 },
@@ -75,7 +75,7 @@ fun AfterhoursCard(
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 shape = shape,
                 elevation = AfterhoursTheme.elevations.floating,
-                rimTop = heat.rim.copy(alpha = if (lit) RIM_LIT else RIM_QUIET),
+                rimTop = tier.rim.copy(alpha = if (lit) RIM_LIT else RIM_QUIET),
             )
             .clipToBounds(),
     ) {
@@ -100,7 +100,7 @@ fun AfterhoursCard(
 
         Column(modifier = Modifier.padding(spacing.lg)) {
             if (eyebrow != null) {
-                Text(text = eyebrow.uppercase(), style = EyebrowTextStyle, color = heat.onDark)
+                Text(text = eyebrow.uppercase(), style = EyebrowTextStyle, color = tier.onDark)
                 Box(modifier = Modifier.padding(top = spacing.tight))
             }
             Text(

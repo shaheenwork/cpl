@@ -2,7 +2,6 @@ package com.shnapps.couple.core.engine
 
 import com.shnapps.couple.core.model.ContentItem
 import com.shnapps.couple.core.model.ContentStatus
-import com.shnapps.couple.core.model.Heat
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Mode
 
@@ -44,18 +43,18 @@ class InstantDeck private constructor(val cards: List<InstantCard>) {
         InstantDeck(cards.filterNot { it.id in ids || it.themes.any { theme -> theme in themes } })
 
     /**
-     * The card for [position] in this run: at the heat, and one they have not had (D-124).
+     * The card for [position] in this run: at the tier, and one they have not had (D-124).
      *
      * The deck used to be dealt with `cardAt(position)` from a position that started at zero on
      * every launch, over a pool in the order the bundle happens to be written in. Two consequences,
      * both found on a device: every couple on every install saw the same first card, and because
-     * the bundle starts with the mildest pack, **the first card at Wild was a level-one flirt
+     * the bundle starts with the mildest pack, **the first card at Extreme was a level-one flirt
      * prompt**. Seven hundred and ninety items, and an evening only ever reached six of them.
      *
      * So the deal has rules now:
      *
      * - **The heat is what you get, not an average.** A run climbs over its first two cards and
-     *   then sits at the ceiling. Picking Wild means the cards are wild; it is not a promise that
+     *   then sits at the ceiling. Picking Extreme means the cards are extreme; it is not a promise that
      *   nothing above level five turns up, which is what a ceiling with an even spread beneath it
      *   amounts to in practice.
      * - **Nothing repeats** while there is anything left to deal — [exclude] carries what this
@@ -66,12 +65,12 @@ class InstantDeck private constructor(val cards: List<InstantCard>) {
      * Null only when the deck is empty. When everything has been seen the pool opens up again
      * rather than the evening stopping.
      */
-    fun next(position: Int, heat: Heat, seed: Long, exclude: Set<String> = emptySet()): InstantCard? {
+    fun next(position: Int, tier: Intensity, seed: Long, exclude: Set<String> = emptySet()): InstantCard? {
         if (cards.isEmpty()) return null
         val fresh = cards.filterNot { it.id in exclude }
         // Seen all of it: deal the whole deck again rather than leaving them on an empty screen.
         val pool = fresh.ifEmpty { cards }
-        return pool.pick(targetFor(position, heat.ceiling.level), Rng(seed + position * STRIDE))
+        return pool.pick(targetFor(position, tier.level), Rng(seed + position * STRIDE))
     }
 
     /** One card at [target] if there is one, else the closest below it, drawn with [rng]. */
@@ -95,7 +94,7 @@ class InstantDeck private constructor(val cards: List<InstantCard>) {
          */
         fun of(
             items: List<ContentItem>,
-            heat: Heat,
+            tier: Intensity,
             mode: Mode = Mode.TOGETHER,
             skippedIds: Set<String> = emptySet(),
             refusedThemes: Set<String> = emptySet(),
@@ -105,7 +104,7 @@ class InstantDeck private constructor(val cards: List<InstantCard>) {
                 .asSequence()
                 .filter { it.status == ContentStatus.PUBLISHED }
                 .filter { mode in it.modes }
-                .filter { heat.allows(it.intensity) }
+                .filter { tier.allows(it.intensity) }
                 // One lane, when they asked for one: the packs are the only curation this content
                 // has, and until now nothing in the app could ask for it (D-125).
                 .filter { pack == null || it.pack == pack }

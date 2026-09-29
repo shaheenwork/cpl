@@ -9,7 +9,7 @@ import com.shnapps.couple.core.engine.game.ReleasedGame
 import com.shnapps.couple.core.model.ContentPack
 import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.GamePlayers
-import com.shnapps.couple.core.model.Heat
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Mode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -36,9 +36,9 @@ interface InstantPlayRepository {
      */
     val deck: Flow<InstantDeck>
 
-    val heat: Flow<Heat>
+    val tier: Flow<Intensity>
 
-    suspend fun setHeat(heat: Heat)
+    suspend fun setTier(tier: Intensity)
 
     /** The packs the app ships, as a couple would name them: the lanes they can ask for (D-125). */
     val packs: Flow<List<ContentPack>>
@@ -90,7 +90,7 @@ class DefaultInstantPlayRepository @Inject constructor(
         combine(content.items, preferences.preferences) { items, prefs ->
             InstantDeck.of(
                 items = items,
-                heat = prefs.heat,
+                tier = prefs.tier,
                 mode = Mode.TOGETHER,
                 skippedIds = prefs.refusedCardIds,
                 refusedThemes = prefs.refusedThemes,
@@ -98,20 +98,20 @@ class DefaultInstantPlayRepository @Inject constructor(
             )
         }
 
-    override val heat: Flow<Heat> = preferences.preferences.map { it.heat }
+    override val tier: Flow<Intensity> = preferences.preferences.map { it.tier }
 
     /**
-     * Only the packs that have something to deal at this heat, in this mode.
+     * Only the packs that have something to deal at this tier, in this mode.
      *
      * A lane offered and then empty is worse than one not offered: "After dark" starts at level
-     * three, so at Playful it has nothing, and Long distance is written for two people who are not
+     * three, so at Mild and Flirty it has nothing, and Long distance is written for two people who are not
      * in the same room. Both would be a dead end, which §6 of the rebuild does not allow.
      */
     override val packs: Flow<List<ContentPack>> =
         combine(content.packs, content.items, preferences.preferences) { packs, items, prefs ->
             val dealable = InstantDeck.of(
                 items = items,
-                heat = prefs.heat,
+                tier = prefs.tier,
                 mode = Mode.TOGETHER,
                 skippedIds = prefs.refusedCardIds,
                 refusedThemes = prefs.refusedThemes,
@@ -140,14 +140,14 @@ class DefaultInstantPlayRepository @Inject constructor(
         return ReleasedGame.forHeat(
             game = game,
             prompts = content.prompts.first(),
-            ceiling = prefs.heat.ceiling.level,
+            ceiling = prefs.tier.level,
             refusedThemes = prefs.refusedThemes,
             // A new deal each time it is started, and the same one for as long as it is played.
             seed = System.currentTimeMillis(),
         )
     }
 
-    override suspend fun setHeat(heat: Heat) = play.setHeat(heat)
+    override suspend fun setTier(tier: Intensity) = play.setTier(tier)
 
     /**
      * A refusal of one card, or of everything like it.

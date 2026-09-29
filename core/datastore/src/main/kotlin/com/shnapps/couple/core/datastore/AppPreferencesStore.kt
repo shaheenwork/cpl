@@ -1,7 +1,7 @@
 package com.shnapps.couple.core.datastore
 
 import com.shnapps.couple.core.model.GamePlayers
-import com.shnapps.couple.core.model.Heat
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Mode
 import kotlinx.coroutines.flow.Flow
 
@@ -48,7 +48,7 @@ interface AppPreferencesStore {
  */
 interface PlaySettingsStore {
     /** How far tonight goes. Changed with one thumb, mid-card. */
-    suspend fun setHeat(heat: Heat)
+    suspend fun setTier(tier: Intensity)
 
     /** Never show this card again, and nothing else of its kind either. Nobody is told. */
     suspend fun refuse(cardId: String, themes: Set<String>)

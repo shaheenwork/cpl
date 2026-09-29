@@ -46,7 +46,7 @@ fun ScreenColumn(modifier: Modifier = Modifier, content: @Composable ColumnScope
 @Composable
 fun ScreenHeading(eyebrow: String, headline: String, body: String? = null) {
     Column(verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.tight)) {
-        Text(text = eyebrow.uppercase(), style = EyebrowTextStyle, color = AfterhoursTheme.heat.onDark)
+        Text(text = eyebrow.uppercase(), style = EyebrowTextStyle, color = AfterhoursTheme.tier.onDark)
         Text(
             text = headline,
             style = MaterialTheme.typography.displaySmall,

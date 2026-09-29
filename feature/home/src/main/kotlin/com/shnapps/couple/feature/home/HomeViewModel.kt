@@ -18,7 +18,7 @@ import com.shnapps.couple.core.data.surprise.SurpriseRepository
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.Gate
-import com.shnapps.couple.core.model.Heat
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.MediaItem
 import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
@@ -69,7 +69,7 @@ data class HomeUiState(
     /** Every game the app ships. The list is the same for everyone. */
     val games: List<Game> = emptyList(),
     /** How far tonight goes: the one setting home has. */
-    val heat: Heat = Heat.DEFAULT,
+    val tier: Intensity = Intensity.DEFAULT,
     /** The couple's one experience under way, from either phone, or null. */
     val active: NightSession? = null,
     /** Something is being built: the app is deciding, and the tap has landed. */
@@ -140,7 +140,7 @@ class HomeViewModel @Inject constructor(
     }
 
     /** What this phone can play on its own: the list, and how far it goes. */
-    private val ownDeck = combine(instant.games, instant.heat, ::Pair)
+    private val ownDeck = combine(instant.games, instant.tier, ::Pair)
 
     /**
      * What being apart looks like, in one flow: the inbox, and the thread built from it.
@@ -170,11 +170,11 @@ class HomeViewModel @Inject constructor(
         ownDeck,
         apart,
         theirs,
-    ) { state, company, (games, heat), (inbox, thread), (active, plans, answered) ->
+    ) { state, company, (games, tier), (inbox, thread), (active, plans, answered) ->
         state.copy(
             company = company,
             games = games,
-            heat = heat,
+            tier = tier,
             active = active,
             // Theirs first: an evening waiting to be found is the best thing on this screen.
             waitingForMe = plans.firstOrNull { !it.mine },
@@ -185,9 +185,9 @@ class HomeViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), HomeUiState())
 
-    fun setHeat(heat: Heat) {
-        local.update { it.copy(heat = heat) }
-        viewModelScope.launch { instant.setHeat(heat) }
+    fun setTier(tier: Intensity) {
+        local.update { it.copy(tier = tier) }
+        viewModelScope.launch { instant.setTier(tier) }
     }
 
     /**
@@ -204,7 +204,7 @@ class HomeViewModel @Inject constructor(
             return
         }
         if (!uiState.value.canStart) return
-        val ceiling = uiState.value.heat.ceiling
+        val ceiling = uiState.value.tier
         local.update { it.copy(making = true, error = null) }
         viewModelScope.launch {
             finish(gameStarts.start(gameId, ceiling).map { it.experienceId }, ExperienceType.GAME)

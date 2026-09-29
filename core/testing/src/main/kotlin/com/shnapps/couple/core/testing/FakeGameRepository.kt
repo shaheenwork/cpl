@@ -87,7 +87,7 @@ class FakeGameRepository(
 
     override suspend fun load(experienceId: String): Outcome<StartedGame> = call("load") {
         startResult?.let { return it }
-        released(experienceId.removePrefix(EXPERIENCE_PREFIX).removeSuffix(BOLD_SUFFIX), Intensity.WILD)
+        released(experienceId.removePrefix(EXPERIENCE_PREFIX).removeSuffix(BOLD_SUFFIX), Intensity.EXTREME)
     }
 
     override fun observeSession(sessionId: String): Flow<SessionLink> =

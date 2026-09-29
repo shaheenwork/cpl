@@ -8,7 +8,7 @@ import com.shnapps.couple.core.common.Clock
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.model.AuthUser
 import com.shnapps.couple.core.model.ExperienceType
-import com.shnapps.couple.core.model.Heat
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.MediaKind
 import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
@@ -100,15 +100,15 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `a paired couple's game is the server's, at the heat they set`() = test {
+    fun `a paired couple's game is the server's, at the tier they set`() = test {
         paired()
         val vm = home()
-        act { vm.setHeat(Heat.WILD) }
+        act { vm.setTier(Intensity.EXTREME) }
 
         act { vm.play(TestGames.TRUTH_OR_DARE) }
 
         // The heat is a ceiling the server is asked for; what it releases is still its own choice.
-        assertThat(gameStarts.calls).containsExactly("start:${TestGames.TRUTH_OR_DARE}:${Heat.WILD.ceiling.level}")
+        assertThat(gameStarts.calls).containsExactly("start:${TestGames.TRUTH_OR_DARE}:${Intensity.EXTREME.level}")
         assertThat(vm.uiState.value.opened)
             .isInstanceOf(Opened.Session::class.java)
         assertThat((vm.uiState.value.opened as Opened.Session).type).isEqualTo(ExperienceType.GAME)
@@ -127,14 +127,14 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `the heat this phone sets is kept`() = test {
+    fun `the tier this phone sets is kept`() = test {
         val vm = home()
-        assertThat(vm.uiState.value.heat).isEqualTo(Heat.DEFAULT)
+        assertThat(vm.uiState.value.tier).isEqualTo(Intensity.DEFAULT)
 
-        act { vm.setHeat(Heat.HOT) }
+        act { vm.setTier(Intensity.HOT) }
 
-        assertThat(vm.uiState.value.heat).isEqualTo(Heat.HOT)
-        assertThat(instant.heat.value).isEqualTo(Heat.HOT)
+        assertThat(vm.uiState.value.tier).isEqualTo(Intensity.HOT)
+        assertThat(instant.tier.value).isEqualTo(Intensity.HOT)
     }
 
     @Test

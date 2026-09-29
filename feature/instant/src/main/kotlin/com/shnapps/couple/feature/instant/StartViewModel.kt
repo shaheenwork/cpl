@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shnapps.couple.core.data.instant.InstantPlayRepository
 import com.shnapps.couple.core.datastore.AppPreferencesStore
-import com.shnapps.couple.core.model.Heat
+import com.shnapps.couple.core.model.Intensity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +16,7 @@ import javax.inject.Inject
 
 /** Immutable screen state (BUILD_PROMPT.md §4.1; enforced by :architecture). */
 data class StartUiState(
-    val heat: Heat = Heat.DEFAULT,
+    val tier: Intensity = Intensity.DEFAULT,
     val started: Boolean = false,
 )
 
@@ -42,14 +42,14 @@ class StartViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            _uiState.update { it.copy(heat = preferences.preferences.first().heat) }
+            _uiState.update { it.copy(tier = preferences.preferences.first().tier) }
         }
     }
 
     /** Changed with one thumb, and remembered: this is the only setting the app asks for. */
-    fun setHeat(heat: Heat) {
-        _uiState.update { it.copy(heat = heat) }
-        viewModelScope.launch { instant.setHeat(heat) }
+    fun setTier(tier: Intensity) {
+        _uiState.update { it.copy(tier = tier) }
+        viewModelScope.launch { instant.setTier(tier) }
     }
 
     /**
@@ -61,7 +61,7 @@ class StartViewModel @Inject constructor(
     fun confirmAge() {
         if (_uiState.value.started) return
         viewModelScope.launch {
-            instant.setHeat(_uiState.value.heat)
+            instant.setTier(_uiState.value.tier)
             preferences.setAgeConfirmedHint(true)
             _uiState.update { it.copy(started = true) }
         }

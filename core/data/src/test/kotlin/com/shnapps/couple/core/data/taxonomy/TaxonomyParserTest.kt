@@ -16,7 +16,7 @@ class TaxonomyParserTest {
         val taxonomy = TaxonomyParser.parse(json(item("sensory_blindfold", floor = 3)))
 
         val item = taxonomy.item("sensory_blindfold")!!
-        assertThat(item.intensityFloor).isEqualTo(Intensity.NAUGHTY)
+        assertThat(item.intensityFloor).isEqualTo(Intensity.SPICY)
         assertThat(item.modes).containsExactly(Mode.TOGETHER, Mode.APART)
         assertThat(item.categoryId).isEqualTo("cat")
         // The boundary theme is always the theme the item is filed under.
@@ -67,7 +67,7 @@ class TaxonomyParserTest {
         val taxonomy = TaxonomyParser.parse(json(item("gentle", floor = 1), item("bold", floor = 4)))
 
         val atFlirty = taxonomy.items.filter { it.isAvailableAt(Intensity.FLIRTY) }.map { it.id }
-        val atBold = taxonomy.items.filter { it.isAvailableAt(Intensity.BOLD) }.map { it.id }
+        val atBold = taxonomy.items.filter { it.isAvailableAt(Intensity.HOT) }.map { it.id }
 
         assertThat(atFlirty).containsExactly("gentle")
         assertThat(atBold).containsExactly("gentle", "bold")

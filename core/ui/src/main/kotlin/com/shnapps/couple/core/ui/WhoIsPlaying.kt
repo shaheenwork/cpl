@@ -66,9 +66,9 @@ private fun Name(value: String, onValue: (String) -> Unit, label: String, last: 
         ),
         shape = MaterialTheme.shapes.small,
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = AfterhoursTheme.heat.accent,
+            focusedBorderColor = AfterhoursTheme.tier.accent,
             unfocusedBorderColor = AfterhoursTheme.colors.edgeFaint,
-            focusedLabelColor = AfterhoursTheme.heat.onDark,
+            focusedLabelColor = AfterhoursTheme.tier.onDark,
             unfocusedLabelColor = AfterhoursTheme.colors.textFaint,
         ),
         modifier = Modifier

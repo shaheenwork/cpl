@@ -11,7 +11,7 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.shnapps.couple.core.model.AppLockMode
 import com.shnapps.couple.core.model.GamePlayers
-import com.shnapps.couple.core.model.Heat
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Mode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -41,7 +41,9 @@ class AppPreferencesDataSource @Inject constructor(
             },
             mode = prefs[Keys.MODE]?.let { name -> Mode.entries.firstOrNull { it.name == name } } ?: Mode.TOGETHER,
             showNotificationContent = prefs[Keys.SHOW_NOTIFICATION_CONTENT] ?: false,
-            heat = prefs[Keys.HEAT]?.let { name -> Heat.entries.firstOrNull { it.name == name } } ?: Heat.DEFAULT,
+            tier = prefs[Keys.TIER]
+                ?.let { name -> Intensity.entries.firstOrNull { it.name == name } }
+                ?: Intensity.DEFAULT,
             refusedCardIds = prefs[Keys.REFUSED_CARDS].orEmpty(),
             refusedThemes = prefs[Keys.REFUSED_THEMES].orEmpty(),
             playedCardIds = prefs[Keys.PLAYED_CARDS].orEmpty(),
@@ -100,8 +102,8 @@ class AppPreferencesDataSource @Inject constructor(
         context.dataStore.edit { it[Keys.MODE] = mode.name }
     }
 
-    override suspend fun setHeat(heat: Heat) {
-        context.dataStore.edit { it[Keys.HEAT] = heat.name }
+    override suspend fun setTier(tier: Intensity) {
+        context.dataStore.edit { it[Keys.TIER] = tier.name }
     }
 
     override suspend fun markPlayed(cardId: String, deckSize: Int) {
@@ -141,7 +143,18 @@ class AppPreferencesDataSource @Inject constructor(
         val SECOND_PLAYER = stringPreferencesKey("game_second_player")
         val MODE = stringPreferencesKey("home_mode")
         val SHOW_NOTIFICATION_CONTENT = booleanPreferencesKey("show_notification_content")
-        val HEAT = stringPreferencesKey("heat")
+
+        /**
+         * The tier, under a new key.
+         *
+         * The old one held a `Heat` name, and two of those three words no longer name anything
+         * ("PLAYFUL", "WILD") while the third now means something else: "HOT" was a ceiling of
+         * four and is now a tier of four, which is right by luck rather than by design. A new key
+         * means every phone starts at the default once, which is predictable, instead of some
+         * phones silently dropping from the top tier to the middle.
+         */
+        val TIER = stringPreferencesKey("tier")
+
         val REFUSED_CARDS = stringSetPreferencesKey("refused_card_ids")
         val REFUSED_THEMES = stringSetPreferencesKey("refused_themes")
         val PLAYED_CARDS = stringSetPreferencesKey("played_card_ids")

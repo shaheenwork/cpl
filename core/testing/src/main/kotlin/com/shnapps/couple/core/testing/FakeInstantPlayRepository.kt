@@ -7,7 +7,7 @@ import com.shnapps.couple.core.engine.game.ReleasedGame
 import com.shnapps.couple.core.model.ContentItem
 import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.GamePlayers
-import com.shnapps.couple.core.model.Heat
+import com.shnapps.couple.core.model.Intensity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -26,7 +26,7 @@ class FakeInstantPlayRepository(
 
     val items = MutableStateFlow(items)
     override val games = MutableStateFlow(games)
-    override val heat = MutableStateFlow(Heat.DEFAULT)
+    override val tier = MutableStateFlow(Intensity.DEFAULT)
 
     /** What this phone has said no to: the card, and whether its whole kind went with it. */
     val refused = mutableListOf<Pair<String, Boolean>>()
@@ -34,7 +34,7 @@ class FakeInstantPlayRepository(
     /** Every game this phone dealt itself, in order. */
     val dealt = mutableListOf<String>()
 
-    /** What [startGame] hands back. Null stands for content that has nothing at this heat. */
+    /** What [startGame] hands back. Null stands for content that has nothing at this tier. */
     var released: ReleasedGame? = null
 
     /** The lanes a test offers, and the one it is dealing from. */
@@ -46,7 +46,7 @@ class FakeInstantPlayRepository(
     val playedAgainst = mutableListOf<Pair<String, Int>>()
 
     override val deck: Flow<InstantDeck> =
-        combine(this.items, heat, lane) { available, level, pack ->
+        combine(this.items, tier, lane) { available, level, pack ->
             InstantDeck.of(available, level, pack = pack)
         }
 
@@ -66,8 +66,8 @@ class FakeInstantPlayRepository(
         this.players.value = players
     }
 
-    override suspend fun setHeat(heat: Heat) {
-        this.heat.value = heat
+    override suspend fun setTier(tier: Intensity) {
+        this.tier.value = tier
     }
 
     override suspend fun refuse(card: InstantCard, alsoItsKind: Boolean) {

@@ -89,7 +89,7 @@ object TestGames {
         text: String,
         kind: PromptKind? = null,
         options: List<String> = emptyList(),
-        intensity: Intensity = Intensity.SOFT,
+        intensity: Intensity = Intensity.MILD,
         themes: Set<String> = setOf("mood_gentle"),
     ) = GamePrompt(
         id = id,

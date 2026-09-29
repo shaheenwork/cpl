@@ -15,7 +15,7 @@ import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.Game
-import com.shnapps.couple.core.model.Heat
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.MediaKind
 import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightPlan
@@ -191,7 +191,7 @@ class HomeSnapshotTest {
             .performScrollTo().assertIsDisplayed()
     }
 
-    private fun state(company: Company) = HomeUiState(company = company, games = games, heat = Heat.HOT)
+    private fun state(company: Company) = HomeUiState(company = company, games = games, tier = Intensity.HOT)
 
     private companion object {
         const val SETTLE_MS = 2_000L

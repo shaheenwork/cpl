@@ -18,7 +18,7 @@ import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.component.raised
 import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
-import com.shnapps.couple.core.designsystem.theme.ProvideHeat
+import com.shnapps.couple.core.designsystem.theme.ProvideTier
 import com.shnapps.couple.core.engine.game.Answer
 import com.shnapps.couple.core.engine.game.GameMoment
 import com.shnapps.couple.core.model.GamePlayers
@@ -88,7 +88,7 @@ internal fun DealtGameContent(
 
     val dock = dockFor(state, onBack, onSkipPrompt, onPlayAgain, onConfirmNames, onSkipNames)
 
-    ProvideHeat(state.heat) {
+    ProvideTier(state.tier) {
         ScreenScaffold(
             title = state.title.takeIf { it.isNotEmpty() && playing && !state.askingNames },
             onBack = onBack,
@@ -199,12 +199,12 @@ private fun Dealing() {
     )
 }
 
-/** Everything this game had is above the heat, or has been refused. Said plainly. */
+/** Everything this game had is above the tier, or has been refused. Said plainly. */
 @Composable
 private fun NothingToPlay() {
     AfterhoursCard(
         eyebrow = "Nothing here",
-        title = "Nothing to deal at this heat.",
+        title = "Nothing to deal at this tier.",
         body = "Turn it up, or try another game — there is plenty at the other levels.",
         lit = false,
     )

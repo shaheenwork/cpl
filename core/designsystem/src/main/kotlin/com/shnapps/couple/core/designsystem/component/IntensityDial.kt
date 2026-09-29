@@ -50,7 +50,7 @@ fun IntensityDial(
     selected: Intensity,
     onSelect: (Intensity) -> Unit,
     modifier: Modifier = Modifier,
-    maxSelectable: Intensity = Intensity.WILD,
+    maxSelectable: Intensity = Intensity.EXTREME,
 ) {
     val colors = AfterhoursTheme.colors
     val spacing = AfterhoursTheme.spacing

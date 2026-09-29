@@ -68,7 +68,7 @@ fun ComponentGallery(modifier: Modifier = Modifier) {
         item { GallerySection("Grounds") { SurfaceSpecimen() } }
         item { GallerySection("Rim") { RimSpecimen() } }
         item { GallerySection("Light") { LightSpecimen() } }
-        item { GallerySection("Heat") { HeatSpecimen() } }
+        item { GallerySection("Intensity") { TierSpecimen() } }
         item { GallerySection("Rhythm") { RhythmSpecimen() } }
         item { GallerySection("Measure") { MeasureSpecimen() } }
         item { GallerySection("Icons") { IconSpecimen() } }
@@ -178,12 +178,12 @@ internal fun ButtonsSpecimen() {
 @Composable
 internal fun NightControlsSpecimen() {
     val spacing = AfterhoursTheme.spacing
-    var intensity by remember { mutableStateOf(Intensity.NAUGHTY) }
+    var intensity by remember { mutableStateOf(Intensity.SPICY) }
     var minutes by remember { mutableStateOf(30) }
     var moods by remember { mutableStateOf(setOf(Mood.NAUGHTY, Mood.MYSTERIOUS)) }
 
     Column(verticalArrangement = Arrangement.spacedBy(spacing.md)) {
-        IntensityDial(selected = intensity, onSelect = { intensity = it }, maxSelectable = Intensity.BOLD)
+        IntensityDial(selected = intensity, onSelect = { intensity = it }, maxSelectable = Intensity.HOT)
         MoodChipRow(
             selected = moods,
             onToggle = { mood -> moods = if (mood in moods) moods - mood else moods + mood },

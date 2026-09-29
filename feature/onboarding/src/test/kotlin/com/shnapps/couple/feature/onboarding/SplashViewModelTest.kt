@@ -33,7 +33,7 @@ class SplashViewModelTest {
     @Test
     fun `signed out and new goes to the one screen that asks`() = runTest(mainDispatcherRule.testDispatcher) {
         // No account is not a dead end any more (REDESIGN_PROMPT.md §5.1): a first launch asks
-        // for an age and a heat, and then plays.
+        // for an age and a tier, and then plays.
         auth.user.value = null
         auth.ageHint = false
 

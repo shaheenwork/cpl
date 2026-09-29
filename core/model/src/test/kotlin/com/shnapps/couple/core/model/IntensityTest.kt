@@ -6,18 +6,18 @@ import org.junit.Test
 class IntensityTest {
     @Test
     fun `effective intensity takes the lowest ceiling`() {
-        assertThat(Intensity.effective(Intensity.WILD, Intensity.NAUGHTY, Intensity.BOLD))
-            .isEqualTo(Intensity.NAUGHTY)
+        assertThat(Intensity.effective(Intensity.EXTREME, Intensity.SPICY, Intensity.HOT))
+            .isEqualTo(Intensity.SPICY)
     }
 
     @Test
     fun `effective intensity never escalates above the request`() {
-        assertThat(Intensity.effective(Intensity.SOFT, Intensity.WILD)).isEqualTo(Intensity.SOFT)
+        assertThat(Intensity.effective(Intensity.MILD, Intensity.EXTREME)).isEqualTo(Intensity.MILD)
     }
 
     @Test
     fun `bold and wild require both-party consent`() {
         assertThat(Intensity.entries.filter { it.requiresBothPartyConsent })
-            .containsExactly(Intensity.BOLD, Intensity.WILD)
+            .containsExactly(Intensity.HOT, Intensity.EXTREME)
     }
 }

@@ -2,7 +2,7 @@ package com.shnapps.couple.core.datastore
 
 import com.shnapps.couple.core.model.AppLockMode
 import com.shnapps.couple.core.model.GamePlayers
-import com.shnapps.couple.core.model.Heat
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Mode
 
 /**
@@ -54,7 +54,7 @@ data class AppPreferences(
      * afterwards the couple's real ceiling is still the server's — this only ever narrows what that
      * allows, never widens it.
      */
-    val heat: Heat = Heat.DEFAULT,
+    val tier: Intensity = Intensity.DEFAULT,
 
     /**
      * Cards this phone has been told never to show again, and the kinds of thing they belong to

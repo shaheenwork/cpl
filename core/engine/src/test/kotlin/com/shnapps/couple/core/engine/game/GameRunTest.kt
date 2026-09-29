@@ -303,8 +303,8 @@ class GameRunTest {
         val dare = kindPrompt("d1", PromptKind.DARE, Intensity.FLIRTY)
         val alternates = listOf(
             kindPrompt("t_alt", PromptKind.TRUTH),
-            kindPrompt("d_hot", PromptKind.DARE, Intensity.BOLD),
-            kindPrompt("d_soft", PromptKind.DARE, Intensity.SOFT),
+            kindPrompt("d_hot", PromptKind.DARE, Intensity.HOT),
+            kindPrompt("d_soft", PromptKind.DARE, Intensity.MILD),
             kindPrompt("d_flirty", PromptKind.DARE, Intensity.FLIRTY),
         )
         var run = start(
@@ -389,7 +389,7 @@ class GameRunTest {
         ) { id ->
             when (id) {
                 "d_draft" -> kindPrompt(id, PromptKind.DARE).copy(status = ContentStatus.DRAFT)
-                "d_hot" -> kindPrompt(id, PromptKind.DARE, Intensity.BOLD)
+                "d_hot" -> kindPrompt(id, PromptKind.DARE, Intensity.HOT)
                 "d_apart" -> kindPrompt(id, PromptKind.DARE).copy(modes = setOf(Mode.APART))
                 "unknown" -> null
                 else -> kindPrompt(id, if (id.startsWith("t")) PromptKind.TRUTH else PromptKind.DARE)
@@ -594,7 +594,7 @@ class GameRunTest {
         fun prompt(
             id: String,
             game: String,
-            intensity: Intensity = Intensity.SOFT,
+            intensity: Intensity = Intensity.MILD,
             kind: PromptKind? = null,
             options: List<String> = emptyList(),
             seconds: Int? = null,
@@ -623,7 +623,7 @@ class GameRunTest {
 
         fun plainPrompt(id: String, seconds: Int? = null) = prompt(id, "ANY", seconds = seconds)
 
-        fun kindPrompt(id: String, kind: PromptKind, intensity: Intensity = Intensity.SOFT) =
+        fun kindPrompt(id: String, kind: PromptKind, intensity: Intensity = Intensity.MILD) =
             prompt(id, "SHAPED_LIKE_TRUTH_OR_DARE", intensity, kind)
     }
 }
