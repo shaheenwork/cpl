@@ -2,6 +2,7 @@ package com.shnapps.couple.core.data.instant
 
 import com.shnapps.couple.core.data.content.ContentRepository
 import com.shnapps.couple.core.data.limits.LimitsRepository
+import com.shnapps.couple.core.datastore.AppPreferences
 import com.shnapps.couple.core.datastore.AppPreferencesStore
 import com.shnapps.couple.core.datastore.PlaySettingsStore
 import com.shnapps.couple.core.engine.GameNight
@@ -9,6 +10,7 @@ import com.shnapps.couple.core.engine.InstantCard
 import com.shnapps.couple.core.engine.InstantDeck
 import com.shnapps.couple.core.engine.NightLength
 import com.shnapps.couple.core.engine.game.ReleasedGame
+import com.shnapps.couple.core.model.ContentItem
 import com.shnapps.couple.core.model.ContentPack
 import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.GamePlayers
@@ -111,17 +113,30 @@ class DefaultInstantPlayRepository @Inject constructor(
 
     override val deck: Flow<InstantDeck> =
         combine(content.items, preferences.preferences, limits.refusedThemes) { items, prefs, refused ->
-            InstantDeck.of(
-                items = items,
-                tier = prefs.tier,
-                mode = Mode.TOGETHER,
-                skippedIds = prefs.refusedCardIds,
-                // The profile's noes and the in-the-moment refusals are the same kind of
-                // statement, so the deck takes both from one place (M3).
-                refusedThemes = refused,
-                pack = prefs.lane,
-            )
+            deckOf(items, prefs, refused, pack = prefs.lane)
         }
+
+    /**
+     * The deck this phone may be dealt, from one place.
+     *
+     * [pack] is the lane, and it is a parameter rather than read from the preferences because not
+     * every surface deals from a lane: the card player does, and a guided evening does not (D-133).
+     */
+    private fun deckOf(
+        items: List<ContentItem>,
+        prefs: AppPreferences,
+        refused: Set<String>,
+        pack: String?,
+    ): InstantDeck = InstantDeck.of(
+        items = items,
+        tier = prefs.tier,
+        mode = Mode.TOGETHER,
+        skippedIds = prefs.refusedCardIds,
+        // The profile's noes and the in-the-moment refusals are the same kind of statement, so the
+        // deck takes both from one place (M3).
+        refusedThemes = refused,
+        pack = pack,
+    )
 
     override val tier: Flow<Intensity> = preferences.preferences.map { it.tier }
 
@@ -169,7 +184,18 @@ class DefaultInstantPlayRepository @Inject constructor(
     override suspend fun planNight(length: NightLength): GameNight {
         val prefs = preferences.preferences.first()
         return GameNight.plan(
-            deck = deck.first(),
+            // The whole catalogue, whatever lane the card player is on. An evening in four phases
+            // is the one surface that needs every pack — that is why it is a plan over the deck
+            // rather than a game with a pool of its own (M5) — and the lane is a choice made on a
+            // different screen. Taking the deck as it stood meant a couple who once asked for one
+            // pack got guided evenings out of that pack for ever, because the lane is remembered
+            // (D-133).
+            deck = deckOf(
+                items = content.items.first(),
+                prefs = prefs,
+                refused = limits.refusedThemes.first(),
+                pack = null,
+            ),
             tier = prefs.tier,
             length = length,
             // A new evening each time it is planned, and the same one for as long as it is played.
