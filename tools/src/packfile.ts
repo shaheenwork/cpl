@@ -8,7 +8,7 @@
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { ContentItem, ContentRepo, PackInfo } from './content';
+import type { ContentItem, ContentRepo, GameInfo, GamePrompt, PackInfo } from './content';
 
 /** The authored field order: identity, copy, classification, engine inputs, lifecycle. */
 export const PACK_ITEM_KEYS: Array<keyof ContentItem> = [
@@ -16,6 +16,13 @@ export const PACK_ITEM_KEYS: Array<keyof ContentItem> = [
   'interactionType', 'durationMin', 'moods', 'requiredMutualPreferences', 'boostedByPreferences',
   'excludedByBoundaries', 'chapterKinds', 'noveltyWeight', 'repeatCooldownDays', 'requiresMedia',
   'status', 'locale', 'createdAt', 'updatedAt',
+];
+
+/** A prompt's field order, the same idea: identity, copy, classification, engine, lifecycle. */
+export const PROMPT_KEYS: Array<keyof GamePrompt> = [
+  'id', 'version', 'game', 'kind', 'text', 'options', 'seconds', 'category', 'tags', 'intensity',
+  'modes', 'moods', 'requiredMutualPreferences', 'boostedByPreferences', 'excludedByBoundaries',
+  'noveltyWeight', 'repeatCooldownDays', 'status', 'locale', 'createdAt', 'updatedAt',
 ];
 
 /** JSON with a space after every colon and comma: the pack files' house style. */
@@ -40,6 +47,35 @@ export function serializePackFile(packId: string, items: ContentItem[]): string 
 
 export function writePackFile(repo: ContentRepo, pack: PackInfo, items: ContentItem[]): void {
   writeFileSync(join(repo.root, 'packs', pack.file), serializePackFile(pack.id, items), 'utf8');
+}
+
+export function serializePrompt(prompt: GamePrompt): string {
+  const ordered: Record<string, unknown> = {};
+  for (const key of PROMPT_KEYS) ordered[key] = prompt[key];
+  return spaced(ordered);
+}
+
+export function serializePromptFile(gameId: string, prompts: GamePrompt[]): string {
+  const lines = prompts.map((prompt) => `    ${serializePrompt(prompt)}`).join(',\n');
+  return `{\n  "game": ${JSON.stringify(gameId)},\n  "items": [\n${lines}\n  ]\n}\n`;
+}
+
+export function writePromptFile(repo: ContentRepo, game: GameInfo, prompts: GamePrompt[]): void {
+  writeFileSync(join(repo.root, 'prompts', game.file), serializePromptFile(game.id, prompts), 'utf8');
+}
+
+/** [repo] with [prompt] in its game's file, replacing any prompt with the same id. */
+export function withPrompt(repo: ContentRepo, prompt: GamePrompt): ContentRepo {
+  const promptsByGame = new Map<string, unknown[]>();
+  for (const [gameId, prompts] of repo.promptsByGame) {
+    promptsByGame.set(gameId, prompts.filter((existing) => (existing as GamePrompt).id !== prompt.id));
+  }
+  const target = promptsByGame.get(prompt.game);
+  if (!target) throw new Error(`${prompt.id}: unknown game "${prompt.game}"`);
+  const original = (repo.promptsByGame.get(prompt.game) ?? []) as GamePrompt[];
+  const index = original.findIndex((existing) => existing.id === prompt.id);
+  target.splice(index === -1 ? target.length : index, 0, prompt);
+  return { ...repo, promptsByGame };
 }
 
 /**

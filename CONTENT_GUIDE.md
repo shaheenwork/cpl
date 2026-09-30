@@ -36,7 +36,68 @@ publishing changed content, or devices keep the copy they have.
 
 ---
 
-## 2. An item
+## 2. Changing a lot of it at once
+
+Editing JSON a line at a time is fine for a card or two. For rewriting a level, a pack or a whole
+game, take it out to a spreadsheet and bring it back:
+
+```bash
+# 1. Out. Everything, or one pack, one game, one level.
+npm --prefix tools run export -- --out cards.tsv
+npm --prefix tools run export -- --pack AFTER_DARK --level 5 --out extreme.tsv
+npm --prefix tools run export -- --game TRUTH_OR_DARE --out dares.tsv
+
+# 2. Open cards.tsv in Excel, Numbers or Google Sheets. Rewrite the text, add rows, delete rows.
+
+# 3. Back in. Without --write it only reports what the validator thinks.
+npm --prefix tools run import -- cards.tsv
+npm --prefix tools run import -- cards.tsv --write
+
+# 4. Rebuild what the app and the server read, and see it.
+npm --prefix tools run bundle
+npm --prefix functions run build
+./gradlew assembleDevDebug && adb install -r app/build/outputs/apk/dev/debug/app-dev-debug.apk
+```
+
+What to know about the journey:
+
+- **Rows are matched by `id`.** A row whose id already exists replaces that item where it stands in
+  the file; a new id is appended. Nothing you leave out of the spreadsheet is touched, so exporting
+  one level and importing it back cannot disturb the rest.
+- **Deleting a row does not delete the item.** The importer only adds and replaces. To remove
+  something, set its `status` to `archived` — or delete its line from the pack file by hand.
+- **A new row needs an id nobody else has**, starting with its pack's prefix (`afterdark_`,
+  `flirt_`) or its game's (`tod_`, `dice_`). Every other column the validator needs is listed in the
+  header the export wrote; copy a neighbouring row and change what matters.
+- **Items and prompts are different shapes**, and the header says which: only a prompt names its
+  `game`. Do not paste one into the other's sheet.
+- **A list cell is comma-separated** — `tags`, `moods`, `excludedByBoundaries` — except where an
+  entry has a comma of its own, and then it is written with pipes (` | `). Read it back the way it
+  was written.
+- **Nothing is written unless the whole catalogue is clean.** `--write` runs the validator first and
+  refuses to save a single file if anything fails, so a bad import cannot half-land.
+- **Save as UTF-8.** The export is marked for it, and every spreadsheet then keeps it — but "Save
+  as… tab delimited" in some versions of Excel offers a plain-text option that is not UTF-8, and an
+  em dash comes back as mojibake. Round-trip one file and read the diff the first time.
+
+### The rules you will meet
+
+The validator refuses a great deal on purpose. The ones that catch an author most often:
+
+| It says | It means |
+|---|---|
+| `near-duplicate of <id>` | two bodies share too many words. Rewrite one — the threshold is deliberate, the catalogue is meant to be 793 different things |
+| `mentions X but is not excluded by <theme>` | a body or an option naming something sensitive must list the boundary theme that covers it, or a couple who said no to it would still be shown it |
+| `leans on <preference> but is not excluded by its theme` | boosting on a preference means the card is about it, so its theme must be able to refuse it |
+| `only N prompts at intensity M, needs …` | every level of every pack and game keeps a minimum, or the engine runs out at that tier |
+| `prohibited term` | §3.3. The list is in `content/policy/prohibited-terms.json`; eight groups, only one of them about explicit language |
+
+**Options are checked like bodies.** The safety rules read a prompt's options too, not only its
+question, which is where most surprise failures come from.
+
+---
+
+## 3. An item
 
 ```json
 {
@@ -88,7 +149,7 @@ what changed.
 
 ---
 
-## 3. The rules that exist because of the boundary engine
+## 4. The rules that exist because of the boundary engine
 
 These are the checks worth understanding, because they are the ones that fail on a plausible-looking
 item:
@@ -115,7 +176,7 @@ item:
 
 ---
 
-## 4. Voice
+## 5. Voice
 
 Write as if one adult is telling two adults something worth trying tonight.
 
@@ -137,7 +198,7 @@ never a restatement of the title.
 
 ---
 
-## 5. Games
+## 6. Games
 
 A game is `content/games.json` plus `content/prompts/<game>.json`: steps over the primitives
 (`QUESTION`, `CHOICE`, `PREDICTION`, `VOTE`, `REVEAL`, `TIMER`, `CHALLENGE`, `REACTION`), each step
@@ -165,7 +226,7 @@ options are the game (Yes/Maybe/Not tonight, You/Me).
 
 ---
 
-## 6. The taxonomy, and adding to the vocabulary
+## 7. The taxonomy, and adding to the vocabulary
 
 `content/taxonomy.json` is the private preference library and the boundary themes: what a person is
 asked about, at which intensity floor, and which theme a limit covers. It is authored once and copied
@@ -178,7 +239,7 @@ enough items to satisfy coverage, or the validator fails on the gap you just mad
 
 ---
 
-## 7. What content never does
+## 8. What content never does
 
 - **It never names a person, a place, a product or a date.**
 - **It never carries anyone's answers.** An item cannot reference what either partner said; the

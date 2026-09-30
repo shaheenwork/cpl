@@ -31,6 +31,8 @@ not searched, and `firebase emulators:start` then dies with *"Could not spawn `j
 | `./gradlew connectedDevDebugAndroidTest` | Instrumented tests - needs an emulator **and** the Firebase emulators |
 | `npm --prefix tools run validate` | The content gate on its own (also `./gradlew validateContent`) |
 | `npm --prefix tools run bundle` | Rebuild `content/dist/bundle.json` after editing content — `check` fails until you do |
+| `npm --prefix tools run export -- --out cards.tsv` | The catalogue as a spreadsheet: `--pack`, `--game`, `--level` narrow it (CONTENT_GUIDE.md §2) |
+| `npm --prefix tools run import -- cards.tsv --write` | The edited spreadsheet back into the pack and prompt files, if the whole catalogue validates |
 | `npm --prefix functions run engine:fixtures` | Regenerate `engine/engine-fixtures.json` after a deliberate engine change |
 | `node functions/scripts/dev-couple.js seed` | A paired couple in the emulators for device checks; `ready`/`stop`/`state` play the partner (TESTING.md) |
 
