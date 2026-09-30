@@ -1,9 +1,11 @@
 package com.shnapps.couple.core.data.content
 
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import com.shnapps.couple.core.common.DispatcherProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -52,11 +54,31 @@ class AssetShippedContent @Inject constructor(
      * megabyte on every cold start to learn it would be worse.
      */
     override suspend fun fingerprint(): String = withContext(dispatchers.io) {
+        // A debuggable build has no fingerprint at all, so the shipped bundle installs on
+        // every launch. Authoring content means running the app against a bundle that changed
+        // while the app did not, and a cache that is right for a release is exactly wrong for
+        // that: "why is it still showing the old cards" should not have an answer on a
+        // developer's phone (D-132). A release keeps the cache — reinstalling eight hundred
+        // items on every cold start is not a cost a user should pay.
+        if (debuggable) {
+            return@withContext "debug@${asked.incrementAndGet()}"
+        }
         val installed = runCatching {
             context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime
         }.getOrDefault(0L)
         "${version()}@$installed"
     }
+
+    /** Whether this build was built to be debugged: the one that reloads its content. */
+    private val debuggable: Boolean
+        get() = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
+
+    /**
+     * How many times a debuggable build has been asked. A counter rather than a clock: the
+     * contract is only that the answer differs from the last one, and a clock that does not
+     * advance — Robolectric's, for one — would quietly make it the same answer twice.
+     */
+    private val asked = AtomicLong()
 
     override suspend fun read(): String = withContext(dispatchers.io) {
         context.assets.open(PATH).bufferedReader().use { it.readText() }
