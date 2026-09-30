@@ -13,7 +13,7 @@ validator is the tripwire under it (BUILD_PROMPT.md §3.3, §9.4).
 ## 1. Where things live
 
 ```
-content/packs/*.json          the items — twelve packs, 790 published items
+content/packs/*.json          the items — twelve packs, 793 published items
 content/prompts/<game>.json   a game's prompts, under the same rules as items
 content/games.json            the games themselves: steps over primitives
 content/taxonomy.json         themes, categories and the private preference library

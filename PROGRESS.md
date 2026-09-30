@@ -1302,6 +1302,42 @@ refuse them. The taxonomy has no theme for media or undressing; adding one is a 
 
 ---
 
+## Playing the rebuilt app: what only the device showed ✅
+
+Ten modules, ten green `check` runs, and then the walk that no suite can stand in for. The v1 flow is
+right: the start screen asks two questions, "We're both 18 or over" reaches home in one tap and Play
+Now deals a card on the second, the grid holds Game Night first and then the six games, the tier
+picker is one row of dots on every playing screen, and Too far and Stop sit in the bar side by side.
+Extreme asked once, before the first card, and coming back said nothing further. Twelve cards across
+two runs were twelve different cards, from six packs — After dark among them, which is what the
+earlier report could not find.
+
+### Found by playing it, fixed here (D-129)
+- **A 45-minute evening planned 95 minutes.** A phase stopped once it was already over budget, which
+  with thirty-minute cards in the catalogue meant three of them in a row. A draw can be given a
+  ceiling in minutes now, and every card after a phase's first has to fit what is left. The same
+  evening plans 43 minutes.
+- **Card seven cooled off.** Carrying on reset the deal index, so a run that had just confirmed
+  Extreme and played six climbed from the bottom again — card seven came back at Spicy. Only the
+  place in the run resets now. Verified: run one 4,5,5,5,5 and run two 5,5,5,5,5,5, eleven distinct
+  cards.
+- **A Mild, Flirty or Spicy evening had nothing to land on.** Every `aftercare` card was level 4 or
+  5. Three more were written, at levels 1, 2 and 3. A 30-minute Flirty evening now ends on "The Quiet
+  Ten".
+
+### Verified
+```
+./gradlew check                     BUILD SUCCESSFUL
+npm --prefix tools run validate     content OK — 793 items, 322 prompts, 6 games
+:core:engine                        the minutes ceiling, and an evening that keeps to its length
+:feature:instant                    carrying on keeps the heat
+```
+- **On the device**: a 45-minute Game Night planned nine cards and 43 minutes, warm-up through peak,
+  and a 30-minute Flirty one ended on AFTERWARDS. Play Now at Extreme gated once, dealt eleven
+  distinct cards across two runs without cooling off, and offered "Stay Close" after each run.
+
+---
+
 ## The deck was never dealing the content ✅
 
 Reported from a device, and the sharpest bug report of the build after D-120: *"all the contents are

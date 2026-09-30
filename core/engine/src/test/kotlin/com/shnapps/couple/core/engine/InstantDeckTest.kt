@@ -189,6 +189,33 @@ class InstantDeckTest {
     }
 
     @Test
+    fun `a draw can be asked to fit the time that is left`() {
+        val deck = InstantDeck.of(
+            listOf(
+                item("long_1", Intensity.SPICY, minutes = 30),
+                item("long_2", Intensity.SPICY, minutes = 25),
+                item("short_1", Intensity.SPICY, minutes = 5),
+            ),
+            Intensity.SPICY,
+        )
+
+        val fits = deck.next(0, Intensity.SPICY, seed = 11, within = 10)
+
+        assertThat(fits).isNotNull()
+        assertThat(fits!!.minutes).isAtMost(10)
+    }
+
+    @Test
+    fun `nothing short enough is nothing, not the nearest long card`() {
+        val deck = InstantDeck.of(listOf(item("long_1", Intensity.SPICY, minutes = 30)), Intensity.SPICY)
+
+        // A thirty-minute card is not an answer to "what fits in five" — the caller filling a clock
+        // needs to hear no, so it can stop the phase instead of overrunning it.
+        assertThat(deck.next(0, Intensity.SPICY, seed = 12, within = 5)).isNull()
+        assertThat(deck.next(0, Intensity.SPICY, seed = 12)).isNotNull()
+    }
+
+    @Test
     fun `an empty deck deals nothing and does not crash`() {
         assertThat(InstantDeck.of(emptyList(), Intensity.EXTREME).next(0, Intensity.EXTREME, seed = 7)).isNull()
     }
@@ -207,6 +234,7 @@ class InstantDeckTest {
             media: MediaKind? = null,
             required: Set<String> = emptySet(),
             pack: String = "FLIRT",
+            minutes: Int = 5,
         ) = ContentItem(
             id = id,
             version = 1,
@@ -219,7 +247,7 @@ class InstantDeckTest {
             intensity = intensity,
             modes = modes,
             interactionType = InteractionType.CHALLENGE,
-            durationMin = 5,
+            durationMin = minutes,
             moods = emptySet(),
             requiredMutualPreferences = required,
             boostedByPreferences = emptySet(),

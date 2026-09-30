@@ -2373,3 +2373,39 @@ by itself, and turning it off is a console change rather than a release. Both de
 because the app has to behave correctly before a fetch lands and erring towards free is the only
 direction that cannot take something away from a couple. While it is on, nothing is counted and
 nothing is written, so switching it off later does not reveal a backlog.
+
+---
+
+## D-129 — What only running the app shows: a 45-minute evening ran 95 minutes, and card seven cooled off
+
+The ten modules were each committed behind a green `check`, and none of those tests caught either of
+these. Both were found by playing the built app on a device, which is the only way they could have
+been.
+
+**A guided evening ignored the clock.** `GameNight` spends a phase's share of the budget in
+minutes, and a phase stopped only once it was *already* over budget. With the fixture content — five
+to seven minutes a card — that overran by a card. With the real catalogue, where thirty-minute cards
+are common, "45 minutes" planned ninety-five: twenty, twenty-five, ten, thirty, ten. A length the app
+asks for and then disregards is worse than not asking.
+
+So a draw can now be given a ceiling in minutes. `InstantDeck.next(within = …)` filters the pool to
+what fits and returns **null** when nothing does, which is what lets a phase stop rather than take
+one more long card. The phase's *first* card may still overrun, because a phase with nothing in it is
+not a shape; every card after it has to fit. A 45-minute evening now plans 43 minutes, and the test
+that holds it uses a deck of twenty- and thirty-minute cards, because the old fixture could not fail.
+
+**Carrying on restarted the climb.** A run climbs over its first two cards so an evening does not
+open at the top. `keepGoing` reset the deal index to zero, so after six Extreme cards, card seven came
+back at Spicy — two tiers down, from a couple who had just confirmed Extreme and played six. The
+climb belongs to the start of an evening, not to every sixth card: only the place in the run resets
+now, and the deal index carries on. `setLane` had the same bug for the same reason, and the same fix.
+
+**And three landing cards.** Every card tagged `aftercare` was level 4 or 5, so a Mild, Flirty or
+Spicy evening ended on a peak with nothing to land on — `GameNight` plans aftercare last and had
+nothing to plan. The brief only asks for aftercare after Hot or Extreme, so nothing was broken; it
+was still the wrong ending. `deep-talk.json`, `flirt.json` and `sensory.json` each gained one, at
+levels 1, 2 and 3.
+
+The general lesson is the same one D-124 recorded and this session had to learn twice: a green suite
+proves the rules the tests state. It does not prove the app is good to use, and neither of these
+would ever have surfaced from a test file.

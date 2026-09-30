@@ -104,6 +104,12 @@ class GameNight private constructor(
          * however long the cards happen to be: a plan with an empty middle is not a shape, it is a
          * gap. It stops early when the deck has nothing left to give or the evening is already
          * longer than an evening.
+         *
+         * **Every card after the first has to fit the time left.** Without that, the length is a
+         * suggestion the plan ignores: asking for forty-five minutes and drawing three thirty-minute
+         * cards produced a ninety-five-minute evening on the device, because a phase only stopped
+         * once it was *already* over budget. So each draw asks for something inside what remains,
+         * and the phase stops when nothing that short is left rather than taking one more long card.
          */
         @Suppress("LongParameterList") // A phase, the pool it draws from, and where the deal is.
         private fun fill(
@@ -121,11 +127,16 @@ class GameNight private constructor(
             var spent = 0.0
             var taking = true
             while (taking) {
-                val enough = spent >= budget && cards.any { it.phase == phase }
-                val card = if (enough || cards.size >= MAX_CARDS) {
+                val started = cards.any { it.phase == phase }
+                val left = budget - spent
+                val card = if ((started && left <= 0) || cards.size >= MAX_CARDS) {
                     null
                 } else {
-                    deck.next(step, phaseTier(phase, tier), seed, used)
+                    val tierHere = phaseTier(phase, tier)
+                    // What fits the time left — and, for the phase's first card only, whatever is
+                    // there when nothing fits. A phase with no card in it is not a shape.
+                    deck.next(step, tierHere, seed, used, within = left.toInt())
+                        ?: if (started) null else deck.next(step, tierHere, seed, used)
                 }
                 if (card == null || card.id in used) {
                     taking = false

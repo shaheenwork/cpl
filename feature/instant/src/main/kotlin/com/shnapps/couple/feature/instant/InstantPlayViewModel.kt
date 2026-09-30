@@ -208,12 +208,13 @@ class InstantPlayViewModel @Inject constructor(
     /**
      * Six cards in, the app says so and asks. It never decides the evening is over.
      *
-     * Carrying on is a new run: a new shuffle and a fresh climb, rather than card seven of one
-     * long list. What has been seen is still remembered, so nothing comes round twice.
+     * Carrying on is a new shuffle — a new seed, so the next six are not the ones the old seed had
+     * queued — but **not a new climb**. The deal index carries on where it was, because an evening
+     * six Extreme cards deep does not want to open again two tiers down. On the device it did
+     * exactly that: card seven came back at Spicy. Only the place in the run resets, for the rail.
      */
     fun keepGoing() {
         seed = System.currentTimeMillis()
-        position = 0
         _uiState.update { it.copy(runComplete = false, position = 0, card = card()) }
         // Carrying on starts a new run, so the allowance is asked again here — and only here.
         viewModelScope.launch {
@@ -233,12 +234,12 @@ class InstantPlayViewModel @Inject constructor(
      * Deal from one pack, or from all of them (D-125).
      *
      * A new lane starts a new run for the same reason "keep going" does: the point of asking for
-     * After dark is to get one now, not behind the cards already queued from the old lane.
+     * After dark is to get one now, not behind the cards already queued from the old lane. The deal
+     * index carries on for the same reason it does there — the evening has already climbed.
      */
     fun setLane(pack: String?) {
         if (pack == _uiState.value.lane) return
         seed = System.currentTimeMillis()
-        position = 0
         dealt = emptySet()
         stopTimer()
         _uiState.update { it.copy(lane = pack, position = 0, runComplete = false, streak = 0) }

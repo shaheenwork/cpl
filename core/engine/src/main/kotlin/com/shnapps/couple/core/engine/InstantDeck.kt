@@ -62,14 +62,26 @@ class InstantDeck private constructor(val cards: List<InstantCard>) {
      * - **Random, but reproducible.** The draw comes from [seed], so a run can be asserted in a
      *   test and two phones dealt the same one, while two evenings differ.
      *
-     * Null only when the deck is empty. When everything has been seen the pool opens up again
-     * rather than the evening stopping.
+     * [within] is a ceiling in minutes, for a caller filling a clock rather than dealing one card
+     * at a time: `GameNight` asks for something that fits the time the phase has left. It is null
+     * when nothing in the pool is that short, because a card that overruns the evening by twenty
+     * minutes is not an answer to "what fits in five".
+     *
+     * Null only when the deck is empty, or when [within] excludes everything. When everything has
+     * been seen the pool opens up again rather than the evening stopping.
      */
-    fun next(position: Int, tier: Intensity, seed: Long, exclude: Set<String> = emptySet()): InstantCard? {
+    fun next(
+        position: Int,
+        tier: Intensity,
+        seed: Long,
+        exclude: Set<String> = emptySet(),
+        within: Int? = null,
+    ): InstantCard? {
         if (cards.isEmpty()) return null
         val fresh = cards.filterNot { it.id in exclude }
         // Seen all of it: deal the whole deck again rather than leaving them on an empty screen.
-        val pool = fresh.ifEmpty { cards }
+        val pool = (fresh.ifEmpty { cards }).filter { within == null || it.minutes <= within }
+        if (pool.isEmpty()) return null
         return pool.pick(targetFor(position, tier.level), Rng(seed + position * STRIDE))
     }
 

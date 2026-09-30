@@ -334,7 +334,12 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   decides whether it climbs to the tier or opens at it (M4). `fromServer` remains the only way once
   a couple is signed in.
 - **Game Night is not in `games.json`** (M5). A prompt-based game draws from one game's pool; an
-  hour needs the whole catalogue, so it is a plan over `InstantDeck` in four phases.
+  hour needs the whole catalogue, so it is a plan over `InstantDeck` in four phases. The length is a
+  budget in minutes and the plan keeps to it: `next(within = …)` is how a phase asks for something
+  that fits, and only a phase's first card may overrun (D-129).
+- **The climb belongs to the start of an evening, not to every sixth card.** `keepGoing` and
+  `setLane` reshuffle without resetting the deal index, or a run six Extreme cards deep opens two
+  tiers down again (D-129).
 - A `DRAW` may take its faces from the step rather than the prompt, and only a `DRAW` may: a die has
   the same faces every roll, and everywhere else a fixed list is a closed vocabulary the interpreter
   reads meaning from (M4).

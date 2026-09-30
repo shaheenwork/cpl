@@ -212,6 +212,26 @@ class InstantPlayViewModelTest {
     }
 
     @Test
+    fun `carrying on keeps the heat rather than climbing again`() = runTest {
+        instant.tierState.value = Intensity.EXTREME
+        val viewModel = viewModel()
+        viewModel.confirmExtreme()
+        val opener = viewModel.uiState.value.card!!.intensity
+
+        repeat(6) { viewModel.skip() }
+        advanceUntilIdle()
+        viewModel.keepGoing()
+        advanceUntilIdle()
+
+        // On the device card seven came back two tiers down, because carrying on reset the deal
+        // index and the run climbed from the bottom again. A run's climb is for the start of an
+        // evening, and six cards in, the evening has started.
+        val seventh = viewModel.uiState.value.card!!.intensity
+        assertThat(seventh.level).isGreaterThan(opener.level)
+        assertThat(seventh.level).isAtLeast(Intensity.HOT.level)
+    }
+
+    @Test
     fun `a card never comes round twice while there is anything left`() = runTest {
         val viewModel = viewModel()
 

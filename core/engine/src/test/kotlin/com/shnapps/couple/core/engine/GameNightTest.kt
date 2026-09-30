@@ -60,6 +60,23 @@ class GameNightTest {
     }
 
     @Test
+    fun `an evening runs about as long as it was asked for`() {
+        // The real catalogue has thirty-minute cards in it. A phase that only stopped once it was
+        // already over budget drew three of them and planned a ninety-five-minute "forty-five
+        // minutes" — found on the device, which is why this deck is the long one.
+        val deck = InstantDeck.of(longAndShort, Intensity.EXTREME)
+
+        NightLength.entries.forEach { length ->
+            val night = GameNight.plan(deck, tier = Intensity.EXTREME, length = length, seed = 9)
+            val care = night.aftercare?.minutes ?: 0
+
+            // Three phases may each overrun by their first card, and aftercare happens whatever
+            // time is left — so the slack is generous, and a doubled evening still fails.
+            assertThat(night.minutes - care).isLessThan(length.minutes + SLACK)
+        }
+    }
+
+    @Test
     fun `it lands on a card written to land on`() {
         val night = GameNight.plan(deck(), tier = Intensity.EXTREME, seed = 5)
 
@@ -131,6 +148,16 @@ class GameNightTest {
             requiresMedia = null,
             status = ContentStatus.PUBLISHED,
         )
+
+        /** How far over its budget an evening may run: the three phases' first cards. */
+        const val SLACK = 30
+
+        /** Long cards among the short ones, the way the real catalogue is written. */
+        val longAndShort: List<ContentItem> = Intensity.entries.flatMap { level ->
+            (1..8).map { n ->
+                item("${level.name.lowercase()}_long_$n", level, minutes = if (n % 3 == 0) 30 else 20)
+            } + (1..4).map { n -> item("${level.name.lowercase()}_short_$n", level, minutes = 5) }
+        } + listOf(item("care_long", Intensity.EXTREME, minutes = 10, tags = setOf("aftercare")))
 
         /** Enough at every level to fill an hour, and two cards written to land on. */
         val everything: List<ContentItem> = Intensity.entries.flatMap { level ->
