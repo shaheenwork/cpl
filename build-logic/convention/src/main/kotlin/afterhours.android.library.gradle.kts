@@ -41,7 +41,6 @@ dependencies {
     add("testImplementation", catalog.findLibrary("truth").get())
     add("testImplementation", catalog.findLibrary("kotlinx-coroutines-test").get())
     add("testImplementation", catalog.findLibrary("turbine").get())
-    add("testImplementation", catalog.findLibrary("mockk").get())
     add("testImplementation", catalog.findLibrary("robolectric").get())
 
     add("androidTestImplementation", catalog.findLibrary("truth").get())

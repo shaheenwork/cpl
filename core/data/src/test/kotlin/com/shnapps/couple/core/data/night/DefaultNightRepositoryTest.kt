@@ -28,7 +28,6 @@ import com.shnapps.couple.core.model.UserProfile
 import com.shnapps.couple.core.testing.FakeAuthRepository
 import com.shnapps.couple.core.testing.FakeBoundaryRepository
 import com.shnapps.couple.core.testing.FakeContentRepository
-import com.shnapps.couple.core.testing.FakeMutualRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -59,7 +58,6 @@ class DefaultNightRepositoryTest {
         remote = remote,
         content = content,
         boundaries = boundaries,
-        mutual = FakeMutualRepository(),
         clock = FakeClock(NOW),
         appScope = backgroundScope,
     )

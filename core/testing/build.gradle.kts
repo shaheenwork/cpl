@@ -20,6 +20,5 @@ dependencies {
     api(libs.truth)
     api(libs.kotlin.test)
     api(libs.turbine)
-    api(libs.mockk)
     api(libs.kotlinx.coroutines.test)
 }

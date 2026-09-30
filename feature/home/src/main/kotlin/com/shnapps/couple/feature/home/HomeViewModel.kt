@@ -13,7 +13,6 @@ import com.shnapps.couple.core.data.game.GameRepository
 import com.shnapps.couple.core.data.instant.InstantPlayRepository
 import com.shnapps.couple.core.data.media.MediaRepository
 import com.shnapps.couple.core.data.night.NightRepository
-import com.shnapps.couple.core.data.preferences.PreferenceRepository
 import com.shnapps.couple.core.data.surprise.SurpriseRepository
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.Game
@@ -90,8 +89,6 @@ data class HomeUiState(
      * still sealed. Ordered newest first, and saying nothing about anything undelivered.
      */
     val thread: List<ThreadEntry> = emptyList(),
-    /** How many private curiosities this person has answered (REDESIGN_PROMPT.md §4.2). */
-    val answered: Int = 0,
     val error: HomeError? = null,
     /** A limit they reached: the screen offers what premium includes, and nothing is lost (§19). */
     val gate: Gate? = null,
@@ -126,7 +123,6 @@ class HomeViewModel @Inject constructor(
     private val analytics: AnalyticsLogger,
     private val clock: Clock,
     auth: AuthRepository,
-    curiosities: PreferenceRepository,
     media: MediaRepository,
     surprises: SurpriseRepository,
 ) : ViewModel() {
@@ -167,12 +163,7 @@ class HomeViewModel @Inject constructor(
     }
 
     /** What the couple has going, and what one of them left for the other. */
-    private val theirs = combine(
-        nights.activeSession,
-        nights.plans,
-        // Their own answers, counted. The answers themselves never leave the private path (§5.1).
-        curiosities.answers.map { it.size },
-    ) { active, plans, answered -> Triple(active, plans, answered) }
+    private val theirs = combine(nights.activeSession, nights.plans) { active, plans -> active to plans }
 
     val uiState: StateFlow<HomeUiState> = combine(
         local,
@@ -180,7 +171,7 @@ class HomeViewModel @Inject constructor(
         ownDeck,
         apart,
         theirs,
-    ) { state, company, (games, tier), (inbox, thread), (active, plans, answered) ->
+    ) { state, company, (games, tier), (inbox, thread), (active, plans) ->
         state.copy(
             company = company,
             games = games,
@@ -191,7 +182,6 @@ class HomeViewModel @Inject constructor(
             plannedByMe = plans.firstOrNull { it.mine },
             unopenedMedia = inbox.firstOrNull { it.unopened },
             thread = thread,
-            answered = answered,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), HomeUiState())
 

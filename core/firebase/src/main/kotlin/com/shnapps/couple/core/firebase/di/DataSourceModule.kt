@@ -10,8 +10,6 @@ import com.shnapps.couple.core.firebase.game.FirebaseGameRemoteDataSource
 import com.shnapps.couple.core.firebase.game.GameRemoteDataSource
 import com.shnapps.couple.core.firebase.media.FirebaseMediaRemoteDataSource
 import com.shnapps.couple.core.firebase.media.MediaRemoteDataSource
-import com.shnapps.couple.core.firebase.memories.FirebaseMemoryRemoteDataSource
-import com.shnapps.couple.core.firebase.memories.MemoryRemoteDataSource
 import com.shnapps.couple.core.firebase.night.FirebaseNightRemoteDataSource
 import com.shnapps.couple.core.firebase.night.NightRemoteDataSource
 import com.shnapps.couple.core.firebase.notifications.FirebasePushDataSource
@@ -47,9 +45,6 @@ abstract class DataSourceModule {
 
     @Binds
     abstract fun bindPushDataSource(impl: FirebasePushDataSource): PushDataSource
-
-    @Binds
-    abstract fun bindMemoryRemoteDataSource(impl: FirebaseMemoryRemoteDataSource): MemoryRemoteDataSource
 
     @Binds
     abstract fun bindBillingRemoteDataSource(impl: FirebaseBillingRemoteDataSource): BillingRemoteDataSource

@@ -27,16 +27,10 @@ import com.shnapps.couple.core.data.limits.DefaultLimitsRepository
 import com.shnapps.couple.core.data.limits.LimitsRepository
 import com.shnapps.couple.core.data.media.DefaultMediaRepository
 import com.shnapps.couple.core.data.media.MediaRepository
-import com.shnapps.couple.core.data.memories.DefaultMemoryRepository
-import com.shnapps.couple.core.data.memories.MemoryRepository
-import com.shnapps.couple.core.data.mutual.DefaultMutualRepository
-import com.shnapps.couple.core.data.mutual.MutualRepository
 import com.shnapps.couple.core.data.night.DefaultNightRepository
 import com.shnapps.couple.core.data.night.NightRepository
 import com.shnapps.couple.core.data.notifications.DefaultNotificationsRepository
 import com.shnapps.couple.core.data.notifications.NotificationsRepository
-import com.shnapps.couple.core.data.preferences.DefaultPreferenceRepository
-import com.shnapps.couple.core.data.preferences.PreferenceRepository
 import com.shnapps.couple.core.data.surprise.ArcRepository
 import com.shnapps.couple.core.data.surprise.DefaultArcRepository
 import com.shnapps.couple.core.data.surprise.DefaultSurpriseRepository
@@ -51,10 +45,6 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-// A binding module is a list, not a class with behaviour, so the function count says nothing
-// about it. It is over the threshold because the rebuild has added one and not yet removed the
-// bindings the retired features used; M10's dependency sweep is where it comes back down.
-@Suppress("TooManyFunctions")
 abstract class DataModule {
 
     @Binds
@@ -79,10 +69,6 @@ abstract class DataModule {
 
     @Binds
     @Singleton
-    abstract fun bindPreferenceRepository(impl: DefaultPreferenceRepository): PreferenceRepository
-
-    @Binds
-    @Singleton
     abstract fun bindBoundaryRepository(impl: DefaultBoundaryRepository): BoundaryRepository
 
     @Binds
@@ -93,10 +79,6 @@ abstract class DataModule {
 
     @Binds
     abstract fun bindLaunchOffer(impl: RemoteLaunchOffer): LaunchOffer
-
-    @Binds
-    @Singleton
-    abstract fun bindMutualRepository(impl: DefaultMutualRepository): MutualRepository
 
     @Binds
     @Singleton
@@ -117,9 +99,6 @@ abstract class DataModule {
 
     @Binds
     abstract fun bindNotificationsRepository(impl: DefaultNotificationsRepository): NotificationsRepository
-
-    @Binds
-    abstract fun bindMemoryRepository(impl: DefaultMemoryRepository): MemoryRepository
 
     @Binds
     abstract fun bindBillingRepository(impl: DefaultBillingRepository): BillingRepository

@@ -19,7 +19,6 @@ import com.shnapps.couple.core.testing.FakeGameRepository
 import com.shnapps.couple.core.testing.FakeInstantPlayRepository
 import com.shnapps.couple.core.testing.FakeMediaRepository
 import com.shnapps.couple.core.testing.FakeNightRepository
-import com.shnapps.couple.core.testing.FakePreferenceRepository
 import com.shnapps.couple.core.testing.FakeSurpriseRepository
 import com.shnapps.couple.core.testing.MainDispatcherRule
 import com.shnapps.couple.core.testing.TestGames
@@ -55,7 +54,6 @@ class HomeViewModelTest {
     private val auth = FakeAuthRepository()
     private val media = FakeMediaRepository()
     private val surprises = FakeSurpriseRepository()
-    private val curiosities = FakePreferenceRepository()
 
     /** Signed in and joined to someone: everything the server does is open to them. */
     private fun paired() {
@@ -70,7 +68,6 @@ class HomeViewModelTest {
         analytics = AnalyticsLogger { logged += it },
         clock = Clock { NOW },
         auth = auth,
-        curiosities = curiosities,
         media = media,
         surprises = surprises,
     ).also { vm ->

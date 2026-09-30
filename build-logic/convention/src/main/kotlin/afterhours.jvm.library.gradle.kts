@@ -30,7 +30,6 @@ dependencies {
     add("testImplementation", catalog.findLibrary("truth").get())
     add("testImplementation", catalog.findLibrary("kotlinx-coroutines-test").get())
     add("testImplementation", catalog.findLibrary("turbine").get())
-    add("testImplementation", catalog.findLibrary("mockk").get())
 }
 
 tasks.withType<Test>().configureEach {

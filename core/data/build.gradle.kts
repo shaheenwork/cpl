@@ -24,7 +24,6 @@ dependencies {
     implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
 
-    testImplementation(libs.androidx.work.testing)
     testImplementation(project(":core:testing"))
 }
 

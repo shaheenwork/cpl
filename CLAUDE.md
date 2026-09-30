@@ -73,8 +73,15 @@ Compiled bytecode targets **Java 17** regardless of the daemon JVM.
 :core:notifications   FCM + privacy-aware builders
 :core:testing         Fakes, fixtures, rules
 :architecture         Konsist rules that fail the build on violations
-:feature:home         The home surface and the TOGETHER / APART switch
+:feature:home         Home: Play Now, the Together/Apart toggle, the game grid
+:feature:instant      The card deck and Game Night — the whole of Together mode
+:feature:games        The seven games' player, over the one interpreter
+:feature:boundaries   The limits profile: eight questions over twenty-seven themes
 :feature:*            Added by the phase that introduces them (DECISIONS.md D-006)
+
+Out of scope since the rebuild, and moved to `_to_remove/` rather than deleted:
+:feature:night, :feature:preferences, :feature:discovery, :feature:memories, and the
+memories / preferences / mutual halves of :core:data and :core:firebase.
 ```
 
 Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
@@ -304,23 +311,39 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
 
 - `REDESIGN_PROMPT.md` is the brief for the front half; `BUILD_PROMPT.md` still governs everything
   it does not cover, and §3, §5, §7 and §10.3 are not up for renegotiation.
-- `Heat` (three levels) is what a person sets; `Intensity` (five) is what the engine runs on. A heat
-  is a **ceiling**, and the couple's real ceiling is still the server's once they are paired.
+- **One tier enum.** `Intensity` is the five a couple sees — Mild, Flirty, Spicy, Hot, Extreme — with
+  the label and the dots on it. `Heat` is gone (M2): three words over five levels meant Wild and
+  Bold were the same word and no screen could say which tier a card was. A tier is still a
+  **ceiling**, and a paired couple's real ceiling is still the server's.
 - `InstantDeck` (`:core:engine`) is the deck for a phone with no account — shipped content only,
-  bounded by this phone's heat and refusals. It is safe because there is no partner yet, not because
-  it filters (D-100). `narrow` may only ever remove, and a test holds that.
-- A refusal is captured mid-play by `Too far`, written to DataStore (`refusedCardIds`,
-  `refusedThemes`), and honoured from the next card. Reconciling those into the person's real limits
-  when they sign up is R5's job.
-- The splash sends a signed-out person to `Route.Start` (new) or `Route.InstantHome` (already through
-  the gate). `Route.AgeGate` is still the signed-in path, where the attestation is written to their
-  own record.
-- A game with no account is dealt by `ReleasedGame.forHeat`, not by the server. Same reasoning as the
-  deck, same bounds, and the deal is seeded so a reopened phone deals the same game. `fromServer`
-  remains the only way once a couple is signed in.
+  bounded by this phone's tier, its lane and its refusals. It is safe because there is no partner
+  yet, not because it filters (D-100). `narrow` may only ever remove, and a test holds that.
+- **The deal is not the pool.** `cards` is everything this phone may be shown; `next()` is what
+  comes up, and it climbs to the tier and never repeats (D-124). Dealing from index zero over a
+  pool in bundle order is what made 790 items look like six.
+- The packs are a **lane** a couple can ask for by name (D-125): only ones with cards at this tier
+  are offered, and a lane is only ever narrower than the open deck.
+- A refusal is captured mid-play by `Too far` and honoured from the next card. The **limits
+  profile** is the same statement made in a form: eight `LimitTag`s over the twenty-seven taxonomy
+  themes, a partition, with every theme either owned or explicitly governed by the tier (M3).
+  `TaxonomyFileTest` fails the build on a theme nobody owns.
+- **Stop is not Too far.** Too far is about one card; the safe word stops the evening, asks nothing,
+  and is on every screen that plays anything (M7). Extreme is gated twice a session, once. Aftercare
+  after any Hot or Extreme run comes from cards written to land on.
+- A game with no account is dealt by `ReleasedGame.forHeat`, not by the server, and `autoHeat`
+  decides whether it climbs to the tier or opens at it (M4). `fromServer` remains the only way once
+  a couple is signed in.
+- **Game Night is not in `games.json`** (M5). A prompt-based game draws from one game's pool; an
+  hour needs the whole catalogue, so it is a plan over `InstantDeck` in four phases.
+- A `DRAW` may take its faces from the step rather than the prompt, and only a `DRAW` may: a die has
+  the same faces every roll, and everywhere else a fixed list is a closed vocabulary the interpreter
+  reads meaning from (M4).
 - **The primitive renderers live in `:core:ui`**, not in `:feature:games`: two players draw them now,
   and a feature may not import another feature. A second renderer for a primitive is what §11.1
   forbids, so they belong to neither feature.
+- **The free tier limits volume, never intensity** (M9). Thirty cards a day, one guided evening a
+  week, checked when a run *starts* so nothing is cut off mid-evening, counted on the phone so it
+  works with no account. `everything_free` in Remote Config turns all of it off.
 
 ---
 

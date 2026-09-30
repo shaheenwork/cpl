@@ -2262,3 +2262,114 @@ question to re-ask every evening. Three rules hold it together:
   not behind five cards already queued from the old lane.
 
 The lane's name goes on the card's own eyebrow, so the couple can see which deck they are in.
+
+---
+
+## D-126 — The rebuild: what v1 is, and what "a game is content" had to mean
+
+Ten modules, on branch `redesign`, against a brief that asked for a clean, focused product from a
+cluttered one. The whole of it is recorded in PROGRESS.md; these are the calls that were not
+obvious, and the ones a later reader will otherwise re-litigate.
+
+**One tier enum, not two.** `Intensity` held five levels the content is authored at and `Heat` held
+three the couple picked, as a ceiling over them. Three words over five levels meant Wild and Bold
+were the same word, and no screen could say which tier a card was. The five are now the ones a
+couple sees — Mild, Flirty, Spicy, Hot, Extreme — and the stored preference key moved from `heat` to
+`tier` rather than being migrated, because two of the three old values no longer name anything and
+the third now means a different level.
+
+**Eight questions over twenty-seven themes.** The brief's limits profile asks about eight tags; the
+content is authored against twenty-seven taxonomy themes and every one of 1,431 entries carries the
+ones it belongs to. Both are right for their job, so the eight became the *question* and the themes
+stayed the *answer*: `LimitTag` owns a set each, a no writes them all, and reading a tag takes the
+strictest answer under it. The ownership is a partition — a no on teasing must not quietly answer
+the power-play question — and `TaxonomyFileTest` fails the build on a theme nobody owns, because
+that is a card no answer could ever refuse and nothing about the app would look wrong.
+
+**Three themes belong to no tag on purpose.** `mood_gentle`, `mood_charged` and
+`mood_unpredictable` describe how an evening feels rather than what happens in it, and the tier
+governs that. Measured: ninety of the 1,431 entries carry only a mood, thirteen of them at Hot or
+Extreme.
+
+**A die is the one place a fixed option list may be free text.** A `DRAW` normally takes its pool
+from the round's card, which is how a spin varies by card and by tier. But a die has the same faces
+on every roll, and a game rolling three cannot take them all from a prompt that carries one pool. So
+a draw may carry its own faces — and only a draw, because everywhere else the interpreter reads
+*meaning* from those ids (`RoundReading.named` turns ME and YOU into seats), and a vote given
+arbitrary options could not be resolved at all. The validator and the parser hold the same rule from
+either side of the seam.
+
+**Auto-heat can only happen at the deal.** The brief asks for a tier that climbs every six cards.
+The device plays what was released and nothing else (D-070), so a tier rising mid-game would have
+nothing to rise into. It is the ramp instead: on, a game deals a climb from two tiers below the
+ceiling up to it; off, it opens at the tier, which is what a couple who picked Extreme and meant it
+is asking for.
+
+**Game Night is not in `games.json`.** A prompt-based game draws from a pool written for one game;
+an hour needs the whole catalogue, 790 items across twelve packs. So it is a plan over `InstantDeck`
+in four phases, reusing the deck's own tier, limits, lane and no-repeats record. The aftercare card
+is planned in rather than offered, comes only from cards written to land on, and respects the tier —
+a test caught the version that did not, where an evening planned at Spicy could end on an Extreme
+card.
+
+**Seven games are set aside, not deleted.** `_to_remove/games-later/` holds each with a note saying
+which of the brief's fifteen it becomes. If "a game is content" is true, each plugs back in as a
+content edit, and that claim is worth keeping testable.
+
+**Stop is not "Too far".** Too far is about one card and the evening carries on. Stop is about the
+evening: it asks nothing, confirms nothing, kills a running clock and does not refuse the card it
+interrupted. A couple who reach for it need it now, and the app arguing with the one control it
+promised would not is worse than a mis-tap.
+
+**The Extreme gate is two taps, once a session.** Once a session rather than once ever, because "we
+are both up for this tonight" is not the statement "we said so in March"; two taps because the
+question is whether *both* want it. It gates the top tier only — a confirmation on every tier is
+meaningless by repetition — and declining turns the tier down rather than closing the screen.
+
+## D-127 — Panic locks; it does not pretend to be another app
+
+The brief asks for a discreet launcher icon and a panic gesture onto a neutral fake screen. Two
+things had to be decided rather than implemented.
+
+**The gesture.** Shake was to roll Heat Dice *and* trigger panic. One gesture cannot both roll the
+dice and hide the app, and the screen where a couple most needs panic is the one where the dice are.
+Panic is the double back-press alone.
+
+**Where it lands.** A fake calculator that stands in for the app is where Play's deceptive-behaviour
+policy bites, and it buys nothing the app's own lock screen does not: nothing on the lock screen says
+what this is. So panic locks. With no lock set, the second press does what a second press does and
+leaves, which is discreet enough by itself.
+
+The icon is three `activity-alias`es over one activity, exactly one enabled, and the activity itself
+is never disabled so a deep link and a notification keep working whichever icon shows. `DONT_KILL_APP`
+matters: without it the process stops as the setting is tapped, which reads as the app closing
+itself. Both discreet icons are **drawn** — a page with three rules, a keypad with a display — and
+carry no other product's name, colours or mark. The point is an icon that does not announce this app,
+never one that claims to be a different app.
+
+## D-128 — The free tier limits volume, and the launch switch errs towards free
+
+No game and no tier is ever gated. Extreme is free, all seven games are free, and the limits profile
+and the safe word are free — charging for the top of the range would make money out of the one thing
+a couple should never hesitate over. What the free tier limits is thirty cards a day and one guided
+evening a week.
+
+Two rules decided the shape:
+
+- **A running session is never cut off.** The count is checked when a run or an evening *starts*, so
+  a couple mid-evening when the thirtieth card comes up finish it. A limit that stops somebody
+  mid-card is an interruption, not a limit.
+- **It works with no account and no network**, because the deck does and because the brief will not
+  have signing up as a precondition for playing. The counters are on the phone, so clearing app data
+  clears them. That is the better trade: the alternative asks everyone to sign in before the first
+  card.
+
+The day and week roll over with no scheduled job — each count carries the day or week it belongs to,
+so yesterday's stamp reads as untouched.
+
+The launch period is two Remote Config values. `everything_free` is the switch and
+`everything_free_until` is only ever *displayed*, so a date that slips cannot start charging anybody
+by itself, and turning it off is a console change rather than a release. Both default to free,
+because the app has to behave correctly before a fetch lands and erring towards free is the only
+direction that cannot take something away from a couple. While it is on, nothing is counted and
+nothing is written, so switching it off later does not reveal a backlog.

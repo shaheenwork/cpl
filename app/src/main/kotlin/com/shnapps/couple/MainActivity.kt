@@ -25,7 +25,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.shnapps.couple.core.data.couple.PendingInvite
-import com.shnapps.couple.core.data.mutual.MutualRepository
 import com.shnapps.couple.core.data.notifications.NotificationsRepository
 import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
@@ -55,9 +54,6 @@ class MainActivity : FragmentActivity() {
 
     @Inject
     lateinit var pendingInvite: PendingInvite
-
-    @Inject
-    lateinit var mutualRepository: MutualRepository
 
     @Inject
     lateinit var notifications: NotificationsRepository
@@ -157,7 +153,6 @@ class MainActivity : FragmentActivity() {
      */
     override fun onStart() {
         super.onStart()
-        lifecycleScope.launch { mutualRepository.releaseNow() }
         // Where this phone can be reached (§16). Harmless when signed out — there is no user to
         // register a token against, and the repository says so rather than writing anything.
         lifecycleScope.launch { notifications.registerThisPhone() }

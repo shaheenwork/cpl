@@ -1237,6 +1237,71 @@ npm --prefix firebase/tests test            92/92    (Storage O and P, and six m
 
 ---
 
+## The rebuild: ten modules, on branch `redesign` ✅
+
+A brief for a clean, focused product out of a cluttered one: seven games in v1, five named tiers, an
+eight-question limits profile, a safety system, discretion, and a free tier that limits volume and
+never intensity. Audited first, then rebuilt module by module, each with its own commit and its own
+green `check`. Nothing was deleted — everything out of scope is in `_to_remove/` with a README
+saying what it is and why.
+
+| | | |
+|---|---|---|
+| **M1** | Out-of-scope features and games | `d8c4b8e` |
+| **M2** | Five named tiers, `Heat` deleted | `bfb344a` |
+| **M3** | Eight tags over twenty-seven themes | `41311bf` |
+| **M4** | Dice that are dice, auto-heat as a choice | `d57847f` |
+| **M5** | The seven v1 games, and Game Night built | `5a13e6d` |
+| **M6** | Play Now, the Together/Apart toggle | `5299ee4` |
+| **M7** | The safe word, the Extreme gate, aftercare | `409e7ff` |
+| **M8** | A discreet icon, and panic that locks | `3e1a2a3` |
+| **M9** | Volume limits and a launch switch | `d931243` |
+| **M10** | The dead-code and dependency sweep | this one |
+
+### What came out
+Four feature modules (night, preferences, discovery, memories), the arc screen, nine games, the
+twenty-seven-row limits list, the memories/preferences/mutual halves of `:core:data` and
+`:core:firebase`, and seven routes. Four dependencies that were declared and never used: `mockk` and
+`mockk-android` — named in the codebase only in a comment explaining why not to use them (D-013) —
+`firebase-performance` and `androidx-work-testing`. `androidx-fragment-ktx` stays: `MainActivity` is
+a `FragmentActivity` because `BiometricPrompt` needs one.
+
+### What went in
+`Intensity` as the one tier enum with five names a couple sees. `LimitTag`, a partition over the
+taxonomy with a build-failing coverage test. `InstantDeck.next`, which is why 790 items stopped
+looking like six. `GameNight`, a plan over the whole catalogue in four phases. A safe word on every
+playing screen, an Extreme gate, and aftercare from cards written to land on. Three launcher aliases.
+Thirty cards a day and one guided evening a week, counted on the phone, checked when a run starts.
+
+### Verified
+```
+./gradlew check                     BUILD SUCCESSFUL, at every module boundary
+npm --prefix tools test             42/42
+npm --prefix tools run validate     content OK — 790 items, 322 prompts, 6 games in games.json
+./gradlew detekt --continue         clean across every module
+```
+- **Two things the tests caught that review would not have.** Game Night's aftercare card was drawn
+  from the deck without checking the tier, so an evening planned at Spicy could have ended on an
+  Extreme card. And five stacked tier rows pushed the age gate's own button off the screen at 200%
+  type, which is why the picker is a row of dots that does not grow.
+- **One thing worth knowing about the holding area**: Konsist walks the filesystem rather than
+  Gradle's source sets, so a `.kt` file in `_to_remove/` is still judged by the architecture rules —
+  a retired Firebase data source failed "only :core:firebase imports firebase" from a folder nothing
+  compiles. Held files carry `.kt.txt` now, because a file in a holding area is not source.
+
+### Not done, and deliberately
+v1.1 and v2 are not built: Apart mode's games (4, 6, 7, 9), Sealed Envelope, Role-Play Scenes,
+Escalation Streak, Countdown to Us, Mood Sync, story campaigns, Hands-Free voice, the personalised
+deck and the custom dare builder. The seven retired games sit in `_to_remove/games-later/` with a
+note naming the later game each becomes, which is the claim "a game is content" made testable.
+
+Still open from the audit: **shake-to-roll** for Heat Dice needs a sensor and has no home until a
+game screen wants one, and **two cards are under-tagged** —
+`flirt_the_photo_they_asked_for` and `tod_d_one_thing_off` carry only a mood, so no limits answer can
+refuse them. The taxonomy has no theme for media or undressing; adding one is a content edit.
+
+---
+
 ## The deck was never dealing the content ✅
 
 Reported from a device, and the sharpest bug report of the build after D-120: *"all the contents are

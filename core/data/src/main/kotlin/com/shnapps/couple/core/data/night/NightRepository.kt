@@ -7,7 +7,6 @@ import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.auth.AuthRepository
 import com.shnapps.couple.core.data.boundaries.BoundaryRepository
 import com.shnapps.couple.core.data.content.ContentRepository
-import com.shnapps.couple.core.data.mutual.MutualRepository
 import com.shnapps.couple.core.engine.Chapter
 import com.shnapps.couple.core.engine.ClientContext
 import com.shnapps.couple.core.engine.Engine
@@ -53,7 +52,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -161,7 +159,6 @@ class DefaultNightRepository @Inject constructor(
     private val remote: NightRemoteDataSource,
     private val content: ContentRepository,
     private val boundaries: BoundaryRepository,
-    private val mutual: MutualRepository,
     private val clock: Clock,
     @ApplicationScope appScope: CoroutineScope,
 ) : NightRepository {
@@ -432,10 +429,16 @@ class DefaultNightRepository @Inject constructor(
     @Volatile
     private var cachedContext: ClientContext = ClientContext()
 
-    private suspend fun remixer(): Remixer {
-        // Revealed matches are known to both partners; nothing private is used (§5.4).
-        val matches = withTimeoutOrNull(MATCHES_TIMEOUT_MS) { mutual.matches.first() }.orEmpty()
-        cachedContext = ClientContext(mutual = matches.associate { it.itemId to it.level }, nowMs = clock.nowMillis())
+    /**
+     * What this phone may rank a remix by.
+     *
+     * It used to be the couple's revealed mutual matches, which is gone with the private curiosity
+     * deck (M1, M10). Nothing private was ever in it — a revealed match is known to both partners —
+     * and nothing private is in it now either: only the clock, which is what the engine needs to
+     * apply a cooldown.
+     */
+    private fun remixer(): Remixer {
+        cachedContext = ClientContext(nowMs = clock.nowMillis())
         return Remixer(cachedContext)
     }
 
@@ -446,7 +449,6 @@ class DefaultNightRepository @Inject constructor(
         /** Only ever a fallback: a server too old to say how long the surprise it built runs. */
         private const val DEFAULT_SURPRISE_MIN = 45
         private const val STOP_TIMEOUT_MS = 5_000L
-        private const val MATCHES_TIMEOUT_MS = 2_000L
     }
 }
 
