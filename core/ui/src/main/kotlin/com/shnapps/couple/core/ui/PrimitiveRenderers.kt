@@ -185,8 +185,12 @@ internal fun RevealRenderer(reveal: RoundPrimitive.Reveal, players: GamePlayers,
 
 @Composable
 internal fun TimerRenderer(timer: RoundPrimitive.Timer, players: GamePlayers, onSubmit: (Answer) -> Unit) {
-    var remaining by rememberSaveable(timer.step) { mutableIntStateOf(timer.seconds) }
-    LaunchedEffect(timer.step) {
+    // Keyed on what the round put on it, not only on which step it is: a step's number is the
+    // same every round, so round two would come back to round one's spent clock (D-130).
+    var remaining by rememberSaveable(timer.step, timer.seconds, timer.caption) {
+        mutableIntStateOf(timer.seconds)
+    }
+    LaunchedEffect(timer.step, timer.seconds, timer.caption) {
         while (remaining > 0) {
             delay(SECOND_MS)
             remaining -= 1
@@ -249,10 +253,14 @@ internal fun ReactionRenderer(reaction: RoundPrimitive.Reaction, players: GamePl
 @Composable
 internal fun DrawRenderer(draw: RoundPrimitive.Draw, players: GamePlayers, onSubmit: (Answer) -> Unit) {
     val reduceMotion = LocalReduceMotion.current
-    var showing by remember(draw.step) { mutableStateOf(if (reduceMotion) draw.landed else draw.options.first()) }
-    var settled by rememberSaveable(draw.step) { mutableStateOf(reduceMotion) }
+    // Keyed on where it landed as well as which step it is, or the second round's draw would come
+    // up already spun (D-130).
+    var showing by remember(draw.step, draw.landed) {
+        mutableStateOf(if (reduceMotion) draw.landed else draw.options.first())
+    }
+    var settled by rememberSaveable(draw.step, draw.landed.id) { mutableStateOf(reduceMotion) }
 
-    LaunchedEffect(draw.step) {
+    LaunchedEffect(draw.step, draw.landed) {
         if (settled) return@LaunchedEffect
         var wait = SPIN_START_MS
         while (wait < SPIN_END_MS) {
@@ -300,11 +308,14 @@ internal fun DrawRenderer(draw: RoundPrimitive.Draw, players: GamePlayers, onSub
 internal fun DiceRenderer(dice: RoundPrimitive.Dice, players: GamePlayers, onSubmit: (Answer) -> Unit) {
     val reduceMotion = LocalReduceMotion.current
     val scope = rememberCoroutineScope()
-    val roll = remember(dice.step) { Animatable(if (reduceMotion) 1f else 0f) }
-    var started by rememberSaveable(dice.step) { mutableStateOf(false) }
+    // The roll this is: a step number repeats every round, and keying on it alone left the second
+    // round's dice already landed and its clock already spent (D-130).
+    val rolled = dice.dice.joinToString(",") { "${it.label}:${it.landed}" }
+    val roll = remember(dice.step, rolled) { Animatable(if (reduceMotion) 1f else 0f) }
+    var started by rememberSaveable(dice.step, rolled) { mutableStateOf(false) }
     val settled = roll.value >= 1f
 
-    LaunchedEffect(dice.step) {
+    LaunchedEffect(dice.step, rolled) {
         if (!reduceMotion) roll.animateTo(1f, decorativeTween(ROLL_MS, false, AfterhoursEasing.Decelerate))
     }
 
@@ -321,7 +332,7 @@ internal fun DiceRenderer(dice: RoundPrimitive.Dice, players: GamePlayers, onSub
     }
 
     val seconds = dice.seconds
-    if (settled && seconds != null) DiceClock(seconds = seconds, running = started)
+    if (settled && seconds != null) DiceClock(seconds = seconds, running = started, key = rolled)
 
     GlowButton(
         text = when {
@@ -414,9 +425,9 @@ private fun Pips(count: Int, lit: Boolean) {
 
 /** The clock the dice landed on. Started by them, never by the app (as every timer here is). */
 @Composable
-private fun DiceClock(seconds: Int, running: Boolean) {
-    var remaining by rememberSaveable(seconds) { mutableIntStateOf(seconds) }
-    LaunchedEffect(running, seconds) {
+private fun DiceClock(seconds: Int, running: Boolean, key: String) {
+    var remaining by rememberSaveable(seconds, key) { mutableIntStateOf(seconds) }
+    LaunchedEffect(running, seconds, key) {
         if (!running) return@LaunchedEffect
         while (remaining > 0) {
             delay(SECOND_MS)
