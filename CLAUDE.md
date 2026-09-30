@@ -495,6 +495,12 @@ after running it. Integration tests use their own project and touch nothing (D-0
 published bundle version is immutable: raise `contentVersion` in `content/content.json`
 before publishing changed content.
 
+**A phone that already has the app keeps its cached content.** The cache installs the shipped
+bundle when its version is higher, or when the same version arrives from a *different build*
+(`ShippedContent.fingerprint()`, D-131). Reinstalling the same build over itself changes the
+install time, so a device check picks the new content up — but if you are ever unsure what a phone
+is playing, `adb shell pm clear com.shnapps.couple.dev` is the certain answer.
+
 **Kotlin/KSP versions are paired.** Kotlin 2.2.10 ↔ KSP `2.2.10-2.0.2`. KSP changed to
 standalone versioning at 2.3.0; do not mix the schemes.
 

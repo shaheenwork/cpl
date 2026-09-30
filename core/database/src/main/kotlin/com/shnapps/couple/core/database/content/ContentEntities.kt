@@ -63,6 +63,13 @@ data class ContentBundleEntity(
     val lastSyncMillis: Long?,
     /** Deltas updated at or after this instant have not been fetched yet. */
     val deltaCursorMillis: Long,
+    /**
+     * The build whose shipped bundle this came from, when it came from one (D-131).
+     *
+     * Null for a bundle downloaded from the server: only the app's own assets have a build behind
+     * them, and only they can change without the content version changing.
+     */
+    val shippedFingerprint: String? = null,
 ) {
     companion object {
         const val SINGLE_ROW = 0

@@ -44,11 +44,13 @@ internal object ContentFixtures {
     """.trimIndent()
 }
 
-internal class FakeShippedContent(var text: String) : ShippedContent {
+internal class FakeShippedContent(var text: String, var build: String = "first") : ShippedContent {
     var reads = 0
         private set
 
     override suspend fun version(): Int = ContentBundleParser.parse(text).contentVersion
+
+    override suspend fun fingerprint(): String = "${version()}@$build"
 
     override suspend fun read(): String {
         reads += 1

@@ -61,11 +61,6 @@
               ]
             }
           ]
-        },
-        {
-          "primitive": "REACTION",
-          "who": "ACTIVE",
-          "text": "How was that?"
         }
       ]
     },
@@ -107,11 +102,6 @@
           "who": "ACTIVE",
           "text": "PROMPT",
           "kindFrom": 0
-        },
-        {
-          "primitive": "REACTION",
-          "who": "OTHER",
-          "text": "How did they do?"
         }
       ]
     },

@@ -149,8 +149,8 @@ class DefaultContentRepository @Inject constructor(
             if (shippedChecked) return@withLock Outcome.Success(Unit)
             outcomeOf {
                 val current = dao.bundle()
-                if (shipped.version() > (current?.contentVersion ?: 0)) {
-                    install(ContentBundleParser.parse(shipped.read()), current)
+                if (shouldInstallShipped(current)) {
+                    install(ContentBundleParser.parse(shipped.read()), current, shipped.fingerprint())
                 }
                 shippedChecked = true
             }
@@ -222,7 +222,29 @@ class DefaultContentRepository @Inject constructor(
         }
     }
 
-    private suspend fun install(parsed: ParsedBundle, previous: ContentBundleEntity?) {
+    /**
+     * Whether the bundle in the app's assets should replace what the cache holds.
+     *
+     * A higher version always wins, as it always did. What is new is the second case: the same
+     * version from a *different build*. The assets can only change when the app is replaced, so
+     * that is an app update carrying changed content — and without this it never reached the
+     * screen. A phone kept playing the old Heat Dice after the update that rebuilt it (D-131).
+     *
+     * A bundle the server sent is never replaced this way: it has no build behind it, and the
+     * version rule already decides which of the two is newer.
+     */
+    private suspend fun shouldInstallShipped(current: ContentBundleEntity?): Boolean {
+        val version = shipped.version()
+        if (version > (current?.contentVersion ?: 0)) return true
+        val installed = current?.shippedFingerprint ?: return false
+        return current.contentVersion == version && installed != shipped.fingerprint()
+    }
+
+    private suspend fun install(
+        parsed: ParsedBundle,
+        previous: ContentBundleEntity?,
+        shippedFingerprint: String? = null,
+    ) {
         dao.installBundle(
             bundle = ContentBundleEntity(
                 format = parsed.format,
@@ -233,6 +255,7 @@ class DefaultContentRepository @Inject constructor(
                 gamesJson = parsed.gamesJson,
                 lastSyncMillis = previous?.lastSyncMillis,
                 deltaCursorMillis = previous?.deltaCursorMillis ?: 0L,
+                shippedFingerprint = shippedFingerprint,
             ),
             items = parsed.items.map { ContentItemEntity(it.id, it.version, it.pack, it.status, it.json) },
             prompts = parsed.prompts.map { ContentPromptEntity(it.id, it.version, it.game, it.status, it.json) },

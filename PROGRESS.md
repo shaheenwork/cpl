@@ -1375,6 +1375,35 @@ is goes through the hash now.
 
 ---
 
+## The update that never arrived ✅
+
+*"i don't understand what heat dice is? it shows 'what the first dice says' … what the hell is this?"*
+
+Two things, both real (D-131).
+
+The words quoted are the **old** Heat Dice, on a phone that had the new app. The content cache
+installs the shipped bundle only when its version is higher than what it holds — right for a phone
+syncing from a server, wrong for an app update, because `contentVersion` is a publishing number and a
+build does not have to move it. The cache now remembers which build's assets its bundle came from and
+replaces it when a different build ships the same version. `contentVersion` moved to 4 as well.
+
+"How was that?" went as well: it ended every round of both games and the answer went nowhere, since
+a game's answers never leave the phone and nothing reads a reaction back.
+
+And the game never said what it was. The brief asks for no tutorials *and* a one-line rule inside
+each game; the rule was missing, so a dealt game opened straight onto three dice with nothing saying
+what they were for. The game's own line now shows while its first round is up, and not after it.
+
+### Verified
+```
+./gradlew check                     BUILD SUCCESSFUL
+:core:data                          an app update at the same version reaches the phone, the same
+                                    build is not reinstalled, and a downloaded bundle still wins
+npm --prefix tools run validate     content OK — v4, 793 items, 322 prompts, 6 games
+```
+
+---
+
 ## The deck was never dealing the content ✅
 
 Reported from a device, and the sharpest bug report of the build after D-120: *"all the contents are

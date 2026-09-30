@@ -42,6 +42,7 @@ class DealtGameSnapshotTest {
             content(
                 DealtGameUiState(
                     title = "Dirty Dice",
+                    rule = "Take turns. Tell the truth, or take the dare.",
                     moment = GameMoment.Turn(
                         round = 0,
                         primitive = RoundPrimitive.Challenge(
@@ -63,6 +64,8 @@ class DealtGameSnapshotTest {
         composeRule.onNodeWithText("DIRTY DICE").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Card 1 of 6").assertExists()
         composeRule.onNodeWithText("Not this one").assertIsDisplayed()
+        // What the game is, in one line, on its first round — and nowhere after it (D-131).
+        composeRule.onNodeWithText("Take turns. Tell the truth, or take the dare.").assertIsDisplayed()
     }
 
     @Test

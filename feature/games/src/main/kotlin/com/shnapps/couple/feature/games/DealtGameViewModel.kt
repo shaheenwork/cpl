@@ -23,6 +23,8 @@ import javax.inject.Inject
 /** Immutable screen state (BUILD_PROMPT.md §4.1; enforced by :architecture). */
 data class DealtGameUiState(
     val title: String = "",
+    /** The game in one line, shown while its first round is on screen (D-131). */
+    val rule: String = "",
     val moment: GameMoment? = null,
     val players: GamePlayers = GamePlayers.UNNAMED,
     val round: Int = 0,
@@ -47,6 +49,16 @@ data class DealtGameUiState(
         get() = !players.named && !skippedNames && moment is GameMoment.HandOff
 
     val namesReady: Boolean get() = namesReady(firstName, secondName)
+
+    /**
+     * Whether to say what this game is.
+     *
+     * The brief asks for no tutorials and a one-line rule inside each game, and the rule was the
+     * half that went missing: a screen of three dice and a card, with nothing anywhere saying what
+     * the dice were for (D-131). Shown on the first round only, and never over a hand-off, which
+     * has no chrome on purpose.
+     */
+    val showsRule: Boolean get() = rule.isNotEmpty() && round == 0 && moment is GameMoment.Turn
 }
 
 /**
@@ -103,6 +115,7 @@ class DealtGameViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     title = released.game.title,
+                    rule = released.game.description,
                     moment = started.moment,
                     round = started.round,
                     rounds = started.roundCount,

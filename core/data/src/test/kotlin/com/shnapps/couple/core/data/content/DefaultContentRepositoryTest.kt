@@ -117,6 +117,43 @@ class DefaultContentRepositoryTest {
         repository().assertIds("flirt_a", "flirt_z")
     }
 
+    /**
+     * The bug a couple found: an app update whose content changed kept playing the old content,
+     * because the version had not moved with it (D-131).
+     */
+    @Test
+    fun `an app update with changed content at the same version still reaches the phone`() = runTest {
+        repository().ensureInstalled()
+
+        // A new build of the app, same content version, different content.
+        shipped.text = ContentFixtures.bundle(1, listOf(item("flirt_a"), item("flirt_new")))
+        shipped.build = "second"
+
+        repository().assertIds("flirt_a", "flirt_new")
+    }
+
+    @Test
+    fun `the same build is not reinstalled on every launch`() = runTest {
+        repository().ensureInstalled()
+        val reads = shipped.reads
+
+        repository().ensureInstalled()
+
+        assertThat(shipped.reads).isEqualTo(reads)
+    }
+
+    @Test
+    fun `a downloaded bundle is not replaced by the assets of a new build`() = runTest {
+        remote.latest = Outcome.Success(2)
+        remote.bundles[2] = ContentFixtures.bundle(2, listOf(item("flirt_c")))
+        repository().sync()
+
+        shipped.build = "second"
+
+        // The server's is newer, and a new build of the app does not make the shipped one newer.
+        repository().assertIds("flirt_c")
+    }
+
     @Test
     fun `the taxonomy updates with the bundle`() = runTest {
         remote.latest = Outcome.Success(2)

@@ -5,12 +5,14 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -18,6 +20,7 @@ import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.component.raised
 import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
+import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.ProvideTier
 import com.shnapps.couple.core.engine.game.Answer
 import com.shnapps.couple.core.engine.game.GameMoment
@@ -109,12 +112,23 @@ internal fun DealtGameContent(
                     onSecond = onSecondName,
                 )
                 state.nothingToPlay -> NothingToPlay()
-                else -> Moment(
-                    moment = state.moment,
-                    players = state.players,
-                    onProceed = onProceed,
-                    onAnswer = onAnswer,
-                )
+                else -> {
+                    // What this game is, in the game's own words, while its first round is up.
+                    if (state.showsRule) {
+                        Text(
+                            text = state.rule,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = AfterhoursTheme.colors.textMuted,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                    Moment(
+                        moment = state.moment,
+                        players = state.players,
+                        onProceed = onProceed,
+                        onAnswer = onAnswer,
+                    )
+                }
             }
         }
     }

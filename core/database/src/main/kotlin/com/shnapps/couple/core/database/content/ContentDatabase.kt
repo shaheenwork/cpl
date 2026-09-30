@@ -17,9 +17,10 @@ import androidx.room.RoomDatabase
         ContentDeltaEntity::class,
         ContentBundleEntity::class,
     ],
-    // 2: game prompts and games (Phase 11). Dropped and reinstalled from the bundle, as any
-    // version change here is (DatabaseModule).
-    version = 2,
+    // 2: game prompts and games (Phase 11).
+    // 3: which build's assets a shipped bundle came from (D-131).
+    // Dropped and reinstalled from the bundle, as any version change here is (DatabaseModule).
+    version = 3,
     exportSchema = true,
 )
 abstract class ContentDatabase : RoomDatabase() {

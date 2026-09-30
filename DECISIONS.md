@@ -2455,3 +2455,44 @@ Two things about that roll were found only by playing it:
 - **Two of the three read the same face for three rounds running.** Each die's seed was the round's
   plus a constant, and neighbouring mulberry32 streams are not independent enough for that. Which die
   it is goes through the hash now, and a test holds every die to moving across a game.
+
+
+---
+
+## D-131 — The app updated, the content did not; and a game that never said what it was
+
+Reported from a device, in two halves, and both were real.
+
+**"What the first die says" / "Their choice"** is the *old* Heat Dice — the step text and the verb die
+that D-130 replaced. The phone had the new app and the old game, because the content cache installs
+the shipped bundle only when its version is **higher** than what it holds:
+
+```kotlin
+if (shipped.version() > (current?.contentVersion ?: 0)) install(...)
+```
+
+That rule is right for a phone that has been syncing from the server, and wrong for an app update.
+The bundle in the assets can only change when the app is replaced, and `contentVersion` is a
+*publishing* number that a build does not have to move. So an update whose content changed without
+that number changing never reached a screen — and no test could have caught it, because every test
+installs into an empty cache.
+
+`ShippedContent.fingerprint()` is the missing fact: the bundle's version and this build's install
+time. The header row remembers which build's assets it came from, and a bundle at the same version
+from a *different build* is installed over the old one. A bundle the server sent has no build behind
+it and is never replaced this way, so a downloaded version 2 still beats a shipped version 1. Three
+tests hold all of that, and `contentVersion` moved to 4 as the convention says it should have when
+the dice changed.
+
+**"How was that?" is gone too.** Every round of Heat Dice and Truth or Dare ended by asking how it
+went, and the answer went nowhere: a game's answers never leave the phone (D-069), and nothing reads
+a reaction back. A tap that stores nothing, once a round, is a tax on the game — *"its headache for
+user"*, and correct. The primitive stays in the vocabulary and in the fixtures; no shipped game uses
+it, and the games that end on a reveal already end on something worth looking at.
+
+**"I don't understand what heat dice is?"** is the other half, and it is not a caching bug. The
+brief asks for no tutorials *and* a one-line rule inside each game; the rule was the half that went
+missing. A dealt game went straight into its first round, so Heat Dice opened on three dice and a
+sentence with nothing anywhere saying what the dice were for. The game's own one-line description is
+shown while its first round is on screen, and never after it — not on the hand-off, which has no
+chrome on purpose.

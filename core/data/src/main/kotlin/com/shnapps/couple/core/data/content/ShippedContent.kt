@@ -16,6 +16,16 @@ interface ShippedContent {
     /** The shipped bundle's version, without reading the whole bundle. */
     suspend fun version(): Int
 
+    /**
+     * Which build's assets these are: the version, and when this build was installed.
+     *
+     * The cache installs the shipped bundle when its version is *higher* than what it holds, which
+     * is right for a phone that has been syncing — but it means an app update whose content changed
+     * without the version changing never reaches the screen. A phone that had the old Heat Dice kept
+     * playing it after the update (D-131). This is what tells the two apart.
+     */
+    suspend fun fingerprint(): String
+
     suspend fun read(): String
 }
 
@@ -34,6 +44,18 @@ class AssetShippedContent @Inject constructor(
             }
         }
         fromHeader ?: ContentBundleParser.parse(read()).contentVersion
+    }
+
+    /**
+     * The version and this build's install time. Not a hash of the bundle: the assets can only
+     * change when the app is replaced, so the cheap fact is also the true one — and hashing a
+     * megabyte on every cold start to learn it would be worse.
+     */
+    override suspend fun fingerprint(): String = withContext(dispatchers.io) {
+        val installed = runCatching {
+            context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime
+        }.getOrDefault(0L)
+        "${version()}@$installed"
     }
 
     override suspend fun read(): String = withContext(dispatchers.io) {
