@@ -80,6 +80,26 @@ What to know about the journey:
   as… tab delimited" in some versions of Excel offers a plain-text option that is not UTF-8, and an
   em dash comes back as mojibake. Round-trip one file and read the diff the first time.
 
+### Or one workbook, for rewriting everything
+
+`export`/`import` is the loop for a file at a time. To go through the whole catalogue in one
+sitting, there is a workbook instead:
+
+```bash
+python tools/workbook/make-workbook.py
+# writes content/authoring/afterhours-content.xlsx — Cards, Prompts, Read me, Vocabulary
+
+# …fill it in, then:
+python tools/workbook/read-workbook.py content/authoring/afterhours-content.xlsx /tmp/back
+npm --prefix tools run import -- /tmp/back/cards.tsv --write
+npm --prefix tools run import -- /tmp/back/prompts.tsv --write
+npm --prefix tools run bundle
+```
+
+The workbook is generated from the catalogue, so it is never committed — regenerate it whenever
+the content has moved on. Python rather than Node because it needs a zip writer and the Node tools
+have none; adding a dependency to ship an authoring convenience was the worse trade.
+
 ### The rules you will meet
 
 The validator refuses a great deal on purpose. The ones that catch an author most often:

@@ -50,3 +50,7 @@ node_modules/
 # JVM crash dumps (a Gradle worker running out of native memory writes these into the module).
 hs_err_pid*.log
 replay_pid*.log
+
+# The authoring workbook: generated from the catalogue by tools/workbook/make-workbook.py,
+# and the catalogue is the source of truth. Regenerate it rather than committing a copy.
+content/authoring/
