@@ -65,9 +65,17 @@ def sheet_rows(book, path, strings):
 def named_sheets(book):
     """Sheet name -> part path, through the workbook's relationships."""
     rels = ET.fromstring(book.read("xl/_rels/workbook.xml.rels"))
+    parts = set(book.namelist())
     target = {}
     for rel in rels:
-        target[rel.get("Id")] = "xl/" + rel.get("Target").lstrip("/")
+        # A relationship target is relative to xl/, but a workbook saved elsewhere may already
+        # carry the prefix ("xl/worksheets/sheet1.xml") or lead with a slash. Take whichever of
+        # the readings names a part that is actually in the file.
+        raw = rel.get("Target", "").lstrip("/")
+        for candidate in (f"xl/{raw}", raw, raw.removeprefix("xl/")):
+            if candidate in parts:
+                target[rel.get("Id")] = candidate
+                break
     root = ET.fromstring(book.read("xl/workbook.xml"))
     r = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
     out = {}
