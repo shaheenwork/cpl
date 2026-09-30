@@ -29,6 +29,15 @@ data class Game(
      */
     val bothAtOnce: Boolean
         get() = steps.all { it.who == StepAudience.EACH || it.who == StepAudience.TOGETHER }
+
+    /**
+     * Turns go round: one of them plays a round, the other plays the next.
+     *
+     * On one phone that is a physical fact before it is a rule — the phone has to change hands —
+     * so the interpreter opens each round by handing it over. Without that, a turn-based game on
+     * one phone looks like a game for one person, which is exactly how it read on a device (D-130).
+     */
+    val takesTurns: Boolean get() = turns == TurnOrder.ALTERNATE
 }
 
 /** One step of every round: a primitive, who takes it, and what it shows or compares. */
@@ -48,7 +57,18 @@ data class GameStep(
     val kindFrom: Int?,
     /** What a [GamePrimitive.MEDIA] step records. Null for every other primitive. */
     val media: MediaKind? = null,
+    /** The dice a [GamePrimitive.DICE] step rolls, in the order they are read. Null for the rest. */
+    val dice: List<GameDie>? = null,
 )
+
+/**
+ * One die of a [GamePrimitive.DICE] step: what it is for, and what is written on it.
+ *
+ * [seconds] makes it the **clock die**: one entry per face, in the same order, and the face the
+ * roll lands on says how long the round runs. Zero is a face with no clock on it at all — "until
+ * they say stop" is a legitimate thing for a die to land on, and a countdown would contradict it.
+ */
+data class GameDie(val label: String, val faces: StepOptions, val seconds: List<Int>? = null)
 
 /** What a step shows: the round's prompt, or words of its own. */
 sealed interface StepText {
@@ -93,6 +113,15 @@ enum class GamePrimitive {
      * reproducible as everything else in the engine (DECISIONS.md D-047).
      */
     DRAW,
+
+    /**
+     * Dice: more than one pool, rolled at once, read together.
+     *
+     * A [DRAW] with three pools instead of one, and the difference is worth a primitive because
+     * three dice are one moment rather than three — a roll a couple watches land, not three
+     * screens in a row. What each die says is its own; the round is all of them read together.
+     */
+    DICE,
 
     /** How much, from nothing to everything: a number nobody has to say out loud. */
     DIAL,

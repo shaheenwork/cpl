@@ -27,6 +27,10 @@ const LIMITS = {
   literal: 60,
   rounds: [3, 12] as const,
   cooldownMax: 365,
+  dice: [2, 4] as const,
+  dieLabel: 12,
+  /** The longest a die may put on the clock: ten minutes is a round, not an evening. */
+  clock: 600,
 };
 
 /** What each game needs to be playable at every level (section 11.2). */
@@ -249,6 +253,43 @@ function validateSteps(
           );
         } else {
           check(false, `${s}: a draw takes its pool from the prompt or from at least two fixed faces`);
+        }
+        break;
+      }
+      case 'DICE': {
+        // Dice are a DRAW with more than one pool, and the same rule about faces applies to each:
+        // from the round's prompt, which is how a roll varies by tier, or a fixed list on the step,
+        // which is what a die with the same faces every roll means.
+        //
+        // One die may be the clock. Its `seconds` run parallel to its faces — one per face, in the
+        // same order — so the roll decides how long the round lasts. Zero is a face with no clock at
+        // all, which is a legitimate thing for a die to say and is not a countdown of nothing.
+        const dice = step.dice;
+        check(Array.isArray(dice) && dice.length >= LIMITS.dice[0] && dice.length <= LIMITS.dice[1], `${s}: needs ${LIMITS.dice.join(' to ')} dice`);
+        if (Array.isArray(dice)) {
+          dice.forEach((die, d) => {
+            const at = `${s}: die ${d}`;
+            checkText(check, die.label, `${at} label`, 1, LIMITS.dieLabel);
+            if (die.faces === 'PROMPT') {
+              check(game.promptOptions[0] >= 2, `${at}: takes the prompt's options, but prompts carry fewer than 2`);
+              check(die.seconds === undefined, `${at}: a clock die needs fixed faces, one clock each`);
+            } else if (Array.isArray(die.faces)) {
+              check(die.faces.length >= 2, `${at}: a die needs at least two faces`);
+              die.faces.forEach((face, i) => checkText(check, face, `${at} face ${i}`, LIMITS.option[0], LIMITS.option[1]));
+              check(new Set(die.faces.map((face) => String(face).toLowerCase())).size === die.faces.length, `${at}: repeats a face`);
+              if (die.seconds !== undefined) {
+                check(Array.isArray(die.seconds) && die.seconds.length === die.faces.length, `${at}: one clock per face, in the same order`);
+                if (Array.isArray(die.seconds)) {
+                  for (const value of die.seconds) {
+                    check(Number.isInteger(value) && value >= 0 && value <= LIMITS.clock, `${at}: a clock is 0 (none) up to ${LIMITS.clock} seconds`);
+                  }
+                }
+              }
+            } else {
+              check(false, `${at}: faces come from the prompt or from at least two fixed ones`);
+            }
+          });
+          check(dice.filter((die) => die.seconds !== undefined).length <= 1, `${s}: only one die may be the clock`);
         }
         break;
       }

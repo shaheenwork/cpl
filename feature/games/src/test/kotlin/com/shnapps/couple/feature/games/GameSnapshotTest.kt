@@ -180,7 +180,8 @@ class GameSnapshotTest {
     fun truthOrDareChallenge() {
         val prompts = TestGames.truths.map { it.copy(text = "What's the first thing you noticed about me?") } +
             TestGames.dares.map { it.copy(text = "Slow dance with me for one whole song, no talking.") }
-        val state = playing(TestGames.truthOrDare, prompts) { it.submit(Answer.Picked("DARE"))!! }
+        // Past the hand-off a game of turns opens each round with (D-130).
+        val state = playing(TestGames.truthOrDare, prompts) { it.proceed().submit(Answer.Picked("DARE"))!! }
         capture("game-dare") { GameContent(state, GameActions()) }
     }
 

@@ -11,8 +11,11 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.engine.game.GameMoment
+import com.shnapps.couple.core.engine.game.Option
+import com.shnapps.couple.core.engine.game.RolledDie
 import com.shnapps.couple.core.engine.game.RoundPrimitive
 import com.shnapps.couple.core.engine.game.Score
+import com.shnapps.couple.core.model.GamePlayers
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -63,6 +66,42 @@ class DealtGameSnapshotTest {
     }
 
     @Test
+    fun `three dice, landed, with the clock they landed on`() {
+        capture("dealt-game-dice") {
+            content(
+                DealtGameUiState(
+                    title = "Heat Dice",
+                    players = GamePlayers("Alex", "Sam"),
+                    moment = GameMoment.Turn(
+                        round = 1,
+                        primitive = RoundPrimitive.Dice(
+                            step = 0,
+                            seat = 0,
+                            caption = "They stay completely still. You don't.",
+                            dice = listOf(
+                                die("What", listOf("Kiss", "Use your hands", "Use your mouth"), landed = 2),
+                                die("Where", listOf("Their neck", "Their back", "Their thighs"), landed = 0),
+                                die("How long", listOf("30 seconds", "2 minutes"), landed = 1, seconds = 120),
+                            ),
+                        ),
+                        canSkip = true,
+                    ),
+                    round = 1,
+                    rounds = 6,
+                    loading = false,
+                ),
+            )
+        }
+
+        // Three dice, each saying what it is for and what it landed on — and whose turn it is, which
+        // a game of turns could not say at all before names were asked for (D-130).
+        composeRule.onNodeWithText("ALEX").assertIsDisplayed()
+        composeRule.onNodeWithText("Use your mouth").assertIsDisplayed()
+        composeRule.onNodeWithText("Their neck").assertIsDisplayed()
+        composeRule.onNodeWithText("Start the clock").assertIsDisplayed()
+    }
+
+    @Test
     fun `a finished game does not count past its last round`() {
         capture("dealt-game-finished") {
             content(
@@ -99,10 +138,17 @@ class DealtGameSnapshotTest {
             onProceed = {},
             onAnswer = {},
             onSkipPrompt = {},
-            onNextRound = {},
             onPlayAgain = {},
         )
     }
+
+    /** One die as the screen gets it: already landed, because the interpreter decided (D-047). */
+    private fun die(label: String, faces: List<String>, landed: Int, seconds: Int? = null) = RolledDie(
+        label = label,
+        faces = faces.mapIndexed { index, face -> Option("$index", face) },
+        landed = landed,
+        seconds = seconds,
+    )
 
     private fun capture(name: String, content: @Composable () -> Unit) {
         composeRule.setContent { AfterhoursTheme { AfterhoursSurface { content() } } }

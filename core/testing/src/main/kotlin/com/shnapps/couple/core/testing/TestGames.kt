@@ -2,6 +2,7 @@ package com.shnapps.couple.core.testing
 
 import com.shnapps.couple.core.model.ContentStatus
 import com.shnapps.couple.core.model.Game
+import com.shnapps.couple.core.model.GameDie
 import com.shnapps.couple.core.model.GamePrimitive
 import com.shnapps.couple.core.model.GamePrompt
 import com.shnapps.couple.core.model.GameStep
@@ -16,13 +17,15 @@ import com.shnapps.couple.core.model.StepText
 import com.shnapps.couple.core.model.TurnOrder
 
 /**
- * Two small games for tests, shaped like the shipped ones: a shared choice with a matched
- * reveal, and truth or dare with kinds. The real definitions are read from the bundle by
- * :core:data's file test; these keep screen and view-model tests independent of content.
+ * Three small games for tests, shaped like the shipped ones: a shared choice with a matched
+ * reveal, truth or dare with kinds, and a roll of three dice. The real definitions are read from
+ * the bundle by :core:data's file test; these keep screen and view-model tests independent of
+ * content.
  */
 object TestGames {
     const val CHOICES = "TEST_CHOICES"
     const val TRUTH_OR_DARE = "TEST_TRUTH_OR_DARE"
+    const val DICE = "TEST_DICE"
 
     val choices = Game(
         id = CHOICES,
@@ -68,7 +71,37 @@ object TestGames {
         ),
     )
 
-    val games = listOf(choices, truthOrDare)
+    /** Three dice at once: fixed faces, the prompt's own, and a clock (D-130). */
+    val dice = Game(
+        id = DICE,
+        title = "Heat dice",
+        tagline = "Three dice. Do what they say.",
+        description = "One says what, one says where, one says how long.",
+        modes = setOf(Mode.TOGETHER),
+        rounds = 3,
+        turns = TurnOrder.ALTERNATE,
+        scoring = Scoring.NONE,
+        promptKinds = emptyList(),
+        steps = listOf(
+            step(
+                GamePrimitive.DICE,
+                StepAudience.ACTIVE,
+                text = StepText.Prompt,
+                dice = listOf(
+                    GameDie("What", StepOptions.Fixed(listOf("Kiss", "Tease", "Whisper it", "Their choice"))),
+                    GameDie("Where", StepOptions.FromPrompt),
+                    GameDie(
+                        label = "How long",
+                        faces = StepOptions.Fixed(listOf("30 seconds", "1 minute", "Until they say stop")),
+                        seconds = listOf(30, 60, 0),
+                    ),
+                ),
+            ),
+            step(GamePrimitive.REACTION, StepAudience.ACTIVE, text = StepText.Literal("How was that?")),
+        ),
+    )
+
+    val games = listOf(choices, truthOrDare, dice)
 
     val choicePrompts = (1..5).map { n ->
         prompt("choices_$n", CHOICES, "Would you rather, number $n?", options = listOf("Stay in $n", "Go out $n"))
@@ -81,7 +114,16 @@ object TestGames {
         prompt("tod_d$n", TRUTH_OR_DARE, "A dare to take, number $n.", kind = PromptKind.DARE)
     }
 
-    val prompts = choicePrompts + truths + dares
+    val dicePrompts = (1..5).map { n ->
+        prompt(
+            id = "dice_$n",
+            game = DICE,
+            text = "The rule for round $n: do it slowly.",
+            options = listOf("Their hands $n", "Their neck $n", "Wherever you like $n"),
+        )
+    }
+
+    val prompts = choicePrompts + truths + dares + dicePrompts
 
     fun prompt(
         id: String,
@@ -120,6 +162,7 @@ object TestGames {
         of: List<Int> = emptyList(),
         outcome: RevealOutcome? = null,
         kindFrom: Int? = null,
+        dice: List<GameDie>? = null,
     ) = GameStep(
         primitive = primitive,
         who = who,
@@ -131,5 +174,6 @@ object TestGames {
         outcome = outcome,
         seconds = null,
         kindFrom = kindFrom,
+        dice = dice,
     )
 }

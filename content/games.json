@@ -7,7 +7,7 @@
       "file": "heat-dice.json",
       "title": "Heat Dice",
       "tagline": "Three dice. Do what they say.",
-      "description": "One die picks the action, one picks the place, and the clock is the third.",
+      "description": "The card sets the rule. The dice say how, which, and how long.",
       "modes": [
         "TOGETHER"
       ],
@@ -22,32 +22,49 @@
       "minPrompts": 19,
       "steps": [
         {
-          "primitive": "DRAW",
-          "who": "TOGETHER",
-          "text": "What the first die says",
-          "options": [
-            "Kiss",
-            "Use your hands",
-            "Use your mouth",
-            "Tease",
-            "Whisper it",
-            "Their choice"
+          "primitive": "DICE",
+          "who": "ACTIVE",
+          "text": "PROMPT",
+          "dice": [
+            {
+              "label": "How",
+              "faces": [
+                "Slowly",
+                "Slower than that",
+                "Eyes shut",
+                "Standing up",
+                "Your way",
+                "Their way"
+              ]
+            },
+            {
+              "label": "Which",
+              "faces": "PROMPT"
+            },
+            {
+              "label": "How long",
+              "faces": [
+                "30 seconds",
+                "1 minute",
+                "2 minutes",
+                "3 minutes",
+                "5 minutes",
+                "Until they say stop"
+              ],
+              "seconds": [
+                30,
+                60,
+                120,
+                180,
+                300,
+                0
+              ]
+            }
           ]
         },
         {
-          "primitive": "DRAW",
-          "who": "TOGETHER",
-          "text": "PROMPT",
-          "options": "PROMPT"
-        },
-        {
-          "primitive": "TIMER",
-          "who": "ACTIVE",
-          "seconds": "PROMPT"
-        },
-        {
           "primitive": "REACTION",
-          "who": "EACH",
+          "who": "ACTIVE",
           "text": "How was that?"
         }
       ]

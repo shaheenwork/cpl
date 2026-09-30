@@ -250,6 +250,13 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   a test can assert it, two phones agree without sending anything, and a restarted phone lands the
   same way. A `DIAL` is a number that never leaves the phone — only a `DISTANCE` reveal's gap is
   shared, and a gap has no direction.
+- A `DICE` step is a `DRAW` with more than one pool, rolled at once (D-130). Each die takes its faces
+  from the step or from the round's prompt, at most one carries a clock (`seconds` parallel to its
+  faces, zero meaning none), and **which die it is goes through the seed's hash** — an offset leaves
+  neighbouring streams correlated, which two dice showed on a device.
+- **A game of turns hands the phone over at the start of each round** (`Game.takesTurns`, D-130).
+  That is where the names question appears, and it is the only thing that ever said whose turn it is.
+- A round's last step is its end: the dealt player never shows "that's the round" (D-130).
 - `GameRun` (`:core:engine`) is the only interpreter. `:feature:games` renders primitives —
   one renderer each, in `PrimitiveRenderers.kt` — and only ever sees what the interpreter hands
   it. A new primitive changes the vocabulary, `GamePrimitive`, `RoundPrimitive` and gets exactly

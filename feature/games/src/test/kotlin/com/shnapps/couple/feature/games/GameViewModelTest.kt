@@ -136,6 +136,9 @@ class GameViewModelTest {
         val vm = player(TRUTH_OR_DARE)
         act(vm::open)
         act(vm::play)
+        // A game of turns opens by handing the phone to whoever's turn it is (D-130).
+        assertThat(vm.moment).isEqualTo(GameMoment.HandOff(0, seat = 0))
+        act(vm::proceed)
         val choice = vm.primitive as RoundPrimitive.Choice
         assertThat(choice.seat).isEqualTo(0)
         act { vm.submit(Answer.Picked("DARE")) }

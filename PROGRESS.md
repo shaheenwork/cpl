@@ -1338,6 +1338,43 @@ npm --prefix tools run validate     content OK — 793 items, 322 prompts, 6 gam
 
 ---
 
+## Playing the games: three things the suite could not have said ✅
+
+A second device report, and as specific as the first: *"truth or dare always shows 'you'"*, *"the heat
+dice looks very basic"*, and *"after every round there shows a screen 'thats the round' with next
+button… extra click"*. All three correct, none of them visible from a test.
+
+### What changed (D-130)
+- **A game of turns hands the phone over.** Turns always alternated; nothing ever said so, because a
+  hand-off only appeared before a *private* step and Truth or Dare has none. The round's first seated
+  step is now where the phone changes hands — which is also where the app asks who is playing, so the
+  game opens with "Pass the phone to Alex" and reads "ALEX", then "Pass the phone to Sam" next round.
+- **Heat Dice is three dice.** `DICE` is a primitive now — more than one pool, rolled together — with
+  one renderer that tumbles them on two axes, lands them one after another, and puts the pips under
+  each face. The third die is the clock, so the round runs for what it landed on, and "until they say
+  stop" is a face with no clock. The dice are orthogonal to the card: How, Which, How long over the
+  rule the prompt sets.
+- **No "that's the round".** The dealt player moves past the end of a round on its own.
+
+### Verified
+```
+./gradlew check                     BUILD SUCCESSFUL
+npm --prefix tools test             43/43   (the dice rule has its own case)
+npm --prefix tools run validate     content OK — 793 items, 322 prompts, 6 games
+:core:engine                        DiceTest: faces, the clock, every die moving, the hand-off
+```
+- **On the device**: Truth or Dare asked for names, then ran ALEX → SAM → ALEX over four rounds with
+  a hand-off before each and no round-over screen anywhere. Heat Dice dealt "How: Slowly · Which:
+  About today · How long: 30 seconds" over the card's own rule, and a face with no clock showed
+  "Done" instead of a countdown.
+
+### Found by playing it twice
+The first roll on a device read the same two faces for three rounds running: each die's seed was the
+round's plus a constant, and neighbouring mulberry32 streams are not independent enough. Which die it
+is goes through the hash now.
+
+---
+
 ## The deck was never dealing the content ✅
 
 Reported from a device, and the sharpest bug report of the build after D-120: *"all the contents are

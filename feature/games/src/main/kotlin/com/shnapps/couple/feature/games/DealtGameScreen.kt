@@ -58,7 +58,6 @@ fun DealtGameScreen(
             onProceed = viewModel::proceed,
             onAnswer = viewModel::answer,
             onSkipPrompt = viewModel::skipPrompt,
-            onNextRound = viewModel::nextRound,
             onPlayAgain = viewModel::deal,
             onFirstName = viewModel::setFirstName,
             onSecondName = viewModel::setSecondName,
@@ -76,7 +75,6 @@ internal fun DealtGameContent(
     onProceed: () -> Unit,
     onAnswer: (Answer) -> Unit,
     onSkipPrompt: () -> Unit,
-    onNextRound: () -> Unit,
     onPlayAgain: () -> Unit,
     onFirstName: (String) -> Unit = {},
     onSecondName: (String) -> Unit = {},
@@ -116,7 +114,6 @@ internal fun DealtGameContent(
                     players = state.players,
                     onProceed = onProceed,
                     onAnswer = onAnswer,
-                    onNextRound = onNextRound,
                 )
             }
         }
@@ -129,7 +126,6 @@ private fun Moment(
     players: GamePlayers,
     onProceed: () -> Unit,
     onAnswer: (Answer) -> Unit,
-    onNextRound: () -> Unit,
 ) {
     when (moment) {
         null -> Unit
@@ -156,7 +152,8 @@ private fun Moment(
             onSubmit = onAnswer,
         )
 
-        is GameMoment.RoundOver -> Pass(line = "That's the round.", button = "Next", onNext = onNextRound)
+        // Never seen: the view model moves past a finished round rather than announcing it (D-130).
+        is GameMoment.RoundOver -> Unit
 
         is GameMoment.Finished -> AfterhoursCard(
             eyebrow = "That's the game",

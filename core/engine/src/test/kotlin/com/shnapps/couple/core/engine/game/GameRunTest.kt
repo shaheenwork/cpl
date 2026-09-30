@@ -234,7 +234,11 @@ class GameRunTest {
     fun `the chosen kind decides which prompt is played, and is reported as played`() {
         val truth = kindPrompt("t1", PromptKind.TRUTH)
         val dare = kindPrompt("d1", PromptKind.DARE)
+        // A game of turns opens by putting the phone in the right hands, and nothing in the round
+        // after that is hidden from either of them (D-130).
         var run = start(truthOrDare, rounds = listOf(listOf(truth, dare)))
+        assertThat(run.moment).isEqualTo(GameMoment.HandOff(0, seat = 0))
+        run = run.proceed()
         val choice = (run.moment as GameMoment.Turn).primitive as RoundPrimitive.Choice
         assertThat(choice.options.map { it.label }).containsExactly("Truth", "Dare").inOrder()
         assertThat((run.moment as GameMoment.Turn).canSkip).isFalse()
@@ -311,7 +315,7 @@ class GameRunTest {
             truthOrDare,
             rounds = listOf(listOf(kindPrompt("t1", PromptKind.TRUTH), dare)),
             alternates = alternates,
-        )
+        ).proceed()
         run = run.submit(Answer.Picked("DARE"))!!.skipPrompt()
         // Taken up again at the dare: the choice of kind stands.
         val challenge = (run.moment as GameMoment.Turn).primitive as RoundPrimitive.Challenge

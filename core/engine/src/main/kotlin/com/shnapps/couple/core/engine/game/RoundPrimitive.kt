@@ -122,6 +122,27 @@ sealed interface RoundPrimitive {
         override fun accepts(answer: Answer): Boolean = answer == Answer.Done
     }
 
+    /**
+     * Dice: every pool rolled at once, and what each of them landed on.
+     *
+     * Landed here, before the screen draws anything, from the same seed a draw uses — so three
+     * dice are as reproducible as one, and the tumble is animation over decisions already taken
+     * (D-047). A clock die's face carries [seconds]: how long the round runs, or nothing at all
+     * for a face that says otherwise.
+     */
+    data class Dice(
+        override val step: Int,
+        override val seat: Int?,
+        /** The rule laid over the roll: the round's own prompt. */
+        val caption: String,
+        val dice: List<RolledDie>,
+    ) : RoundPrimitive {
+        /** The clock the dice landed on, or null when no die is a clock, or its face has none. */
+        val seconds: Int? get() = dice.firstNotNullOfOrNull { it.seconds }?.takeIf { it > 0 }
+
+        override fun accepts(answer: Answer): Boolean = answer == Answer.Done
+    }
+
     /** How much, on a scale nobody has to say out loud. */
     data class Dial(
         override val step: Int,
@@ -163,6 +184,17 @@ sealed interface RoundPrimitive {
         /** What a dial can say: nothing at all, through to everything. */
         val RANGE = 0..10
     }
+}
+
+/** One die of a roll: what it is for, what is written on it, and where it landed. */
+data class RolledDie(
+    val label: String,
+    val faces: List<Option>,
+    val landed: Int,
+    /** How long the landed face gives the round, when this is the clock die. */
+    val seconds: Int? = null,
+) {
+    val face: Option get() = faces[landed]
 }
 
 /** An option to pick: its id in the round, and the words shown for it. */

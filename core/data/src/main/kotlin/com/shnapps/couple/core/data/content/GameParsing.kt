@@ -3,6 +3,7 @@ package com.shnapps.couple.core.data.content
 import com.shnapps.couple.core.model.AnswerKind
 import com.shnapps.couple.core.model.ContentStatus
 import com.shnapps.couple.core.model.Game
+import com.shnapps.couple.core.model.GameDie
 import com.shnapps.couple.core.model.GamePrimitive
 import com.shnapps.couple.core.model.GamePrompt
 import com.shnapps.couple.core.model.GameStep
@@ -63,6 +64,14 @@ internal data class GameStepDto(
     val seconds: JsonElement? = null,
     val kindFrom: Int? = null,
     val media: String? = null,
+    val dice: List<GameDieDto>? = null,
+)
+
+@Serializable
+internal data class GameDieDto(
+    val label: String,
+    val faces: JsonElement,
+    val seconds: List<Int>? = null,
 )
 
 /**
@@ -130,6 +139,7 @@ private fun GameStepDto.toStep(index: Int): GameStep? {
     if (primitive == GamePrimitive.MEDIA && mediaKind == null) return null
     val stepOptions = options?.let { parseOptions(it, primitive) ?: return null }
     val stepSeconds = seconds?.let { parseSeconds(it) ?: return null }
+    val stepDice = if (primitive == GamePrimitive.DICE) parseDice(dice) ?: return null else null
     return GameStep(
         primitive = primitive,
         who = audience,
@@ -142,8 +152,35 @@ private fun GameStepDto.toStep(index: Int): GameStep? {
         seconds = stepSeconds,
         kindFrom = kindFrom,
         media = mediaKind,
+        dice = stepDice,
     )
 }
+
+/**
+ * The dice a roll is made of: two to four, each with faces, one of them allowed a clock.
+ *
+ * Fails closed like every other field. A dice step whose dice cannot be read is a step no screen
+ * could draw, so the game is dropped whole rather than played with a die missing.
+ */
+private fun parseDice(dice: List<GameDieDto>?): List<GameDie>? {
+    if (dice == null || dice.size !in DICE_RANGE) return null
+    val read = dice.map { it.toDie() }
+    return if (read.any { it == null }) null else read.filterNotNull()
+}
+
+/** One die, or null when it is not one: no label, no faces, or a clock that does not fit them. */
+private fun GameDieDto.toDie(): GameDie? {
+    if (label.isBlank()) return null
+    val parsed = parseOptions(faces, GamePrimitive.DICE) ?: return null
+    // One clock per face, in the same order. Zero is a face with no clock on it, never a negative
+    // one, and only a die with fixed faces can carry clocks at all.
+    val fits = seconds == null ||
+        (parsed as? StepOptions.Fixed)?.let { seconds.size == it.ids.size && seconds.none { s -> s < 0 } } == true
+    return if (fits) GameDie(label = label, faces = parsed, seconds = seconds) else null
+}
+
+/** Two dice are a pair and four are a handful; one is a [GamePrimitive.DRAW]. */
+private val DICE_RANGE = 2..4
 
 /**
  * Where a step's options come from.
@@ -152,10 +189,10 @@ private fun GameStepDto.toStep(index: Int): GameStep? {
  * because the interpreter reads meaning from those ids: `RoundReading.named` turns ME and YOU into
  * seats, and a vote given arbitrary options could not be resolved at all.
  *
- * A [GamePrimitive.DRAW] is the exception, and the reason is what a die is. Its faces are the
- * game's own and the same on every roll, so they are words rather than ids, and nothing reads
- * meaning from them — chance lands on one and the screen shows it. The validator allows free faces
- * on a draw and nowhere else; this is the same rule on the reading side.
+ * A [GamePrimitive.DRAW] and a [GamePrimitive.DICE] are the exception, and the reason is what a die
+ * is. Its faces are the game's own and the same on every roll, so they are words rather than ids,
+ * and nothing reads meaning from them — chance lands on one and the screen shows it. The validator
+ * allows free faces on those two and nowhere else; this is the same rule on the reading side.
  */
 private fun parseOptions(element: JsonElement, primitive: GamePrimitive): StepOptions? = when {
     element is JsonPrimitive && element.isString && element.content == FROM_PROMPT -> StepOptions.FromPrompt
@@ -163,7 +200,8 @@ private fun parseOptions(element: JsonElement, primitive: GamePrimitive): StepOp
     element is JsonArray -> {
         val ids = element.map { (it as? JsonPrimitive)?.takeIf { value -> value.isString }?.content }
         val faces = ids.filterNotNull().filter { it.isNotBlank() }
-        val allowed = if (primitive == GamePrimitive.DRAW) faces else faces.filter { it in FIXED_OPTIONS }
+        val free = primitive == GamePrimitive.DRAW || primitive == GamePrimitive.DICE
+        val allowed = if (free) faces else faces.filter { it in FIXED_OPTIONS }
         if (ids.size >= 2 && allowed.size == ids.size) StepOptions.Fixed(allowed) else null
     }
     else -> null

@@ -2409,3 +2409,49 @@ levels 1, 2 and 3.
 The general lesson is the same one D-124 recorded and this session had to learn twice: a green suite
 proves the rules the tests state. It does not prove the app is good to use, and neither of these
 would ever have surfaced from a test file.
+
+
+---
+
+## D-130 — Three games' worth of things only playing them showed
+
+Reported from a device, and all three were about the game *as played* rather than about any rule the
+suite states.
+
+**Truth or Dare read "YOU" on every round.** Turns did alternate — `activeSeat` had been right all
+along — but nothing on the screen ever said so. Names are asked for at the first hand-off (D-121),
+and a hand-off only ever appeared before a *private* step; Truth or Dare has none, so it never asked,
+and with no names `whoFor` says "You" for either seat. Two people passing a phone saw ten rounds
+addressed to whoever happened to be holding it.
+
+The fix is not a label. **A game of turns played on one phone opens each round by handing the phone
+over**, because that is the physical fact: the phone has to change hands, and the round's first step
+is when. `Game.takesTurns` says which games those are, and `RoundReading.slots` inserts the hand-off
+before the round's first seated step. The names question then appears where it always did — at the
+first hand-off — so Truth or Dare asks before its first card and reads "Pass the phone to Alex",
+"ALEX", then "Pass the phone to Sam" a round later. A gather ("both of you, look") now follows only
+something that *was* private, or an open step after a turn would have announced a huddle mid-round.
+
+**"That's the round. Next" was a screen that said nothing.** A round's last step is already its end —
+the reveal, the reaction, the dare that was done — so the interstitial cost a tap a round and told
+nobody anything. The dealt player moves past `RoundOver` on its own now, which also carries a round
+nothing could play, as it always quietly did. The session player keeps its own: there the round's end
+is a server transition and, on two phones, a wait for the other to have looked.
+
+**Heat Dice was two draws and a timer, shown one screen at a time.** The brief asks for three dice,
+and three `DRAW` steps are three screens, so `DICE` is a primitive: more than one pool, rolled at
+once, read together. One renderer draws them tumbling on two axes, staggered so they land one after
+another, with the pips under each face saying which face it is; a tap is never blocked waiting for
+them. A die may carry a **clock** — `seconds` running parallel to its faces — and the round runs for
+whatever it landed on, which is why the prompts' own `seconds` are null now: the dice decide the
+length, and "until they say stop" is a face with no clock at all.
+
+Two things about that roll were found only by playing it:
+
+- **The dice argued with the card.** A fixed die of verbs (Kiss, Use your hands, …) over a prompt
+  that already names an action produced "Use your thumbs and nothing else" with "Kiss". The dice are
+  orthogonal to the rule now — How, Which, How long — where How is a manner that composes with
+  anything and Which is the prompt's own options, which is what varies by tier.
+- **Two of the three read the same face for three rounds running.** Each die's seed was the round's
+  plus a constant, and neighbouring mulberry32 streams are not independent enough for that. Which die
+  it is goes through the hash now, and a test holds every die to moving across a game.

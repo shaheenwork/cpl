@@ -98,7 +98,7 @@ class DealtGameViewModel @Inject constructor(
                 _uiState.update { it.copy(loading = false, nothingToPlay = true) }
                 return@launch
             }
-            val started = GameRun.start(released, _uiState.value.players)
+            val started = settled(GameRun.start(released, _uiState.value.players))
             run = started
             _uiState.update {
                 it.copy(
@@ -127,16 +127,26 @@ class DealtGameViewModel @Inject constructor(
         show(run?.skipPrompt())
     }
 
-    fun nextRound() {
-        show(run?.nextRound())
-    }
-
     private fun show(next: GameRun?) {
-        val moved = next ?: return
+        val moved = settled(next ?: return)
         run = moved
         _uiState.update {
             it.copy(moment = moved.moment, round = moved.round, rounds = moved.roundCount)
         }
+    }
+
+    /**
+     * The run, moved past anything there is nothing to show for.
+     *
+     * A round's last step **is** its end: the reveal, the reaction, the dare that was done. "That's
+     * the round. Next" after it was a screen that said nothing and cost a tap every round, which is
+     * exactly how it read on a device (D-130). A round nothing could play passes the same way, and
+     * always did — it has nothing to show by definition.
+     */
+    private fun settled(run: GameRun): GameRun {
+        var moved = run
+        while (moved.moment is GameMoment.RoundOver) moved = moved.nextRound()
+        return moved
     }
 
     fun setFirstName(name: String) = _uiState.update { it.copy(firstName = name) }

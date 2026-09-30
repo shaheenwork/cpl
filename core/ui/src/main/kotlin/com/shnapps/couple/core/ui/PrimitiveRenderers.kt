@@ -1,11 +1,19 @@
 package com.shnapps.couple.core.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -19,14 +27,20 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.designsystem.component.CinematicCard
 import com.shnapps.couple.core.designsystem.component.CountdownRing
@@ -35,11 +49,14 @@ import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.component.RevealCard
 import com.shnapps.couple.core.designsystem.component.RevealState
 import com.shnapps.couple.core.designsystem.icon.icon
+import com.shnapps.couple.core.designsystem.theme.AfterhoursEasing
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.designsystem.theme.LocalReduceMotion
+import com.shnapps.couple.core.designsystem.theme.decorativeTween
 import com.shnapps.couple.core.engine.game.Answer
 import com.shnapps.couple.core.engine.game.Option
+import com.shnapps.couple.core.engine.game.RolledDie
 import com.shnapps.couple.core.engine.game.RoundPrimitive
 import com.shnapps.couple.core.engine.game.Verdict
 import com.shnapps.couple.core.model.AnswerKind
@@ -49,6 +66,7 @@ import com.shnapps.couple.core.model.RevealOutcome
 import com.shnapps.couple.core.ui.voice.LocalVoiceRecorder
 import com.shnapps.couple.core.ui.voice.VoicePlayer
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 
 // One renderer per primitive (BUILD_PROMPT.md §11.1), and none for any game: a game is only
@@ -73,6 +91,7 @@ fun PrimitiveRenderer(primitive: RoundPrimitive, players: GamePlayers, onSubmit:
         is RoundPrimitive.Challenge -> ChallengeRenderer(primitive, players, onSubmit)
         is RoundPrimitive.Reaction -> ReactionRenderer(primitive, players, onSubmit)
         is RoundPrimitive.Draw -> DrawRenderer(primitive, players, onSubmit)
+        is RoundPrimitive.Dice -> DiceRenderer(primitive, players, onSubmit)
         is RoundPrimitive.Dial -> DialRenderer(primitive, players, onSubmit)
         is RoundPrimitive.Record -> RecordRenderer(primitive, players, onSubmit)
     }
@@ -265,6 +284,200 @@ internal fun DrawRenderer(draw: RoundPrimitive.Draw, players: GamePlayers, onSub
         modifier = Modifier.fillMaxWidth(),
     )
 }
+
+/**
+ * Dice, tumbling.
+ *
+ * However many the game rolls, read together. They land on what the interpreter decided from the
+ * round's own seed — so the tumble is honest animation rather than a draw of its own (D-047), and a
+ * reopened phone lands the same way.
+ *
+ * Nobody waits for them. They roll on arrival rather than asking to be rolled, and while they are
+ * still turning the action underneath lands them at once — an animation may not hold a person up
+ * (`Motion.MAX_BLOCKING_MS`), and a die that has to be asked to roll is a tap a round for nothing.
+ */
+@Composable
+internal fun DiceRenderer(dice: RoundPrimitive.Dice, players: GamePlayers, onSubmit: (Answer) -> Unit) {
+    val reduceMotion = LocalReduceMotion.current
+    val scope = rememberCoroutineScope()
+    val roll = remember(dice.step) { Animatable(if (reduceMotion) 1f else 0f) }
+    var started by rememberSaveable(dice.step) { mutableStateOf(false) }
+    val settled = roll.value >= 1f
+
+    LaunchedEffect(dice.step) {
+        if (!reduceMotion) roll.animateTo(1f, decorativeTween(ROLL_MS, false, AfterhoursEasing.Decelerate))
+    }
+
+    Asked(whoFor(dice.seat, players), dice.caption)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = diceDescription(dice, settled) },
+        horizontalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm),
+    ) {
+        dice.dice.forEachIndexed { index, die ->
+            Die(die = die, progress = progressOf(roll.value, index), modifier = Modifier.weight(1f))
+        }
+    }
+
+    val seconds = dice.seconds
+    if (settled && seconds != null) DiceClock(seconds = seconds, running = started)
+
+    GlowButton(
+        text = when {
+            !settled -> "Land them"
+            seconds != null && !started -> "Start the clock"
+            else -> "Done"
+        },
+        onClick = {
+            when {
+                !settled -> scope.launch { roll.snapTo(1f) }
+                seconds != null && !started -> started = true
+                else -> onSubmit(Answer.Done)
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+/** One die: its own tumble, the face it lands on, and the pips that say which face that is. */
+@Composable
+private fun Die(die: RolledDie, progress: Float, modifier: Modifier = Modifier) {
+    val colors = AfterhoursTheme.colors
+    val settled = progress >= 1f
+    val showing = if (settled) die.face.label else die.faces[flickerOf(progress, die.faces.size)].label
+
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = die.label.uppercase(),
+            style = EyebrowTextStyle,
+            color = if (settled) colors.brass else colors.textMuted,
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .graphicsLayer {
+                    // Two axes at a different rate per die, so three dice never tumble in unison.
+                    val left = 1f - progress
+                    rotationX = left * TUMBLE * (die.label.length % TILT + 1)
+                    rotationY = left * TUMBLE_SIDE
+                    cameraDistance = CAMERA * density
+                    val bounce = 1f + LAND_BOUNCE * left * progress
+                    scaleX = bounce
+                    scaleY = bounce
+                }
+                .clip(MaterialTheme.shapes.medium)
+                .background(
+                    Brush.linearGradient(
+                        listOf(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.colorScheme.surface),
+                    ),
+                )
+                .border(
+                    width = EDGE,
+                    color = if (settled) colors.brass.copy(alpha = FACE_EDGE) else colors.edgeFaint,
+                    shape = MaterialTheme.shapes.medium,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = showing,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                maxLines = FACE_LINES,
+                modifier = Modifier.padding(AfterhoursTheme.spacing.xs),
+            )
+        }
+        Pips(count = die.landed + 1, lit = settled)
+    }
+}
+
+/** Which face it is, the way a die says it. */
+@Composable
+private fun Pips(count: Int, lit: Boolean) {
+    val colors = AfterhoursTheme.colors
+    Row(
+        modifier = Modifier.padding(top = AfterhoursTheme.spacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(PIP_GAP),
+    ) {
+        repeat(count) {
+            Box(
+                modifier = Modifier
+                    .size(PIP)
+                    .clip(CircleShape)
+                    .background(if (lit) colors.brass else colors.edgeFaint),
+            )
+        }
+    }
+}
+
+/** The clock the dice landed on. Started by them, never by the app (as every timer here is). */
+@Composable
+private fun DiceClock(seconds: Int, running: Boolean) {
+    var remaining by rememberSaveable(seconds) { mutableIntStateOf(seconds) }
+    LaunchedEffect(running, seconds) {
+        if (!running) return@LaunchedEffect
+        while (remaining > 0) {
+            delay(SECOND_MS)
+            remaining -= 1
+        }
+    }
+    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        CountdownRing(
+            progress = remaining.toFloat() / seconds,
+            value = if (remaining > 0) clockLabel(remaining) else "Time!",
+            unit = if (remaining in 1 until A_MINUTE) "seconds" else "",
+        )
+    }
+}
+
+/** Minutes and seconds once there is more than a minute of it, plain seconds under one. */
+private fun clockLabel(seconds: Int): String = if (seconds < A_MINUTE) {
+    "$seconds"
+} else {
+    "${seconds / A_MINUTE}:${(seconds % A_MINUTE).toString().padStart(2, PAD)}"
+}
+
+/**
+ * How far one die is through the roll.
+ *
+ * One animation for the whole roll, staggered per die, so they land one after another rather than
+ * together — and every one of them is landed by the time the roll is.
+ */
+private fun progressOf(roll: Float, index: Int): Float =
+    ((roll - index * DIE_STAGGER) / (1f - LAST_STAGGER)).coerceIn(0f, 1f)
+
+/** Which face flashes past while a die is still turning: quick at first, slowing as it slows. */
+private fun flickerOf(progress: Float, faces: Int): Int =
+    if (faces <= 1) 0 else (progress * faces * FLICKER).toInt() % faces
+
+/** What a screen reader is told: that they are rolling, and then what they say. */
+private fun diceDescription(dice: RoundPrimitive.Dice, settled: Boolean): String = if (settled) {
+    dice.dice.joinToString(". ") { "${it.label}: ${it.face.label}" }
+} else {
+    "Rolling"
+}
+
+/** Long enough to be a roll, short enough that nobody is waiting for it. */
+private const val ROLL_MS = 1_100
+
+/** Degrees of tumble left to run when a die starts, on each axis. */
+private const val TUMBLE = 1_080f
+private const val TUMBLE_SIDE = 720f
+private const val TILT = 3
+private const val CAMERA = 16f
+private const val LAND_BOUNCE = 0.5f
+private const val FACE_EDGE = 0.6f
+private const val FACE_LINES = 3
+private const val FLICKER = 9f
+private const val DIE_STAGGER = 0.12f
+private const val LAST_STAGGER = 0.24f
+private const val PAD = '0'
+private val EDGE = 1.dp
+private val PIP = 4.dp
+private val PIP_GAP = 3.dp
+private const val A_MINUTE = 60
 
 /**
  * How much, without saying it.

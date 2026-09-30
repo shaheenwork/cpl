@@ -78,19 +78,26 @@ class DealtGameViewModelTest {
     }
 
     @Test
-    fun `a game plays from its first round to its last`() = runTest {
+    fun `a game plays from its first round to its last, and never stops to say a round ended`() = runTest {
         val viewModel = viewModel()
+        val seen = mutableListOf<GameMoment>()
 
         repeat(MAX_MOVES) {
-            when (viewModel.uiState.value.moment) {
+            val moment = viewModel.uiState.value.moment ?: return@repeat
+            seen += moment
+            when (moment) {
                 is GameMoment.Finished -> return@repeat
-                is GameMoment.RoundOver -> viewModel.nextRound()
                 is GameMoment.Turn -> viewModel.answer(Answer.Done)
                 else -> viewModel.proceed()
             }
         }
 
         assertThat(viewModel.uiState.value.moment).isInstanceOf(GameMoment.Finished::class.java)
+        // "That's the round. Next" was a screen that said nothing and cost a tap a round (D-130).
+        // A round's own last step is its end.
+        assertThat(seen.filterIsInstance<GameMoment.RoundOver>()).isEmpty()
+        // And every round was played: the taps went somewhere.
+        assertThat(seen.filterIsInstance<GameMoment.Turn>().map { it.round }.distinct()).hasSize(ROUNDS)
     }
 
     @Test

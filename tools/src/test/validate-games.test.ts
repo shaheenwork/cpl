@@ -4,7 +4,7 @@
  */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { type ContentRepo, DEFAULT_CONTENT_ROOT, type GameInfo, type GamePrompt, loadContent } from '../content';
+import { type ContentRepo, DEFAULT_CONTENT_ROOT, type GameDie, type GameInfo, type GamePrompt, loadContent } from '../content';
 import { validateContent } from '../validate';
 
 const repo = loadContent(DEFAULT_CONTENT_ROOT);
@@ -83,10 +83,11 @@ test('a prompt must fit its game: options, seconds and kind', () => {
   }));
   assert.ok(timed.some((line) => line.includes('seconds must be null')));
 
-  const untimed = introducedBy(withPrompt('HEAT_DICE', 0, (prompt) => {
-    prompt.seconds = null;
+  // Heat Dice rolls its clock now (D-130), so no prompt of it may carry one either.
+  const clocked = introducedBy(withPrompt('HEAT_DICE', 0, (prompt) => {
+    prompt.seconds = 60;
   }));
-  assert.ok(untimed.some((line) => line.includes('seconds must be 10..180')));
+  assert.ok(clocked.some((line) => line.includes('seconds must be null')));
 
   const kindless = introducedBy(withPrompt('TRUTH_OR_DARE', 0, (prompt) => {
     prompt.kind = null;
@@ -168,6 +169,42 @@ test('a game with prompt kinds must say which choice picks the kind', () => {
   const challenge = broken.steps.findIndex((step) => step.primitive === 'CHALLENGE');
   delete broken.steps[challenge].kindFrom;
   assert.ok(introducedBy(withGame(broken)).some((line) => line.includes('must say which choice picks the kind')));
+});
+
+/** One game's dice, which every case here breaks in a different way. */
+function diceOf(changed: GameInfo): GameDie[] {
+  const dice = changed.steps[0]?.dice;
+  assert.ok(dice, 'the first step rolls dice');
+  return dice;
+}
+
+test('dice need faces, and only one of them may be the clock', () => {
+  const noDice = game('HEAT_DICE');
+  delete noDice.steps[0]?.dice;
+  assert.ok(introducedBy(withGame(noDice)).some((line) => line.includes('needs 2 to 4 dice')));
+
+  const oneFace = game('HEAT_DICE');
+  diceOf(oneFace)[0]!.faces = ['Kiss'];
+  assert.ok(introducedBy(withGame(oneFace)).some((line) => line.includes('a die needs at least two faces')));
+
+  const twoClocks = game('HEAT_DICE');
+  const first = diceOf(twoClocks)[0]!;
+  first.seconds = (first.faces as string[]).map(() => 30);
+  assert.ok(introducedBy(withGame(twoClocks)).some((line) => line.includes('only one die may be the clock')));
+
+  const shortClock = game('HEAT_DICE');
+  const clock = diceOf(shortClock).find((die) => die.seconds !== undefined);
+  assert.ok(clock, 'one die is the clock');
+  clock.seconds = [30];
+  assert.ok(introducedBy(withGame(shortClock)).some((line) => line.includes('one clock per face')));
+
+  // A die whose faces come from the prompt cannot also be the clock: a prompt carries one pool of
+  // words, and a clock needs a number for every face.
+  const promptClock = game('HEAT_DICE');
+  const fromPrompt = diceOf(promptClock).find((die) => die.faces === 'PROMPT');
+  assert.ok(fromPrompt, 'one die takes the prompt\'s options');
+  fromPrompt.seconds = [30, 60, 120, 180];
+  assert.ok(introducedBy(withGame(promptClock)).some((line) => line.includes('a clock die needs fixed faces')));
 });
 
 test('a game that never shows its prompt, or scores without a reveal, is refused', () => {

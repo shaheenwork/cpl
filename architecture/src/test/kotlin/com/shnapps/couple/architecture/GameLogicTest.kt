@@ -113,6 +113,7 @@ class GameLogicTest {
         /** A game's definition: what only the interpreter and the parser may read. */
         val STEP_TYPES = listOf(
             "GameStep",
+            "GameDie",
             "StepAudience",
             "StepOptions",
             "StepText",

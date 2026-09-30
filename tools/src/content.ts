@@ -51,6 +51,8 @@ export interface GameStep {
   seconds?: string | number;
   /** The earlier CHOICE whose answer picks the prompt's kind (truth or dare). */
   kindFrom?: number;
+  /** The dice a DICE step rolls: each with its faces, and at most one of them a clock. */
+  dice?: GameDie[];
   /** What a MEDIA step records: a kind from the vocabulary. */
   media?: string;
 }
@@ -72,6 +74,13 @@ export interface GameInfo {
   promptOptions: [number, number];
   minPrompts: number;
   steps: GameStep[];
+}
+
+/** One die of a DICE step. `seconds` runs parallel to `faces`: the clock each face gives. */
+export interface GameDie {
+  label: string;
+  faces: string | string[];
+  seconds?: number[];
 }
 
 /** A game prompt: what a round is about. Filtered by the same chokepoint as items (section 3.2). */

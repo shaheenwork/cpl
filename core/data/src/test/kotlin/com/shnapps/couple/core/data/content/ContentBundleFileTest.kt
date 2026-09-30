@@ -243,6 +243,7 @@ class ContentBundleFileTest {
         is RoundPrimitive.Reveal ->
             if (primitive.verdict == Verdict.AwaitingJudge) Answer.Judged(close = true) else Answer.Done
         is RoundPrimitive.Timer, is RoundPrimitive.Challenge, is RoundPrimitive.Draw -> Answer.Done
+        is RoundPrimitive.Dice -> Answer.Done
         is RoundPrimitive.Dial -> Answer.Dialed(RoundPrimitive.RANGE.first)
         is RoundPrimitive.Reaction -> Answer.Reacted(ChapterReaction.LOVED)
         // A recording, or the words said out loud when a phone will not record: either finishes

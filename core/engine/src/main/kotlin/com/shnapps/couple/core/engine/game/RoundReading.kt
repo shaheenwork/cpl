@@ -61,14 +61,27 @@ internal class RoundReading(private val state: RunState) {
         if (phone != null) return ownSlots(takes, phone)
         val slots = mutableListOf<Slot>()
         var holder: Int? = null
+        var covered = false
         for (take in takes) {
             val seat = take.seat
-            if (game.steps[take.step].isPrivate && seat != null) {
+            val private = seat != null && game.steps[take.step].isPrivate
+            // A game of turns played on one phone has to change hands, and the round's first step
+            // is when. Nothing else in the round hands it over: what follows is the same person's
+            // turn, or something they both watch, and a hand-off at each would be three screens of
+            // passing a phone that is already in the right hand. Without this a turn-based game
+            // never says whose turn it is — Truth or Dare read "YOU" on every round of a device
+            // walk, which is how a game for two looked like a game for one (D-130).
+            val opensTheTurn = game.takesTurns && slots.none { it is Slot.Take }
+            if (seat != null && (private || opensTheTurn)) {
                 if (holder != seat) slots += Slot.HandOff(seat)
                 holder = seat
-            } else {
-                if (holder != null) slots += Slot.Gather
+                covered = private
+            } else if (covered) {
+                // Only what was hidden has to be uncovered. A step in the open after a turn is
+                // still that turn, and "both of you, look" in the middle of it would be a lie.
+                slots += Slot.Gather
                 holder = null
+                covered = false
             }
             slots += take
         }
@@ -110,7 +123,9 @@ internal class RoundReading(private val state: RunState) {
         return prompts.firstOrNull { kind != null && it.kind == kind } ?: prompts.first()
     }
 
-    fun showsPrompt(step: GameStep): Boolean = step.text == StepText.Prompt || step.options == StepOptions.FromPrompt
+    fun showsPrompt(step: GameStep): Boolean = step.text == StepText.Prompt ||
+        step.options == StepOptions.FromPrompt ||
+        step.dice?.any { it.faces == StepOptions.FromPrompt } == true
 
     /**
      * The primitive a step comes to, in two halves: the ones that ask for an answer, and the ones
@@ -123,13 +138,14 @@ internal class RoundReading(private val state: RunState) {
         val seat = take.seat
         return when (step.primitive) {
             GamePrimitive.QUESTION -> RoundPrimitive.Question(take.step, seat, text, step.answer ?: AnswerKind.SPOKEN)
-            GamePrimitive.CHOICE -> RoundPrimitive.Choice(take.step, seat, text, options(step, seat))
+            GamePrimitive.CHOICE -> RoundPrimitive.Choice(take.step, seat, text, options(step.options, step.of, seat))
             GamePrimitive.PREDICTION -> {
-                val options = if (step.answer == AnswerKind.TEXT) null else options(step, seat)
+                val options = if (step.answer == AnswerKind.TEXT) null else options(step.options, step.of, seat)
                 RoundPrimitive.Prediction(take.step, seat, text, options)
             }
-            GamePrimitive.VOTE -> RoundPrimitive.Vote(take.step, seat, text, options(step, seat))
+            GamePrimitive.VOTE -> RoundPrimitive.Vote(take.step, seat, text, options(step.options, step.of, seat))
             GamePrimitive.REVEAL -> reveal(take, step)
+            GamePrimitive.DICE -> dice(take, step, seat, text)
             GamePrimitive.DIAL -> RoundPrimitive.Dial(take.step, seat, text, DIAL_LOW, DIAL_HIGH)
             GamePrimitive.MEDIA -> RoundPrimitive.Record(take.step, seat, text, step.media ?: MediaKind.VOICE)
             else -> shown(take, step, seat, text)
@@ -148,10 +164,16 @@ internal class RoundReading(private val state: RunState) {
         null -> GameRun.DEFAULT_SECONDS
     }
 
-    fun options(step: GameStep, seat: Int?): List<Option> = when (val source = step.options) {
+    /**
+     * The words an answer chooses between: a step's own options, or one die's faces.
+     *
+     * Takes the source rather than the step, because a roll's faces belong to the die and not to
+     * the step it sits in — and one reader for both is one place where "PROMPT" means the prompt.
+     */
+    fun options(source: StepOptions?, of: List<Int>, seat: Int?): List<Option> = when (source) {
         StepOptions.FromPrompt -> promptInPlay()?.options.orEmpty()
             .mapIndexed { index, label -> Option("$index", label) }
-        StepOptions.FromStatements -> statementsOf(step.of.firstOrNull())
+        StepOptions.FromStatements -> statementsOf(of.firstOrNull())
             ?.statements.orEmpty()
             .mapIndexed { index, statement -> Option("$index", statement) }
         is StepOptions.Fixed -> source.ids.map { id -> Option(id, fixedLabel(id, seat)) }
@@ -188,7 +210,8 @@ internal class RoundReading(private val state: RunState) {
 
     /** What [answer] to step [index], taken by [seat], says. */
     fun labelOf(index: Int, seat: Int?, answer: Answer?): String = when (answer) {
-        is Answer.Picked -> options(game.steps[index], seat).firstOrNull { it.id == answer.optionId }?.label
+        is Answer.Picked -> game.steps[index].let { options(it.options, it.of, seat) }
+            .firstOrNull { it.id == answer.optionId }?.label
             ?: answer.optionId
         is Answer.Text -> answer.text
         else -> ""
@@ -259,10 +282,32 @@ private const val THIRTY_TWO_BITS = 0xFFFFFFFFL
  * The screen spins towards a decision that was already made.
  */
 internal fun RoundReading.draw(take: Slot.Take, step: GameStep, seat: Int?, text: String): RoundPrimitive.Draw {
-    val pool = options(step, seat)
+    val pool = options(step.options, step.of, seat)
     val seed = seedOf(gameId, roundIndex, take.step, promptInPlay()?.id.orEmpty())
     val landed = if (pool.isEmpty()) Option("", "") else pool[Rng(seed).nextInt(pool.size)]
     return RoundPrimitive.Draw(take.step, seat, text, pool, landed)
+}
+
+/**
+ * Three dice, rolled together and read together.
+ *
+ * Each die lands from a seed made of the round's own facts and which die it is, so the three are
+ * independent of one another while the whole roll stays the same on a reopened phone and in a test
+ * — the rule a single draw already follows (D-047). A die whose faces come from the prompt is how a
+ * roll varies by tier: the rule and the pool are the content's, and only the tumble is the screen's.
+ */
+internal fun RoundReading.dice(take: Slot.Take, step: GameStep, seat: Int?, text: String): RoundPrimitive.Dice {
+    val prompt = promptInPlay()?.id.orEmpty()
+    val rolled = step.dice.orEmpty().mapIndexed { index, die ->
+        // Which die it is goes through the hash rather than being added to the seed afterwards.
+        // An offset leaves neighbouring streams close together, and on a device two of three dice
+        // read the same face for three rounds running because of it (D-130).
+        val seed = seedOf(gameId, roundIndex, take.step, "$prompt#$index")
+        val faces = options(die.faces, step.of, seat)
+        val landed = if (faces.isEmpty()) 0 else Rng(seed).nextInt(faces.size)
+        RolledDie(label = die.label, faces = faces, landed = landed, seconds = die.seconds?.getOrNull(landed))
+    }
+    return RoundPrimitive.Dice(take.step, seat, text, rolled.filter { it.faces.isNotEmpty() })
 }
 
 /**
