@@ -1,0 +1,1094 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Afterhours v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* grounds */
+  --scene:#0B0708; --raised:#171115; --card:#1F1820;
+  /* metal, type, lines */
+  --brass:#D9B978; --cream:#F2E6DA; --cream-muted:#CBBAAE; --cream-faint:#A2938A;
+  --outline:#7D6C74; --outline-faint:#3A2F35; --signal:#FFB4A8; --signal-deep:#8C1D18;
+  /* default heat: flirty */
+  --accent:#C75C7A; --accent-container:#4A1426; --accent-text:#DE8AA1;
+  --display:"Playfair Display",Georgia,serif;
+  --body:"Inter",system-ui,-apple-system,sans-serif;
+}
+[data-heat="mild"]   {--accent:#C49BC4;--accent-container:#3A1F36;--accent-text:#C49BC4;}
+[data-heat="flirty"] {--accent:#C75C7A;--accent-container:#4A1426;--accent-text:#DE8AA1;}
+[data-heat="spicy"]  {--accent:#8E2A47;--accent-container:#4A1426;--accent-text:#DE8AA1;}
+[data-heat="hot"]    {--accent:#B02A42;--accent-container:#3D0F1A;--accent-text:#E0566F;}
+[data-heat="extreme"]{--accent:#E2603F;--accent-container:#4A1A0F;--accent-text:#E2603F;}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#060405;color:var(--cream);font-family:var(--body);padding:48px 24px 96px;}
+.page-head{max-width:1180px;margin:0 auto 56px;}
+.page-head h1{font-family:var(--display);font-size:52px;line-height:58px;font-weight:500;letter-spacing:.01em;}
+.page-head p{color:var(--cream-muted);font-size:16px;line-height:24px;margin-top:12px;max-width:62ch;}
+.group{max-width:1180px;margin:0 auto 72px;}
+.group h2{font-family:var(--display);font-size:32px;line-height:38px;font-weight:500;}
+.rationale{color:var(--cream-faint);font-size:14px;line-height:20px;margin:8px 0 28px;max-width:70ch;font-style:italic;}
+.frames{display:flex;flex-wrap:wrap;gap:40px;}
+figure{width:390px;}
+figcaption{font-size:11px;line-height:16px;text-transform:uppercase;letter-spacing:.14em;
+  color:var(--cream-faint);margin-bottom:10px;}
+figcaption b{color:var(--brass);font-weight:500;}
+
+/* ---- the phone ------------------------------------------------------------ */
+.phone{width:390px;height:844px;border-radius:44px;overflow:hidden;position:relative;
+  background:var(--scene);border:1px solid #221a1e;
+  box-shadow:0 30px 70px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.02);}
+/* the two lights in the room, then the grain over everything */
+.phone::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 70% at 12% -6%, rgba(226,96,63,.10), transparent 58%),
+             radial-gradient(90% 60% at 102% 104%, rgba(196,155,196,.10), transparent 60%);}
+.phone::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/><feColorMatrix type='saturate' values='0'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='.22'/></svg>");}
+.screen{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;padding:0 16px 22px;}
+.status{display:flex;justify-content:space-between;align-items:center;height:44px;
+  font-size:12px;color:var(--cream-faint);letter-spacing:.02em;padding:0 6px;}
+.status .right{display:flex;gap:5px;align-items:center;}
+.status i{display:block;width:13px;height:9px;background:var(--cream-faint);opacity:.75;
+  clip-path:polygon(0 100%,25% 60%,50% 75%,75% 25%,100% 0,100% 100%);}
+.status i.b{width:17px;height:9px;border:1px solid var(--cream-faint);border-radius:2px;clip-path:none;background:none;position:relative;}
+.status i.b::after{content:"";position:absolute;inset:1.5px;right:5px;background:var(--cream-faint);border-radius:1px;}
+
+/* ---- chrome --------------------------------------------------------------- */
+.bar{display:flex;align-items:center;gap:10px;height:40px;flex:0 0 auto;}
+.bar .back{width:26px;height:26px;color:var(--cream-muted);font-size:22px;line-height:24px;}
+.bar .title{flex:1;text-align:center;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--cream-muted);}
+.bar .acts{display:flex;gap:14px;align-items:center;}
+.bar .act{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--cream-muted);}
+.bar .act.stop{color:var(--signal);}
+.rail{display:flex;gap:5px;margin:4px 2px 0;flex:0 0 auto;}
+.rail span{height:3px;flex:1;border-radius:2px;background:#2A2126;}
+.rail span.on{background:var(--accent);}
+.rail span.now{background:var(--accent-text);}
+
+.body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px;min-height:0;}
+.body.top{justify-content:flex-start;padding-top:12px;}
+.dock{flex:0 0 auto;display:flex;flex-direction:column;gap:9px;padding-top:14px;}
+
+/* ---- type ----------------------------------------------------------------- */
+.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);}
+.eyebrow.dim{color:var(--cream-faint);}
+h3.display{font-family:var(--display);font-size:32px;line-height:38px;font-weight:500;}
+h4.display{font-family:var(--display);font-size:24px;line-height:30px;font-weight:500;}
+.lead{font-size:16px;line-height:24px;color:var(--cream);}
+.sub{font-size:14px;line-height:20px;color:var(--cream-muted);}
+.hint{font-size:13px;line-height:18px;color:var(--cream-faint);}
+.rule{font-size:14px;line-height:20px;color:var(--cream-faint);text-align:center;}
+
+/* ---- the hero card: one per screen, rim-lit -------------------------------- */
+.hero{border-radius:28px;padding:1px;
+  background:linear-gradient(180deg, color-mix(in srgb,var(--accent) 58%,transparent), rgba(58,47,53,.5) 70%);}
+.hero > div{background:var(--card);border-radius:27px;padding:22px 20px;display:flex;flex-direction:column;gap:10px;}
+.hero.lit{box-shadow:0 0 44px -14px color-mix(in srgb,var(--accent) 60%,transparent);}
+.row{border-radius:20px;padding:1px;background:linear-gradient(180deg,rgba(125,108,116,.32),rgba(58,47,53,.35));}
+.row > div{background:var(--raised);border-radius:19px;padding:14px 16px;}
+
+/* ---- buttons -------------------------------------------------------------- */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:54px;border-radius:999px;
+  background:var(--accent);color:#17090D;font-size:16px;font-weight:600;letter-spacing:.01em;
+  box-shadow:0 0 34px -8px color-mix(in srgb,var(--accent) 75%,transparent);}
+.btn.ghost{background:transparent;border:1px solid var(--outline);color:var(--cream);box-shadow:none;}
+.btn.quiet{background:transparent;color:var(--cream-faint);box-shadow:none;height:44px;font-weight:500;}
+.btn.sig{background:var(--signal);color:#3A0B08;box-shadow:0 0 34px -10px rgba(255,180,168,.6);}
+.btn.sm{height:46px;font-size:15px;}
+.btn[disabled]{background:#2A2126;color:var(--cream-faint);box-shadow:none;}
+.btns{display:flex;gap:9px;}
+.btns .btn{flex:1;}
+
+/* ---- heat dial ------------------------------------------------------------ */
+.dial{display:flex;gap:6px;}
+.dial .step{flex:1;text-align:center;}
+.dial .nm{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--cream-faint);margin-bottom:6px;}
+.dial .step.on .nm{color:var(--accent-text);}
+.dial .bar2{height:4px;border-radius:2px;background:#2A2126;}
+.dial .step.on .bar2{background:var(--accent);}
+.dial .lock{font-size:9px;color:var(--brass);margin-top:5px;letter-spacing:.06em;}
+.dots{letter-spacing:.22em;font-size:11px;color:var(--accent-text);}
+
+/* ---- small parts ---------------------------------------------------------- */
+.toggle{display:flex;background:#140F12;border:1px solid var(--outline-faint);border-radius:999px;padding:3px;}
+.toggle div{flex:1;text-align:center;padding:9px 0;font-size:13px;color:var(--cream-faint);border-radius:999px;}
+.toggle div.on{background:var(--accent-container);color:var(--cream);}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.tile{background:var(--raised);border:1px solid var(--outline-faint);border-radius:16px;padding:13px 13px 15px;}
+.tile .t{font-family:var(--display);font-size:17px;line-height:22px;}
+.tile .g{font-size:11px;line-height:15px;color:var(--cream-faint);margin-top:4px;}
+.tile.wide{grid-column:1/-1;}
+.banner{display:flex;align-items:center;gap:9px;background:var(--accent-container);
+  border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);border-radius:14px;padding:10px 13px;}
+.banner .k{font-size:12px;line-height:17px;color:var(--cream);}
+.banner .k b{color:var(--accent-text);font-weight:600;}
+.lockpill{display:inline-flex;align-items:center;gap:5px;font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--brass);}
+.lockpill::before{content:"";width:8px;height:9px;border:1.4px solid var(--brass);border-bottom:none;
+  border-radius:4px 4px 0 0;box-shadow:0 7px 0 -1.5px var(--brass);}
+.field{background:#140F12;border:1px solid var(--outline-faint);border-radius:12px;padding:13px 14px;
+  font-size:15px;color:var(--cream);}
+.field .lb{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--cream-faint);margin-bottom:5px;}
+.code{display:flex;gap:8px;justify-content:center;}
+.code b{flex:1;max-width:48px;height:62px;border-radius:12px;background:#140F12;border:1px solid var(--outline-faint);
+  display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:30px;color:var(--brass);font-weight:500;}
+.code b.empty{color:var(--outline-faint);}
+.code b.cur{border-color:var(--accent);}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+.keys div{height:52px;border-radius:14px;background:var(--raised);display:flex;align-items:center;
+  justify-content:center;font-size:20px;color:var(--cream);}
+.keys div.blank{background:none;}
+.list{display:flex;flex-direction:column;gap:1px;background:var(--outline-faint);border-radius:16px;overflow:hidden;}
+.list .it{background:var(--raised);padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;}
+.list .it .n{font-size:15px;}
+.list .it .d{font-size:12px;line-height:17px;color:var(--cream-faint);margin-top:2px;}
+.list .it .v{font-size:12px;color:var(--cream-faint);}
+.sectlabel{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--cream-faint);margin:16px 2px 8px;}
+.ring{width:150px;height:150px;border-radius:50%;border:3px solid var(--accent);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto;
+  box-shadow:0 0 50px -18px color-mix(in srgb,var(--accent) 80%,transparent);}
+.ring .n{font-family:var(--display);font-size:40px;line-height:44px;}
+.ring .u{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--cream-faint);margin-top:2px;}
+
+/* ---- dice ----------------------------------------------------------------- */
+.dice{display:flex;gap:9px;}
+.die{flex:1;text-align:center;}
+.die .lb{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--cream-faint);margin-bottom:6px;}
+.die.on .lb{color:var(--brass);}
+.die .face{aspect-ratio:1;border-radius:14px;border:1px solid var(--outline-faint);
+  background:linear-gradient(155deg,#241C22,#120D10);display:flex;align-items:center;justify-content:center;
+  padding:8px;font-size:14px;font-weight:600;line-height:18px;}
+.die.on .face{border-color:color-mix(in srgb,var(--brass) 60%,transparent);}
+.die .pips{display:flex;gap:3px;justify-content:center;margin-top:7px;height:4px;}
+.die .pips s{width:4px;height:4px;border-radius:50%;background:var(--brass);}
+.tumble1{transform:rotate(-9deg) scale(1.04);} .tumble2{transform:rotate(7deg) scale(.97);}
+.tumble3{transform:rotate(-4deg) scale(1.02);}
+.blur{filter:blur(.4px);opacity:.82;}
+
+/* ---- media inside a round -------------------------------------------------- */
+.meter{display:flex;gap:3px;align-items:flex-end;height:38px;justify-content:center;}
+.meter s{width:4px;border-radius:2px;background:var(--accent);}
+.voice{display:flex;align-items:center;gap:11px;background:var(--raised);border-radius:999px;padding:11px 15px;}
+.voice .play{width:28px;height:28px;border-radius:50%;background:var(--accent);flex:0 0 auto;}
+.voice .wave{flex:1;display:flex;gap:2.5px;align-items:center;height:22px;}
+.voice .wave s{flex:1;border-radius:2px;background:color-mix(in srgb,var(--accent) 55%,#2A2126);}
+.photo{border-radius:18px;height:188px;border:1px solid var(--outline-faint);
+  background:linear-gradient(145deg,#3A2029,#171014 60%,#241821);display:flex;align-items:center;
+  justify-content:center;position:relative;overflow:hidden;}
+.photo .veil{position:absolute;inset:0;backdrop-filter:blur(14px);background:rgba(11,7,8,.55);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;text-align:center;padding:0 24px;}
+.reactions{display:flex;gap:8px;}
+.reactions div{flex:1;text-align:center;background:var(--raised);border:1px solid var(--outline-faint);
+  border-radius:12px;padding:11px 4px;font-size:12px;color:var(--cream-muted);}
+.qr{width:148px;height:148px;margin:0 auto;background:#140F12;border-radius:14px;padding:12px;}
+.wait{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;}
+.pulse{width:76px;height:76px;border-radius:50%;border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);
+  display:flex;align-items:center;justify-content:center;}
+.pulse s{width:34px;height:34px;border-radius:50%;background:color-mix(in srgb,var(--accent) 28%,transparent);}
+.pack{border-radius:18px;border:1px solid var(--outline-faint);background:var(--raised);padding:15px 16px;}
+.pack .h{display:flex;justify-content:space-between;align-items:baseline;}
+.pack .p{font-family:var(--display);font-size:22px;}
+.pack.hero2{border-color:color-mix(in srgb,var(--brass) 45%,transparent);background:#1C1519;}
+.answer{flex:1;background:var(--raised);border:1px solid var(--outline-faint);border-radius:16px;padding:13px;text-align:center;}
+.answer .w{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--cream-faint);margin-bottom:7px;}
+.answer .a{font-family:var(--display);font-size:19px;line-height:24px;}
+.yn{display:flex;gap:7px;}
+.yn div{flex:1;text-align:center;border:1px solid var(--outline-faint);border-radius:12px;padding:10px 0;font-size:13px;color:var(--cream-muted);}
+.yn div.on{border-color:var(--accent);color:var(--cream);background:var(--accent-container);}
+.wordmark{font-family:var(--display);font-size:34px;letter-spacing:.3em;text-align:center;
+  text-shadow:0 0 44px color-mix(in srgb,var(--accent) 55%,transparent);}
+</style>
+</head>
+<body>
+
+<header class="page-head">
+  <h1>Afterhours v2</h1>
+  <p>A private game app for one couple. No accounts — the only identity is this phone, and once paired,
+  the other one. Thirty-four screens, drawn at 390&times;844 in the app's own palette and type.</p>
+</header>
+
+<!-- ============================ 1 OPENING ============================ -->
+<section class="group">
+  <h2>1 &middot; Opening</h2>
+  <p class="rationale">Two taps from launch to a card, so the first screen asks the only two things that
+  can't be deferred — are you both adults, and how far tonight.</p>
+  <div class="frames">
+
+    <figure><figcaption>Splash</figcaption>
+      <div class="phone" data-heat="flirty"><div class="screen">
+        <div class="status"><span>23:14</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="body"><div class="wordmark">AFTERHOURS</div></div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Age gate &mdash; <b>first launch</b></figcaption>
+      <div class="phone" data-heat="flirty"><div class="screen">
+        <div class="status"><span>23:14</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="body top" style="gap:22px">
+          <div style="margin-top:28px">
+            <div class="eyebrow">Afterhours</div>
+            <h3 class="display" style="margin-top:10px">Two questions, then we start.</h3>
+            <p class="sub" style="margin-top:12px">No account. No setup. Nothing leaves this phone
+            until you ask it to.</p>
+          </div>
+          <div>
+            <div class="eyebrow dim" style="margin-bottom:10px">How far tonight?</div>
+            <div class="dial">
+              <div class="step"><div class="nm">Mild</div><div class="bar2"></div></div>
+              <div class="step on"><div class="nm">Flirty</div><div class="bar2"></div></div>
+              <div class="step"><div class="nm">Spicy</div><div class="bar2"></div></div>
+              <div class="step"><div class="nm">Hot</div><div class="bar2"></div></div>
+              <div class="step"><div class="nm">Extreme</div><div class="bar2"></div></div>
+            </div>
+            <p class="hint" style="margin-top:12px">Change it any time, mid-game, with one thumb.</p>
+          </div>
+        </div>
+        <div class="dock">
+          <div class="btn">We&rsquo;re both 18 or over &mdash; start</div>
+          <div class="btn quiet">I&rsquo;m not 18</div>
+        </div>
+      </div></div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============================ 2 HOME ============================ -->
+<section class="group">
+  <h2>2 &middot; Home</h2>
+  <p class="rationale">The whole product on one screen: how far, who's here, and what to play — with
+  Play&nbsp;Now sized so it's reachable without reading anything above it.</p>
+  <div class="frames">
+
+    <figure><figcaption>Home &mdash; <b>free month active</b></figcaption>
+      <div class="phone" data-heat="flirty"><div class="screen">
+        <div class="status"><span>23:15</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="title" style="text-align:left">Afterhours</div>
+          <div class="acts"><span class="act">Settings</span></div></div>
+        <div class="body top" style="gap:14px">
+          <div class="banner"><div class="k">Everything unlocked until <b>14 November</b></div></div>
+          <div class="toggle"><div class="on">Together</div><div>Apart</div></div>
+          <p class="hint" style="margin:-4px 2px 0">One phone, both of you.</p>
+          <div>
+            <div class="dial">
+              <div class="step"><div class="nm">Mild</div><div class="bar2"></div></div>
+              <div class="step on"><div class="nm">Flirty</div><div class="bar2"></div></div>
+              <div class="step"><div class="nm">Spicy</div><div class="bar2"></div></div>
+              <div class="step"><div class="nm">Hot</div><div class="bar2"></div></div>
+              <div class="step"><div class="nm">Extreme</div><div class="bar2"></div></div>
+            </div>
+          </div>
+          <div class="eyebrow dim" style="margin-top:4px">Or play something</div>
+          <div class="grid">
+            <div class="tile wide"><div class="t">Game Night</div>
+              <div class="g">A guided evening: warm up, build, peak, then land.</div></div>
+            <div class="tile"><div class="t">Heat Dice</div><div class="g">Three dice. Do what they say.</div></div>
+            <div class="tile"><div class="t">Truth or Dare</div><div class="g">The classic, with better questions.</div></div>
+            <div class="tile"><div class="t">Fantasy Match</div><div class="g">Only what you both said yes to.</div></div>
+            <div class="tile"><div class="t">Win It / Owe It</div><div class="g">Stake it in private.</div></div>
+          </div>
+        </div>
+        <div class="dock"><div class="btn">Play Now</div></div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Home &mdash; <b>free month over, three levels locked</b></figcaption>
+      <div class="phone" data-heat="flirty"><div class="screen">
+        <div class="status"><span>21:02</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="title" style="text-align:left">Afterhours</div>
+          <div class="acts"><span class="act">Settings</span></div></div>
+        <div class="body top" style="gap:14px">
+          <div class="toggle"><div class="on">Together</div><div>Apart</div></div>
+          <p class="hint" style="margin:-4px 2px 0">One phone, both of you.</p>
+          <div class="dial">
+            <div class="step"><div class="nm">Mild</div><div class="bar2"></div></div>
+            <div class="step on"><div class="nm">Flirty</div><div class="bar2"></div></div>
+            <div class="step"><div class="nm">Spicy</div><div class="bar2"></div><div class="lock">&#9679;</div></div>
+            <div class="step"><div class="nm">Hot</div><div class="bar2"></div><div class="lock">&#9679;</div></div>
+            <div class="step"><div class="nm">Extreme</div><div class="bar2"></div><div class="lock">&#9679;</div></div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:-6px"><span class="lockpill">Three levels locked</span></div>
+          <div class="eyebrow dim" style="margin-top:4px">Or play something</div>
+          <div class="grid">
+            <div class="tile wide"><div class="t">Game Night</div>
+              <div class="g">A guided evening: warm up, build, peak, then land.</div></div>
+            <div class="tile"><div class="t">Heat Dice</div><div class="g">Three dice. Do what they say.</div></div>
+            <div class="tile"><div class="t">Truth or Dare</div><div class="g">The classic, with better questions.</div></div>
+            <div class="tile"><div class="t">Would You Rather</div><div class="g">Two choices. No fence.</div></div>
+            <div class="tile"><div class="t">Hot or Not Quiz</div><div class="g">Guess what they said.</div></div>
+          </div>
+        </div>
+        <div class="dock"><div class="btn">Play Now</div></div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Home &mdash; <b>apart, paired</b></figcaption>
+      <div class="phone" data-heat="hot"><div class="screen">
+        <div class="status"><span>22:40</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="title" style="text-align:left">Afterhours</div>
+          <div class="acts"><span class="act">Settings</span></div></div>
+        <div class="body top" style="gap:14px">
+          <div class="toggle"><div>Together</div><div class="on">Apart</div></div>
+          <p class="hint" style="margin:-4px 2px 0">Paired with their phone.</p>
+          <div class="dial">
+            <div class="step"><div class="nm">Mild</div><div class="bar2"></div></div>
+            <div class="step"><div class="nm">Flirty</div><div class="bar2"></div></div>
+            <div class="step"><div class="nm">Spicy</div><div class="bar2"></div></div>
+            <div class="step on"><div class="nm">Hot</div><div class="bar2"></div></div>
+            <div class="step"><div class="nm">Extreme</div><div class="bar2"></div></div>
+          </div>
+          <div class="eyebrow dim" style="margin-top:4px">Or play something</div>
+          <div class="grid">
+            <div class="tile wide"><div class="t">Truth or Dare</div>
+              <div class="g">The classic, with better questions. Dares can ask for proof.</div></div>
+            <div class="tile"><div class="t">Fantasy Match</div><div class="g">Only what you both said yes to.</div></div>
+            <div class="tile"><div class="t">Would You Rather</div><div class="g">Two choices. No fence.</div></div>
+            <div class="tile"><div class="t">Win It / Owe It</div><div class="g">Stake it in private.</div></div>
+            <div class="tile"><div class="t">Hot or Not Quiz</div><div class="g">Guess what they said.</div></div>
+          </div>
+        </div>
+        <div class="dock"><div class="btn">Play Now</div></div>
+      </div></div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============================ 3 PAIRING ============================ -->
+<section class="group">
+  <h2>3 &middot; Pairing</h2>
+  <p class="rationale">The only setup in the app, and it only appears when you choose Apart — six
+  characters, no name, no address, and a pair that ends only when somebody says so.</p>
+  <div class="frames">
+
+    <figure><figcaption>Pair &mdash; <b>start</b></figcaption>
+      <div class="phone" data-heat="flirty"><div class="screen">
+        <div class="status"><span>22:41</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Pair</div><div class="acts"></div></div>
+        <div class="body" style="gap:20px">
+          <div>
+            <div class="eyebrow">Two phones</div>
+            <h3 class="display" style="margin-top:10px">One of you shows a code. The other types it.</h3>
+            <p class="sub" style="margin-top:12px">Twenty seconds, once. After that these two phones
+            stay a pair until one of you unpairs.</p>
+          </div>
+        </div>
+        <div class="dock">
+          <div class="btn">Show my code</div>
+          <div class="btn ghost">Enter their code</div>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Pair &mdash; <b>showing a code</b></figcaption>
+      <div class="phone" data-heat="flirty"><div class="screen">
+        <div class="status"><span>22:41</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Pair</div><div class="acts"></div></div>
+        <div class="body" style="gap:22px">
+          <div class="code">
+            <b>4</b><b>8</b><b>2</b><b>9</b><b>1</b><b>7</b>
+          </div>
+          <div class="qr">
+            <svg viewBox="0 0 29 29" width="124" height="124" aria-hidden="true">
+              <rect width="29" height="29" fill="#140F12"/>
+              <g fill="#D9B978">
+                <path d="M0 0h7v7H0zM1 1v5h5V1z" fill-rule="evenodd"/><rect x="2" y="2" width="3" height="3"/>
+                <path d="M22 0h7v7h-7zM23 1v5h5V1z" fill-rule="evenodd"/><rect x="24" y="2" width="3" height="3"/>
+                <path d="M0 22h7v7H0zM1 23v5h5v-5z" fill-rule="evenodd"/><rect x="2" y="24" width="3" height="3"/>
+                <rect x="9" y="1" width="1" height="1"/><rect x="11" y="1" width="2" height="1"/>
+                <rect x="9" y="3" width="2" height="1"/><rect x="13" y="3" width="1" height="2"/>
+                <rect x="10" y="5" width="1" height="2"/><rect x="12" y="6" width="2" height="1"/>
+                <rect x="1" y="9" width="2" height="1"/><rect x="4" y="9" width="1" height="2"/>
+                <rect x="6" y="10" width="2" height="1"/><rect x="2" y="12" width="1" height="2"/>
+                <rect x="5" y="13" width="2" height="1"/><rect x="0" y="15" width="2" height="1"/>
+                <rect x="3" y="16" width="1" height="2"/><rect x="6" y="17" width="2" height="1"/>
+                <rect x="9" y="9" width="2" height="2"/><rect x="12" y="10" width="2" height="1"/>
+                <rect x="15" y="9" width="1" height="2"/><rect x="17" y="11" width="2" height="1"/>
+                <rect x="10" y="13" width="1" height="2"/><rect x="13" y="14" width="2" height="1"/>
+                <rect x="16" y="13" width="1" height="2"/><rect x="19" y="14" width="1" height="2"/>
+                <rect x="9" y="17" width="2" height="1"/><rect x="12" y="18" width="1" height="2"/>
+                <rect x="15" y="17" width="2" height="2"/><rect x="18" y="19" width="2" height="1"/>
+                <rect x="22" y="9" width="1" height="2"/><rect x="24" y="10" width="2" height="1"/>
+                <rect x="27" y="9" width="1" height="2"/><rect x="23" y="13" width="2" height="1"/>
+                <rect x="26" y="14" width="1" height="2"/><rect x="22" y="17" width="2" height="1"/>
+                <rect x="25" y="18" width="1" height="2"/><rect x="27" y="16" width="1" height="2"/>
+                <rect x="9" y="22" width="1" height="2"/><rect x="11" y="23" width="2" height="1"/>
+                <rect x="14" y="22" width="1" height="2"/><rect x="16" y="24" width="2" height="1"/>
+                <rect x="10" y="26" width="2" height="1"/><rect x="13" y="27" width="1" height="1"/>
+                <rect x="19" y="22" width="2" height="1"/><rect x="22" y="23" width="1" height="2"/>
+                <rect x="25" y="22" width="2" height="2"/><rect x="20" y="25" width="1" height="2"/>
+                <rect x="23" y="26" width="2" height="1"/><rect x="27" y="25" width="1" height="2"/>
+              </g>
+            </svg>
+          </div>
+          <p class="hint" style="text-align:center">Good until they use it. Nobody else can.</p>
+        </div>
+        <div class="dock"><div class="btn ghost">Enter their code instead</div></div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Pair &mdash; <b>entering a code</b></figcaption>
+      <div class="phone" data-heat="flirty"><div class="screen">
+        <div class="status"><span>22:42</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Pair</div><div class="acts"></div></div>
+        <div class="body top" style="gap:26px;padding-top:26px">
+          <div class="code">
+            <b>4</b><b>8</b><b>2</b><b class="cur empty">&middot;</b><b class="empty">&middot;</b><b class="empty">&middot;</b>
+          </div>
+          <div class="keys">
+            <div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div>
+            <div>7</div><div>8</div><div>9</div><div class="blank"></div><div>0</div><div>&#9003;</div>
+          </div>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Pair &mdash; <b>code refused</b></figcaption>
+      <div class="phone" data-heat="flirty"><div class="screen">
+        <div class="status"><span>22:42</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Pair</div><div class="acts"></div></div>
+        <div class="body top" style="gap:18px;padding-top:26px">
+          <div class="code">
+            <b style="border-color:var(--signal-deep)">4</b><b style="border-color:var(--signal-deep)">8</b>
+            <b style="border-color:var(--signal-deep)">2</b><b style="border-color:var(--signal-deep)">9</b>
+            <b style="border-color:var(--signal-deep)">1</b><b style="border-color:var(--signal-deep)">1</b>
+          </div>
+          <p class="sub" style="text-align:center;color:var(--signal)">That code has already been used.
+          Ask them to show a new one.</p>
+          <div class="keys" style="margin-top:8px">
+            <div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div>
+            <div>7</div><div>8</div><div>9</div><div class="blank"></div><div>0</div><div>&#9003;</div>
+          </div>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Pair &mdash; <b>paired</b></figcaption>
+      <div class="phone" data-heat="flirty"><div class="screen">
+        <div class="status"><span>22:43</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="title">Pair</div><div class="acts"></div></div>
+        <div class="body" style="gap:20px">
+          <div class="hero lit"><div>
+            <div class="eyebrow">Paired</div>
+            <h4 class="display">That&rsquo;s the two of you.</h4>
+            <p class="sub">These two phones are a pair until one of you unpairs. Nothing is stored
+            anywhere else, and nobody can join.</p>
+          </div></div>
+        </div>
+        <div class="dock"><div class="btn">Start playing</div></div>
+      </div></div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============================ 4 ONE PHONE ============================ -->
+<section class="group">
+  <h2>4 &middot; Playing on one phone</h2>
+  <p class="rationale">A game of turns has to change hands, so the round opens by saying whose it is —
+  and the hand-off is the one screen in the app with no chrome at all.</p>
+  <div class="frames">
+
+    <figure><figcaption>Hand-off &mdash; <b>nothing of what comes next</b></figcaption>
+      <div class="phone" data-heat="flirty"><div class="screen">
+        <div class="status"><span>23:20</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Truth or Dare</div><div class="acts"></div></div>
+        <div class="rail"><span class="on"></span><span class="now"></span><span></span><span></span><span></span><span></span></div>
+        <div class="body">
+          <div class="hero lit"><div><h4 class="display" style="text-align:center">Pass the phone to Alex.</h4></div></div>
+        </div>
+        <div class="dock"><div class="btn">I&rsquo;ve got it</div></div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Who&rsquo;s playing &mdash; <b>asked once, at the first hand-off</b></figcaption>
+      <div class="phone" data-heat="flirty"><div class="screen">
+        <div class="status"><span>23:19</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Truth or Dare</div><div class="acts"></div></div>
+        <div class="body" style="gap:16px">
+          <div>
+            <div class="eyebrow">Before you pass it</div>
+            <h4 class="display" style="margin-top:8px">Who&rsquo;s playing?</h4>
+            <p class="sub" style="margin-top:10px">So the phone can say whose turn it is. It stays on
+            this phone, and you can skip it.</p>
+          </div>
+          <div class="field"><div class="lb">Whoever started</div>Alex</div>
+          <div class="field"><div class="lb">The other one</div>Sam</div>
+        </div>
+        <div class="dock">
+          <div class="btn">That&rsquo;s us</div>
+          <div class="btn quiet">Not now</div>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>A card &mdash; <b>first round, with the game&rsquo;s one-line rule</b></figcaption>
+      <div class="phone" data-heat="flirty"><div class="screen">
+        <div class="status"><span>23:21</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Tonight</div>
+          <div class="acts"><span class="act">Too far</span><span class="act stop">Stop</span></div></div>
+        <div class="rail"><span class="now"></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="body" style="gap:14px">
+          <p class="rule">Take turns choosing truth or dare. Everything stays inside both your limits.</p>
+          <div class="hero lit"><div>
+            <div class="eyebrow">Flirty &middot; 5 min</div>
+            <h4 class="display">Neck Teaser</h4>
+            <p class="lead">Kiss their neck slowly, working your way up to their ear. Whisper what you
+            want to do to them. Go back to kissing. Make them shiver with anticipation.</p>
+          </div></div>
+        </div>
+        <div class="dock">
+          <div class="btns"><div class="btn ghost" style="flex:.8">Skip</div><div class="btn">Done</div></div>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Heat Dice &mdash; <b>mid-roll</b></figcaption>
+      <div class="phone" data-heat="spicy"><div class="screen">
+        <div class="status"><span>23:26</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Heat Dice</div>
+          <div class="acts"><span class="act">Too far</span><span class="act stop">Stop</span></div></div>
+        <div class="rail"><span class="on"></span><span class="now"></span><span></span><span></span><span></span><span></span></div>
+        <div class="body" style="gap:16px">
+          <div><div class="eyebrow">Alex</div>
+            <h4 class="display" style="margin-top:6px">They stay completely still. You don&rsquo;t.</h4></div>
+          <div class="dice">
+            <div class="die"><div class="lb">How</div><div class="face blur tumble1">Slowly</div><div class="pips"></div></div>
+            <div class="die"><div class="lb">Which</div><div class="face blur tumble2">Their back</div><div class="pips"></div></div>
+            <div class="die"><div class="lb">How long</div><div class="face blur tumble3">1 minute</div><div class="pips"></div></div>
+          </div>
+        </div>
+        <div class="dock"><div class="btn">Land them</div></div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Heat Dice &mdash; <b>landed, with the clock the third die gave</b></figcaption>
+      <div class="phone" data-heat="spicy"><div class="screen">
+        <div class="status"><span>23:26</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Heat Dice</div>
+          <div class="acts"><span class="act">Too far</span><span class="act stop">Stop</span></div></div>
+        <div class="rail"><span class="on"></span><span class="now"></span><span></span><span></span><span></span><span></span></div>
+        <div class="body" style="gap:14px">
+          <div><div class="eyebrow">Alex</div>
+            <h4 class="display" style="margin-top:6px">They stay completely still. You don&rsquo;t.</h4></div>
+          <div class="dice">
+            <div class="die on"><div class="lb">How</div><div class="face">Their way</div>
+              <div class="pips"><s></s><s></s><s></s><s></s><s></s></div></div>
+            <div class="die on"><div class="lb">Which</div><div class="face">Their neck</div>
+              <div class="pips"><s></s></div></div>
+            <div class="die on"><div class="lb">How long</div><div class="face">2 minutes</div>
+              <div class="pips"><s></s><s></s></div></div>
+          </div>
+          <div class="ring"><div class="n">2:00</div><div class="u">on the clock</div></div>
+        </div>
+        <div class="dock"><div class="btn">Start the clock</div></div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Truth or Dare &mdash; <b>the choice</b></figcaption>
+      <div class="phone" data-heat="hot"><div class="screen">
+        <div class="status"><span>23:31</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Truth or Dare</div>
+          <div class="acts"><span class="act">Too far</span><span class="act stop">Stop</span></div></div>
+        <div class="rail"><span class="on"></span><span class="on"></span><span class="now"></span><span></span><span></span><span></span></div>
+        <div class="body">
+          <div class="hero lit"><div>
+            <div class="eyebrow">Sam</div>
+            <h4 class="display">Truth or dare?</h4>
+          </div></div>
+        </div>
+        <div class="dock">
+          <div class="btns"><div class="btn ghost">Truth</div><div class="btn">Dare</div></div>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Truth or Dare &mdash; <b>the dare</b></figcaption>
+      <div class="phone" data-heat="hot"><div class="screen">
+        <div class="status"><span>23:32</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Truth or Dare</div>
+          <div class="acts"><span class="act">Too far</span><span class="act stop">Stop</span></div></div>
+        <div class="rail"><span class="on"></span><span class="on"></span><span class="now"></span><span></span><span></span><span></span></div>
+        <div class="body">
+          <div class="hero lit"><div>
+            <div class="eyebrow">Dare &middot; Sam</div>
+            <h4 class="display">One hand only, and once it lands it does not leave until the clock does.</h4>
+          </div></div>
+        </div>
+        <div class="dock">
+          <div class="btn">Done</div>
+          <div class="btn quiet">Not this one</div>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>A reveal &mdash; <b>both answers, and what they add up to</b></figcaption>
+      <div class="phone" data-heat="flirty"><div class="screen">
+        <div class="status"><span>23:38</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Would You Rather</div>
+          <div class="acts"><span class="act stop">Stop</span></div></div>
+        <div class="rail"><span class="on"></span><span class="on"></span><span class="on"></span><span class="now"></span><span></span><span></span></div>
+        <div class="body" style="gap:16px">
+          <div class="eyebrow" style="text-align:center">You both said</div>
+          <div style="display:flex;gap:9px">
+            <div class="answer"><div class="w">Alex</div><div class="a">Lights off</div></div>
+            <div class="answer" style="border-color:color-mix(in srgb,var(--accent) 50%,transparent)">
+              <div class="w">Sam</div><div class="a">Lights off</div></div>
+          </div>
+          <div class="hero"><div style="padding:16px 18px">
+            <h4 class="display" style="text-align:center">A match. That&rsquo;s three in a row.</h4>
+          </div></div>
+        </div>
+        <div class="dock"><div class="btn">Next</div></div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Session end &mdash; <b>after a Hot run, with aftercare</b></figcaption>
+      <div class="phone" data-heat="hot"><div class="screen">
+        <div class="status"><span>00:12</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Tonight</div><div class="acts"></div></div>
+        <div class="body" style="gap:14px">
+          <div class="hero"><div>
+            <div class="eyebrow">That&rsquo;s 6</div>
+            <h4 class="display">Stop here, or keep going?</h4>
+            <p class="sub">There is plenty left, and an evening does not end on its own.</p>
+          </div></div>
+          <div class="row"><div>
+            <div class="eyebrow" style="margin-bottom:6px">Before you put it down</div>
+            <div style="font-family:var(--display);font-size:19px;line-height:24px">Stay Close</div>
+            <p class="sub" style="margin-top:6px">After everything, lie close and tell each other the
+            best moment of tonight. Water, blankets, and no phones until morning.</p>
+          </div></div>
+        </div>
+        <div class="dock">
+          <div class="btn">Keep going</div>
+          <div class="btn quiet">That&rsquo;s us for tonight</div>
+        </div>
+      </div></div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============================ 5 TWO PHONES ============================ -->
+<section class="group">
+  <h2>5 &middot; Playing apart, on two phones</h2>
+  <p class="rationale">Same games, different waiting — and the only place a photo or a voice note exists
+  in this app is here, as the answer to a dare that asked for proof.</p>
+  <div class="frames">
+
+    <figure><figcaption>Apart &mdash; <b>your turn</b></figcaption>
+      <div class="phone" data-heat="hot"><div class="screen">
+        <div class="status"><span>21:48</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Truth or Dare</div>
+          <div class="acts"><span class="act">Too far</span><span class="act stop">Stop</span></div></div>
+        <div class="rail"><span class="on"></span><span class="now"></span><span></span><span></span><span></span><span></span></div>
+        <div class="body" style="gap:12px">
+          <p class="rule">Their phone is with you. Sam is playing too.</p>
+          <div class="hero lit"><div>
+            <div class="eyebrow">Dare &middot; You</div>
+            <h4 class="display">Their eyes stay shut. Yours don&rsquo;t.</h4>
+          </div></div>
+        </div>
+        <div class="dock">
+          <div class="btn">Done</div>
+          <div class="btn quiet">Not this one</div>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Apart &mdash; <b>waiting for them</b></figcaption>
+      <div class="phone" data-heat="hot"><div class="screen">
+        <div class="status"><span>21:49</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Truth or Dare</div>
+          <div class="acts"><span class="act stop">Stop</span></div></div>
+        <div class="rail"><span class="on"></span><span class="now"></span><span></span><span></span><span></span><span></span></div>
+        <div class="body">
+          <div class="wait">
+            <div class="pulse"><s></s></div>
+            <h4 class="display">They&rsquo;re answering.</h4>
+            <p class="sub" style="max-width:26ch">You&rsquo;ll see it the moment they&rsquo;re done.</p>
+          </div>
+        </div>
+        <div class="dock"><div class="btn quiet">Leave the game</div></div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Apart &mdash; <b>a dare that asks for proof</b></figcaption>
+      <div class="phone" data-heat="extreme"><div class="screen">
+        <div class="status"><span>22:02</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Truth or Dare</div>
+          <div class="acts"><span class="act">Too far</span><span class="act stop">Stop</span></div></div>
+        <div class="rail"><span class="on"></span><span class="on"></span><span class="now"></span><span></span><span></span><span></span></div>
+        <div class="body" style="gap:14px">
+          <div class="hero lit"><div>
+            <div class="eyebrow">Dare &middot; You</div>
+            <h4 class="display">Do it, then prove it.</h4>
+            <p class="sub">They don&rsquo;t get to see it twice.</p>
+          </div></div>
+        </div>
+        <div class="dock">
+          <div class="btns"><div class="btn ghost sm">Record a voice note</div><div class="btn sm">Take a photo</div></div>
+          <div class="btn quiet">Say it out loud instead</div>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Apart &mdash; <b>recording</b></figcaption>
+      <div class="phone" data-heat="extreme"><div class="screen">
+        <div class="status"><span>22:03</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Truth or Dare</div>
+          <div class="acts"><span class="act stop">Stop</span></div></div>
+        <div class="rail"><span class="on"></span><span class="on"></span><span class="now"></span><span></span><span></span><span></span></div>
+        <div class="body" style="gap:20px">
+          <div class="eyebrow" style="text-align:center">Recording</div>
+          <div class="meter">
+            <s style="height:9px"></s><s style="height:19px"></s><s style="height:31px"></s><s style="height:14px"></s>
+            <s style="height:36px"></s><s style="height:24px"></s><s style="height:38px"></s><s style="height:16px"></s>
+            <s style="height:28px"></s><s style="height:11px"></s><s style="height:22px"></s><s style="height:33px"></s>
+            <s style="height:17px"></s><s style="height:26px"></s><s style="height:8px"></s>
+          </div>
+          <h4 class="display" style="text-align:center">0:14</h4>
+          <p class="hint" style="text-align:center">It goes to them and nowhere else.</p>
+        </div>
+        <div class="dock">
+          <div class="btn">Stop and send</div>
+          <div class="btn quiet">Start again</div>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Apart &mdash; <b>sent</b></figcaption>
+      <div class="phone" data-heat="extreme"><div class="screen">
+        <div class="status"><span>22:03</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Truth or Dare</div>
+          <div class="acts"><span class="act stop">Stop</span></div></div>
+        <div class="rail"><span class="on"></span><span class="on"></span><span class="now"></span><span></span><span></span><span></span></div>
+        <div class="body" style="gap:16px">
+          <div class="wait">
+            <div class="pulse"><s></s></div>
+            <h4 class="display">Sent.</h4>
+            <p class="sub" style="max-width:28ch">They can open it once. Then it&rsquo;s gone from both
+            phones.</p>
+          </div>
+          <div class="voice" style="margin-top:4px">
+            <div class="play"></div>
+            <div class="wave">
+              <s style="height:7px"></s><s style="height:15px"></s><s style="height:21px"></s><s style="height:11px"></s>
+              <s style="height:18px"></s><s style="height:9px"></s><s style="height:20px"></s><s style="height:13px"></s>
+              <s style="height:16px"></s><s style="height:8px"></s><s style="height:19px"></s><s style="height:12px"></s>
+            </div>
+            <span class="hint">0:14</span>
+          </div>
+        </div>
+        <div class="dock"><div class="btn ghost">Waiting for Sam</div></div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Apart &mdash; <b>their proof arrived, once only</b></figcaption>
+      <div class="phone" data-heat="extreme"><div class="screen">
+        <div class="status"><span>22:05</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Truth or Dare</div>
+          <div class="acts"><span class="act stop">Stop</span></div></div>
+        <div class="rail"><span class="on"></span><span class="on"></span><span class="now"></span><span></span><span></span><span></span></div>
+        <div class="body" style="gap:14px">
+          <div class="eyebrow">Sam did it</div>
+          <div class="photo"><div class="veil">
+            <span class="lockpill">Once only</span>
+            <p class="sub">Open it when you&rsquo;re ready. It disappears from both phones after.</p>
+          </div></div>
+        </div>
+        <div class="dock"><div class="btn">Open it</div></div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Apart &mdash; <b>opened, and the reaction row</b></figcaption>
+      <div class="phone" data-heat="extreme"><div class="screen">
+        <div class="status"><span>22:05</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Truth or Dare</div>
+          <div class="acts"><span class="act stop">Stop</span></div></div>
+        <div class="rail"><span class="on"></span><span class="on"></span><span class="now"></span><span></span><span></span><span></span></div>
+        <div class="body" style="gap:14px">
+          <div class="eyebrow">Sam did it</div>
+          <div class="photo"></div>
+          <p class="hint" style="text-align:center">This one is gone now &mdash; for both of you.</p>
+          <div class="reactions"><div>Loved it</div><div>It was fine</div><div>Not for us</div></div>
+        </div>
+        <div class="dock"><div class="btn">Your turn</div></div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Apart &mdash; <b>partner is away</b></figcaption>
+      <div class="phone" data-heat="hot"><div class="screen">
+        <div class="status"><span>22:31</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Truth or Dare</div>
+          <div class="acts"><span class="act stop">Stop</span></div></div>
+        <div class="rail"><span class="on"></span><span class="on"></span><span class="now"></span><span></span><span></span><span></span></div>
+        <div class="body">
+          <div class="wait">
+            <div class="pulse" style="border-color:var(--outline-faint)"><s style="background:#2A2126"></s></div>
+            <h4 class="display">Sam has been away a while.</h4>
+            <p class="sub" style="max-width:28ch">The round keeps your place. Nothing is lost if you
+            close the app.</p>
+          </div>
+        </div>
+        <div class="dock">
+          <div class="btn ghost">Nudge them</div>
+          <div class="btn quiet">Leave the game</div>
+        </div>
+      </div></div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============================ 6 MONEY ============================ -->
+<section class="group">
+  <h2>6 &middot; Money</h2>
+  <p class="rationale">A locked level is answered where it was tapped, with what's inside and what it
+  costs — no countdown, no crossed-out price, no second screen between wanting it and having it.</p>
+  <div class="frames">
+
+    <figure><figcaption>Locked level tapped &mdash; <b>answered in place</b></figcaption>
+      <div class="phone" data-heat="spicy"><div class="screen">
+        <div class="status"><span>21:04</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="title" style="text-align:left">Afterhours</div>
+          <div class="acts"><span class="act">Settings</span></div></div>
+        <div class="body" style="gap:14px">
+          <div class="hero lit"><div>
+            <span class="lockpill">Spicy</span>
+            <h4 class="display" style="margin-top:4px">178 cards you haven&rsquo;t seen.</h4>
+            <p class="sub">Where the evening turns. Spicy sits above Flirty and below Hot, and it
+            unlocks for good &mdash; no subscription.</p>
+            <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px">
+              <span style="font-family:var(--display);font-size:28px">&euro;4.99</span>
+              <span class="hint">once</span>
+            </div>
+          </div></div>
+        </div>
+        <div class="dock">
+          <div class="btn">Unlock Spicy</div>
+          <div class="btn quiet">Not now</div>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Store &mdash; <b>three packs and a bundle</b></figcaption>
+      <div class="phone" data-heat="hot"><div class="screen">
+        <div class="status"><span>21:05</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Packs</div><div class="acts"></div></div>
+        <div class="body top" style="gap:11px;padding-top:6px">
+          <p class="sub">Mild and Flirty are free for ever. These three unlock once and stay unlocked.</p>
+          <div class="pack"><div class="h"><div style="font-family:var(--display);font-size:19px">Spicy</div>
+            <div class="p">&euro;4.99</div></div>
+            <p class="hint" style="margin-top:5px">178 cards. Where the evening turns.</p></div>
+          <div class="pack"><div class="h"><div style="font-family:var(--display);font-size:19px">Hot</div>
+            <div class="p">&euro;4.99</div></div>
+            <p class="hint" style="margin-top:5px">173 cards. Explicit in intent, and both of you say yes first.</p></div>
+          <div class="pack"><div class="h"><div style="font-family:var(--display);font-size:19px">Extreme</div>
+            <div class="p">&euro;4.99</div></div>
+            <p class="hint" style="margin-top:5px">161 cards. The furthest this goes.</p></div>
+          <div class="pack hero2"><div class="h"><div style="font-family:var(--display);font-size:19px">All three</div>
+            <div class="p" style="color:var(--brass)">&euro;9.99</div></div>
+            <p class="hint" style="margin-top:5px">Every level, for both phones once you&rsquo;re paired.</p></div>
+        </div>
+        <div class="dock">
+          <div class="btn">Unlock all three</div>
+          <div class="btn quiet">Restore a purchase</div>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Free month &mdash; <b>three days left</b></figcaption>
+      <div class="phone" data-heat="extreme"><div class="screen">
+        <div class="status"><span>20:12</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="title" style="text-align:left">Afterhours</div>
+          <div class="acts"><span class="act">Settings</span></div></div>
+        <div class="body top" style="gap:14px">
+          <div class="banner" style="border-color:color-mix(in srgb,var(--brass) 40%,transparent);background:#2A2116">
+            <div class="k">Everything is unlocked for <b style="color:var(--brass)">three more days</b>.
+            After that, Mild and Flirty stay free.</div></div>
+          <div class="toggle"><div class="on">Together</div><div>Apart</div></div>
+          <p class="hint" style="margin:-4px 2px 0">One phone, both of you.</p>
+          <div class="dial">
+            <div class="step"><div class="nm">Mild</div><div class="bar2"></div></div>
+            <div class="step"><div class="nm">Flirty</div><div class="bar2"></div></div>
+            <div class="step"><div class="nm">Spicy</div><div class="bar2"></div></div>
+            <div class="step"><div class="nm">Hot</div><div class="bar2"></div></div>
+            <div class="step on"><div class="nm">Extreme</div><div class="bar2"></div></div>
+          </div>
+          <div class="eyebrow dim" style="margin-top:4px">Or play something</div>
+          <div class="grid">
+            <div class="tile wide"><div class="t">Game Night</div>
+              <div class="g">A guided evening: warm up, build, peak, then land.</div></div>
+            <div class="tile"><div class="t">Heat Dice</div><div class="g">Three dice. Do what they say.</div></div>
+            <div class="tile"><div class="t">Truth or Dare</div><div class="g">The classic, with better questions.</div></div>
+          </div>
+        </div>
+        <div class="dock"><div class="btn">Play Now</div></div>
+      </div></div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============================ 7 SETTINGS ============================ -->
+<section class="group">
+  <h2>7 &middot; Settings</h2>
+  <p class="rationale">One list, and nothing in it that looks like an account — the pair is a fact about
+  two phones, and unpairing is the only thing here that touches the other one.</p>
+  <div class="frames">
+
+    <figure><figcaption>Settings &mdash; <b>paired</b></figcaption>
+      <div class="phone" data-heat="flirty"><div class="screen">
+        <div class="status"><span>19:40</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Settings</div><div class="acts"></div></div>
+        <div class="body top" style="gap:0;padding-top:4px">
+          <div class="sectlabel">You</div>
+          <div class="list">
+            <div class="it"><div><div class="n">Your limits</div>
+              <div class="d">What you&rsquo;re up for, and what you&rsquo;re not.</div></div><div class="v">&#8250;</div></div>
+            <div class="it"><div><div class="n">App lock</div>
+              <div class="d">A PIN or your fingerprint, on this phone.</div></div><div class="v">On</div></div>
+            <div class="it"><div><div class="n">Panic</div>
+              <div class="d">Two taps of back locks the app.</div></div><div class="v">On</div></div>
+          </div>
+          <div class="sectlabel">How it looks on your home screen</div>
+          <div style="display:flex;gap:9px">
+            <div class="tile" style="flex:1;text-align:center;border-color:var(--accent)">
+              <div class="t" style="font-size:14px">Afterhours</div></div>
+            <div class="tile" style="flex:1;text-align:center"><div class="t" style="font-size:14px">Notes</div></div>
+            <div class="tile" style="flex:1;text-align:center"><div class="t" style="font-size:14px">Calculator</div></div>
+          </div>
+          <div class="sectlabel">The two of you</div>
+          <div class="list">
+            <div class="it"><div><div class="n">Paired</div>
+              <div class="d">Since 14 October. Nothing expires it.</div></div><div class="v">&#9679;</div></div>
+            <div class="it"><div><div class="n" style="color:var(--signal)">Unpair and wipe</div>
+              <div class="d">Ends the pair on both phones and clears everything shared.</div></div><div class="v">&#8250;</div></div>
+          </div>
+          <div class="sectlabel">Packs</div>
+          <div class="list">
+            <div class="it"><div><div class="n">Spicy, Hot, Extreme</div>
+              <div class="d">Unlocked on both phones.</div></div><div class="v">Owned</div></div>
+            <div class="it"><div><div class="n">Restore a purchase</div></div><div class="v">&#8250;</div></div>
+          </div>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Settings &mdash; <b>not paired</b></figcaption>
+      <div class="phone" data-heat="flirty"><div class="screen">
+        <div class="status"><span>19:41</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Settings</div><div class="acts"></div></div>
+        <div class="body top" style="gap:0;padding-top:4px">
+          <div class="sectlabel">You</div>
+          <div class="list">
+            <div class="it"><div><div class="n">Your limits</div>
+              <div class="d">What you&rsquo;re up for, and what you&rsquo;re not.</div></div><div class="v">&#8250;</div></div>
+            <div class="it"><div><div class="n">App lock</div>
+              <div class="d">A PIN or your fingerprint, on this phone.</div></div><div class="v">Off</div></div>
+            <div class="it"><div><div class="n">Panic</div>
+              <div class="d">Two taps of back locks the app.</div></div><div class="v">Off</div></div>
+          </div>
+          <div class="sectlabel">The two of you</div>
+          <div class="row" style="margin-top:2px"><div>
+            <div style="font-size:15px">Not paired yet</div>
+            <p class="sub" style="margin-top:5px">Pairing is only for playing apart. Together mode
+            needs nothing at all.</p>
+            <div class="btn ghost sm" style="margin-top:12px">Pair with their phone</div>
+          </div></div>
+          <div class="sectlabel">Packs</div>
+          <div class="list">
+            <div class="it"><div><div class="n">Spicy</div><div class="d">&euro;4.99, once.</div></div><div class="v">&#8250;</div></div>
+            <div class="it"><div><div class="n">Hot</div><div class="d">&euro;4.99, once.</div></div><div class="v">&#8250;</div></div>
+            <div class="it"><div><div class="n">Extreme</div><div class="d">&euro;4.99, once.</div></div><div class="v">&#8250;</div></div>
+          </div>
+          <div class="sectlabel">About</div>
+          <div class="list"><div class="it"><div><div class="n">Version</div></div><div class="v">2.0.0</div></div></div>
+        </div>
+      </div></div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============================ 8 SAFETY ============================ -->
+<section class="group">
+  <h2>8 &middot; Safety</h2>
+  <p class="rationale">Stop asks nothing and argues with nobody; it is the one control in the app that
+  never takes the heat colour, because "end this now" must not read as decoration.</p>
+  <div class="frames">
+
+    <figure><figcaption>Stop pressed &mdash; <b>the evening pauses</b></figcaption>
+      <div class="phone" data-heat="extreme"><div class="screen">
+        <div class="status"><span>23:58</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Tonight</div><div class="acts"></div></div>
+        <div class="body">
+          <div class="hero" style="background:linear-gradient(180deg,rgba(255,180,168,.5),rgba(58,47,53,.5) 70%)">
+            <div>
+              <div class="eyebrow" style="color:var(--signal)">Stopped</div>
+              <h4 class="display">Everything is paused.</h4>
+              <p class="sub">Nothing is asked, nothing is recorded. Take as long as you want.</p>
+            </div>
+          </div>
+        </div>
+        <div class="dock">
+          <div class="btn sig">Carry on gently</div>
+          <div class="btn quiet">That&rsquo;s us for tonight</div>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Extreme gate &mdash; <b>asked once a session</b></figcaption>
+      <div class="phone" data-heat="extreme"><div class="screen">
+        <div class="status"><span>23:11</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Extreme</div><div class="acts"></div></div>
+        <div class="body">
+          <div class="hero lit"><div>
+            <div class="eyebrow">Extreme</div>
+            <h4 class="display">Both of you want this?</h4>
+            <p class="sub">Extreme is the furthest this goes. Nothing here is a dare and nothing is a
+            measure of anything &mdash; either of you can stop it at any point, and the word stands.</p>
+          </div></div>
+        </div>
+        <div class="dock">
+          <div class="btn">We&rsquo;re both in</div>
+          <div class="btn quiet">Not tonight &mdash; turn it down</div>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure><figcaption>Limits &mdash; <b>eight questions, no free text</b></figcaption>
+      <div class="phone" data-heat="flirty"><div class="screen">
+        <div class="status"><span>19:44</span><span class="right"><i></i><i class="b"></i></span></div>
+        <div class="bar"><div class="back">&#8249;</div><div class="title">Your limits</div><div class="acts"></div></div>
+        <div class="rail"><span class="on"></span><span class="on"></span><span class="on"></span><span class="now"></span><span></span><span></span><span></span><span></span></div>
+        <div class="body top" style="gap:16px;padding-top:18px">
+          <p class="sub">Only you see this. It narrows what either phone deals, and you can change it
+          any time.</p>
+          <div class="row"><div>
+            <div style="font-size:16px;line-height:22px">Being told what to do</div>
+            <p class="hint" style="margin:4px 0 11px">Instructions, leading, following.</p>
+            <div class="yn"><div>Yes</div><div class="on">Maybe</div><div>No</div></div>
+          </div></div>
+          <div class="row"><div>
+            <div style="font-size:16px;line-height:22px">Blindfolds and the dark</div>
+            <p class="hint" style="margin:4px 0 11px">Taking sight away so everything else sharpens.</p>
+            <div class="yn"><div>Yes</div><div>Maybe</div><div>No</div></div>
+          </div></div>
+        </div>
+        <div class="dock"><div class="btn">Next</div></div>
+      </div></div>
+    </figure>
+
+  </div>
+</section>
+
+</body>
+</html>
