@@ -32,6 +32,8 @@ object AppModule {
     fun provideFirebaseEnvironment(): FirebaseEnvironment = FirebaseEnvironment(
         name = BuildConfig.ENVIRONMENT,
         useEmulator = BuildConfig.USE_FIREBASE_EMULATOR,
+        // Empty outside dev, where there is no emulator to find (D-134).
+        emulatorHost = BuildConfig.DEV_EMULATOR_HOST.ifEmpty { FirebaseEnvironment.ANDROID_EMULATOR_LOOPBACK },
     )
 
     @Provides

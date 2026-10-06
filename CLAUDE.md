@@ -460,6 +460,19 @@ system sets its size in `robolectric.properties`.
 **The dev flavor needs cleartext to the emulators** — `src/dev/res/xml/network_security_config.xml`,
 dev only (D-026). Without it every Firebase call on a device fails.
 
+**`10.0.2.2` is the Android emulator's address for this machine, and means nothing on a real
+phone.** For a device on the same network, build with its address and let the suite listen beyond
+localhost (`firebase.json` binds `0.0.0.0`) — D-134:
+
+```bash
+./gradlew installDevDebug -PdevEmulatorHost=192.168.1.20
+```
+
+**An App Check error in a `dev` run is noise.** The dev `google-services.json` is a placeholder for
+a project that does not exist, so the debug token can never be exchanged and the console link in the
+error cannot help. Dev installs no App Check provider at all now (D-134); if you see one, the build
+is not the dev flavour.
+
 **The nav host is inset at the root** (`safeDrawingPadding()`, including the keyboard). Screens
 do not add status-bar or IME padding of their own (D-028).
 

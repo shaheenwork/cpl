@@ -2496,3 +2496,39 @@ missing. A dealt game went straight into its first round, so Heat Dice opened on
 sentence with nothing anywhere saying what the dice were for. The game's own one-line description is
 shown while its first round is on screen, and never after it — not on the hand-off, which has no
 chrome on purpose.
+
+
+---
+
+## D-134 — The dev build on a real phone: a host it cannot reach, and an App Check it cannot pass
+
+Two separate things, reported together as "it works on one phone and not the other", and the
+error on screen was the one that mattered least.
+
+**The App Check error is noise, and always was.** The `dev` flavour ships a placeholder
+`google-services.json` — project `afterhours-dev-emulator`, app id `1:000000000000:android:0…` —
+precisely so that a developer needs no Firebase project. The debug provider then tries to exchange
+its token with Google for an app that does not exist, fails, and logs an error naming a console
+page that cannot help: registering the token in a *real* project changes nothing, because the app
+is not talking to that project. Meanwhile nothing was being protected — `enforceAppCheck` is only on
+outside the emulators, and the emulators verify no tokens at all. So the dev build installs no App
+Check provider. A debuggable build against a real project still uses the debug provider, which is
+the case the console's "Manage debug tokens" exists for.
+
+**The real difference between the two phones is the host.** `FirebaseEnvironment.emulatorHost`
+defaulted to `10.0.2.2`, and nothing ever set it to anything else. That address is the Android
+emulator's alias for the machine it runs on; on a physical phone it means nothing, so every Firebase
+call goes nowhere. The app still plays — the deck, the games and Game Night are all shipped content
+and need no server — which is exactly why this took so long to notice: the difference shows up only
+where an account does.
+
+So the host is a build property now:
+
+```bash
+./gradlew installDevDebug -PdevEmulatorHost=192.168.1.20
+```
+
+and `firebase.json` binds the emulators to `0.0.0.0` rather than localhost, because a suite
+listening only on the loopback cannot be reached from a phone whatever address the phone is given.
+That does put the dev emulators on the local network while they are running — they hold fake data
+for a fake project, and the alternative is that a real device cannot be developed against at all.

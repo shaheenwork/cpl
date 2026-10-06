@@ -36,6 +36,19 @@ android {
             versionNameSuffix = "-dev"
             buildConfigField("boolean", "USE_FIREBASE_EMULATOR", "true")
             buildConfigField("String", "ENVIRONMENT", "\"dev\"")
+            // Where the Emulator Suite is, as the phone can see it. 10.0.2.2 is the Android
+            // emulator's alias for this machine and means nothing on a real device, so a phone
+            // on the same network is given the machine's own address instead:
+            //
+            //     ./gradlew installDevDebug -PdevEmulatorHost=192.168.1.20
+            //
+            // and `firebase emulators:start` has to be listening on more than localhost, which
+            // firebase.json now sets (D-134).
+            buildConfigField(
+                "String",
+                "DEV_EMULATOR_HOST",
+                "\"${project.findProperty("devEmulatorHost") ?: "10.0.2.2"}\"",
+            )
         }
         create("staging") {
             dimension = "environment"
@@ -43,11 +56,13 @@ android {
             versionNameSuffix = "-staging"
             buildConfigField("boolean", "USE_FIREBASE_EMULATOR", "false")
             buildConfigField("String", "ENVIRONMENT", "\"staging\"")
+            buildConfigField("String", "DEV_EMULATOR_HOST", "\"\"")
         }
         create("prod") {
             dimension = "environment"
             buildConfigField("boolean", "USE_FIREBASE_EMULATOR", "false")
             buildConfigField("String", "ENVIRONMENT", "\"prod\"")
+            buildConfigField("String", "DEV_EMULATOR_HOST", "\"\"")
         }
     }
 
