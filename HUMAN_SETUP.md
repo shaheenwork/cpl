@@ -129,10 +129,17 @@ Phase 1.
 
 ### ⬜ 2.3 Enable the services
 
-In each project: **Authentication** (Email/Password, and Google if wanted),
-**Firestore**, **Storage**, **Cloud Functions** (needs the Blaze plan),
-**Cloud Messaging**, **Crashlytics**, **Remote Config**, **App Check**,
+In each project: **Authentication**, **Firestore**, **Storage**, **Cloud Functions** (needs the
+Blaze plan), **Cloud Messaging**, **Crashlytics**, **Remote Config**, **App Check**,
 **Performance Monitoring**.
+
+Under **Authentication → Sign-in method**, enable **Anonymous**. This is not optional and it is
+new in v2: there are no accounts any more, so pairing mints an anonymous uid for the server to
+hang the pair on, and nothing else in the app ever signs anybody in. A project that only has
+Email/Password enabled will fail at the first tap of *Show my code* — the screen now says so by
+name rather than "something went wrong".
+
+Email/Password is only needed for a build that still has the old account screens.
 
 ### ⬜ 2.3a Cloud Messaging — needed from Phase 17
 
@@ -157,6 +164,16 @@ So, in `staging` and `prod`:
 Register the **Play Integrity** provider for `staging` and `prod`. For local debug
 builds, run the app once and copy the debug token it logs into
 **App Check → Apps → Manage debug tokens**.
+
+The token is **per app install**: a reinstall, a second phone, or clearing app data each produce
+a new one, and an unregistered token means every callable is refused — which looks exactly like
+pairing being broken. The line to copy is in logcat at startup:
+
+```bash
+adb logcat -s DebugAppCheckProvider:D
+```
+
+(In `dev` there is no App Check provider at all and nothing to register — D-134.)
 
 ### ⬜ 2.5 SHA certificate fingerprints
 

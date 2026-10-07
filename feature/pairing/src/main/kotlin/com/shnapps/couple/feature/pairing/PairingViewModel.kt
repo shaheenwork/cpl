@@ -169,6 +169,12 @@ private fun AppError.toMessage(): String = when (this) {
         "already-paired" -> "You're already paired."
         "already-requesting" -> "You're already waiting on a code. Cancel it first."
         "expired" -> "That request timed out. Start again with a new code."
+        // Only ever a misconfigured build, and only ever seen by whoever built it: pairing is the
+        // one thing in v2 that signs this phone in, so a project with anonymous sign-in switched
+        // off cannot pair at all. Said plainly rather than as "something went wrong", because the
+        // person reading it is the one who can fix it.
+        "sign-in-not-enabled" -> "This build's Firebase project has anonymous sign-in turned off, " +
+            "so pairing can't start. Turn it on under Authentication → Sign-in method."
         else -> "That didn't work. Try again."
     }
     else -> "Something went wrong. Try again."

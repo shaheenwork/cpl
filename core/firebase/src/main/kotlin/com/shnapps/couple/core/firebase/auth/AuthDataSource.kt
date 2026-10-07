@@ -2,6 +2,7 @@ package com.shnapps.couple.core.firebase.auth
 
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
@@ -139,6 +140,17 @@ class AuthDataSource @Inject constructor(
         Outcome.Failure(AppError.Unauthenticated(error))
     } catch (error: FirebaseAuthInvalidUserException) {
         Outcome.Failure(AppError.Unauthenticated(error))
+    } catch (error: FirebaseAuthException) {
+        // The project itself is misconfigured rather than the call being wrong: the provider this
+        // build needs is switched off in the console. Worth its own code, because it is the one
+        // failure here that no amount of retrying fixes and no user can do anything about — and
+        // because v2 made anonymous sign-in a requirement of pairing on a project that may only
+        // ever have had Email/Password enabled.
+        if (error.errorCode in NOT_CONFIGURED) {
+            Outcome.Failure(AppError.Validation(SIGN_IN_NOT_ENABLED, error))
+        } else {
+            Outcome.Failure(AppError.Unknown(error))
+        }
     } catch (error: Exception) {
         Outcome.Failure(AppError.Unknown(error))
     }
@@ -152,8 +164,29 @@ class AuthDataSource @Inject constructor(
     private fun Exception.isRevokedSession(): Boolean =
         REVOKED.any { reason -> message?.contains(reason) == true }
 
-    private companion object {
+    companion object {
         const val WEAK_PASSWORD = "weak_password"
+
+        /**
+         * This build's Firebase project has the sign-in method switched off.
+         *
+         * Read by the pairing screen, which is the only place it can happen: nothing else in v2
+         * signs anybody in.
+         */
+        const val SIGN_IN_NOT_ENABLED = "sign-in-not-enabled"
+
+        /**
+         * The two codes a disabled provider arrives as.
+         *
+         * Identity Toolkit answers a disabled anonymous sign-up with `ADMIN_ONLY_OPERATION`, which
+         * the Android SDK surfaces as `ERROR_ADMIN_RESTRICTED_OPERATION`; the other is what the
+         * same refusal looks like for the providers that have a credential. Both mean the console
+         * has it switched off.
+         */
+        private val NOT_CONFIGURED = setOf(
+            "ERROR_ADMIN_RESTRICTED_OPERATION",
+            "ERROR_OPERATION_NOT_ALLOWED",
+        )
 
         val REVOKED = listOf(
             "INVALID_REFRESH_TOKEN",
