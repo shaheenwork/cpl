@@ -12,6 +12,10 @@ android {
 }
 
 dependencies {
+    // A round that asks for a recording or a photo asks the system for it from here: the
+    // permission launcher and the camera contract both come from activity-compose.
+    implementation(libs.androidx.activity.compose)
+
     implementation(project(":core:designsystem"))
     // The primitives every game is played through: rendered here so both players — the session
     // one and the local one — show the same thing (BUILD_PROMPT.md §11.1).

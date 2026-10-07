@@ -5,26 +5,20 @@ import androidx.lifecycle.viewModelScope
 import com.shnapps.couple.core.analytics.AnalyticsEvent
 import com.shnapps.couple.core.analytics.AnalyticsLogger
 import com.shnapps.couple.core.common.AppError
-import com.shnapps.couple.core.common.Clock
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.auth.AuthRepository
 import com.shnapps.couple.core.data.billing.gate
 import com.shnapps.couple.core.data.entitlement.LevelAccess
 import com.shnapps.couple.core.data.game.GameRepository
 import com.shnapps.couple.core.data.instant.InstantPlayRepository
-import com.shnapps.couple.core.data.media.MediaRepository
 import com.shnapps.couple.core.data.night.NightRepository
-import com.shnapps.couple.core.data.surprise.SurpriseRepository
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.Gate
 import com.shnapps.couple.core.model.Intensity
-import com.shnapps.couple.core.model.MediaItem
 import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
-import com.shnapps.couple.core.model.ThreadEntry
-import com.shnapps.couple.core.model.threadOf
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -83,13 +77,6 @@ data class HomeUiState(
     val waitingForMe: NightPlan? = null,
     /** Something this phone's user planned for them, and whether they have opened it. */
     val plannedByMe: NightPlan? = null,
-    /** A voice note or a photo they sent that nobody has opened (§13). */
-    val unopenedMedia: MediaItem? = null,
-    /**
-     * Being apart, as one thread (REDESIGN_PROMPT.md §5.4): what they left, what was sent, what is
-     * still sealed. Ordered newest first, and saying nothing about anything undelivered.
-     */
-    val thread: List<ThreadEntry> = emptyList(),
     val error: HomeError? = null,
     /** A limit they reached: the screen offers what premium includes, and nothing is lost (§19). */
     val gate: Gate? = null,
@@ -102,12 +89,6 @@ data class HomeUiState(
 ) {
     /** Nothing else can start while the couple already has something under way (D-059). */
     val canStart: Boolean get() = active == null && !making
-
-    /** What is actually waiting for this person in the thread: the only thing worth a nudge. */
-    val threadWaiting: Int
-        get() = thread.count { entry ->
-            (entry is ThreadEntry.Media && entry.waiting) || (entry is ThreadEntry.Left && entry.readyForMe)
-        }
 }
 
 /**
@@ -128,10 +109,7 @@ class HomeViewModel @Inject constructor(
     private val instant: InstantPlayRepository,
     private val gameStarts: GameRepository,
     private val analytics: AnalyticsLogger,
-    private val clock: Clock,
     auth: AuthRepository,
-    media: MediaRepository,
-    surprises: SurpriseRepository,
 ) : ViewModel() {
 
     private val local = MutableStateFlow(HomeUiState())
@@ -155,20 +133,6 @@ class HomeViewModel @Inject constructor(
     /** What this phone can play on its own: the list, how far it goes, and how far it may. */
     private val ownDeck = combine(instant.games, instant.tier, instant.access, ::Triple)
 
-    /**
-     * What being apart looks like, in one flow: the inbox, and the thread built from it.
-     *
-     * Composed here because a combine takes five, and because the inbox is wanted twice — once for
-     * the one unopened thing the home nudges about, and once as part of the thread.
-     */
-    private val apart = combine(
-        media.inbox,
-        surprises.surprises,
-        surprises.countdowns,
-    ) { inbox, left, counting ->
-        inbox to threadOf(inbox, left, counting, clock.nowMillis())
-    }
-
     /** What the couple has going, and what one of them left for the other. */
     private val theirs = combine(nights.activeSession, nights.plans) { active, plans -> active to plans }
 
@@ -176,9 +140,8 @@ class HomeViewModel @Inject constructor(
         local,
         company,
         ownDeck,
-        apart,
         theirs,
-    ) { state, company, (games, tier, access), (inbox, thread), (active, plans) ->
+    ) { state, company, (games, tier, access), (active, plans) ->
         state.copy(
             company = company,
             games = games,
@@ -188,8 +151,6 @@ class HomeViewModel @Inject constructor(
             // Theirs first: an evening waiting to be found is the best thing on this screen.
             waitingForMe = plans.firstOrNull { !it.mine },
             plannedByMe = plans.firstOrNull { it.mine },
-            unopenedMedia = inbox.firstOrNull { it.unopened },
-            thread = thread,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), HomeUiState())
 

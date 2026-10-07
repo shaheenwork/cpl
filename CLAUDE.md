@@ -79,11 +79,16 @@ Compiled bytecode targets **Java 17** regardless of the daemon JVM.
 :feature:instant      The card deck and Game Night — the whole of Together mode
 :feature:games        The seven games' player, over the one interpreter
 :feature:boundaries   The limits profile: eight questions over twenty-seven themes
+:feature:store        The three packs, and what each costs (V2 rule 5)
 :feature:*            Added by the phase that introduces them (DECISIONS.md D-006)
 
 Out of scope since the rebuild, and moved to `_to_remove/` rather than deleted:
 :feature:night, :feature:preferences, :feature:discovery, :feature:memories, and the
 memories / preferences / mutual halves of :core:data and :core:firebase.
+
+Out of scope since v2: :feature:send — there is no separate messaging surface at all. A voice
+note or a photo exists only inside a round, as a dare's proof (V2 rule 3), which is
+`GamePrimitive.MEDIA` rendered by `:core:ui`.
 ```
 
 Layering: `UI → ViewModel → UseCase → Repository → DataSource`.

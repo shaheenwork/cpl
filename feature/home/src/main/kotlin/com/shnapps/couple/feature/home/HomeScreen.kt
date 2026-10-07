@@ -19,7 +19,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,17 +35,13 @@ import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.designsystem.theme.ProvideTier
-import com.shnapps.couple.core.model.AccountOffer
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.Gate
 import com.shnapps.couple.core.model.Intensity
-import com.shnapps.couple.core.model.MediaItem
-import com.shnapps.couple.core.model.MediaKind
 import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionState
-import com.shnapps.couple.core.ui.ApartThread
 import com.shnapps.couple.core.ui.ChoiceRow
 import com.shnapps.couple.core.ui.Entrance
 import com.shnapps.couple.core.ui.ErrorBanner
@@ -103,12 +98,9 @@ data class HomeActions(
     val onCards: () -> Unit = {},
     /** A guided evening: warm-up, build, peak, aftercare (M5). */
     val onGameNight: () -> Unit = {},
-    val onApart: () -> Unit = {},
     val onSettings: () -> Unit = {},
     /** Signed in, but nobody joined yet: the pairing handshake. */
     val onPairPartner: () -> Unit = {},
-    /** Something that needs an account, tapped. The screen that asks says what it buys (§6). */
-    val onAccount: (AccountOffer) -> Unit = {},
     val onPaywall: (Gate) -> Unit = {},
     /** A game dealt on this phone, for anyone the server does not know. */
     val onDealtGame: (gameId: String) -> Unit = {},
@@ -182,7 +174,6 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
             // the one lit object on the screen when it is there.
             state.active?.let { session -> UnderWay(session, actions.onOpen) }
             state.waitingForMe?.let { plan -> SomethingWaiting(plan, state.canStart, actions.onOpenWaiting) }
-            state.unopenedMedia?.let { item -> TheySentSomething(item, actions.onApart) }
 
             // Which half of the app this is, before anything about tonight: together in a room,
             // or apart on two phones. A toggle rather than two home screens, because the app has
@@ -213,26 +204,29 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
                 }
             }
 
-            if (state.mode == Mode.APART) {
-                Entrance(index = 3) { Apart(state, actions) }
-            } else {
-                Section("Or play something", index = 3) {
-                    // Game Night is first and is not one of the games in the catalogue: it is a
-                    // plan over the whole of it, so it has no entry in games.json (M5).
+            // One grid, both modes. The toggle says how a game is played — one phone between
+            // them, or a phone each — not which half of an app they are in (V2 rule 3): there is
+            // no second surface any more, so there is nothing else for it to switch to.
+            if (state.mode == Mode.APART && !state.company.paired) {
+                Entrance(index = 3) { PairFirst(state.company, actions) }
+            }
+
+            Section("Or play something", index = 3) {
+                // Game Night is first and is not one of the games in the catalogue: it is a plan
+                // over the whole of it, so it has no entry in games.json (M5).
+                ChoiceRow(
+                    title = "Game Night",
+                    subtitle = "A guided evening: warm up, build, peak, then land.",
+                    icon = AfterhoursIcons.Clock,
+                    onClick = actions.onGameNight,
+                )
+                state.games.forEach { game ->
                     ChoiceRow(
-                        title = "Game Night",
-                        subtitle = "A guided evening: warm up, build, peak, then land.",
-                        icon = AfterhoursIcons.Clock,
-                        onClick = actions.onGameNight,
+                        title = game.title,
+                        subtitle = game.tagline,
+                        icon = AfterhoursIcons.Spark,
+                        onClick = { actions.onPlay(game.id) },
                     )
-                    state.games.forEach { game ->
-                        ChoiceRow(
-                            title = game.title,
-                            subtitle = game.tagline,
-                            icon = AfterhoursIcons.Spark,
-                            onClick = { actions.onPlay(game.id) },
-                        )
-                    }
                 }
             }
 
@@ -306,76 +300,23 @@ private fun Start(state: HomeUiState, actions: HomeActions) {
 }
 
 /**
- * When they are not together (§13) — on the screen from the first minute.
+ * Two phones, and only one of them here yet (V2 rule 2).
  *
- * It used to be a mode switch that replaced the whole surface, so half the app was behind a control
- * nobody pressed. It is a section now, and it says what it needs of you rather than hiding.
+ * Apart is not a second half of the app any more — it is the same games, played a phone each — so
+ * the only thing this says is the one thing that is actually missing. Everything below it still
+ * works on this phone alone, which is why it is a row and not a wall.
  */
 @Composable
-private fun Apart(state: HomeUiState, actions: HomeActions) {
-    Section(if (state.threadWaiting > 0) "Waiting for you" else "When you're not together") {
-        when (state.company) {
-            Company.ALONE -> ChoiceRow(
-                title = "Apart",
-                subtitle = "Send them something, leave something for later, count down to a date.",
-                locked = true,
-                onClick = { actions.onAccount(AccountOffer.APART) },
-            )
-            Company.SIGNED_IN -> ChoiceRow(
-                title = "Apart",
-                subtitle = "Connect your partner, and all of this works between you.",
-                trailing = "Connect",
-                onClick = actions.onPairPartner,
-            )
-            Company.PAIRED -> ChoiceRow(
-                title = "Apart",
-                subtitle = "What you sent, what they left, what is still sealed.",
-                trailing = "Open",
-                onClick = actions.onApart,
-            )
-        }
-
-        if (state.company.paired) {
-            if (state.thread.isNotEmpty()) ApartThread(entries = state.thread, onOpen = { actions.onApart() })
-            state.plannedByMe?.let { plan ->
-                Text(
-                    text = if (plan.opened) {
-                        "They've opened what you planned."
-                    } else {
-                        "You've planned something. They haven't found it yet."
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = AfterhoursTheme.colors.brass,
-                )
-            }
-        }
-    }
-}
-
-/** A voice note or a photo they sent that nobody has opened yet (§13). */
-@Composable
-private fun TheySentSomething(item: MediaItem, onOpen: () -> Unit) {
-    val what = if (item.kind == MediaKind.VOICE) "a voice note" else "a photo"
-    CinematicCard(
-        modifier = Modifier.fillMaxWidth(),
-        glowing = true,
-        contentDescription = "They sent you $what.",
-    ) {
-        Text(text = "FROM THEM", style = EyebrowTextStyle, color = AfterhoursTheme.colors.brass)
-        Text(
-            text = "They sent you $what.",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+private fun PairFirst(company: Company, actions: HomeActions) {
+    Section("Two phones") {
+        ChoiceRow(
+            title = "Pair with their phone",
+            subtitle = "Twenty seconds, once. After that these two phones stay a pair.",
+            icon = AfterhoursIcons.Spark,
+            trailing = if (company.signedIn) "Pair" else null,
+            onClick = actions.onPairPartner,
         )
-        if (item.burnAfterView) {
-            Text(
-                text = "Once only — it goes when you open it.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AfterhoursTheme.colors.textMuted,
-            )
-        }
     }
-    GlowButton(text = "Open it", onClick = onOpen, modifier = Modifier.fillMaxWidth())
 }
 
 /**

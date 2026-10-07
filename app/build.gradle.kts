@@ -148,7 +148,6 @@ dependencies {
     implementation(project(":feature:boundaries"))
     implementation(project(":feature:games"))
     implementation(project(":feature:home"))
-    implementation(project(":feature:send"))
     implementation(project(":feature:settings"))
     implementation(project(":core:notifications"))
     implementation(project(":feature:store"))

@@ -4,12 +4,10 @@ import com.google.common.truth.Truth.assertThat
 import com.shnapps.couple.core.analytics.AnalyticsEvent
 import com.shnapps.couple.core.analytics.AnalyticsLogger
 import com.shnapps.couple.core.common.AppError
-import com.shnapps.couple.core.common.Clock
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.model.AuthUser
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.Intensity
-import com.shnapps.couple.core.model.MediaKind
 import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionState
@@ -17,9 +15,7 @@ import com.shnapps.couple.core.model.UserProfile
 import com.shnapps.couple.core.testing.FakeAuthRepository
 import com.shnapps.couple.core.testing.FakeGameRepository
 import com.shnapps.couple.core.testing.FakeInstantPlayRepository
-import com.shnapps.couple.core.testing.FakeMediaRepository
 import com.shnapps.couple.core.testing.FakeNightRepository
-import com.shnapps.couple.core.testing.FakeSurpriseRepository
 import com.shnapps.couple.core.testing.MainDispatcherRule
 import com.shnapps.couple.core.testing.TestGames
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -30,7 +26,6 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
-import java.io.File
 
 /**
  * Home, the only one (BUILD_PROMPT.md §2.4, §14.2; REDESIGN_PROMPT.md §6).
@@ -52,8 +47,6 @@ class HomeViewModelTest {
     private val instant = FakeInstantPlayRepository()
     private val gameStarts = FakeGameRepository()
     private val auth = FakeAuthRepository()
-    private val media = FakeMediaRepository()
-    private val surprises = FakeSurpriseRepository()
 
     /** Signed in and joined to someone: everything the server does is open to them. */
     private fun paired() {
@@ -66,10 +59,7 @@ class HomeViewModelTest {
         instant = instant,
         gameStarts = gameStarts,
         analytics = AnalyticsLogger { logged += it },
-        clock = Clock { NOW },
         auth = auth,
-        media = media,
-        surprises = surprises,
     ).also { vm ->
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         advanceUntilIdle()
@@ -236,20 +226,14 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `a voice note they sent waits here until it is opened`() = test {
+    fun `home reads nothing about messages, because there are none`() = test {
         paired()
-        media.theySend(MediaKind.VOICE, note = "listen to this", burnAfterView = true)
         val vm = home()
 
-        assertThat(vm.uiState.value.unopenedMedia?.note).isEqualTo("listen to this")
-        assertThat(vm.uiState.value.unopenedMedia?.burnAfterView).isTrue()
-
-        // Once it has been opened, it stops asking to be.
-        media.open(media.items.value.single().id, File.createTempFile("open", ".bin"))
-        advanceUntilIdle()
-        assertThat(vm.uiState.value.unopenedMedia).isNull()
+        // V2 rule 3: the app is the games. There is no inbox, no thread and no "send a photo"
+        // surface, so home does not hold a media or a surprise repository at all — the assertion
+        // is that this screen still works having been given neither.
+        assertThat(vm.uiState.value.games).isNotEmpty()
+        assertThat(vm.uiState.value.company).isEqualTo(Company.PAIRED)
     }
 }
-
-/** A fixed clock: the thread orders by time, and a test must not race a real one. */
-private const val NOW = 1_800_000_000_000L

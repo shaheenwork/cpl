@@ -3,28 +3,23 @@ package com.shnapps.couple.feature.home
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
-import com.google.common.truth.Truth.assertThat
 import com.shnapps.couple.core.data.entitlement.LevelAccess
 import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.Intensity
-import com.shnapps.couple.core.model.MediaKind
 import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.Scoring
 import com.shnapps.couple.core.model.SessionState
-import com.shnapps.couple.core.model.SurpriseState
-import com.shnapps.couple.core.model.ThreadEntry
 import com.shnapps.couple.core.model.TurnOrder
 import org.junit.Rule
 import org.junit.Test
@@ -77,14 +72,15 @@ class HomeSnapshotTest {
     }
 
     @Test
-    fun `the toggle changes what the list is, and nothing else`() {
+    fun `the toggle changes the heading, and nothing else`() {
         val apart = state(Company.PAIRED).copy(mode = Mode.APART)
         capture("home-apart-mode") { HomeContent(apart, HomeActions()) }
 
-        // The tier and Play Now stay where they are; the games give way to the apart rows.
+        // It used to replace the list below it with a second surface. V2 has no second surface:
+        // apart is the same games played a phone each, so only the heading changes.
         composeRule.onNodeWithText("Two phones, one evening.").assertIsDisplayed()
         composeRule.onNodeWithText("Play Now").assertIsDisplayed()
-        assertThat(composeRule.onAllNodesWithText("Game Night").fetchSemanticsNodes()).isEmpty()
+        composeRule.onNodeWithText("Game Night").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -125,39 +121,26 @@ class HomeSnapshotTest {
     }
 
     @Test
-    fun `apart is a thread`() {
-        // What they left, what was sent, what is still sealed (REDESIGN_PROMPT.md §5.4). The
-        // thread belongs to the apart half of the app, so the toggle has to be on it (M6).
-        val state = state(Company.PAIRED).copy(
-            mode = Mode.APART,
-            thread = listOf(
-                ThreadEntry.Media(
-                    id = "m1",
-                    atMillis = NOW,
-                    mine = false,
-                    kind = MediaKind.VOICE,
-                    note = "listen when you're alone",
-                    burnAfterView = true,
-                    opened = false,
-                ),
-                ThreadEntry.Left(
-                    id = "s1",
-                    atMillis = NOW - 1,
-                    mine = false,
-                    title = null,
-                    state = SurpriseState.SCHEDULED,
-                    forMoment = null,
-                ),
-                ThreadEntry.Counting(id = "c1", atMillis = NOW + 1, title = "Friday"),
-            ),
-        )
+    fun `apart is the same games, a phone each`() {
+        // V2 rule 3: there is no second surface any more. The toggle says how a game is played,
+        // not which half of an app this is, so the grid below it is the same grid.
+        val state = state(Company.PAIRED).copy(mode = Mode.APART)
 
-        capture("home-apart-thread") { HomeContent(state, HomeActions()) }
+        capture("home-apart") { HomeContent(state, HomeActions()) }
 
-        composeRule.onNodeWithText("A voice note, waiting. It goes when you open it.")
-            .performScrollTo().assertIsDisplayed()
-        // The one that matters: a surprise before its moment says only that it exists.
-        composeRule.onNodeWithText("Something is coming.").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Two phones, one evening.").assertIsDisplayed()
+        composeRule.onNodeWithText("Truth or Dare").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `apart with nobody paired asks for the one thing that is missing`() {
+        val state = state(Company.ALONE).copy(mode = Mode.APART)
+
+        capture("home-apart-unpaired") { HomeContent(state, HomeActions()) }
+
+        composeRule.onNodeWithText("Pair with their phone").performScrollTo().assertIsDisplayed()
+        // Everything still works on this phone alone, so it is a row and not a wall.
+        composeRule.onNodeWithText("Game Night").performScrollTo().assertIsDisplayed()
     }
 
     private fun state(company: Company) = HomeUiState(
@@ -191,6 +174,3 @@ class HomeSnapshotTest {
         )
     }
 }
-
-/** A fixed moment: a golden must not change with the clock. */
-private const val NOW = 1_800_000_000_000L

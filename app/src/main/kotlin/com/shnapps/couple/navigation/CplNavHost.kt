@@ -23,8 +23,6 @@ import com.shnapps.couple.feature.instant.StartScreen
 import com.shnapps.couple.feature.onboarding.SplashScreen
 import com.shnapps.couple.feature.onboarding.StartDestination
 import com.shnapps.couple.feature.pairing.PairingScreen
-import com.shnapps.couple.feature.send.LaterScreen
-import com.shnapps.couple.feature.send.SendScreen
 import com.shnapps.couple.feature.settings.NotificationSettingsScreen
 import com.shnapps.couple.feature.settings.SettingsRoutes
 import com.shnapps.couple.feature.settings.SettingsScreen
@@ -125,17 +123,6 @@ fun CplNavHost(
             LimitsScreen(onBack = { navController.popBackStack() })
         }
 
-        composable<Route.Send> {
-            SendScreen(onBack = { navController.popBackStack() })
-        }
-
-        composable<Route.Later> {
-            LaterScreen(
-                onPaywall = { navController.navigate(Route.Store()) },
-                onBack = { navController.popBackStack() },
-            )
-        }
-
         composable<Route.Store> {
             StoreScreen(onBack = { navController.popBackStack() })
         }
@@ -207,7 +194,6 @@ private fun Home(navController: NavHostController) {
     HomeScreen(
         actions = HomeActions(
             onCards = { navController.navigate(Route.InstantPlay) },
-            onApart = { navController.navigate(Route.Send) },
             onGameNight = { navController.navigate(Route.GameNight) },
             onSettings = { navController.navigate(Route.Settings) },
             onPairPartner = { navController.navigate(Route.Pairing) },

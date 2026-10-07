@@ -56,14 +56,6 @@ object Route {
     @Serializable
     data object Boundaries
 
-    /** Send something, and what they have sent back (§13): voice notes and photos. */
-    @Serializable
-    data object Send
-
-    /** Something left for later (§13): a surprise, an "Open when…", a countdown. */
-    @Serializable
-    data object Later
-
     /** Everything about this account and this couple, in one place (§14.9). */
     @Serializable
     data object Settings

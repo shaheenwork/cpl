@@ -1,6 +1,11 @@
 package com.shnapps.couple.core.ui
 
+import android.Manifest
+import android.graphics.Bitmap
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -34,7 +39,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -62,9 +69,11 @@ import com.shnapps.couple.core.engine.game.Verdict
 import com.shnapps.couple.core.model.AnswerKind
 import com.shnapps.couple.core.model.ChapterReaction
 import com.shnapps.couple.core.model.GamePlayers
+import com.shnapps.couple.core.model.MediaKind
 import com.shnapps.couple.core.model.RevealOutcome
 import com.shnapps.couple.core.ui.voice.LocalVoiceRecorder
 import com.shnapps.couple.core.ui.voice.VoicePlayer
+import com.shnapps.couple.core.ui.voice.VoiceRecorder
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
@@ -522,27 +531,91 @@ internal fun DialRenderer(dial: RoundPrimitive.Dial, players: GamePlayers, onSub
 }
 
 /**
- * Said out loud, and kept on this phone.
+ * Proof, and the only place in this app that media exists (V2 rule 3).
  *
- * The recording is this round's answer: it is played back here, for the two people in the room,
- * and it goes with the app's cache. Nothing is uploaded and nothing is sent — a voice note that
- * travels is a different thing entirely, and it has its own screen and its own rules (D-083).
+ * There is no inbox and no "send a photo" screen any more: a voice note or a picture happens
+ * **inside a round**, because a dare asked for it, and it is over when the round is. A recording
+ * goes to this app's cache and a photo is never written down at all — it is the bitmap the camera
+ * handed back, shown to the two people who are looking at the phone, and gone with the round.
+ *
+ * Nothing is uploaded, and the answer that travels carries no path (D-069).
  */
 @Composable
 internal fun RecordRenderer(record: RoundPrimitive.Record, players: GamePlayers, onSubmit: (Answer) -> Unit) {
-    val recorder = LocalVoiceRecorder.current
-    var recording by remember(record.step) { mutableStateOf(false) }
-    var file by remember(record.step) { mutableStateOf<File?>(null) }
-    var refused by remember(record.step) { mutableStateOf(false) }
-
     Asked(whoFor(record.seat, players), record.text)
+    when (record.kind) {
+        MediaKind.PHOTO -> PhotoProof(record, onSubmit)
+        else -> VoiceProof(record, onSubmit)
+    }
+}
 
-    val current = file
-    if (current != null) {
-        VoicePlayer(file = current, modifier = Modifier.fillMaxWidth())
+/** One picture from the system camera, shown here and kept nowhere. */
+@Composable
+private fun PhotoProof(record: RoundPrimitive.Record, onSubmit: (Answer) -> Unit) {
+    var shot by remember(record.step) { mutableStateOf<Bitmap?>(null) }
+    var refused by remember(record.step) { mutableStateOf(false) }
+    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { taken ->
+        // A null means they backed out, or this phone has no camera to open.
+        if (taken == null) refused = true else shot = taken
+    }
+
+    shot?.let { picture ->
+        Image(
+            bitmap = picture.asImageBitmap(),
+            contentDescription = "The photo just taken, shown here only.",
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.large),
+        )
     }
 
     if (refused) {
+        Text(
+            text = "No camera here. Show them instead — it counts the same.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = AfterhoursTheme.colors.textMuted,
+        )
+    }
+
+    GlowButton(
+        text = if (shot == null) "Take it" else "Take it again",
+        onClick = {
+            refused = false
+            runCatching { camera.launch(null) }.onFailure { refused = true }
+        },
+        style = if (shot == null) GlowButtonStyle.Secondary else GlowButtonStyle.Quiet,
+        modifier = Modifier.fillMaxWidth(),
+    )
+
+    GlowButton(
+        text = if (shot == null) "Show them instead" else "Done",
+        onClick = { onSubmit(Answer.Recorded(if (shot == null) SPOKEN_ALOUD else SHOWN)) },
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+/**
+ * Said out loud, and kept on this phone.
+ *
+ * The recording is this round's answer: it is played back here, for the two people in the room,
+ * and it goes with the app's cache.
+ *
+ * It asks for the microphone itself. It used to rely on another screen having asked first, which
+ * stopped being true the moment that screen was deleted — and a renderer that silently cannot
+ * record is worse than one that asks.
+ */
+@Composable
+private fun VoiceProof(record: RoundPrimitive.Record, onSubmit: (Answer) -> Unit) {
+    val recorder = LocalVoiceRecorder.current
+    val take = remember(record.step) { VoiceTake(recorder) }
+    val microphone = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) take.start() else take.refuse()
+    }
+
+    take.file?.let { VoicePlayer(file = it, modifier = Modifier.fillMaxWidth()) }
+
+    if (take.refused) {
         Text(
             text = "This phone wouldn't record. Say it out loud instead — it counts the same.",
             style = MaterialTheme.typography.bodyMedium,
@@ -552,35 +625,59 @@ internal fun RecordRenderer(record: RoundPrimitive.Record, players: GamePlayers,
 
     GlowButton(
         text = when {
-            recording -> "Stop"
-            current != null -> "Record it again"
+            take.recording -> "Stop"
+            take.file != null -> "Record it again"
             else -> "Record"
         },
-        onClick = {
-            if (recording) {
-                recording = false
-                when (val stopped = recorder?.stop()) {
-                    is Outcome.Success -> file = stopped.value
-                    else -> refused = true
-                }
-            } else {
-                refused = false
-                when (recorder?.start()) {
-                    is Outcome.Success -> recording = true
-                    else -> refused = true
-                }
-            }
-        },
-        style = if (recording) GlowButtonStyle.Primary else GlowButtonStyle.Secondary,
+        onClick = { if (take.recording) take.stop() else microphone.launch(Manifest.permission.RECORD_AUDIO) },
+        style = if (take.recording) GlowButtonStyle.Primary else GlowButtonStyle.Secondary,
         modifier = Modifier.fillMaxWidth(),
     )
 
     GlowButton(
-        text = if (current == null) "Say it out loud instead" else "Done",
-        onClick = { onSubmit(Answer.Recorded(current?.absolutePath ?: SPOKEN_ALOUD)) },
-        enabled = !recording,
+        text = if (take.file == null) "Say it out loud instead" else "Done",
+        onClick = { onSubmit(Answer.Recorded(take.file?.absolutePath ?: SPOKEN_ALOUD)) },
+        enabled = !take.recording,
         modifier = Modifier.fillMaxWidth(),
     )
+}
+
+/**
+ * What a voice proof is in the middle of: recording, recorded, or refused.
+ *
+ * A small object rather than four `remember`s and a pair of lambdas in the composable, because the
+ * recorder's two calls each have a failure to fold in and the layout above should read as layout.
+ */
+private class VoiceTake(private val recorder: VoiceRecorder?) {
+    var recording by mutableStateOf(false)
+        private set
+
+    var file by mutableStateOf<File?>(null)
+        private set
+
+    var refused by mutableStateOf(false)
+        private set
+
+    fun start() {
+        refused = false
+        when (recorder?.start()) {
+            is Outcome.Success -> recording = true
+            else -> refuse()
+        }
+    }
+
+    fun stop() {
+        recording = false
+        when (val stopped = recorder?.stop()) {
+            is Outcome.Success -> file = stopped.value
+            else -> refuse()
+        }
+    }
+
+    /** The microphone was refused, or there is none. Saying so is the whole of the fallback. */
+    fun refuse() {
+        refused = true
+    }
 }
 
 /**
@@ -590,6 +687,9 @@ internal fun RecordRenderer(record: RoundPrimitive.Record, players: GamePlayers,
  * people who would rather speak, must be able to finish the round.
  */
 private const val SPOKEN_ALOUD = "spoken"
+
+/** The answer when a photo was taken: that it happened, never where it is. */
+private const val SHOWN = "shown"
 
 // ---- pieces the renderers share ------------------------------------------------------------------
 

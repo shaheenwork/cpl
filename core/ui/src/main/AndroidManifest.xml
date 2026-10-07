@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- A round can ask somebody to say something out loud and keep it (GamePrimitive.MEDIA).
+         The recording is made here, by this module's recorder, and never leaves this phone — so
+         the permission is declared with the thing that uses it rather than by a feature.
+
+         A photo proof needs no permission at all: the system camera is asked for one picture,
+         it is shown in the round, and nothing is written to the gallery or anywhere else. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+</manifest>
