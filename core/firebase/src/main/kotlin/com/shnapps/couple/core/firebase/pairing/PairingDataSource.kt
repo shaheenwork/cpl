@@ -15,11 +15,24 @@ import javax.inject.Singleton
  * `coupleId`), which the app already listens to — so these calls only need to report
  * success or a typed failure.
  */
+interface PairingDataSource {
+    suspend fun createPairingCode(): Outcome<InviteCode>
+
+    /** Returns the verification symbols both phones now show. */
+    suspend fun requestPairing(code: String): Outcome<List<String>>
+
+    suspend fun respondToPairing(approve: Boolean): Outcome<Unit>
+
+    suspend fun cancelPairing(): Outcome<Unit>
+
+    suspend fun unpairCouple(): Outcome<Unit>
+}
+
 @Singleton
-class PairingDataSource @Inject constructor(
+class FirebasePairingDataSource @Inject constructor(
     private val functions: FirebaseFunctions,
-) {
-    suspend fun createPairingCode(): Outcome<InviteCode> = call("createPairingCode", null) { data ->
+) : PairingDataSource {
+    override suspend fun createPairingCode(): Outcome<InviteCode> = call("createPairingCode", null) { data ->
         InviteCode(
             code = data["code"] as String,
             expiresAtEpochMillis = (data["expiresAtMs"] as Number).toLong(),
@@ -27,17 +40,17 @@ class PairingDataSource @Inject constructor(
     }
 
     /** Returns the verification symbols both phones now show. */
-    suspend fun requestPairing(code: String): Outcome<List<String>> =
+    override suspend fun requestPairing(code: String): Outcome<List<String>> =
         call("requestPairing", mapOf("code" to code)) { data ->
             (data["verification"] as List<*>).filterIsInstance<String>()
         }
 
-    suspend fun respondToPairing(approve: Boolean): Outcome<Unit> =
+    override suspend fun respondToPairing(approve: Boolean): Outcome<Unit> =
         call("respondToPairing", mapOf("approve" to approve)) { }
 
-    suspend fun cancelPairing(): Outcome<Unit> = call("cancelPairing", null) { }
+    override suspend fun cancelPairing(): Outcome<Unit> = call("cancelPairing", null) { }
 
-    suspend fun unpairCouple(): Outcome<Unit> = call("unpairCouple", mapOf("confirm" to true)) { }
+    override suspend fun unpairCouple(): Outcome<Unit> = call("unpairCouple", mapOf("confirm" to true)) { }
 
     private suspend inline fun <T> call(name: String, payload: Any?, parse: (Map<*, *>) -> T): Outcome<T> =
         functions.callFunction(name, payload, parse)

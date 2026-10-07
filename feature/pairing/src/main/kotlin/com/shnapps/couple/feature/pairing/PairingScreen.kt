@@ -145,20 +145,20 @@ private fun Heading(eyebrow: String, headline: String, body: String? = null) {
 @Composable
 private fun ChooseStep(busy: Boolean, onInvite: () -> Unit, onHaveCode: () -> Unit, onLeave: () -> Unit) {
     Heading(
-        eyebrow = "JUST YOU TWO",
-        headline = "Pair with your partner.",
-        body = "One of you makes a code, the other enters it. Then you'll both check the same " +
-            "three symbols, so you know it's really each other.",
+        eyebrow = "TWO PHONES",
+        headline = "One of you shows a code. The other types it.",
+        body = "Twenty seconds, once. After that these two phones stay a pair until one of you " +
+            "unpairs — nothing expires it, and nobody else can join.",
     )
     Spacer(Modifier.padding(top = AfterhoursTheme.spacing.md))
     GlowButton(
-        text = if (busy) "One moment…" else "Invite my partner",
+        text = if (busy) "One moment…" else "Show my code",
         onClick = onInvite,
         enabled = !busy,
         modifier = Modifier.fillMaxWidth(),
     )
     GlowButton(
-        text = "I have a code",
+        text = "Enter their code",
         onClick = onHaveCode,
         style = GlowButtonStyle.Secondary,
         enabled = !busy,
@@ -187,7 +187,11 @@ private fun InviteStep(
     val minutesLeft = rememberMinutesLeft(step.expiresAtEpochMillis)
     val expired = minutesLeft != null && minutesLeft <= 0
 
-    Heading(eyebrow = "YOUR CODE", headline = "Give them this.")
+    Heading(
+        eyebrow = "YOUR CODE",
+        headline = "Give them this.",
+        body = "Good until they use it. Nobody else can.",
+    )
     CinematicCard(glowing = !expired) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -294,7 +298,11 @@ private fun EnterCodeStep(
     onSubmit: () -> Unit,
     onBack: () -> Unit,
 ) {
-    Heading(eyebrow = "JOIN", headline = "Enter their code.", body = "Six digits, from your partner's screen.")
+    Heading(
+        eyebrow = "JOIN",
+        headline = "Enter their code.",
+        body = "Six digits, from their screen. No account, no email — just the two phones.",
+    )
     OutlinedTextField(
         value = state.codeInput,
         onValueChange = onCodeChange,
