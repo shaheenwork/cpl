@@ -281,9 +281,17 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   PAUSE/STOP request; everything else is a callable or the `onSubmissionCreated` trigger, which
   is the only thing that ever reads a submission. It writes one `rounds/{chapter}` reveal that
   both may read (§12.2).
-- "A phone each" is offered only for games whose every step is `EACH` or `TOGETHER`
-  (`Game.bothAtOnce`, D-074), and a phone always answers before it waits — the reveal exists
-  only once both have answered.
+- "A phone each" is offered for any game the other phone can follow (`Game.playableApart`, D-136):
+  both seats are asked, **or** the round is open. A chapter is revealed once everyone it *asked*
+  has answered — `answeredBy` on the session — so a game of turns no longer waits for an answer
+  nobody was ever asked for.
+- The watching phone is never shown a blank: `GameMoment.Waiting.watching` carries whose turn it
+  is, that they are choosing, and then what they drew. Chance needs nothing sent — the dice are
+  seeded by the round, so both phones compute the same faces (§10). A round with any **private**
+  step shows the watcher nothing at all, and that is what keeps the mirroring safe.
+- **A finished round moves itself on.** "Round done." with a Next button was a screen whose only
+  content was the tap that left it. The one end-of-round screen left is a round that asked them
+  both where the other phone has not looked yet.
 - Nothing about a round is stored on the phone (D-075): a restarted phone rejoins at the
   session's round, and takes its own answer back from the reveal rather than from a cache.
 - The heartbeat's beat is the repository's (`keepPresent`), never a `while (true)` in a

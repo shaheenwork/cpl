@@ -246,9 +246,19 @@ internal class RoundReading(private val state: RunState) {
         // mirroring can be as open as it is everywhere else.
         val open = theirs.isNotEmpty() && theirs.none { game.steps[it.step].isPrivate }
         if (!open) return null
+        // A round that asks them for something is unknown until they answer — that is the half of
+        // the turn where they are choosing. A round that asks nothing is known from the start on
+        // both phones, because chance here is seeded by the round itself (§10): the dice this
+        // phone computes are the dice the other one is looking at, and nothing had to be sent.
+        val asked = theirs.any { game.steps[it.step].asksForAnAnswer }
         val answered = theirs.any { answerOf(it.step, it.seat) != null }
-        if (!answered) return Watched(kind = null, text = null, choosing = true)
-        return promptInPlay()?.let { Watched(kind = it.kind, text = it.text, choosing = false) }
+        if (asked && !answered) return Watched(kind = null, text = null, choosing = true)
+        // What their step comes to, in words: the faces the dice landed on, or the prompt itself.
+        val landed = (primitive(theirs.last()) as? RoundPrimitive.Dice)
+            ?.dice
+            ?.joinToString(" · ") { it.face.label }
+        val prompt = promptInPlay()
+        return (landed ?: prompt?.text)?.let { Watched(kind = prompt?.kind, text = it, choosing = false) }
     }
 
     /**

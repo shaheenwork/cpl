@@ -227,9 +227,9 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
                 state.games.forEach { game ->
                     ChoiceRow(
                         title = game.title,
-                        // Apart, a game that asks one of them per round and nothing of the other
-                        // cannot be played a phone each — so it says so here rather than stranding
-                        // the second phone on "the game is on the other phone" (§12).
+                        // Every game the app ships can be played a phone each now. The note stays
+                        // for the next one that cannot: a round where something is private and
+                        // only one of them is asked would strand the other phone (§12).
                         subtitle = if (state.mode == Mode.APART && !game.playableApart) {
                             "${game.tagline} · One phone between you"
                         } else {

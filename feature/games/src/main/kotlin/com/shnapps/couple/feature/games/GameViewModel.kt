@@ -290,6 +290,8 @@ class GameViewModel @Inject constructor(
             setRun(if (answered) run.awaitingReveal() else run)
         }
         if (plays) onWatcherFollows(started, session)
+        // The partner has seen the reveal, so the round that was waiting on them can move.
+        moveOnWhenTheRoundIsOver()
         if (session.state == SessionState.COMPLETED && session.isHost && !completedLogged) {
             completedLogged = true
             analytics.log(AnalyticsEvent.GameCompleted(started.released.game.id))
@@ -414,8 +416,12 @@ class GameViewModel @Inject constructor(
 
     fun dismissKeepOut() = local.update { it.copy(keepOut = null) }
 
-    /** The round is over: the server moves the session on, and the next round begins. */
-    fun nextRound() {
+    /**
+     * The round is over: the server moves the session on, and the next round begins.
+     *
+     * Nothing on screen calls this — a finished round moves itself (see [moveOnWhenTheRoundIsOver]).
+     */
+    private fun nextRound() {
         val run = local.value.run ?: return
         val over = run.moment as? GameMoment.RoundOver ?: return
         // On two phones a round that asked both of them is over only once both have seen it; the
@@ -464,8 +470,24 @@ class GameViewModel @Inject constructor(
      */
     private fun setRun(run: GameRun) {
         local.update { it.copy(run = run) }
-        val over = run.moment as? GameMoment.RoundOver ?: return
-        if (over.playedPromptId != null || passing) return
+        moveOnWhenTheRoundIsOver()
+    }
+
+    /**
+     * A round that is over moves itself on.
+     *
+     * "Round done." with a **Next round** button under it was a screen whose only content was the
+     * tap that left it: what the round came to was already said by its own last step, and the
+     * score rail is on the bar. The one time the end of a round has something to say is when the
+     * other phone is still looking at the reveal, and that screen stays.
+     *
+     * Called again whenever the session moves, because [nextRound] refuses while a round that
+     * asked both of them is still waiting on the second to see it — and then nothing else would
+     * ever ask again.
+     */
+    private fun moveOnWhenTheRoundIsOver() {
+        val run = local.value.run ?: return
+        if (run.moment !is GameMoment.RoundOver || passing) return
         passing = true
         viewModelScope.launch {
             // After whatever request is in flight: one move of the session at a time.

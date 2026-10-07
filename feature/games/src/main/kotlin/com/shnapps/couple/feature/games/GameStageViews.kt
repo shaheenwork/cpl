@@ -226,7 +226,7 @@ internal fun PlayingStage(moment: GameMoment, state: GameUiState, actions: GameA
                 }
                 state.keepOut?.let { KeepOutOffer(it, actions) }
             }
-            is GameMoment.RoundOver -> RoundOver(moment, state, actions)
+            is GameMoment.RoundOver -> RoundOver(moment, state)
             is GameMoment.Finished -> {
                 ScreenHeading(eyebrow = "Game over", headline = "That's the game.", body = scoreLine(state))
             }
@@ -234,31 +234,26 @@ internal fun PlayingStage(moment: GameMoment, state: GameUiState, actions: GameA
     }
 }
 
-/** The end of a round: what it came to, and the way on — once there is one. */
+/**
+ * The end of a round — which is only a screen when it has something to say.
+ *
+ * It used to be "Round done." and a **Next round** button: a screen whose only content was the tap
+ * that left it. The round moves itself on now, and the one case that is genuinely waiting — a
+ * round that asked them both, where the other phone has not looked yet — is the one that is drawn.
+ */
 @Composable
-private fun RoundOver(moment: GameMoment.RoundOver, state: GameUiState, actions: GameActions) {
-    val last = moment.round >= state.roundCount - 1
+private fun RoundOver(moment: GameMoment.RoundOver, state: GameUiState) {
+    if (!state.waitingOnPartner) return
     ScreenHeading(
         eyebrow = "Round ${moment.round + 1} of ${state.roundCount}",
-        headline = if (last) "That's the last one." else "Round done.",
+        headline = "That's your part.",
         body = scoreLine(state),
     )
-    // A round is over for both only once both have looked (§12.1): rather than a button that
-    // does nothing, say what is being waited for.
-    if (state.waitingOnPartner) {
-        WaitingOnThem(
-            message = "Still with them.",
-            detail = "They're still looking at the answers.",
-            away = state.partnerAway,
-        )
-    } else {
-        GlowButton(
-            text = if (last) "See how it went" else "Next round",
-            onClick = actions.onNextRound,
-            enabled = !state.busy,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
+    WaitingOnThem(
+        message = "Still with them.",
+        detail = "They're still looking at the answers.",
+        away = state.partnerAway,
+    )
 }
 
 /** Their turn: what they drew, when it is open, and otherwise only that it is theirs. */

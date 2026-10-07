@@ -5,6 +5,7 @@ import com.shnapps.couple.core.model.AnswerKind
 import com.shnapps.couple.core.model.ChapterReaction
 import com.shnapps.couple.core.model.ContentStatus
 import com.shnapps.couple.core.model.Game
+import com.shnapps.couple.core.model.GameDie
 import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.GamePrimitive
 import com.shnapps.couple.core.model.GamePrompt
@@ -141,6 +142,22 @@ class TwoPhoneRunTest {
     }
 
     @Test
+    fun `dice are the same on both phones, so the watcher sees the roll without being sent it`() {
+        // Chance here is seeded by the round itself (§10), so the phone that is not rolling
+        // computes the same faces. Nothing travels, and there is nothing to wait for: the round
+        // is known to both of them from the moment it opens.
+        val mine = start(heatDice, seat = 0)
+        val theirs = start(heatDice, seat = 1)
+
+        val rolled = (mine.moment as GameMoment.Turn).primitive as RoundPrimitive.Dice
+        val watched = (theirs.moment as GameMoment.Waiting).watching
+
+        assertThat(watched).isNotNull()
+        assertThat(watched!!.choosing).isFalse()
+        assertThat(watched.text).isEqualTo(rolled.dice.joinToString(" · ") { it.face.label })
+    }
+
+    @Test
     fun `a private round tells the watching phone nothing at all`() {
         // Would You Rather: each answers in secret. On two phones that secret holds exactly as it
         // does on one, so the waiting screen says who, never what.
@@ -195,7 +212,11 @@ class TwoPhoneRunTest {
             of: List<Int> = emptyList(),
             outcome: RevealOutcome? = null,
             kindFrom: Int? = null,
-        ) = GameStep(primitive, who, isPrivate, text, options, answer, of, outcome, seconds = null, kindFrom = kindFrom)
+            dice: List<GameDie>? = null,
+        ) = GameStep(
+            primitive, who, isPrivate, text, options, answer, of, outcome,
+            seconds = null, kindFrom = kindFrom, dice = dice,
+        )
 
         fun game(id: String, vararg steps: GameStep) = Game(
             id = id,
@@ -241,6 +262,20 @@ class TwoPhoneRunTest {
                     options = StepOptions.Fixed(listOf("TRUTH", "DARE")),
                 ),
                 step(GamePrimitive.CHALLENGE, StepAudience.ACTIVE, text = StepText.Prompt, kindFrom = 0),
+            ),
+        )
+
+        /** Heat Dice's shape: one roll, the active player's, and nobody is asked anything. */
+        val heatDice = game(
+            "SHAPED_LIKE_HEAT_DICE",
+            step(
+                GamePrimitive.DICE,
+                StepAudience.ACTIVE,
+                text = StepText.Prompt,
+                dice = listOf(
+                    GameDie("What", StepOptions.Fixed(listOf("Kiss", "Tease"))),
+                    GameDie("Where", StepOptions.FromPrompt),
+                ),
             ),
         )
 

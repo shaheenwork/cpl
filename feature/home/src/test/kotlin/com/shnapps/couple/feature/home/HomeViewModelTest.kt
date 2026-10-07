@@ -123,16 +123,17 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `a game that asks one of them and shows the other nothing stays on one phone`() = test {
+    fun `a game that asks nobody anything still opens on both phones`() = test {
         paired()
         val vm = home()
         act { vm.setMode(Mode.APART) }
 
         act { vm.play(TestGames.DICE) }
 
-        // Heat Dice asks nobody anything: there is no answer to reveal and so nothing for the
-        // other phone to watch. Apart or not, it is passed between them.
-        assertThat((vm.uiState.value.opened as Opened.Session).twoPhones).isFalse()
+        // Heat Dice asks nobody anything, and for a while that ruled it out — but the dice are
+        // seeded by the round (§10), so the phone that is not rolling computes the same faces and
+        // watches the roll without a thing being sent.
+        assertThat((vm.uiState.value.opened as Opened.Session).twoPhones).isTrue()
     }
 
     @Test

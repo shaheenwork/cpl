@@ -202,20 +202,28 @@ class ContentBundleFileTest {
     }
 
     @Test
-    fun `a game offered a phone each really asks both of them every round`() {
+    fun `a game offered a phone each is one the other phone can follow`() {
         val prompts = parsed.prompts.mapNotNull { ContentBundleParser.parsePrompt(it.json) }
         ContentBundleParser.parseGames(parsed.gamesJson).forEach { game ->
             val released = released(game, prompts.filter { it.game == game.id })
             // Apart, a round has to be answerable and watchable. Either both seats are asked —
-            // and the reveal comes when the second answers — or one is asked and the other spends
-            // the round watching, which only works if nothing in it is private.
+            // and the reveal comes when the second answers — or the round is open, in which case
+            // the other phone follows it: what they chose arrives in the reveal, and what chance
+            // decided it works out for itself from the round's own seed.
             val asksBoth = (0..1).all { seat ->
                 GameRun.start(released, PLAYERS, phone = seat).asksSeat(seat)
             }
-            val asksOne = (0..1).any { seat -> GameRun.start(released, PLAYERS, phone = seat).asksSeat(seat) }
             val open = game.steps.none { it.isPrivate }
             assertWithMessage("${game.id}: playableApart says ${game.playableApart}")
-                .that(asksBoth || (asksOne && open)).isEqualTo(game.playableApart)
+                .that(asksBoth || open).isEqualTo(game.playableApart)
+
+            // And what it follows is never nothing: a watching phone has something on it in every
+            // round of every game that is offered this way.
+            if (game.playableApart && !asksBoth) {
+                val watcher = GameRun.start(released, PLAYERS, phone = 1)
+                assertWithMessage("${game.id}: the watching phone is shown nothing")
+                    .that((watcher.moment as? GameMoment.Waiting)?.watching).isNotNull()
+            }
         }
     }
 

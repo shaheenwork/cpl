@@ -10,7 +10,6 @@ import com.shnapps.couple.core.engine.game.Answer
 import com.shnapps.couple.core.engine.game.GameMoment
 import com.shnapps.couple.core.engine.game.RoundPrimitive
 import com.shnapps.couple.core.engine.game.encode
-import com.shnapps.couple.core.model.ChapterReaction
 import com.shnapps.couple.core.model.CloseCheckIn
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.GamePlayers
@@ -83,7 +82,6 @@ class GameViewModelTest {
         act(vm::proceed)
         assertThat(vm.primitive).isInstanceOf(RoundPrimitive.Reveal::class.java)
         act { vm.submit(Answer.Done) }
-        assertThat(vm.moment).isInstanceOf(GameMoment.RoundOver::class.java)
     }
 
     @Test
@@ -97,8 +95,9 @@ class GameViewModelTest {
         assertThat(vm.moment).isEqualTo(GameMoment.HandOff(0, seat = 0))
 
         repeat(FakeGameRepository.ROUNDS) { round ->
+            // No "Round done." in between: the round moves itself on, which is one tap a round
+            // fewer and a screen whose only content was the tap that left it.
             playChoices(vm, mine = "0", theirs = if (round == 0) "0" else "1")
-            act(vm::nextRound)
         }
 
         assertThat(vm.stage).isEqualTo(GameStage.HowAreWe)
@@ -144,8 +143,6 @@ class GameViewModelTest {
         act { vm.submit(Answer.Picked("DARE")) }
         assertThat((vm.primitive as RoundPrimitive.Challenge).text).isEqualTo(TestGames.dares[0].text)
         act { vm.submit(Answer.Done) }
-        act { vm.submit(Answer.Reacted(ChapterReaction.LOVED)) }
-        act(vm::nextRound)
         assertThat(games.calls).contains("finish:0:tod_d1")
     }
 
@@ -181,7 +178,6 @@ class GameViewModelTest {
         act(vm::play)
         games.blockedNext = setOf("choices_2")
         playChoices(vm, "0", "0")
-        act(vm::nextRound)
         assertThat(vm.uiState.value.run!!.promptInPlay()!!.id).isEqualTo("choices_4")
     }
 
@@ -282,11 +278,11 @@ class GameViewModelTest {
         act { games.partnerSubmits(0, mapOf(0 to Answer.Picked("0").encode(), 1 to Answer.Picked("1").encode())) }
         act { vm.submit(Answer.Done) }
 
-        act(vm::nextRound)
+        // A round that asked them both is not over until the other phone has looked at the
+        // reveal, so nothing moves — and when they do look, it moves without being asked again.
         assertThat(games.calls.none { it.startsWith("finish") }).isTrue()
 
         act(games::partnerSeesReveal)
-        act(vm::nextRound)
         assertThat(games.calls).contains("finish:0:choices_1")
         assertThat(vm.primitive).isInstanceOf(RoundPrimitive.Choice::class.java)
     }

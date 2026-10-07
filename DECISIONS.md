@@ -2622,3 +2622,36 @@ follows the session when the other partner finishes.
 both are asked, **or** one is asked and the round is open. Five of the six games play apart; Heat
 Dice asks nobody anything, so there is nothing to reveal and nothing to watch, and it stays a game
 for one phone passed between them.
+
+---
+
+## D-137 — The round moves itself on, and every game can be watched
+
+Two things a device check asked for, and they turned out to be the same shape: a screen that was
+only there to be left, and a game that could not be followed.
+
+**"Round done." is gone.** It was a heading, the running score, and a **Next round** button — and
+the round's own last step had already said what happened, while the score is on the bar. One tap a
+round, for nothing. `setRun` already moved a *passed-over* round on by itself; that now applies to
+every round, and it is called again whenever the session moves, because a round that asked them
+both refuses to advance while the other phone has not looked at the reveal yet — and nothing else
+would have asked a second time. That one case is the only end-of-round screen left, and it says
+what it is waiting for.
+
+**Heat Dice plays apart.** It asks nobody anything: one `DICE` step, the active player's. That
+ruled it out of two-phone play on the reasoning that there would be nothing to reveal and nothing
+for the other phone to watch — which was wrong about the second half. Chance in this app is seeded
+by the round itself (`engine/SPEC.md` §10), so **the phone that is not rolling computes the same
+faces**. Nothing has to travel for it to watch the roll; it already knows.
+
+So `watching()` splits on whether their round *asks* them anything:
+
+- it does, and they have not answered → they are choosing, and the watcher is told that;
+- it does, and they have → the prompt, from the reveal;
+- it asks nothing → what the round comes to, worked out locally: the dice faces, joined.
+
+`playableApart` loses its "something must be asked" condition and becomes: both are asked, **or**
+the round is open. All six games now play a phone each. `ContentBundleFileTest` holds the two
+halves together — it asserts the predicate against the released game, and then that a watching
+phone is actually shown something in the first round of every game offered that way, so a future
+game cannot be offered apart and leave one of them staring at nothing.

@@ -44,8 +44,8 @@ data class Game(
      */
     val playableApart: Boolean
         get() {
+            if (steps.isEmpty()) return false
             val asked = steps.filter { it.asksForAnAnswer }
-            if (asked.isEmpty()) return false
             val both = asked.any { it.who == StepAudience.EACH || it.who == StepAudience.TOGETHER } ||
                 (asked.any { it.who == StepAudience.ACTIVE } && asked.any { it.who == StepAudience.OTHER })
             return both || steps.none { it.isPrivate }
