@@ -167,6 +167,16 @@ class GameRun private constructor(private val state: RunState) {
     fun answerToSend(): Answer? = reading.answerToSend()
 
     /**
+     * Whether this round asks [seat] for anything at all (§12.2).
+     *
+     * The protocol's own question: a round is revealed when both phones have answered it, so a
+     * game where one seat is never asked cannot be played apart — it would wait for an answer that
+     * is never coming. `Game.playableApart` is the same rule read off the steps; this is it read
+     * off a real round, which is what the content test holds the two to.
+     */
+    fun asksSeat(seat: Int): Boolean = reading.answeringStepFor(seat) != null
+
+    /**
      * [answer], given by [seat] to step [step] on the other phone, as the server's reveal reported
      * it. The reveal is then read exactly as it is when one phone holds both answers.
      */

@@ -69,7 +69,7 @@ fun HomeScreen(
             }
             is Opened.Session -> {
                 viewModel.onShown()
-                actions.onOpen(opened.experienceId, opened.type)
+                actions.onOpen(opened.experienceId, opened.type, opened.twoPhones)
             }
         }
     }
@@ -100,7 +100,7 @@ data class HomeActions(
     /** A game dealt on this phone, for anyone the server does not know. */
     val onDealtGame: (gameId: String) -> Unit = {},
     /** Something the server built, and the session both phones follow. */
-    val onOpen: (experienceId: String, type: ExperienceType) -> Unit = { _, _ -> },
+    val onOpen: (experienceId: String, type: ExperienceType, twoPhones: Boolean) -> Unit = { _, _, _ -> },
     /** Debug builds only: the component gallery and the content inspector. */
     val onGallery: (() -> Unit)? = null,
     val onInspector: (() -> Unit)? = null,
@@ -162,7 +162,9 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
 
             // What is already happening comes before anything that could be started, and it is
             // the one lit object on the screen when it is there.
-            state.active?.let { session -> UnderWay(session, actions.onOpen) }
+            state.active?.let { session ->
+                UnderWay(session) { id, type -> actions.onOpen(id, type, session.kind.isTwoPhones) }
+            }
 
             // Which half of the app this is, before anything about tonight: together in a room,
             // or apart on two phones. A toggle rather than two home screens, because the app has
@@ -214,7 +216,14 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
                 state.games.forEach { game ->
                     ChoiceRow(
                         title = game.title,
-                        subtitle = game.tagline,
+                        // Apart, a game that asks one of them per round and nothing of the other
+                        // cannot be played a phone each — so it says so here rather than stranding
+                        // the second phone on "the game is on the other phone" (§12).
+                        subtitle = if (state.mode == Mode.APART && !game.playableApart) {
+                            "${game.tagline} · One phone between you"
+                        } else {
+                            game.tagline
+                        },
                         icon = AfterhoursIcons.Spark,
                         onClick = { actions.onPlay(game.id) },
                     )

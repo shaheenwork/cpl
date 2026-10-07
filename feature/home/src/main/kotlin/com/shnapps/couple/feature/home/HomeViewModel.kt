@@ -33,8 +33,18 @@ sealed interface Opened {
     /** A game dealt on this phone: nothing was asked of any server. */
     data class Dealt(val gameId: String) : Opened
 
-    /** An evening or a game the server built, and the session both phones follow. */
-    data class Session(val experienceId: String, val type: ExperienceType) : Opened
+    /**
+     * An evening or a game the server built, and the session both phones follow.
+     *
+     * [twoPhones] is how it is being played: a phone each, or one between them. It is decided
+     * here, when the game is started, because that is the only place that knows both the mode
+     * this phone is in and whether the game can be played that way at all (§12).
+     */
+    data class Session(
+        val experienceId: String,
+        val type: ExperienceType,
+        val twoPhones: Boolean = false,
+    ) : Opened
 }
 
 /** Who is using the app. The same home for all three — more of it works, further down. */
@@ -178,15 +188,20 @@ class HomeViewModel @Inject constructor(
      * either way — the difference is not something a person should have to know about.
      */
     fun play(gameId: String) {
-        if (!uiState.value.company.paired) {
+        val state = uiState.value
+        if (!state.company.paired) {
             local.update { it.copy(opened = Opened.Dealt(gameId), error = null) }
             return
         }
-        if (!uiState.value.canStart) return
-        val ceiling = uiState.value.tier
+        if (!state.canStart) return
+        // A phone each, when they are apart and the game can be played that way. A game that asks
+        // one of them per round and nothing of the other would leave a round waiting for an answer
+        // that never comes, so it stays on one phone however the toggle is set.
+        val apart = state.mode == Mode.APART && state.games.firstOrNull { it.id == gameId }?.playableApart == true
+        val ceiling = state.tier
         local.update { it.copy(making = true, error = null) }
         viewModelScope.launch {
-            finish(gameStarts.start(gameId, ceiling).map { it.experienceId }, ExperienceType.GAME)
+            finish(gameStarts.start(gameId, ceiling).map { it.experienceId }, ExperienceType.GAME, apart)
         }
     }
 
@@ -202,9 +217,14 @@ class HomeViewModel @Inject constructor(
      * before anything is asked for (V2 rule 5). Nothing home can start is behind a server gate —
      * starting a game never calls one — so a refusal here is an error, not a price.
      */
-    private fun finish(result: Outcome<String>, type: ExperienceType) = local.update { state ->
+    private fun finish(
+        result: Outcome<String>,
+        type: ExperienceType,
+        twoPhones: Boolean = false,
+    ) = local.update { state ->
         when (result) {
-            is Outcome.Success -> state.copy(making = false, opened = Opened.Session(result.value, type))
+            is Outcome.Success ->
+                state.copy(making = false, opened = Opened.Session(result.value, type, twoPhones))
             is Outcome.Failure -> state.copy(making = false, error = result.error.toHomeError())
         }
     }

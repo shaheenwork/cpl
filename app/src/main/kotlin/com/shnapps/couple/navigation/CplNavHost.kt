@@ -198,7 +198,9 @@ private fun Home(navController: NavHostController) {
             onPairPartner = { navController.navigate(Route.Pairing) },
             onStore = { level -> navController.navigate(Route.Store(level.name)) },
             onDealtGame = { gameId -> navController.navigate(Route.DealtGame(gameId)) },
-            onOpen = { experienceId, _ -> navController.navigate(Route.Game(experienceId)) },
+            onOpen = { experienceId, _, twoPhones ->
+                navController.navigate(Route.Game(experienceId, twoPhones))
+            },
             onGallery = { navController.navigate(Route.DesignGallery) },
             onInspector = if (CONTENT_INSPECTOR_AVAILABLE) {
                 { navController.navigate(Route.ContentInspector) }

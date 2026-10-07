@@ -230,13 +230,8 @@ internal class RoundReading(private val state: RunState) {
      * The step [seat] answers in this round: the last one that asks them for something only they
      * can give. It is where the reveal puts what the server says they answered.
      */
-    fun answeringStepFor(seat: Int): Slot.Take? =
-        takes.lastOrNull { take -> (take.seat == seat || take.seat == null) && asks(game.steps[take.step]) }
-
-    private fun asks(step: GameStep): Boolean = when (step.primitive) {
-        GamePrimitive.CHOICE, GamePrimitive.PREDICTION, GamePrimitive.VOTE -> true
-        GamePrimitive.QUESTION -> step.answer != AnswerKind.SPOKEN
-        else -> false
+    fun answeringStepFor(seat: Int): Slot.Take? = takes.lastOrNull { take ->
+        (take.seat == seat || take.seat == null) && game.steps[take.step].asksForAnAnswer
     }
 
     /**

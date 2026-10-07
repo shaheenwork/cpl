@@ -305,13 +305,14 @@ internal fun ElsewhereStage() {
             verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm),
         ) {
             Text(
-                text = "The game is on the other phone.",
+                text = "This one's on the other phone.",
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = "Either of you can pause or stop it from here, any time.",
+                text = "It asks one of you per round, so it is played on one phone and passed " +
+                    "over. Either of you can pause or stop it from here, any time.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = AfterhoursTheme.colors.textMuted,
                 textAlign = TextAlign.Center,

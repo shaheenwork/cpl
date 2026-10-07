@@ -201,6 +201,23 @@ class ContentBundleFileTest {
         }
     }
 
+    @Test
+    fun `a game offered a phone each really asks both of them every round`() {
+        val prompts = parsed.prompts.mapNotNull { ContentBundleParser.parsePrompt(it.json) }
+        ContentBundleParser.parseGames(parsed.gamesJson).forEach { game ->
+            val released = released(game, prompts.filter { it.game == game.id })
+            // The session protocol reveals a round when **both** phones have answered it, so a
+            // game offered apart must give each seat something to answer in the round. One that
+            // does not would leave the round waiting for an answer that is never coming — which is
+            // exactly what Truth or Dare did on two paired devices before this was checked.
+            val asksBoth = (0..1).all { seat ->
+                GameRun.start(released, PLAYERS, phone = seat).asksSeat(seat)
+            }
+            assertWithMessage("${game.id}: playableApart says ${game.playableApart}")
+                .that(asksBoth).isEqualTo(game.playableApart)
+        }
+    }
+
     /** The game as the server could have started it: the first prompts of each kind, by id. */
     private fun released(game: Game, prompts: List<GamePrompt>): ReleasedGame {
         val kinds: List<PromptKind?> = game.promptKinds.ifEmpty { listOf(null) }

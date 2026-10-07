@@ -243,6 +243,10 @@ class GameSnapshotTest {
         ).let { it.copy(stage = GameStages.stageOf(it, awaitingSession = false)) }
         capture("game-elsewhere") { GameContent(state, GameActions()) }
         assertThat(composeRule.onAllNodesWithText("Would you rather…").fetchSemanticsNodes()).isEmpty()
+        // Why, not just that: this screen is where a couple who paired two phones ends up when the
+        // game asks one of them per round, and "the game is on the other phone" alone reads like a
+        // fault (§12).
+        composeRule.onNodeWithText("This one's on the other phone.").assertIsDisplayed()
         composeRule.onNodeWithText("Stop").assertIsDisplayed()
     }
 

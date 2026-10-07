@@ -23,12 +23,28 @@ data class Game(
     val steps: List<GameStep>,
 ) {
     /**
-     * Every step is answered by both at once, or taken by both together — so the couple can play
-     * it with a phone each (§12). A game of turns is played on one phone: being handed it is the
-     * turn.
+     * Whether a couple can play this with a phone each (§12).
+     *
+     * The rule is the session protocol's, not a matter of taste: a round is revealed when **both
+     * phones have answered it**, so a game is playable apart exactly when every round asks each of
+     * them for something. That is true two ways — a step they both answer (EACH, or a TOGETHER
+     * step they each vote on), or one step for the active player and one for the other.
+     *
+     * It is *not* "every step belongs to both", which is what this used to say. That excluded Hot
+     * or Not, where one answers and the other guesses — one answer each, which is precisely what
+     * the protocol needs. And it included nothing that the protocol would have stalled on, so the
+     * mistake only ever cost a game.
+     *
+     * Truth or Dare and Heat Dice ask one person per round and nothing of the other, so apart they
+     * would leave a round waiting for an answer that is never coming. They are one-phone games
+     * until the protocol can reveal a round that only one of them answered.
      */
-    val bothAtOnce: Boolean
-        get() = steps.all { it.who == StepAudience.EACH || it.who == StepAudience.TOGETHER }
+    val playableApart: Boolean
+        get() {
+            val asked = steps.filter { it.asksForAnAnswer }
+            return asked.any { it.who == StepAudience.EACH || it.who == StepAudience.TOGETHER } ||
+                (asked.any { it.who == StepAudience.ACTIVE } && asked.any { it.who == StepAudience.OTHER })
+        }
 
     /**
      * Turns go round: one of them plays a round, the other plays the next.
@@ -59,7 +75,21 @@ data class GameStep(
     val media: MediaKind? = null,
     /** The dice a [GamePrimitive.DICE] step rolls, in the order they are read. Null for the rest. */
     val dice: List<GameDie>? = null,
-)
+) {
+    /**
+     * Whether this step asks whoever takes it for something only they know.
+     *
+     * The distinction the session protocol turns on: an answer like this is what one phone sends
+     * and the other learns from the reveal (§12.2). Pressing "done" on a dare is not one — the
+     * other phone already knows what was asked, so there is nothing to tell it.
+     */
+    val asksForAnAnswer: Boolean
+        get() = when (primitive) {
+            GamePrimitive.CHOICE, GamePrimitive.PREDICTION, GamePrimitive.VOTE -> true
+            GamePrimitive.QUESTION -> answer != AnswerKind.SPOKEN
+            else -> false
+        }
+}
 
 /**
  * One die of a [GamePrimitive.DICE] step: what it is for, and what is written on it.
