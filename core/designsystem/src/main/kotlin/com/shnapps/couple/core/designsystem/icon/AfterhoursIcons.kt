@@ -61,6 +61,9 @@ object AfterhoursIcons {
         "M17.5 14.6a5.5 5.5 0 013 4.9",
     )
     val Send = icon("Send", "M20 4L3.5 10.8l6.8 2.2 2.2 6.8z", "M20 4l-9.7 9.7")
+
+    /** What the two of them say to each other: one bubble, with the tail of a second. */
+    val Message = icon("Message", "M4 5h16v10H9l-4 4V5z")
     val Mic = icon(
         "Mic",
         "M12 3a2.5 2.5 0 0 1 2.5 2.5v5a2.5 2.5 0 0 1 -5 0v-5A2.5 2.5 0 0 1 12 3Z",

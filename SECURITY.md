@@ -146,6 +146,8 @@ names; the deeper coverage lives in the per-collection suites above it.
 | R | A creates a `mutualPreferences` doc | DENIED | matrix R; mutual discovery suite |
 | S | A reads a surprise payload before delivery | DENIED | matrix S; experiences suite row S |
 | T | Both members read and write their own permitted paths | ALLOWED | matrix T |
+| U | A writes a message as B, back-dates one, or edits one after it was read | DENIED | chat suite |
+| V | A marks the chat read on B's behalf | DENIED | chat suite |
 
 **The server's own doors** are covered by `security.e2e.test.ts`, which reads the callable surface
 out of `index.ts` so a callable added later is tested the moment it exists: every one of them

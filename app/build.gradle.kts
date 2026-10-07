@@ -144,6 +144,7 @@ dependencies {
     implementation(project(":feature:onboarding"))
     implementation(project(":feature:instant"))
     implementation(project(":feature:applock"))
+    implementation(project(":feature:chat"))
     implementation(project(":feature:pairing"))
     implementation(project(":feature:boundaries"))
     implementation(project(":feature:games"))

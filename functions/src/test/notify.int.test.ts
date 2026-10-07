@@ -22,6 +22,7 @@ import type { GenerateDeps } from '../experience/generate';
 import { planNight } from '../experience/plan';
 import { notifyPartner, notifyUser, type PushMessage, type Sender } from '../notify/notify';
 import { createPairingCode, requestPairing, respondToPairing } from '../pairing/pairing';
+import { QUIET_MS, onMessageWritten } from '../chat/chat';
 import { openArcDay, startArc } from '../surprises/arcs';
 import { createSurprise, deliverDue } from '../surprises/surprises';
 
@@ -152,6 +153,30 @@ describe('who gets told', () => {
     await notifyPartner(db, [a, b], a, 'THEY_SENT_SOMETHING', null, NOW, recorder);
 
     assert.deepEqual(recorder.sent[0].tokens, ['phone-b']);
+  });
+
+  it('tells them something was said, says nothing about it, and not again for a while', async () => {
+    const recorder = new Recorder();
+    const a = await user();
+    const b = await user();
+    await withPhone(b, 'phone-b');
+    const coupleId = await pair(a, b, recorder);
+    recorder.sent.length = 0;
+
+    await onMessageWritten(db, coupleId, a, NOW, recorder);
+    assert.deepEqual(recorder.kinds(), ['THEY_SENT_SOMETHING']);
+    assert.deepEqual(recorder.sent[0].tokens, ['phone-b']);
+    // Not a word of it rides along: the payload is a kind, a channel and a time (D-088).
+    assert.ok(!recorder.text().includes('did you do it'));
+
+    // A conversation is not an event. Twenty messages in a minute is one notification.
+    await onMessageWritten(db, coupleId, a, NOW + 1_000, recorder);
+    await onMessageWritten(db, coupleId, a, NOW + 30_000, recorder);
+    assert.equal(recorder.sent.length, 1);
+
+    // Once the quiet is over, the next one is told.
+    await onMessageWritten(db, coupleId, a, NOW + QUIET_MS + 1, recorder);
+    assert.equal(recorder.sent.length, 2);
   });
 
   it('never fails the thing it was about', async () => {

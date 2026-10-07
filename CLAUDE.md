@@ -80,15 +80,16 @@ Compiled bytecode targets **Java 17** regardless of the daemon JVM.
 :feature:games        The seven games' player, over the one interpreter
 :feature:boundaries   The limits profile: eight questions over twenty-seven themes
 :feature:store        The three packs, and what each costs (V2 rule 5)
+:feature:chat         The conversation, drawn over everything else by :app (CHAT_PROMPT.md)
 :feature:*            Added by the phase that introduces them (DECISIONS.md D-006)
 
 Out of scope since the rebuild, and moved to `_to_remove/` rather than deleted:
 :feature:night, :feature:preferences, :feature:discovery, :feature:memories, and the
 memories / preferences / mutual halves of :core:data and :core:firebase.
 
-Out of scope since v2: :feature:send — there is no separate messaging surface at all. A voice
-note or a photo exists only inside a round, as a dare's proof (V2 rule 3), which is
-`GamePrimitive.MEDIA` rendered by `:core:ui`.
+Out of scope since v2: :feature:send — the old inbox. Media still exists inside a round as a
+dare's proof (`GamePrimitive.MEDIA`, rendered by `:core:ui`), and since the chat there is also a
+conversation beside the games — a layer `:app` draws over the nav host, never a route (D-138).
 ```
 
 Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
@@ -549,3 +550,12 @@ Phase by phase (BUILD_PROMPT.md §22). Verify before advancing — a phase is no
 until its commands have been *run* and seen to pass. Update `PROGRESS.md` and commit at
 the end of every phase. Record non-obvious calls in `DECISIONS.md`, and anything a human
 must click in `HUMAN_SETUP.md`.
+
+**The Firestore emulator keeps what the last run wrote, and it does not reload `firestore.rules`
+reliably on Windows.** Two separate traps, and both look like a broken rule:
+
+- A rules test that *creates* a document fails on its second run if the collection forbids updates —
+  `setDoc` over an existing document is an update, not a create. A suite that writes must clear its
+  own documents in `before`.
+- Editing `firestore.rules` while the emulators are running can leave the old ruleset in place.
+  Restart the suite after a rules change rather than trusting the watcher.

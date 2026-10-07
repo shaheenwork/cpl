@@ -1,5 +1,6 @@
 package com.shnapps.couple.navigation
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -13,6 +14,7 @@ import com.shnapps.couple.debug.ContentInspectorScreen
 import com.shnapps.couple.feature.applock.AppLockScreen
 import com.shnapps.couple.feature.applock.AppLockSetupScreen
 import com.shnapps.couple.feature.boundaries.LimitsScreen
+import com.shnapps.couple.feature.chat.ChatLayer
 import com.shnapps.couple.feature.games.DealtGameScreen
 import com.shnapps.couple.feature.games.GameScreen
 import com.shnapps.couple.feature.home.HomeActions
@@ -44,133 +46,139 @@ fun CplNavHost(
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    NavHost(
-        navController = navController,
-        startDestination = Route.Splash,
-        modifier = modifier,
-    ) {
-        composable<Route.Splash> {
-            SplashScreen(
-                onDestination = { destination ->
-                    navController.navigate(destination.toRoute()) {
-                        // The splash is a routing decision, not a screen anyone should be
-                        // able to go back to.
-                        popUpTo(Route.Splash) { inclusive = true }
-                    }
-                },
-            )
-        }
+    // The chat is drawn **over** the graph, not in it (CHAT_PROMPT.md). A route would move the
+    // back stack and take the player's ViewModel out of the composition with it — the run, the
+    // round, the answer in flight — and the whole point of it is that the game does not notice.
+    // It is hosted here because only :app may depend on every feature it has to cover (§4.2).
+    Box(modifier = modifier) {
+        NavHost(
+            navController = navController,
+            startDestination = Route.Splash,
+        ) {
+            composable<Route.Splash> {
+                SplashScreen(
+                    onDestination = { destination ->
+                        navController.navigate(destination.toRoute()) {
+                            // The splash is a routing decision, not a screen anyone should be
+                            // able to go back to.
+                            popUpTo(Route.Splash) { inclusive = true }
+                        }
+                    },
+                )
+            }
 
-        // The one screen in front of the app. Not a form: one line, one button, and the heat
-        // dial so the first choice is made here (V2 rule 1).
-        composable<Route.AgeGate> {
-            StartScreen(
-                onStarted = {
-                    navController.navigate(Route.Home) {
-                        popUpTo(Route.AgeGate) { inclusive = true }
-                    }
-                },
-                // Declining is a real outcome, not a nudge to try again. There is no account to
-                // send anyone back to, so the app simply closes.
-                onNotOldEnough = { onExit() },
-            )
-        }
+            // The one screen in front of the app. Not a form: one line, one button, and the heat
+            // dial so the first choice is made here (V2 rule 1).
+            composable<Route.AgeGate> {
+                StartScreen(
+                    onStarted = {
+                        navController.navigate(Route.Home) {
+                            popUpTo(Route.AgeGate) { inclusive = true }
+                        }
+                    },
+                    // Declining is a real outcome, not a nudge to try again. There is no account to
+                    // send anyone back to, so the app simply closes.
+                    onNotOldEnough = { onExit() },
+                )
+            }
 
-        composable<Route.GameNight> {
-            GameNightScreen(onBack = { navController.popBackStack() })
-        }
+            composable<Route.GameNight> {
+                GameNightScreen(onBack = { navController.popBackStack() })
+            }
 
-        composable<Route.InstantPlay> {
-            InstantPlayScreen(
-                onBack = { navController.popBackStack() },
-                // A locked level tapped mid-card: the store opens on that pack, and the card
-                // underneath is exactly where it was on the way back (V2 rule 5).
-                onStore = { level -> navController.navigate(Route.Store(level.name)) },
-            )
-        }
-
-        // A game dealt on this phone. The one player screen draws it exactly as it draws a
-        // session's, because a person should not be able to tell which one they are in.
-        composable<Route.DealtGame> {
-            DealtGameScreen(onBack = { navController.popBackStack() })
-        }
-
-        composable<Route.AppLock> {
-            AppLockScreen(
-                onUnlocked = { navController.popBackStack() },
-                biometricAuthenticator = biometricAuthenticator,
-            )
-        }
-
-        composable<Route.AppLockSetup> {
-            AppLockSetupScreen(
-                onFinished = { navController.popBackStack() },
-                biometricAuthenticator = biometricAuthenticator,
-            )
-        }
-
-        // The only setup in the app. Reached from home or from settings, never in front of
-        // anything (V2 rule 2).
-        composable<Route.Pairing> {
-            PairingScreen(
-                onPaired = { navController.popBackStack() },
-                onLeave = { navController.popBackStack() },
-            )
-        }
-
-        composable<Route.Boundaries> {
-            LimitsScreen(onBack = { navController.popBackStack() })
-        }
-
-        composable<Route.Store> {
-            StoreScreen(onBack = { navController.popBackStack() })
-        }
-
-        composable<Route.Settings> {
-            SettingsScreen(
-                routes = SettingsRoutes(
-                    onBoundaries = { navController.navigate(Route.Boundaries) },
-                    onNotifications = { navController.navigate(Route.NotificationSettings) },
-                    onAppLock = { navController.navigate(Route.AppLockSetup) },
-                    onPremium = { navController.navigate(Route.Store()) },
-                    onPairing = { navController.navigate(Route.Pairing) },
+            composable<Route.InstantPlay> {
+                InstantPlayScreen(
                     onBack = { navController.popBackStack() },
-                ),
-            )
-        }
+                    // A locked level tapped mid-card: the store opens on that pack, and the card
+                    // underneath is exactly where it was on the way back (V2 rule 5).
+                    onStore = { level -> navController.navigate(Route.Store(level.name)) },
+                )
+            }
 
-        composable<Route.NotificationSettings> {
-            NotificationSettingsScreen(onBack = { navController.popBackStack() })
-        }
+            // A game dealt on this phone. The one player screen draws it exactly as it draws a
+            // session's, because a person should not be able to tell which one they are in.
+            composable<Route.DealtGame> {
+                DealtGameScreen(onBack = { navController.popBackStack() })
+            }
 
-        composable<Route.Game> {
-            GameScreen(
-                // There is no hub to go back to any more: the list is home's.
-                onGames = {
-                    if (!navController.popBackStack(Route.Home, inclusive = false)) {
-                        navController.navigate(Route.Home) { popUpTo(0) { inclusive = true } }
-                    }
-                },
-                onHome = {
-                    if (!navController.popBackStack(Route.Home, inclusive = false)) {
-                        navController.navigate(Route.Home) { popUpTo(0) { inclusive = true } }
-                    }
-                },
-                onAdjustLimits = { navController.navigate(Route.Boundaries) },
-            )
-        }
+            composable<Route.AppLock> {
+                AppLockScreen(
+                    onUnlocked = { navController.popBackStack() },
+                    biometricAuthenticator = biometricAuthenticator,
+                )
+            }
 
-        composable<Route.Home> {
-            Home(navController)
-        }
+            composable<Route.AppLockSetup> {
+                AppLockSetupScreen(
+                    onFinished = { navController.popBackStack() },
+                    biometricAuthenticator = biometricAuthenticator,
+                )
+            }
 
-        composable<Route.DesignGallery> {
-            ComponentGallery()
-        }
+            // The only setup in the app. Reached from home or from settings, never in front of
+            // anything (V2 rule 2).
+            composable<Route.Pairing> {
+                PairingScreen(
+                    onPaired = { navController.popBackStack() },
+                    onLeave = { navController.popBackStack() },
+                )
+            }
 
-        composable<Route.ContentInspector> {
-            ContentInspectorScreen(onBack = { navController.popBackStack() })
+            composable<Route.Boundaries> {
+                LimitsScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable<Route.Store> {
+                StoreScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable<Route.Settings> {
+                SettingsScreen(
+                    routes = SettingsRoutes(
+                        onBoundaries = { navController.navigate(Route.Boundaries) },
+                        onNotifications = { navController.navigate(Route.NotificationSettings) },
+                        onAppLock = { navController.navigate(Route.AppLockSetup) },
+                        onPremium = { navController.navigate(Route.Store()) },
+                        onPairing = { navController.navigate(Route.Pairing) },
+                        onBack = { navController.popBackStack() },
+                    ),
+                )
+            }
+
+            composable<Route.NotificationSettings> {
+                NotificationSettingsScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable<Route.Game> {
+                GameScreen(
+                    // There is no hub to go back to any more: the list is home's.
+                    onGames = {
+                        if (!navController.popBackStack(Route.Home, inclusive = false)) {
+                            navController.navigate(Route.Home) { popUpTo(0) { inclusive = true } }
+                        }
+                    },
+                    onHome = {
+                        if (!navController.popBackStack(Route.Home, inclusive = false)) {
+                            navController.navigate(Route.Home) { popUpTo(0) { inclusive = true } }
+                        }
+                    },
+                    onAdjustLimits = { navController.navigate(Route.Boundaries) },
+                )
+            }
+
+            composable<Route.Home> {
+                Home(navController)
+            }
+
+            composable<Route.DesignGallery> {
+                ComponentGallery()
+            }
+
+            composable<Route.ContentInspector> {
+                ContentInspectorScreen(onBack = { navController.popBackStack() })
+            }
         }
+        ChatLayer()
     }
 }
 

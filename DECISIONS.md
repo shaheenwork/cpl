@@ -2655,3 +2655,40 @@ the round is open. All six games now play a phone each. `ContentBundleFileTest` 
 halves together — it asserts the predicate against the released game, and then that a watching
 phone is actually shown something in the first round of every game offered that way, so a future
 game cannot be offered apart and leave one of them staring at nothing.
+
+---
+
+## D-138 — The chat is a layer, not a route
+
+A conversation between the two paired phones, openable over a round in progress. It reverses one
+line of the v2 brief — *"no separate messaging, no inbox"* — for a reason the device checks made
+plain: a dare done apart needs proof sent and something said about it, and a round is the wrong
+place to hold a conversation. The rest of that rule stands; the app is still the games.
+
+**It is drawn above the NavHost, in `:app`.** This is the decision the feature stands on. As a
+route it would move the back stack, and `GameViewModel` would leave the composition with it — the
+run, the round, the answer in flight. Drawn above, the route underneath is untouched and the game
+cannot tell. It also has to be `:app`, because a feature may not import another feature (§4.2) and
+the layer has to cover games, instant and home alike. One `ChatViewModel`, scoped to the activity,
+so the affordance and the panel are the same instance and a draft survives closing it.
+
+**The messages are written by the phone.** The first collection under a couple that is, and the
+reason is that there is nothing to compute: a message is their own words to the one other person
+who can read them, and a callable per line would be latency and cost for nothing. The rules hold
+the shape instead — `from == auth.uid`, `at == request.time`, no updates ever, and a delete only by
+its author. `at == request.time` is the load-bearing clause: without it a phone can place a message
+where it did not happen. Rows U and V of the §7.3 matrix.
+
+**Media keeps its existing lifecycle, and the order matters.** Reserve → upload → confirm (D-083),
+then the message. The other order leaves a message pointing at an unconfirmed record, which draws
+as a spinner that never resolves; this order can only leave a confirmed record nobody references,
+which the hourly sweep takes away. A test holds it.
+
+**The push says nothing.** `THEY_SENT_SOMETHING` already existed for exactly this, the words come
+from `NotificationText`, and the trigger is rate-limited to one per partner per two minutes with
+the stamp on the recipient's own `chatState` — a conversation is not twenty events.
+
+Two smaller calls. The overlay carries **Stop**, because it covers a screen that may be playing
+something (M7) and the safe word is on every one of those; it reaches `NightRepository` directly
+rather than through any feature. And **back closes the chat and goes no further**, which also means
+it must not count as the first of the two back presses that mean panic (M8).

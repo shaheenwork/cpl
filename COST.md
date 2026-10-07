@@ -124,6 +124,30 @@ What already holds it down:
 
 ---
 
+### 4. The chat — the only listener that is not about a night
+
+The conversation (CHAT_PROMPT.md) adds a second standing listener for a paired couple:
+
+| Operation | Reads | Writes |
+|---|---|---|
+| Opening the chat | 50 (the newest page, once) + 2 (`chatState`) | 1 (`lastReadAt`) |
+| A message arriving | 1 | — |
+| Saying something | — | 1 |
+| A photo or voice note | — | 1 reserve + 1 confirm + 1 message (the upload is Storage, not Firestore) |
+| The notification | 2 (couple, `chatState`) | 1 (`notifiedAt`), at most one per two minutes |
+
+Three things keep it small:
+
+- **The listener is on the newest fifty and nothing else.** Older pages are a one-off fetch when
+  somebody scrolls, not a widening window.
+- **It only exists for a paired couple**, and `ChatRepository.chat` emits an empty conversation
+  with no listener at all until there is one. A phone that never pairs costs nothing here.
+- **One notification per two minutes, however much is said.** A conversation is not twenty events.
+
+What it is *not* bounded by is how much they talk, and that is the honest risk: a long evening of
+messages is a read each on the other phone. At two people and a free tier's 50k daily reads, that
+is not a number worth defending against.
+
 ## 3. What would change these numbers
 
 - **Media.** A voice note is one Storage write, one read when it is opened, and a delete. Bytes

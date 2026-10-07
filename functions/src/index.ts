@@ -29,6 +29,7 @@ import * as accountDelete from './account/delete';
 import * as accountExport from './account/export';
 import * as report from './account/report';
 import * as billing from './billing/billing';
+import * as chat from './chat/chat';
 import * as media from './media/media';
 import * as memories from './memories/memories';
 import { revealTiming } from './discovery/timing';
@@ -266,6 +267,19 @@ export const markSeen = onCall(options, (request) =>
 /** PAUSE, RESUME, STOP and DECLINE, from either partner's phone (section 3.1). */
 export const endSession = onCall(options, (request) =>
   guarded(() => session.endSession(getFirestore(), callerUid(request), request.data, Date.now())),
+);
+
+/**
+ * Something one of them said (CHAT_PROMPT.md). The message is the phone's to write; this only
+ * tells the other one that there is something, and never what it was.
+ */
+export const onMessageCreated = onDocumentCreated(
+  { ...triggerOptions, document: 'couples/{coupleId}/messages/{messageId}' },
+  async (event) => {
+    const from = event.data?.get('from');
+    if (typeof from !== 'string') return;
+    await chat.onMessageWritten(getFirestore(), event.params.coupleId, from, Date.now());
+  },
 );
 
 /**

@@ -55,6 +55,7 @@ include(":architecture")
 // Feature modules are added by the phase that introduces them; see DECISIONS.md D-006.
 include(":feature:onboarding")
 include(":feature:applock")
+include(":feature:chat")
 include(":feature:pairing")
 include(":feature:boundaries")
 include(":feature:games")

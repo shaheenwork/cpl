@@ -8,6 +8,8 @@ import com.shnapps.couple.core.data.billing.BillingRepository
 import com.shnapps.couple.core.data.billing.DefaultBillingRepository
 import com.shnapps.couple.core.data.boundaries.BoundaryRepository
 import com.shnapps.couple.core.data.boundaries.DefaultBoundaryRepository
+import com.shnapps.couple.core.data.chat.ChatRepository
+import com.shnapps.couple.core.data.chat.DefaultChatRepository
 import com.shnapps.couple.core.data.content.AssetShippedContent
 import com.shnapps.couple.core.data.content.ContentRepository
 import com.shnapps.couple.core.data.content.DefaultContentRepository
@@ -80,6 +82,10 @@ abstract class DataModule {
 
     @Binds
     abstract fun bindMediaRepository(impl: DefaultMediaRepository): MediaRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindChatRepository(impl: DefaultChatRepository): ChatRepository
 
     @Binds
     abstract fun bindSurpriseRepository(impl: DefaultSurpriseRepository): SurpriseRepository

@@ -261,6 +261,26 @@ service cloud.firestore {
             && data.createdAt == request.time;
       }
 
+      // A message: whose, when, what kind, and at most one piece of media by id.
+      //
+      // `at == request.time` is the load-bearing one. Without it a phone could back-date a message
+      // into the middle of a conversation, or post-date one to the top of it for ever.
+      function validMessage(data) {
+        let keys = data.keys();
+        let hasText = keys.hasAny(['text']);
+        let hasMedia = keys.hasAny(['mediaId']);
+        return keys.hasOnly(['from', 'at', 'kind', 'text', 'mediaId'])
+            && keys.hasAll(['from', 'at', 'kind'])
+            && data.from == request.auth.uid
+            && data.at == request.time
+            && data.kind in ['TEXT', 'VOICE', 'PHOTO']
+            && (!hasText || (data.text is string && data.text.size() <= 2000))
+            && (!hasMedia || data.mediaId is string)
+            // A text message is words and nothing else; media carries its own record.
+            && (data.kind != 'TEXT' || (hasText && data.text.size() > 0 && !hasMedia))
+            && (data.kind == 'TEXT' || hasMedia);
+      }
+
       // The session is under way, on this chapter, and this phone is playing it.
       function liveChapter(coupleId, sessionId, chapter) {
         let session = get(/databases/$(database)/documents/couples/$(coupleId)/sessions/$(sessionId)).data;
@@ -344,6 +364,30 @@ service cloud.firestore {
       match /media/{itemId} {
         allow get, list: if isActiveMember(coupleId);
         allow write: if false;
+      }
+
+      // What the two of them say to each other (CHAT_PROMPT.md).
+      //
+      // The one collection under a couple that a client writes outright, and the reason is that
+      // there is nothing to compute: a message is their own words to the only other person who
+      // can read them. What the rules hold is the shape — whose it is, when it was, and that it
+      // is never edited afterwards.
+      match /messages/{messageId} {
+        allow get, list: if isActiveMember(coupleId);
+        allow create: if isActiveMember(coupleId) && validMessage(request.resource.data);
+        // Said is said: a message is not rewritten after the other phone has read it.
+        allow update: if false;
+        // Your own, and it goes for both of you — there is no "delete for me" in a room of two.
+        allow delete: if isActiveMember(coupleId) && resource.data.from == request.auth.uid;
+      }
+
+      // How far each of them has read (CHAT_PROMPT.md §3.2). Owner-only, because a phone saying
+      // the *other* one had read something would be a lie with nobody to catch it.
+      match /chatState/{uid} {
+        allow get, list: if isActiveMember(coupleId);
+        allow write: if isActiveMember(coupleId) && request.auth.uid == uid
+                     && request.resource.data.keys().hasOnly(['lastReadAt'])
+                     && request.resource.data.lastReadAt == request.time;
       }
 
       // What one partner has planned for the other (§2.5 #2, §13): that there is something,

@@ -939,6 +939,64 @@ describe('content deltas (§9.2, §9.6)', () => {
 // twenty test names, each one the scenario as the brief words it. The rows are covered in more
 // depth above — this is the list a human reads to be sure none of them is missing (§21.1), and
 // rows O and P live in storage.test.mjs, where the objects are.
+describe('couples/{coupleId}/messages — what the two of them say (CHAT_PROMPT.md)', () => {
+  // Its own couple: the chat is written by the client, so these tests create and delete real
+  // documents and must not leave anything in another suite's fixtures.
+  const CHAT_CID = 'chat_couple';
+  const MALLORY = 'uid_chat_mallory';
+  const mallory = () => testEnv.authenticatedContext(MALLORY).firestore();
+
+  before(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'couples', CHAT_CID), { status: 'ACTIVE', memberUids: [ALICE, BOB] });
+      // The emulator keeps what the last run wrote, and a message is never updated — so a second
+      // run would be writing over documents it had already created, which the rules refuse. The
+      // refusal is right; what has to go is yesterday's conversation.
+      const left = await getDocs(collection(db, 'couples', CHAT_CID, 'messages'));
+      await Promise.all(left.docs.map((each) => deleteDoc(each.ref)));
+    });
+  });
+
+  it('lets the two of them talk, and holds a message to its shape', async () => {
+    const said = (by, extra = {}) => ({ from: by, at: serverTimestamp(), kind: 'TEXT', text: 'did you do it', ...extra });
+    await assertSucceeds(setDoc(doc(alice(), 'couples', CHAT_CID, 'messages', 'm1'), said(ALICE)));
+    await assertSucceeds(getDocs(collection(bob(), 'couples', CHAT_CID, 'messages')));
+
+    // Whose it is, and when: without `at == request.time` a phone can back-date a message into
+    // the middle of a conversation, or post-date one to the top of it for ever.
+    await assertFails(setDoc(doc(alice(), 'couples', CHAT_CID, 'messages', 'm2'), said(BOB)));
+    await assertFails(setDoc(doc(alice(), 'couples', CHAT_CID, 'messages', 'm3'), { ...said(ALICE), at: Timestamp.fromMillis(0) }));
+    // Said is said.
+    await assertFails(updateDoc(doc(bob(), 'couples', CHAT_CID, 'messages', 'm1'), { text: 'something else' }));
+    await assertFails(updateDoc(doc(alice(), 'couples', CHAT_CID, 'messages', 'm1'), { text: 'something else' }));
+    // A text message is words, and media carries its own record.
+    await assertFails(setDoc(doc(alice(), 'couples', CHAT_CID, 'messages', 'm4'), said(ALICE, { text: '' })));
+    await assertFails(setDoc(doc(alice(), 'couples', CHAT_CID, 'messages', 'm5'), said(ALICE, { mediaId: 'med_1' })));
+    await assertFails(setDoc(doc(alice(), 'couples', CHAT_CID, 'messages', 'm6'), { from: ALICE, at: serverTimestamp(), kind: 'PHOTO' }));
+    await assertSucceeds(setDoc(doc(alice(), 'couples', CHAT_CID, 'messages', 'm7'), {
+      from: ALICE, at: serverTimestamp(), kind: 'PHOTO', text: 'proof', mediaId: 'med_1',
+    }));
+    // Yours to take back, and only yours.
+    await assertFails(deleteDoc(doc(bob(), 'couples', CHAT_CID, 'messages', 'm1')));
+    await assertSucceeds(deleteDoc(doc(alice(), 'couples', CHAT_CID, 'messages', 'm1')));
+
+    await assertFails(getDocs(collection(mallory(), 'couples', CHAT_CID, 'messages')));
+    await assertFails(setDoc(doc(mallory(), 'couples', CHAT_CID, 'messages', 'm8'), said(MALLORY)));
+  });
+  it('lets each of them say how far they have read, and neither say it for the other', async () => {
+    await assertSucceeds(setDoc(doc(alice(), 'couples', CHAT_CID, 'chatState', ALICE), { lastReadAt: serverTimestamp() }));
+    // Read by both: the point of it is that the other one can see it.
+    await assertSucceeds(getDoc(doc(bob(), 'couples', CHAT_CID, 'chatState', ALICE)));
+    // Nobody marks anything read on somebody else's behalf.
+    await assertFails(setDoc(doc(alice(), 'couples', CHAT_CID, 'chatState', BOB), { lastReadAt: serverTimestamp() }));
+    await assertFails(setDoc(doc(alice(), 'couples', CHAT_CID, 'chatState', ALICE), { lastReadAt: Timestamp.fromMillis(0) }));
+    await assertFails(setDoc(doc(alice(), 'couples', CHAT_CID, 'chatState', ALICE), { lastReadAt: serverTimestamp(), muted: true }));
+    await assertFails(getDoc(doc(mallory(), 'couples', CHAT_CID, 'chatState', ALICE)));
+  });
+
+});
+
 describe('§7.3 — the mandatory matrix', () => {
   // Its own people and its own couple: this suite writes documents from the admin side, and
   // must not leave a trace on the fixtures the suites above create through the rules.
