@@ -39,21 +39,13 @@ object Route {
     data object GameNight
 
     /**
-     * Making an account, or coming back to one. [offer] names why it was asked for — an
-     * `AccountOffer`, never anything about what they were doing — so the screen can say what an
-     * account buys instead of only asking for an email (§6).
+     * The only setup in the app, and only for playing apart (V2 rule 2).
+     *
+     * There is nothing before it and nothing after it: no account to make, no profile to fill in.
+     * A pair, once made, lasts until one of the two phones unpairs.
      */
     @Serializable
-    data class Auth(val offer: String? = null)
-
-    @Serializable
-    data object ForgotPassword
-
-    @Serializable
-    data object Welcome
-
-    @Serializable
-    data object CoupleSetup
+    data object Pairing
 
     // --- Main ---
 

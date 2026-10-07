@@ -24,6 +24,9 @@ interface AuthRepository : ContentLevelWriter {
 
     suspend fun signUp(email: String, password: String): Outcome<AuthUser>
 
+    /** An identity with no credentials, made on demand so a pair has something to hang on (V2). */
+    suspend fun signInAnonymously(): Outcome<AuthUser>
+
     suspend fun sendPasswordReset(email: String): Outcome<Unit>
 
     /** Signs out and wipes device-local state belonging to the departing account. */

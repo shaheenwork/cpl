@@ -2,12 +2,11 @@ package com.shnapps.couple.feature.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.shnapps.couple.core.data.auth.AuthRepository
+import com.shnapps.couple.core.data.identity.Identity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -20,20 +19,8 @@ import javax.inject.Inject
 sealed interface StartDestination {
     data object Loading : StartDestination
 
-    /** Not signed in, and nothing set up: age and tier, then a card (REDESIGN_PROMPT.md §5.1). */
-    data object Start : StartDestination
-
-    /** Not signed in, and asking to be: the sign-in screen. */
-    data object Auth : StartDestination
-
-    /** Signed in, but with no 18+ record. Always re-prompted rather than assumed (§3.1). */
+    /** Nobody on this phone has said they are 18 yet. The one screen before the app (§3.1). */
     data object AgeGate : StartDestination
-
-    /** Signed in and confirmed, but has not seen the welcome beats. */
-    data object Welcome : StartDestination
-
-    /** Signed in, confirmed, not yet paired. Reached from home, never instead of it. */
-    data object CoupleSetup : StartDestination
 
     data object Home : StartDestination
 }
@@ -42,7 +29,7 @@ data class SplashUiState(val destination: StartDestination = StartDestination.Lo
 
 @HiltViewModel
 class SplashViewModel @Inject constructor(
-    private val authRepository: AuthRepository,
+    private val identity: Identity,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SplashUiState())
@@ -53,48 +40,17 @@ class SplashViewModel @Inject constructor(
     }
 
     /**
-     * Resolution order matters, and it is the order of the guarantees.
+     * Two destinations, and one fact decides between them.
      *
-     * The session is checked before anything else, because everything after it assumes a
-     * session that works. The age gate is then checked against the **server** record, not the
-     * local hint. The hint exists only to avoid a blank screen; it can never let someone past
-     * the gate, because a device-local flag is exactly what an attacker or a curious teenager
-     * would clear or forge.
+     * There is no session to validate, no profile to fetch and no welcome to have seen: v2 has no
+     * accounts at all. The only thing the app can know on open is whether somebody on this phone has
+     * already said they are eighteen — kept on the phone that said it, because there is nowhere else
+     * for it to live and nobody else it would be true of.
      */
     private fun resolve() {
         viewModelScope.launch {
-            val user = authRepository.authState.first()
-            if (user == null) {
-                // No account is no longer a dead end. Someone who has already said they are 18
-                // goes back to where they were; someone new gets the one screen that asks.
-                val confirmed = authRepository.ageConfirmedHint()
-                _uiState.value = SplashUiState(
-                    if (confirmed) StartDestination.Home else StartDestination.Start,
-                )
-                return@launch
-            }
-
-            // A stored session that is no longer real: the account went, the password changed
-            // elsewhere, or the session was revoked. It is signed out here rather than carried
-            // into the app, where every call would fail and a queued write would never land.
-            if (!authRepository.validateSession()) {
-                _uiState.value = SplashUiState(StartDestination.Auth)
-                return@launch
-            }
-
-            if (!authRepository.hasConfirmedAge()) {
-                _uiState.value = SplashUiState(StartDestination.AgeGate)
-                return@launch
-            }
-
-            val profile = authRepository.currentProfile.first()
             _uiState.value = SplashUiState(
-                when {
-                    profile == null -> StartDestination.Welcome
-                    // Not paired is not a wall any more: home says what a partner would add, and
-                    // pairing is one row inside it (REDESIGN_PROMPT.md §6).
-                    else -> StartDestination.Home
-                },
+                if (identity.hasConfirmedAge()) StartDestination.Home else StartDestination.AgeGate,
             )
         }
     }

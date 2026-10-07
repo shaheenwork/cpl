@@ -121,6 +121,9 @@ class MainActivity : FragmentActivity() {
                         CplNavHost(
                             navController = navController,
                             biometricAuthenticator = biometricAuthenticator,
+                            // The age gate's "no" is the one answer that ends the session, and
+                            // only an Activity can close itself (V2 rule 1).
+                            onExit = { finish() },
                             // Edge to edge: the surface paints behind the system bars while
                             // every screen is inset from them, and from the keyboard, so a
                             // form's button is never left underneath it.

@@ -41,17 +41,14 @@ class AccountSnapshotTest {
     @Test
     fun everythingAboutThisAccount() {
         val state = SettingsUiState(
-            email = "alex@example.com",
             paired = true,
             entitlement = Entitlement(tier = Tier.PREMIUM),
         )
         capture("settings-hub") { SettingsContent(state, SettingsRoutes(), SettingsActions()) }
-        composeRule.onNodeWithText("Signed in as alex@example.com.").assertIsDisplayed()
-        // The discreet icon and panic are a new group on this page, so what was on the first
-        // screen is now below it (M8).
+        // Nothing here is an account: this phone is either on its own or half of a pair (V2).
+        composeRule.onNodeWithText("Paired with their phone.").assertIsDisplayed()
         composeRule.onNodeWithText("HOW IT LOOKS ON YOUR HOME SCREEN").assertIsDisplayed()
         composeRule.onNodeWithText("Export my data").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Delete my account").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Unpair").performScrollTo().assertIsDisplayed()
     }
 

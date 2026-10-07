@@ -61,6 +61,12 @@ class DefaultAuthRepository @Inject constructor(
         return result
     }
 
+    override suspend fun signInAnonymously(): Outcome<AuthUser> {
+        val result = authDataSource.signInAnonymously()
+        if (result is Outcome.Success) ensureProfile(result.value)
+        return result
+    }
+
     override suspend fun signUp(email: String, password: String): Outcome<AuthUser> {
         val result = authDataSource.signUp(email, password)
         if (result is Outcome.Success) ensureProfile(result.value)

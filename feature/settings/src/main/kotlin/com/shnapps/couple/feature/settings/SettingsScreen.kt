@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -37,24 +36,18 @@ import java.io.File
  * Settings (BUILD_PROMPT.md §14.9).
  *
  * Most of it is doors: the private things — answers, limits, the app lock — each already have a
- * screen, and this is where they are found. What lives here is the account itself: what it holds
- * about you, how to take it away from this couple, and how to end it entirely.
+ * screen, and this is where they are found. There is no account in v2, so nothing here signs in,
+ * signs out or deletes one: what lives here is this phone, and the pair it is half of.
  */
 @Composable
 fun SettingsScreen(
     routes: SettingsRoutes,
-    onSignedOut: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     SecureScreen()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val exportsDirectory = File(LocalContext.current.cacheDir, "exports")
-    // In an effect, not in composition: leaving is something that happens once, not something
-    // that happens again on every frame the state is still "gone".
-    LaunchedEffect(state.deleted) {
-        if (state.deleted) onSignedOut()
-    }
     SettingsContent(
         state = state,
         routes = routes,
@@ -75,8 +68,8 @@ data class SettingsRoutes(
     val onNotifications: () -> Unit = {},
     val onAppLock: () -> Unit = {},
     val onPremium: () -> Unit = {},
-    val onDeleteAccount: () -> Unit = {},
-    val onSignOut: () -> Unit = {},
+    /** The only setup in the app, and the only row here that touches the other phone (V2). */
+    val onPairing: () -> Unit = {},
     val onBack: () -> Unit = {},
 )
 
@@ -137,7 +130,9 @@ internal fun SettingsContent(
         ScreenHeading(
             eyebrow = "Settings",
             headline = "Yours, and the two of you.",
-            body = state.email?.let { "Signed in as $it." },
+            // Not "signed in as": there is nobody to be signed in as. What this phone is, is
+            // either on its own or half of a pair (V2 rule 1).
+            body = if (state.paired) "Paired with their phone." else "Not paired. Together mode needs nothing.",
         )
 
         Group("You") {
@@ -174,8 +169,6 @@ internal fun SettingsContent(
                 detail = "Everything this app holds about you, as one file.",
                 onClick = actions.onExport,
             )
-            Row("Delete my account", "This one cannot be undone.", routes.onDeleteAccount)
-            Row("Sign out", "On this phone.", routes.onSignOut)
         }
 
         // Only when they exist: a row here that opens nothing would be worse than no row.

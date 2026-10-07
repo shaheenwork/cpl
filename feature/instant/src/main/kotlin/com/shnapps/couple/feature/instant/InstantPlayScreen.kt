@@ -53,7 +53,6 @@ import com.shnapps.couple.core.ui.TimerRing
 @Composable
 fun InstantPlayScreen(
     onBack: () -> Unit,
-    onKeepThis: () -> Unit,
     viewModel: InstantPlayViewModel = hiltViewModel(),
 ) {
     SecureScreen()
@@ -72,7 +71,6 @@ fun InstantPlayScreen(
         onStartTimer = viewModel::startTimer,
         onStopTimer = viewModel::stopTimer,
         onKeepGoing = viewModel::keepGoing,
-        onKeepThis = onKeepThis,
         onLane = viewModel::setLane,
         onStop = viewModel::stop,
         onGentle = viewModel::carryOnGently,
@@ -96,7 +94,6 @@ internal fun InstantPlayContent(
     onStartTimer: () -> Unit,
     onStopTimer: () -> Unit,
     onKeepGoing: () -> Unit,
-    onKeepThis: () -> Unit,
     onLane: (String?) -> Unit = {},
     onStop: () -> Unit = {},
     onGentle: () -> Unit = {},
@@ -153,12 +150,6 @@ internal fun InstantPlayContent(
                         text = "Keep going",
                         onClick = onKeepGoing,
                         leadingIcon = AfterhoursIcons.Flame,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    GlowButton(
-                        text = "Keep tonight, and find each other",
-                        onClick = onKeepThis,
-                        style = GlowButtonStyle.Secondary,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     GlowButton(
@@ -305,8 +296,8 @@ private fun Dealing() {
 }
 
 /**
- * An evening does not end on its own. It asks — and this is the first moment an account is worth
- * anything, so it is the first moment one is offered (REDESIGN_PROMPT.md §4.2).
+ * An evening does not end on its own. It asks, and it offers nothing: there is no account to make
+ * here and nothing to sign up for (V2 rule 1).
  */
 @Composable
 private fun RunComplete(played: Int, aftercare: InstantCard?) {
@@ -314,8 +305,7 @@ private fun RunComplete(played: Int, aftercare: InstantCard?) {
         eyebrow = "That's $played",
         title = "Stop here, or keep going?",
         body = "There is plenty left, and an evening does not end on its own.",
-        meta = "An account keeps what you saved and lets you play when you're apart. " +
-            "What you've said no to comes with you.",
+        meta = "Nothing is saved anywhere else. What you have said no to stays on this phone.",
     )
 
     // After a Hot or Extreme run, something written to land on (M7). Offered rather than counted

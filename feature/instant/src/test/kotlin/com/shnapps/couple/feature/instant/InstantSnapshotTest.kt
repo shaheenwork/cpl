@@ -116,7 +116,6 @@ class InstantSnapshotTest {
             onStartTimer = {},
             onStopTimer = {},
             onKeepGoing = {},
-            onKeepThis = {},
         )
     }
 

@@ -59,6 +59,18 @@ class AuthDataSource @Inject constructor(
         requireNotNull(result.user).toAuthUser()
     }
 
+    /**
+     * The sign-in with no credentials, for a product that has no accounts (V2).
+     *
+     * It exists so a pair has a uid the rules can be written against — not so anybody has an
+     * account. Nothing asks for it, nothing displays it, and a phone that never pairs never calls
+     * it at all.
+     */
+    suspend fun signInAnonymously(): Outcome<AuthUser> = authCall {
+        val result = auth.signInAnonymously().await()
+        requireNotNull(result.user).toAuthUser()
+    }
+
     suspend fun signUp(email: String, password: String): Outcome<AuthUser> = authCall {
         val result = auth.createUserWithEmailAndPassword(email.trim(), password).await()
         requireNotNull(result.user).toAuthUser()

@@ -113,7 +113,6 @@ class InstantAccessibilityTest {
             onStartTimer = {},
             onStopTimer = {},
             onKeepGoing = {},
-            onKeepThis = {},
         )
     }
 

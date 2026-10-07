@@ -143,7 +143,6 @@ dependencies {
     implementation(project(":core:firebase"))
     implementation(project(":feature:onboarding"))
     implementation(project(":feature:instant"))
-    implementation(project(":feature:auth"))
     implementation(project(":feature:applock"))
     implementation(project(":feature:pairing"))
     implementation(project(":feature:boundaries"))

@@ -52,6 +52,13 @@ class FakeAuthRepository : AuthRepository {
     override suspend fun signIn(email: String, password: String): Outcome<AuthUser> =
         signInResult.also { if (it is Outcome.Success) user.value = it.value }
 
+    /** The sign-in with no credentials: a phone that has pairing in mind and nothing else (V2). */
+    override suspend fun signInAnonymously(): Outcome<AuthUser> {
+        val anonymous = AuthUser(uid = "anon-uid", email = null, isEmailVerified = false)
+        user.value = anonymous
+        return Outcome.Success(anonymous)
+    }
+
     override suspend fun signUp(email: String, password: String): Outcome<AuthUser> =
         signUpResult.also { if (it is Outcome.Success) user.value = it.value }
 

@@ -1,9 +1,7 @@
 package com.shnapps.couple.feature.onboarding
 
 import com.google.common.truth.Truth.assertThat
-import com.shnapps.couple.core.model.AgeAttestation
-import com.shnapps.couple.core.model.UserProfile
-import com.shnapps.couple.core.testing.FakeAuthRepository
+import com.shnapps.couple.core.testing.FakeIdentity
 import com.shnapps.couple.core.testing.MainDispatcherRule
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -11,137 +9,61 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * Where the app sends someone on open (BUILD_PROMPT.md §14.1).
+ * Where the app sends someone on open (V2 rule 1).
  *
- * The routing order *is* the order of the guarantees, so each branch gets a test — and the
- * one that matters most is that the device-local age hint can never carry someone past the
- * gate on its own (§3.1).
+ * There used to be six answers here, and five of them were about an account: a session to validate,
+ * a profile to fetch, welcome beats to have seen, a couple to have set up. V2 has no accounts, so
+ * there are two answers and one fact decides between them — has anybody on this phone said they are
+ * eighteen.
+ *
+ * What is worth asserting is what it no longer does: it never waits on a network, and it never
+ * takes anything but that attestation as permission to go past the gate.
  */
 class SplashViewModelTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private val auth = FakeAuthRepository()
-
-    private fun resolve(): StartDestination {
-        val viewModel = SplashViewModel(auth)
-        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
-        return viewModel.uiState.value.destination
-    }
+    private val identity = FakeIdentity()
 
     @Test
-    fun `signed out and new goes to the one screen that asks`() = runTest(mainDispatcherRule.testDispatcher) {
-        // No account is not a dead end any more (REDESIGN_PROMPT.md §5.1): a first launch asks
-        // for an age and a tier, and then plays.
-        auth.user.value = null
-        auth.ageHint = false
+    fun `nobody has said they are eighteen, so the gate comes first`() = runTest(mainDispatcherRule.testDispatcher) {
+        identity.ageConfirmed = false
 
-        assertThat(resolve()).isEqualTo(StartDestination.Start)
-    }
-
-    @Test
-    fun `signed out but already through the gate goes back to playing`() = runTest(mainDispatcherRule.testDispatcher) {
-        auth.user.value = null
-        auth.ageHint = true
-
-        // The same home a signed-in couple opens on: an account adds to it, it does not swap it.
-        assertThat(resolve()).isEqualTo(StartDestination.Home)
-    }
-
-    @Test
-    fun `a session that is gone for good goes to auth, signed out`() = runTest(mainDispatcherRule.testDispatcher) {
-        // The account was deleted, the password changed elsewhere, or the dev Auth emulator
-        // restarted: the SDK still reports a user, and nothing it does will work.
-        auth.user.value = FakeAuthRepository.DEFAULT_USER
-        auth.serverAgeConfirmed = true
-        auth.sessionValid = false
-
-        assertThat(resolve()).isEqualTo(StartDestination.Auth)
-        assertThat(auth.signedOut).isTrue()
-    }
-
-    @Test
-    fun `the session is checked before anything is routed`() = runTest(mainDispatcherRule.testDispatcher) {
-        auth.user.value = FakeAuthRepository.DEFAULT_USER
-        auth.serverAgeConfirmed = true
-
-        resolve()
-
-        assertThat(auth.validateSessionCalls).isEqualTo(1)
-        assertThat(auth.signedOut).isFalse()
-    }
-
-    @Test
-    fun `signed in without an attestation goes to the age gate`() = runTest(mainDispatcherRule.testDispatcher) {
-        auth.user.value = FakeAuthRepository.DEFAULT_USER
-        auth.serverAgeConfirmed = false
-        assertThat(resolve()).isEqualTo(StartDestination.AgeGate)
-    }
-
-    @Test
-    fun `the local hint alone never passes the age gate`() = runTest(mainDispatcherRule.testDispatcher) {
-        // The device-local flag says confirmed; the server record does not. A local flag is
-        // exactly what someone would clear or forge, so it must not be trusted to open the
-        // gate (§3.1).
-        auth.user.value = FakeAuthRepository.DEFAULT_USER
-        auth.ageHint = true
-        auth.serverAgeConfirmed = false
-
-        assertThat(resolve()).isEqualTo(StartDestination.AgeGate)
-    }
-
-    @Test
-    fun `an existing account is never taken as proof of age`() = runTest(mainDispatcherRule.testDispatcher) {
-        // A profile exists — the user has been here before — but carries no attestation.
-        auth.user.value = FakeAuthRepository.DEFAULT_USER
-        auth.profile.value = UserProfile(uid = FakeAuthRepository.DEFAULT_USER.uid, ageAttestation = null)
-        auth.serverAgeConfirmed = false
-
-        assertThat(resolve()).isEqualTo(StartDestination.AgeGate)
-    }
-
-    @Test
-    fun `confirmed with no profile yet goes to welcome`() = runTest(mainDispatcherRule.testDispatcher) {
-        auth.user.value = FakeAuthRepository.DEFAULT_USER
-        auth.serverAgeConfirmed = true
-        auth.profile.value = null
-
-        assertThat(resolve()).isEqualTo(StartDestination.Welcome)
-    }
-
-    @Test
-    fun `confirmed but unpaired goes home, not to a pairing wall`() = runTest(mainDispatcherRule.testDispatcher) {
-        auth.user.value = FakeAuthRepository.DEFAULT_USER
-        auth.serverAgeConfirmed = true
-        auth.profile.value = confirmedProfile(coupleId = null)
-
-        // Pairing used to stand in front of the app. It is one row inside home now (§6).
-        assertThat(resolve()).isEqualTo(StartDestination.Home)
-    }
-
-    @Test
-    fun `confirmed and paired goes home`() = runTest(mainDispatcherRule.testDispatcher) {
-        auth.user.value = FakeAuthRepository.DEFAULT_USER
-        auth.serverAgeConfirmed = true
-        auth.profile.value = confirmedProfile(coupleId = "couple_1")
-
-        assertThat(resolve()).isEqualTo(StartDestination.Home)
-    }
-
-    @Test
-    fun `stays loading until resolved`() = runTest(mainDispatcherRule.testDispatcher) {
-        auth.user.value = FakeAuthRepository.DEFAULT_USER
-        val viewModel = SplashViewModel(auth)
-        // Nothing has run yet on the standard test dispatcher.
-        assertThat(viewModel.uiState.value.destination).isEqualTo(StartDestination.Loading)
+        val viewModel = SplashViewModel(identity)
         advanceUntilIdle()
-        assertThat(viewModel.uiState.value.destination).isNotEqualTo(StartDestination.Loading)
+
+        assertThat(viewModel.uiState.value.destination).isEqualTo(StartDestination.AgeGate)
     }
 
-    private fun confirmedProfile(coupleId: String?) = UserProfile(
-        uid = FakeAuthRepository.DEFAULT_USER.uid,
-        ageAttestation = AgeAttestation(confirmed = true, confirmedAtEpochMillis = 1L),
-        coupleId = coupleId,
-    )
+    @Test
+    fun `somebody already has, so the app opens where it left off`() = runTest(mainDispatcherRule.testDispatcher) {
+        identity.ageConfirmed = true
+
+        val viewModel = SplashViewModel(identity)
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.destination).isEqualTo(StartDestination.Home)
+    }
+
+    @Test
+    fun `it is loading until it has decided, and never renders a guess`() = runTest(mainDispatcherRule.testDispatcher) {
+        // The first frame is the one that traps people: a screen that assumes "home" and then
+        // corrects itself has already shown the app to somebody who never passed the gate (D-027).
+        val viewModel = SplashViewModel(identity)
+
+        assertThat(viewModel.uiState.value.destination).isEqualTo(StartDestination.Loading)
+    }
+
+    @Test
+    fun `nothing about an account is consulted, because there is none`() = runTest(mainDispatcherRule.testDispatcher) {
+        identity.ageConfirmed = true
+
+        SplashViewModel(identity)
+        advanceUntilIdle()
+
+        // Opening the app creates no identity with the server. Only pairing does that, and a phone
+        // that never pairs never appears in the project at all.
+        assertThat(identity.identityCalls).isEqualTo(0)
+    }
 }
