@@ -2,21 +2,18 @@ package com.shnapps.couple.feature.instant
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.shnapps.couple.core.data.entitlement.Allowances
 import com.shnapps.couple.core.data.entitlement.LaunchOffer
+import com.shnapps.couple.core.data.entitlement.LevelAccess
 import com.shnapps.couple.core.data.instant.InstantPlayRepository
 import com.shnapps.couple.core.engine.InstantCard
 import com.shnapps.couple.core.engine.InstantDeck
 import com.shnapps.couple.core.model.ContentPack
 import com.shnapps.couple.core.model.Intensity
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -57,13 +54,18 @@ data class InstantPlayUiState(
     /** The card written to land on, offered once a Hot or Extreme run is done (M7). */
     val aftercare: InstantCard? = null,
     /**
-     * The free tier is out of cards for today (M9).
+     * How far this phone may go, and what it would take to go further (V2 rule 5).
      *
-     * Checked when a run *starts*, never mid-run: a couple who are already playing finish what they
-     * started, because a limit that stops somebody mid-card is an interruption rather than a limit.
+     * On the state so the dial can draw the locks. Nothing here can stop a run: a level nobody has
+     * bought is a level the deck never deals, so there is no counter to run out and no card that
+     * arrives and then refuses to be played.
      */
-    val outOfCards: Boolean = false,
-    /** Everything is free until this moment, for the banner. Null outside the launch period. */
+    val access: LevelAccess = LevelAccess.FREE,
+    /** A locked level they tapped. The card says what it costs; nothing has changed yet. */
+    val lockedLevel: Intensity? = null,
+    /** What that pack costs, once the store has said. Null means no price, never a guess. */
+    val lockedPrice: String? = null,
+    /** Everything is free until this moment, for the banner. Null when nothing is free. */
     val freeUntilMillis: Long? = null,
     /** Whether to say so now: at the start, and again at fourteen days and three (M9). */
     val remindAboutFree: Boolean = false,
@@ -71,12 +73,12 @@ data class InstantPlayUiState(
     /** The tier is reachable while a card is up, and not while the screen is asking something. */
     val showsTierPicker: Boolean
         get() = card != null && refusing == null && offeringHotter == null &&
-            !runComplete && !stopped && !gating && !outOfCards
+            !runComplete && !stopped && !gating && lockedLevel == null
 
     /** Whether a card is actually being played, which is the only time a stop means anything. */
     val playing: Boolean
         get() = card != null && refusing == null && offeringHotter == null &&
-            !runComplete && !stopped && !gating && !outOfCards
+            !runComplete && !stopped && !gating && lockedLevel == null
 
     /** What the lane is called, for the card's own eyebrow. Null while dealing from all of them. */
     val laneLabel: String? get() = lanes.firstOrNull { it.id == lane }?.title
@@ -96,7 +98,6 @@ data class InstantPlayUiState(
 @HiltViewModel
 class InstantPlayViewModel @Inject constructor(
     private val instant: InstantPlayRepository,
-    private val allowances: Allowances,
     private val launch: LaunchOffer,
 ) : ViewModel() {
 
@@ -105,7 +106,9 @@ class InstantPlayViewModel @Inject constructor(
 
     private var deck: InstantDeck? = null
     private var position = 0
-    private var ticking: Job? = null
+
+    /** The clock a card suggested, which only runs because somebody pressed it. */
+    private val clock = CardClock(viewModelScope) { timer -> _uiState.update { it.copy(timer = timer) } }
 
     /**
      * What this run has already been dealt, on top of what the phone remembers (D-124).
@@ -125,16 +128,17 @@ class InstantPlayViewModel @Inject constructor(
     private var extremeConfirmed = false
 
     init {
-        // What the free tier has left, and whether the launch period is still on (M9). Checked on
-        // arrival, so a run that starts is a run that finishes.
+        // What this phone may play, and whether the free run is still on (V2 rule 5). Collected
+        // rather than read once, because a pack bought from the card below unlocks the dial here.
         viewModelScope.launch {
-            val allowance = allowances.allowance.first()
-            _uiState.update {
-                it.copy(
-                    outOfCards = !allowance.canDealCard,
-                    freeUntilMillis = allowance.everythingFreeUntilMillis,
-                    remindAboutFree = launch.shouldRemind,
-                )
+            instant.access.collect { access ->
+                _uiState.update {
+                    it.copy(
+                        access = access,
+                        freeUntilMillis = access.freeUntilMillis,
+                        remindAboutFree = launch.shouldRemind,
+                    )
+                }
             }
         }
         viewModelScope.launch {
@@ -169,9 +173,11 @@ class InstantPlayViewModel @Inject constructor(
     fun done() {
         seen()
         val streak = _uiState.value.streak + 1
-        val hotter = _uiState.value.tier.hotter()
+        // Never offers a level they do not have. "Shall we turn it up?" followed by a price is the
+        // one place a sales pitch would be unforgivable (V2 rule 5).
+        val hotter = _uiState.value.tier.hotter()?.takeIf { _uiState.value.access.allows(it) }
         if (streak >= STREAK_BEFORE_OFFERING && hotter != null) {
-            stopTimer()
+            clock.stop()
             _uiState.update { it.copy(streak = 0, offeringHotter = hotter) }
             return
         }
@@ -183,26 +189,16 @@ class InstantPlayViewModel @Inject constructor(
      * The clock a card suggested, started because someone pressed it.
      *
      * Never started for them: a countdown that begins on its own turns an invitation into an
-     * instruction, and some of these cards are better without one at all.
+     * instruction, and some of these cards are better without one at all. The same call stops it,
+     * because the control is the same object: the ring they started is the ring they tap.
      */
-    fun startTimer() {
-        val seconds = _uiState.value.card?.minutes?.times(SECONDS_PER_MINUTE) ?: return
-        ticking?.cancel()
-        _uiState.update { it.copy(timer = CardTimer(seconds, seconds)) }
-        ticking = viewModelScope.launch {
-            while (true) {
-                delay(TICK_MS)
-                val timer = _uiState.value.timer ?: return@launch
-                if (timer.finished) return@launch
-                _uiState.update { it.copy(timer = timer.copy(remainingSeconds = timer.remainingSeconds - 1)) }
-            }
+    fun toggleTimer() {
+        if (_uiState.value.timer != null) {
+            clock.stop()
+            return
         }
-    }
-
-    fun stopTimer() {
-        ticking?.cancel()
-        ticking = null
-        _uiState.update { it.copy(timer = null) }
+        val seconds = _uiState.value.card?.minutes?.times(SECONDS_PER_MINUTE) ?: return
+        clock.start(seconds)
     }
 
     /**
@@ -216,11 +212,6 @@ class InstantPlayViewModel @Inject constructor(
     fun keepGoing() {
         seed = System.currentTimeMillis()
         _uiState.update { it.copy(runComplete = false, position = 0, card = card()) }
-        // Carrying on starts a new run, so the allowance is asked again here — and only here.
-        viewModelScope.launch {
-            val allowance = allowances.allowance.first()
-            _uiState.update { it.copy(outOfCards = !allowance.canDealCard) }
-        }
     }
 
     /** Not that one. Nothing is asked, and it is recorded as seen rather than as refused. */
@@ -241,7 +232,7 @@ class InstantPlayViewModel @Inject constructor(
         if (pack == _uiState.value.lane) return
         seed = System.currentTimeMillis()
         dealt = emptySet()
-        stopTimer()
+        clock.stop()
         _uiState.update { it.copy(lane = pack, position = 0, runComplete = false, streak = 0) }
         viewModelScope.launch { instant.setLane(pack) }
     }
@@ -256,10 +247,23 @@ class InstantPlayViewModel @Inject constructor(
         val card = _uiState.value.card ?: return
         val size = deck?.size ?: return
         dealt = dealt + card.id
+        viewModelScope.launch { instant.markPlayed(card, size) }
+    }
+
+    /**
+     * They tapped a level they have not bought (V2 rule 5).
+     *
+     * Nothing changes: the heat stays where it was, the card on screen stays where it was, and a
+     * card appears over it saying what that level is and what it costs. Dismissing it leaves the
+     * evening exactly as it was found.
+     */
+    fun tapLocked(level: Intensity) {
+        _uiState.update { it.copy(lockedLevel = level, lockedPrice = null) }
         viewModelScope.launch {
-            instant.markPlayed(card, size)
-            // Counted after it was shown, never as a gate on showing it (M9).
-            allowances.cardDealt()
+            val price = instant.packPrices()[level]
+            // Only if they are still looking at that one: a price arriving late must not land on a
+            // card for a different level, or on a screen they have already dismissed.
+            _uiState.update { if (it.lockedLevel == level) it.copy(lockedPrice = price) else it }
         }
     }
 
@@ -274,7 +278,7 @@ class InstantPlayViewModel @Inject constructor(
      * control it promised would not is worse than a mis-tap.
      */
     fun stop() {
-        stopTimer()
+        clock.stop()
         _uiState.update { it.copy(stopped = true, refusing = null, offeringHotter = null, streak = 0) }
     }
 
@@ -296,8 +300,9 @@ class InstantPlayViewModel @Inject constructor(
         viewModelScope.launch { instant.setTier(Intensity.HOT) }
     }
 
+    /** "Not now", wherever it is: the refusal question, the hotter question, or a pack's price. */
     fun dismissSheet() {
-        _uiState.update { it.copy(refusing = null, offeringHotter = null) }
+        _uiState.update { it.copy(refusing = null, offeringHotter = null, lockedLevel = null, lockedPrice = null) }
     }
 
     /** "Just this one", or "never show me these again" — the second writes the card's own themes. */
@@ -328,7 +333,7 @@ class InstantPlayViewModel @Inject constructor(
 
     private fun advance() {
         position += 1
-        stopTimer()
+        clock.stop()
         _uiState.update {
             val place = it.position + 1
             val over = place >= RUN_LENGTH
@@ -365,6 +370,5 @@ class InstantPlayViewModel @Inject constructor(
         const val RUN_LENGTH = 6
 
         private const val SECONDS_PER_MINUTE = 60
-        private const val TICK_MS = 1_000L
     }
 }

@@ -77,11 +77,13 @@ object Route {
     data object NotificationSettings
 
     /**
-     * What premium includes (§19). [gate] names the limit they reached, when they arrived from
-     * one — it is a name from `Gate`, never anything about what they were building.
+     * The packs, and what they cost (V2 rule 5).
+     *
+     * [level] is the level they tapped to get here, by `Intensity` name, so the store can put that
+     * pack in front. Never anything about what they were playing.
      */
     @Serializable
-    data class Paywall(val gate: String? = null)
+    data class Store(val level: String? = null)
 
     /**
      * A game dealt on this phone: no session, no server, nobody waiting. What a phone with no

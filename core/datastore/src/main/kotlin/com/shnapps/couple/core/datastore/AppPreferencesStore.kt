@@ -67,21 +67,29 @@ interface PlaySettingsStore {
     suspend fun setLane(pack: String?)
 
     /**
-     * Counts one card against today's free-tier allowance (M9).
-     *
-     * [day] is which day it belongs to: a stamp from another day resets the count rather than
-     * adding to it, which is how the day rolls over with no scheduled job.
-     */
-    suspend fun countCard(day: Long)
-
-    /** Counts one guided evening against this week's allowance. */
-    suspend fun countNight(week: Long)
-
-    /**
      * One answer in the limits profile, or null to unset it (M3).
      *
      * On the phone rather than in the account, because the profile is offered after the first
      * session and there may not be an account. `LimitsRepository` is what writes it to both.
      */
     suspend fun setLimit(tag: LimitTag, answer: LimitAnswer?)
+}
+
+/**
+ * What this phone has bought (V2 rule 5).
+ *
+ * Its own interface rather than another method on [AppPreferencesStore], for the same reason
+ * [PlaySettingsStore] is: the lock and the notification setting describe the app, an evening's
+ * refusals describe a night, and this describes a purchase. One data source still implements all
+ * three — the split is for the reader, and for the seam a receipt check would be added at.
+ */
+interface PurchaseStore {
+    /**
+     * Records the packs this phone has bought, by the level each one opens.
+     *
+     * Additive, and never the other way round: nothing in the app takes a pack away, because the
+     * one thing worse than a purchase that will not restore is one that silently stops working.
+     * The store remains the authority — this is the record of what it last said.
+     */
+    suspend fun unlock(levels: Set<Intensity>)
 }

@@ -9,6 +9,7 @@ import com.shnapps.couple.core.common.Clock
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.auth.AuthRepository
 import com.shnapps.couple.core.data.billing.gate
+import com.shnapps.couple.core.data.entitlement.LevelAccess
 import com.shnapps.couple.core.data.game.GameRepository
 import com.shnapps.couple.core.data.instant.InstantPlayRepository
 import com.shnapps.couple.core.data.media.MediaRepository
@@ -92,6 +93,12 @@ data class HomeUiState(
     val error: HomeError? = null,
     /** A limit they reached: the screen offers what premium includes, and nothing is lost (§19). */
     val gate: Gate? = null,
+    /** How far this phone may go: what the heat dial draws locks on (V2 rule 5). */
+    val access: LevelAccess = LevelAccess.FREE,
+    /** A locked level they tapped here. Nothing changes; the store is one tap on. */
+    val lockedLevel: Intensity? = null,
+    /** What that pack costs, once the store has said. Null means no price, never a guess. */
+    val lockedPrice: String? = null,
 ) {
     /** Nothing else can start while the couple already has something under way (D-059). */
     val canStart: Boolean get() = active == null && !making
@@ -145,8 +152,8 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** What this phone can play on its own: the list, and how far it goes. */
-    private val ownDeck = combine(instant.games, instant.tier, ::Pair)
+    /** What this phone can play on its own: the list, how far it goes, and how far it may. */
+    private val ownDeck = combine(instant.games, instant.tier, instant.access, ::Triple)
 
     /**
      * What being apart looks like, in one flow: the inbox, and the thread built from it.
@@ -171,11 +178,12 @@ class HomeViewModel @Inject constructor(
         ownDeck,
         apart,
         theirs,
-    ) { state, company, (games, tier), (inbox, thread), (active, plans) ->
+    ) { state, company, (games, tier, access), (inbox, thread), (active, plans) ->
         state.copy(
             company = company,
             games = games,
             tier = tier,
+            access = access,
             active = active,
             // Theirs first: an evening waiting to be found is the best thing on this screen.
             waitingForMe = plans.firstOrNull { !it.mine },
@@ -189,6 +197,22 @@ class HomeViewModel @Inject constructor(
         local.update { it.copy(tier = tier) }
         viewModelScope.launch { instant.setTier(tier) }
     }
+
+    /**
+     * They tapped a level they have not bought (V2 rule 5).
+     *
+     * Nothing changes here either: the heat stays where it was, and the card that appears says
+     * what the level is and what it costs. The store is a tap on from there, never automatic.
+     */
+    fun tapLocked(level: Intensity) {
+        local.update { it.copy(lockedLevel = level, lockedPrice = null) }
+        viewModelScope.launch {
+            val price = instant.packPrices()[level]
+            local.update { if (it.lockedLevel == level) it.copy(lockedPrice = price) else it }
+        }
+    }
+
+    fun dismissLocked() = local.update { it.copy(lockedLevel = null, lockedPrice = null) }
 
     /**
      * Together in a room, or apart on two phones (M6).

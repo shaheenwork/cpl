@@ -97,16 +97,13 @@ data class AppPreferences(
     val lane: String? = null,
 
     /**
-     * What the free tier has used, and on which day and week (M9).
+     * The levels this phone has bought, by the level each pack opens (V2 rule 5).
      *
-     * On the phone because the deck is, and because nothing may require signing up before the first
-     * card. A determined person can clear it by clearing app data; asking everyone to sign in first
-     * is the worse trade.
+     * On the phone because a phone that never pairs has nowhere else to keep it, and because the
+     * deck is here too. The store is still the authority on whether a purchase happened — this is
+     * only the record of what it said, and "Restore purchases" asks the store again.
      */
-    val cardsDealt: Int = 0,
-    val cardDay: Long = 0,
-    val nightsPlanned: Int = 0,
-    val nightWeek: Long = 0,
+    val ownedLevels: Set<Intensity> = emptySet(),
 ) {
     companion object {
         const val DEFAULT_LOCK_TIMEOUT_MILLIS: Long = 60_000L

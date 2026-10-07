@@ -1,5 +1,6 @@
 package com.shnapps.couple.core.testing
 
+import com.shnapps.couple.core.data.entitlement.LevelAccess
 import com.shnapps.couple.core.data.instant.InstantPlayRepository
 import com.shnapps.couple.core.engine.GameNight
 import com.shnapps.couple.core.engine.InstantCard
@@ -31,6 +32,17 @@ class FakeInstantPlayRepository(
     val items = MutableStateFlow(items)
     override val games = MutableStateFlow(games)
     override val tier = MutableStateFlow(Intensity.DEFAULT)
+
+    /**
+     * How far this phone may go. Open by default, which is what the opening month means (V2 rule 5)
+     * — a test that is about the locks sets it to [LevelAccess.FREE] and says so.
+     */
+    override val access = MutableStateFlow(LevelAccess.OPEN)
+
+    /** What this fake store charges for each pack. */
+    var prices: Map<Intensity, String> = LevelAccess.PACKS.associateWith { "£${it.level}.99" }
+
+    override suspend fun packPrices(): Map<Intensity, String> = prices
 
     /** What this phone has said no to: the card, and whether its whole kind went with it. */
     val refused = mutableListOf<Pair<String, Boolean>>()

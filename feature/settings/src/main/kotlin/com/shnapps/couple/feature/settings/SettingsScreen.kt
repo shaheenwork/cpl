@@ -19,17 +19,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.shnapps.couple.core.data.entitlement.LevelAccess
 import com.shnapps.couple.core.designsystem.component.CinematicCard
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.security.DiscreetIcon
 import com.shnapps.couple.core.ui.ErrorBanner
 import com.shnapps.couple.core.ui.LegalUrls
 import com.shnapps.couple.core.ui.ScreenHeading
 import com.shnapps.couple.core.ui.ScreenScaffold
 import com.shnapps.couple.core.ui.SecureScreen
+import com.shnapps.couple.core.ui.onDay
 import java.io.File
 
 /**
@@ -153,9 +156,11 @@ internal fun SettingsContent(
         }
 
         Group("The two of you") {
+            // What they own, said as a fact rather than as an offer. A couple who have bought
+            // everything are never sold anything here again (V2 rule 5).
             Row(
-                title = if (state.entitlement.premium) "Premium" else "Afterhours premium",
-                detail = if (state.entitlement.premium) "You're in, both of you." else "What's included.",
+                title = "Packs",
+                detail = packsDetail(state.access),
                 onClick = routes.onPremium,
             )
             if (state.paired) {
@@ -244,4 +249,14 @@ private fun Context.open(url: String) {
 private fun SettingsError.message(): String = when (this) {
     SettingsError.OFFLINE -> "You're offline. That one needs the network."
     SettingsError.OTHER -> "That didn't work. Try again."
+}
+
+/** What settings says about the packs: owned, free for now, or what there is to have. */
+private fun packsDetail(access: LevelAccess): String = when {
+    access.isOwned(Intensity.EXTREME) -> "Everything's yours."
+    access.freeForNow -> access.freeUntilMillis
+        ?.let { "Everything unlocked until ${onDay(it)}." }
+        ?: "Everything unlocked for now."
+    access.owned.isNotEmpty() -> "${LevelAccess.ceilingOf(access.owned).label} and below. Restore, or go further."
+    else -> "Mild and Flirty are free. Spicy, Hot and Extreme are packs."
 }

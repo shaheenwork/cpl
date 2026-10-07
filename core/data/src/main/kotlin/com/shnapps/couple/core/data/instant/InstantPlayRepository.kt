@@ -1,6 +1,8 @@
 package com.shnapps.couple.core.data.instant
 
 import com.shnapps.couple.core.data.content.ContentRepository
+import com.shnapps.couple.core.data.entitlement.LevelAccess
+import com.shnapps.couple.core.data.entitlement.LevelAccessRepository
 import com.shnapps.couple.core.data.limits.LimitsRepository
 import com.shnapps.couple.core.datastore.AppPreferences
 import com.shnapps.couple.core.datastore.AppPreferencesStore
@@ -41,9 +43,23 @@ interface InstantPlayRepository {
      */
     val deck: Flow<InstantDeck>
 
+    /**
+     * The heat this phone is playing at — never above what it may play (V2 rule 5).
+     *
+     * Clamped here rather than on the screen, for the same reason the server clamps a night: a
+     * ceiling that only the UI applies is a ceiling that the next caller forgets. A phone whose
+     * free month has just ended keeps its stored Flirty-or-above preference and simply plays at
+     * the ceiling, so nothing is lost if a pack is bought later.
+     */
     val tier: Flow<Intensity>
 
     suspend fun setTier(tier: Intensity)
+
+    /** How far this phone may go, and what it would take to go further (V2 rule 5). */
+    val access: Flow<LevelAccess>
+
+    /** What each pack costs, for the card that appears when a locked level is tapped. */
+    suspend fun packPrices(): Map<Intensity, String>
 
     /** The packs the app ships, as a couple would name them: the lanes they can ask for (D-125). */
     val packs: Flow<List<ContentPack>>
@@ -109,11 +125,21 @@ class DefaultInstantPlayRepository @Inject constructor(
     private val preferences: AppPreferencesStore,
     private val play: PlaySettingsStore,
     private val limits: LimitsRepository,
+    private val levels: LevelAccessRepository,
 ) : InstantPlayRepository {
 
+    override val access: Flow<LevelAccess> = levels.access
+
+    override suspend fun packPrices(): Map<Intensity, String> = levels.packPrices()
+
     override val deck: Flow<InstantDeck> =
-        combine(content.items, preferences.preferences, limits.refusedThemes) { items, prefs, refused ->
-            deckOf(items, prefs, refused, pack = prefs.lane)
+        combine(
+            content.items,
+            preferences.preferences,
+            limits.refusedThemes,
+            levels.access,
+        ) { items, prefs, refused, access ->
+            deckOf(items, prefs, refused, pack = prefs.lane, ceiling = access.ceiling)
         }
 
     /**
@@ -127,9 +153,10 @@ class DefaultInstantPlayRepository @Inject constructor(
         prefs: AppPreferences,
         refused: Set<String>,
         pack: String?,
+        ceiling: Intensity,
     ): InstantDeck = InstantDeck.of(
         items = items,
-        tier = prefs.tier,
+        tier = clamp(prefs.tier, ceiling),
         mode = Mode.TOGETHER,
         skippedIds = prefs.refusedCardIds,
         // The profile's noes and the in-the-moment refusals are the same kind of statement, so the
@@ -138,7 +165,17 @@ class DefaultInstantPlayRepository @Inject constructor(
         pack = pack,
     )
 
-    override val tier: Flow<Intensity> = preferences.preferences.map { it.tier }
+    override val tier: Flow<Intensity> =
+        combine(preferences.preferences, levels.access) { prefs, access -> clamp(prefs.tier, access.ceiling) }
+
+    /**
+     * The heat they asked for, or the highest they may have, whichever is lower.
+     *
+     * Never the other way round: a ceiling that could *raise* the heat would turn a purchase into
+     * a change in what tonight is, which is nobody's idea of what buying a pack does.
+     */
+    private fun clamp(asked: Intensity, ceiling: Intensity): Intensity =
+        if (asked.level <= ceiling.level) asked else ceiling
 
     /**
      * Only the packs that have something to deal at this tier, in this mode.
@@ -150,15 +187,14 @@ class DefaultInstantPlayRepository @Inject constructor(
      * refusals the deck does.
      */
     override val packs: Flow<List<ContentPack>> =
-        combine(content.packs, content.items, preferences.preferences, limits.refusedThemes) {
-                packs, items, prefs, refused ->
-            val dealable = InstantDeck.of(
-                items = items,
-                tier = prefs.tier,
-                mode = Mode.TOGETHER,
-                skippedIds = prefs.refusedCardIds,
-                refusedThemes = refused,
-            ).packs
+        combine(
+            content.packs,
+            content.items,
+            preferences.preferences,
+            limits.refusedThemes,
+            levels.access,
+        ) { packs, items, prefs, refused, access ->
+            val dealable = deckOf(items, prefs, refused, pack = null, ceiling = access.ceiling).packs
             packs.filter { it.id in dealable }
         }
 
@@ -183,6 +219,7 @@ class DefaultInstantPlayRepository @Inject constructor(
 
     override suspend fun planNight(length: NightLength): GameNight {
         val prefs = preferences.preferences.first()
+        val ceiling = levels.access.first().ceiling
         return GameNight.plan(
             // The whole catalogue, whatever lane the card player is on. An evening in four phases
             // is the one surface that needs every pack — that is why it is a plan over the deck
@@ -195,8 +232,9 @@ class DefaultInstantPlayRepository @Inject constructor(
                 prefs = prefs,
                 refused = limits.refusedThemes.first(),
                 pack = null,
+                ceiling = ceiling,
             ),
-            tier = prefs.tier,
+            tier = clamp(prefs.tier, ceiling),
             length = length,
             // A new evening each time it is planned, and the same one for as long as it is played.
             seed = System.currentTimeMillis(),
@@ -207,10 +245,11 @@ class DefaultInstantPlayRepository @Inject constructor(
     override suspend fun startGame(gameId: String, autoHeat: Boolean): ReleasedGame? {
         val game = content.games.first().firstOrNull { it.id == gameId } ?: return null
         val prefs = preferences.preferences.first()
+        val allowed = levels.access.first().ceiling
         return ReleasedGame.forHeat(
             game = game,
             prompts = content.prompts.first(),
-            ceiling = prefs.tier.level,
+            ceiling = clamp(prefs.tier, allowed).level,
             refusedThemes = limits.refusedThemes.first(),
             // A new deal each time it is started, and the same one for as long as it is played.
             seed = System.currentTimeMillis(),

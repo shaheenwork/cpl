@@ -33,6 +33,7 @@ import com.shnapps.couple.core.ui.Dealt
 import com.shnapps.couple.core.ui.ExtremeGateContent
 import com.shnapps.couple.core.ui.ExtremeGateDock
 import com.shnapps.couple.core.ui.LanePicker
+import com.shnapps.couple.core.ui.LockedLevelCard
 import com.shnapps.couple.core.ui.PausedContent
 import com.shnapps.couple.core.ui.PausedDock
 import com.shnapps.couple.core.ui.RunProgress
@@ -53,6 +54,7 @@ import com.shnapps.couple.core.ui.TimerRing
 @Composable
 fun InstantPlayScreen(
     onBack: () -> Unit,
+    onStore: (Intensity) -> Unit = {},
     viewModel: InstantPlayViewModel = hiltViewModel(),
 ) {
     SecureScreen()
@@ -68,8 +70,10 @@ fun InstantPlayScreen(
         onTurnUp = viewModel::turnUp,
         onKeepHeat = viewModel::keepTier,
         onTier = { tier -> viewModel.turnUp(tier) },
-        onStartTimer = viewModel::startTimer,
-        onStopTimer = viewModel::stopTimer,
+        onLocked = viewModel::tapLocked,
+        onDismissLocked = viewModel::dismissSheet,
+        onStore = { state.lockedLevel?.let(onStore) },
+        onToggleTimer = viewModel::toggleTimer,
         onKeepGoing = viewModel::keepGoing,
         onLane = viewModel::setLane,
         onStop = viewModel::stop,
@@ -91,14 +95,16 @@ internal fun InstantPlayContent(
     onTurnUp: (Intensity) -> Unit,
     onKeepHeat: () -> Unit,
     onTier: (Intensity) -> Unit,
-    onStartTimer: () -> Unit,
-    onStopTimer: () -> Unit,
+    onToggleTimer: () -> Unit,
     onKeepGoing: () -> Unit,
     onLane: (String?) -> Unit = {},
     onStop: () -> Unit = {},
     onGentle: () -> Unit = {},
     onConfirmExtreme: () -> Unit = {},
     onDeclineExtreme: () -> Unit = {},
+    onLocked: (Intensity) -> Unit = {},
+    onDismissLocked: () -> Unit = {},
+    onStore: () -> Unit = {},
 ) {
     // Everything on this screen takes the run's tier: the card's rim, the primary action,
     // the eyebrow (DESIGN_PROMPT.md §4.4). One setting, and the whole room changes.
@@ -127,19 +133,10 @@ internal fun InstantPlayContent(
             null
         }
         val dock: (@Composable ColumnScope.() -> Unit)? = when {
-            state.refusing != null || state.offeringHotter != null -> null
+            // The locked card carries its own two buttons, in the card, where the tap happened.
+            state.refusing != null || state.offeringHotter != null || state.lockedLevel != null -> null
             state.gating -> {
                 { ExtremeGateDock(confirmed = false, onConfirm = onConfirmExtreme, onDown = onDeclineExtreme) }
-            }
-            state.outOfCards -> {
-                {
-                    GlowButton(
-                        text = "Back",
-                        onClick = onBack,
-                        leadingIcon = AfterhoursIcons.Forward,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
             }
             state.stopped -> {
                 { PausedDock(onGentle = onGentle, onEnd = onBack) }
@@ -196,14 +193,6 @@ internal fun InstantPlayContent(
             when {
                 // The stop comes before everything, including a question the screen was asking.
                 state.stopped -> PausedContent()
-                // Out of cards for today. Said plainly, with what it would take, and never over a
-                // run that had already started (M9).
-                state.outOfCards -> AfterhoursCard(
-                    eyebrow = "That's today",
-                    title = "Thirty cards a day on the free plan.",
-                    body = "Every game and every tier is free, always — this is only how many " +
-                        "cards a day. Premium takes the count off for both of you.",
-                )
                 state.gating -> ExtremeGateContent(tier = state.tier)
                 state.refusing != null -> RefusalQuestion(onRefuse = onRefuse)
                 state.offeringHotter != null -> HotterQuestion(
@@ -218,17 +207,33 @@ internal fun InstantPlayContent(
                     lane = state.laneLabel,
                     timer = state.timer,
                     position = state.position,
-                    onStartTimer = onStartTimer,
-                    onStopTimer = onStopTimer,
+                    onToggleTimer = onToggleTimer,
                 )
                 state.loading -> Dealing()
                 else -> Empty()
             }
 
+            // A level they do not have, tapped. **Not a wall**: the card they were playing is
+            // still above it, the dial is only out of the way while this is being read, and "Not
+            // now" puts the evening back exactly as it was (V2 rule 5).
+            state.lockedLevel?.let { level ->
+                LockedLevelCard(
+                    level = level,
+                    price = state.lockedPrice,
+                    onUnlock = onStore,
+                    onDismiss = onDismissLocked,
+                )
+            }
+
             if (state.showsTierPicker) {
                 // How far, then what kind. Two dials, and the second one is the packs the app has
                 // always shipped and never offered (D-125).
-                TierPicker(selected = state.tier, onTier = onTier)
+                TierPicker(
+                    selected = state.tier,
+                    onTier = onTier,
+                    locked = state.access.locked.toSet(),
+                    onLocked = onLocked,
+                )
                 LanePicker(lanes = state.lanes, selected = state.lane, onLane = onLane)
             }
         }
@@ -242,8 +247,7 @@ private fun Playing(
     lane: String?,
     timer: CardTimer?,
     position: Int,
-    onStartTimer: () -> Unit,
-    onStopTimer: () -> Unit,
+    onToggleTimer: () -> Unit,
 ) {
     val spacing = AfterhoursTheme.spacing
 
@@ -263,7 +267,7 @@ private fun Playing(
     if (timer == null) {
         GlowButton(
             text = "Start the ${card.minutes} minutes",
-            onClick = onStartTimer,
+            onClick = onToggleTimer,
             style = GlowButtonStyle.Quiet,
             leadingIcon = AfterhoursIcons.Clock,
             modifier = Modifier.fillMaxWidth(),
@@ -273,7 +277,7 @@ private fun Playing(
             TimerRing(
                 remainingSeconds = timer.remainingSeconds,
                 totalSeconds = timer.totalSeconds,
-                onToggle = onStopTimer,
+                onToggle = onToggleTimer,
                 running = !timer.finished,
             )
         }

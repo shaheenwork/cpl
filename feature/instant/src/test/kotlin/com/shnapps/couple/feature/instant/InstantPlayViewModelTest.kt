@@ -1,6 +1,7 @@
 package com.shnapps.couple.feature.instant
 
 import com.google.common.truth.Truth.assertThat
+import com.shnapps.couple.core.data.entitlement.LevelAccess
 import com.shnapps.couple.core.data.instant.InstantPlayRepository
 import com.shnapps.couple.core.engine.GameNight
 import com.shnapps.couple.core.engine.InstantCard
@@ -16,7 +17,6 @@ import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.InteractionType
 import com.shnapps.couple.core.model.Mode
-import com.shnapps.couple.core.testing.FakeAllowances
 import com.shnapps.couple.core.testing.FakeLaunchOffer
 import com.shnapps.couple.core.testing.MainDispatcherRule
 import kotlinx.coroutines.flow.Flow
@@ -38,7 +38,6 @@ class InstantPlayViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val instant = FakeInstantPlayRepository()
-    private val allowances = FakeAllowances()
     private val launchOffer = FakeLaunchOffer()
 
     @Test
@@ -149,7 +148,7 @@ class InstantPlayViewModelTest {
 
         assertThat(viewModel.uiState.value.timer).isNull()
 
-        viewModel.startTimer()
+        viewModel.toggleTimer()
 
         assertThat(viewModel.uiState.value.timer?.remainingSeconds).isEqualTo(5 * 60)
     }
@@ -157,13 +156,14 @@ class InstantPlayViewModelTest {
     @Test
     fun `the clock counts down, and stops when it is stopped`() = runTest {
         val viewModel = viewModel()
-        viewModel.startTimer()
+        viewModel.toggleTimer()
 
         mainDispatcherRule.testDispatcher.scheduler.advanceTimeBy(3_100)
 
         assertThat(viewModel.uiState.value.timer?.remainingSeconds).isEqualTo(5 * 60 - 3)
 
-        viewModel.stopTimer()
+        // The same control: the ring they started is the ring they tap to stop it.
+        viewModel.toggleTimer()
         mainDispatcherRule.testDispatcher.scheduler.advanceTimeBy(5_000)
 
         assertThat(viewModel.uiState.value.timer).isNull()
@@ -172,7 +172,7 @@ class InstantPlayViewModelTest {
     @Test
     fun `moving to the next card puts the clock away`() = runTest {
         val viewModel = viewModel()
-        viewModel.startTimer()
+        viewModel.toggleTimer()
 
         viewModel.done()
         advanceUntilIdle()
@@ -305,7 +305,7 @@ class InstantPlayViewModelTest {
     @Test
     fun `the safe word stops everything and asks nothing`() = runTest {
         val viewModel = viewModel()
-        viewModel.startTimer()
+        viewModel.toggleTimer()
 
         viewModel.stop()
 
@@ -403,8 +403,60 @@ class InstantPlayViewModelTest {
         assertThat(viewModel.uiState.value.aftercare).isNull()
     }
 
+    @Test
+    fun `a locked level tapped changes nothing, and says what it costs`() = runTest {
+        instant.accessState.value = LevelAccess.FREE
+        val viewModel = viewModel()
+        val card = viewModel.uiState.value.card
+
+        viewModel.tapLocked(Intensity.SPICY)
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.lockedLevel).isEqualTo(Intensity.SPICY)
+        assertThat(viewModel.uiState.value.lockedPrice).isEqualTo("£3.99")
+        // Nothing moved underneath it: not the heat, not the card, not the deal.
+        assertThat(instant.tierSet).isNull()
+        assertThat(viewModel.uiState.value.card).isEqualTo(card)
+
+        viewModel.dismissSheet()
+        assertThat(viewModel.uiState.value.lockedLevel).isNull()
+        assertThat(viewModel.uiState.value.card).isEqualTo(card)
+    }
+
+    @Test
+    fun `the climb never offers a level they do not have`() = runTest {
+        instant.accessState.value = LevelAccess.FREE
+        instant.tierState.value = Intensity.FLIRTY
+        val viewModel = viewModel()
+
+        // Five in a row is when it would normally ask about turning things up. Spicy is the next
+        // one up and nobody has bought it, so the question is not asked at all — "shall we turn it
+        // up?" followed by a price is the one sales pitch this app must never make.
+        repeat(5) { viewModel.done() }
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.offeringHotter).isNull()
+        assertThat(viewModel.uiState.value.lockedLevel).isNull()
+    }
+
+    @Test
+    fun `nothing runs out mid-evening, however long they play`() = runTest {
+        instant.accessState.value = LevelAccess.FREE
+        val viewModel = viewModel()
+
+        repeat(40) { viewModel.skip() }
+        advanceUntilIdle()
+
+        // V1 counted thirty cards a day. V2 sells the top of the range instead, so an evening has
+        // no end but theirs: there is always a card, and it is always playable.
+        viewModel.keepGoing()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.card).isNotNull()
+        assertThat(viewModel.uiState.value.playing).isTrue()
+    }
+
     private fun viewModel(): InstantPlayViewModel {
-        val viewModel = InstantPlayViewModel(instant, allowances, launchOffer)
+        val viewModel = InstantPlayViewModel(instant, launchOffer)
         mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
         return viewModel
     }
@@ -413,6 +465,9 @@ class InstantPlayViewModelTest {
     private class FakeInstantPlayRepository : InstantPlayRepository {
         val deckState = MutableStateFlow(InstantDeck.of(items, Intensity.EXTREME))
         val tierState = MutableStateFlow(Intensity.DEFAULT)
+
+        /** Open, as it is for the first month after install (V2 rule 5). */
+        val accessState = MutableStateFlow(LevelAccess.OPEN)
 
         var tierSet: Intensity? = null
             private set
@@ -432,6 +487,10 @@ class InstantPlayViewModelTest {
 
         override val deck: Flow<InstantDeck> = deckState
         override val tier: Flow<Intensity> = tierState
+        override val access: Flow<LevelAccess> = accessState
+
+        override suspend fun packPrices(): Map<Intensity, String> =
+            LevelAccess.PACKS.associateWith { "£${it.level}.99" }
         override val packs: Flow<List<ContentPack>> = packsState
         override val lane: Flow<String?> = laneState
         override val played: Flow<Set<String>> = playedState

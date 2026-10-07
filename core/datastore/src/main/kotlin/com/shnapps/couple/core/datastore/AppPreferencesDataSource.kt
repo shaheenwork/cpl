@@ -5,7 +5,6 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
@@ -27,7 +26,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 @Singleton
 class AppPreferencesDataSource @Inject constructor(
     @ApplicationContext private val context: Context,
-) : AppPreferencesStore, PlaySettingsStore {
+) : AppPreferencesStore, PlaySettingsStore, PurchaseStore {
     override val preferences: Flow<AppPreferences> = context.dataStore.data.map { prefs ->
         AppPreferences(
             lockMode = prefs[Keys.LOCK_MODE]
@@ -51,10 +50,9 @@ class AppPreferencesDataSource @Inject constructor(
             refusedThemes = prefs[Keys.REFUSED_THEMES].orEmpty(),
             playedCardIds = prefs[Keys.PLAYED_CARDS].orEmpty(),
             limits = prefs[Keys.LIMITS].orEmpty().mapNotNull(::readLimit).toMap(),
-            cardsDealt = prefs[Keys.CARDS_DEALT] ?: 0,
-            cardDay = prefs[Keys.CARD_DAY] ?: 0,
-            nightsPlanned = prefs[Keys.NIGHTS_PLANNED] ?: 0,
-            nightWeek = prefs[Keys.NIGHT_WEEK] ?: 0,
+            ownedLevels = prefs[Keys.OWNED_LEVELS].orEmpty()
+                .mapNotNull { name -> Intensity.entries.firstOrNull { it.name == name } }
+                .toSet(),
             lane = prefs[Keys.LANE],
         )
     }
@@ -123,19 +121,9 @@ class AppPreferencesDataSource @Inject constructor(
         }
     }
 
-    override suspend fun countCard(day: Long) {
+    override suspend fun unlock(levels: Set<Intensity>) {
         context.dataStore.edit { prefs ->
-            val sameDay = prefs[Keys.CARD_DAY] == day
-            prefs[Keys.CARD_DAY] = day
-            prefs[Keys.CARDS_DEALT] = if (sameDay) (prefs[Keys.CARDS_DEALT] ?: 0) + 1 else 1
-        }
-    }
-
-    override suspend fun countNight(week: Long) {
-        context.dataStore.edit { prefs ->
-            val sameWeek = prefs[Keys.NIGHT_WEEK] == week
-            prefs[Keys.NIGHT_WEEK] = week
-            prefs[Keys.NIGHTS_PLANNED] = if (sameWeek) (prefs[Keys.NIGHTS_PLANNED] ?: 0) + 1 else 1
+            prefs[Keys.OWNED_LEVELS] = prefs[Keys.OWNED_LEVELS].orEmpty() + levels.map { it.name }
         }
     }
 
@@ -204,14 +192,9 @@ class AppPreferencesDataSource @Inject constructor(
         /** The profile, as "TAG=ANSWER" entries. One set rather than eight keys. */
         val LIMITS = stringSetPreferencesKey("limits")
 
-        /** The free tier's counters, each with the day or week it belongs to (M9). */
-        val CARDS_DEALT = intPreferencesKey("cards_dealt")
+        /** The packs bought on this phone, as the names of the levels they open (V2 rule 5). */
+        val OWNED_LEVELS = stringSetPreferencesKey("owned_levels")
 
-        val CARD_DAY = longPreferencesKey("card_day")
-
-        val NIGHTS_PLANNED = intPreferencesKey("nights_planned")
-
-        val NIGHT_WEEK = longPreferencesKey("night_week")
         val LANE = stringPreferencesKey("deck_lane")
     }
 }

@@ -23,12 +23,12 @@ import com.shnapps.couple.feature.instant.StartScreen
 import com.shnapps.couple.feature.onboarding.SplashScreen
 import com.shnapps.couple.feature.onboarding.StartDestination
 import com.shnapps.couple.feature.pairing.PairingScreen
-import com.shnapps.couple.feature.paywall.PaywallScreen
 import com.shnapps.couple.feature.send.LaterScreen
 import com.shnapps.couple.feature.send.SendScreen
 import com.shnapps.couple.feature.settings.NotificationSettingsScreen
 import com.shnapps.couple.feature.settings.SettingsRoutes
 import com.shnapps.couple.feature.settings.SettingsScreen
+import com.shnapps.couple.feature.store.StoreScreen
 
 /**
  * The app's navigation graph.
@@ -84,7 +84,12 @@ fun CplNavHost(
         }
 
         composable<Route.InstantPlay> {
-            InstantPlayScreen(onBack = { navController.popBackStack() })
+            InstantPlayScreen(
+                onBack = { navController.popBackStack() },
+                // A locked level tapped mid-card: the store opens on that pack, and the card
+                // underneath is exactly where it was on the way back (V2 rule 5).
+                onStore = { level -> navController.navigate(Route.Store(level.name)) },
+            )
         }
 
         // A game dealt on this phone. The one player screen draws it exactly as it draws a
@@ -126,13 +131,13 @@ fun CplNavHost(
 
         composable<Route.Later> {
             LaterScreen(
-                onPaywall = { gate -> navController.navigate(Route.Paywall(gate.name)) },
+                onPaywall = { navController.navigate(Route.Store()) },
                 onBack = { navController.popBackStack() },
             )
         }
 
-        composable<Route.Paywall> {
-            PaywallScreen(onBack = { navController.popBackStack() })
+        composable<Route.Store> {
+            StoreScreen(onBack = { navController.popBackStack() })
         }
 
         composable<Route.Settings> {
@@ -141,7 +146,7 @@ fun CplNavHost(
                     onBoundaries = { navController.navigate(Route.Boundaries) },
                     onNotifications = { navController.navigate(Route.NotificationSettings) },
                     onAppLock = { navController.navigate(Route.AppLockSetup) },
-                    onPremium = { navController.navigate(Route.Paywall()) },
+                    onPremium = { navController.navigate(Route.Store()) },
                     onPairing = { navController.navigate(Route.Pairing) },
                     onBack = { navController.popBackStack() },
                 ),
@@ -206,7 +211,8 @@ private fun Home(navController: NavHostController) {
             onGameNight = { navController.navigate(Route.GameNight) },
             onSettings = { navController.navigate(Route.Settings) },
             onPairPartner = { navController.navigate(Route.Pairing) },
-            onPaywall = { gate -> navController.navigate(Route.Paywall(gate.name)) },
+            onPaywall = { navController.navigate(Route.Store()) },
+            onStore = { level -> navController.navigate(Route.Store(level.name)) },
             onDealtGame = { gameId -> navController.navigate(Route.DealtGame(gameId)) },
             onOpen = { experienceId, _ -> navController.navigate(Route.Game(experienceId)) },
             onGallery = { navController.navigate(Route.DesignGallery) },

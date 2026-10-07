@@ -18,7 +18,8 @@ import com.android.billingclient.api.queryPurchasesAsync
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.billing.BillingClient
-import com.shnapps.couple.core.data.billing.PremiumOffer
+import com.shnapps.couple.core.data.billing.LevelPacks
+import com.shnapps.couple.core.data.billing.PackOffer
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -32,12 +33,14 @@ import javax.inject.Singleton
 import com.android.billingclient.api.BillingClient as PlayClient
 
 /**
- * Google Play Billing (BUILD_PROMPT.md §19), for `staging` and `prod` only — `dev` has a fake and
- * never loads this library at all (§4.3, D-091).
+ * Google Play Billing (V2 rule 5), for `staging` and `prod` only — `dev` has a fake and never loads
+ * this library at all (BUILD_PROMPT.md §4.3, D-091).
  *
- * All this produces is a purchase token. What it is worth is verified server-side against
- * `androidpublisher`, and the entitlement is written there: a phone that lies about a purchase
- * gets nothing, because nothing here writes anything (§7.2, §7.3 row I).
+ * **One-time products, not subscriptions.** A pack is bought once and never expires, so there is
+ * nothing to renew, nothing to cancel, and no state where a couple who paid last month find the app
+ * quieter this month. That also makes [owned] the authority it needs to be: Play keeps answering
+ * with a non-consumable purchase for as long as the account holds it, on this phone and on the next
+ * one.
  */
 @Singleton
 class PlayBillingClient @Inject constructor(
@@ -62,65 +65,55 @@ class PlayBillingClient @Inject constructor(
         .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
         .build()
 
-    override suspend fun offer(): Outcome<PremiumOffer> = lock.withLock {
+    override suspend fun offers(): Outcome<List<PackOffer>> = lock.withLock {
         when (val connected = connect()) {
             is Outcome.Failure -> connected
-            is Outcome.Success -> when (val details = details()) {
-                is Outcome.Failure -> details
-                is Outcome.Success -> Outcome.Success(offerOf(details.value))
+            is Outcome.Success -> Outcome.Success(details().mapNotNull(::offerOf))
+        }
+    }
+
+    override suspend fun purchase(activity: Activity, productId: String): Outcome<String> = lock.withLock {
+        when (val connected = connect()) {
+            is Outcome.Failure -> connected
+            is Outcome.Success -> {
+                val details = details().firstOrNull { it.productId == productId }
+                if (details == null) Outcome.Failure(AppError.NotFound()) else launch(activity, details)
             }
         }
     }
 
-    override suspend fun purchase(activity: Activity): Outcome<String> = lock.withLock {
-        when (val connected = connect()) {
-            is Outcome.Failure -> connected
-            is Outcome.Success -> when (val details = details()) {
-                is Outcome.Failure -> details
-                is Outcome.Success -> launch(activity, details.value)
-            }
-        }
-    }
-
-    override suspend fun restore(): Outcome<String?> = lock.withLock {
+    override suspend fun owned(): Outcome<Set<String>> = lock.withLock {
         when (val connected = connect()) {
             is Outcome.Failure -> connected
             is Outcome.Success -> {
                 val held = client.queryPurchasesAsync(
-                    QueryPurchasesParams.newBuilder().setProductType(PlayClient.ProductType.SUBS).build(),
+                    QueryPurchasesParams.newBuilder().setProductType(PlayClient.ProductType.INAPP).build(),
                 )
                 Outcome.Success(
                     held.purchasesList
-                        .firstOrNull { it.purchaseState == Purchase.PurchaseState.PURCHASED }
-                        ?.purchaseToken,
+                        .filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
+                        .flatMap { it.products }
+                        .filter { LevelPacks.levelOf(it) != null }
+                        .toSet(),
                 )
             }
         }
     }
 
-    private fun offerOf(details: ProductDetails): PremiumOffer {
-        val phase = details.subscriptionOfferDetails
-            ?.firstOrNull()
-            ?.pricingPhases
-            ?.pricingPhaseList
-            ?.firstOrNull()
-        return PremiumOffer(
-            productId = PRODUCT,
-            price = phase?.formattedPrice.orEmpty(),
-            period = phase?.billingPeriod.orEmpty(),
-        )
+    /** A one-time product's price, or null for a product the store priced in a way we do not sell. */
+    private fun offerOf(details: ProductDetails): PackOffer? {
+        val level = LevelPacks.levelOf(details.productId) ?: return null
+        val price = details.oneTimePurchaseOfferDetails?.formattedPrice ?: return null
+        return PackOffer(level = level, productId = details.productId, price = price)
     }
 
     private suspend fun launch(activity: Activity, details: ProductDetails): Outcome<String> {
-        val offerToken = details.subscriptionOfferDetails?.firstOrNull()?.offerToken
-            ?: return Outcome.Failure(AppError.NotFound())
         awaiting.expect()
         val params = BillingFlowParams.newBuilder()
             .setProductDetailsParamsList(
                 listOf(
                     BillingFlowParams.ProductDetailsParams.newBuilder()
                         .setProductDetails(details)
-                        .setOfferToken(offerToken)
                         .build(),
                 ),
             )
@@ -140,8 +133,9 @@ class PlayBillingClient @Inject constructor(
     }
 
     /**
-     * Play cancels an unacknowledged purchase after three days. Acknowledging says this app has
-     * it; it says nothing about entitlement, which is the server's to decide.
+     * Play refunds an unacknowledged purchase after three days. Acknowledging says this app has it
+     * — and because these are non-consumable, it is never consumed afterwards, which is what makes
+     * a restore on a new phone work.
      */
     private suspend fun acknowledge(purchaseToken: String) {
         client.acknowledgePurchase(
@@ -149,19 +143,19 @@ class PlayBillingClient @Inject constructor(
         )
     }
 
-    private suspend fun details(): Outcome<ProductDetails> {
+    /** All three packs in one query, because the store screen shows all three. */
+    private suspend fun details(): List<ProductDetails> {
         val params = QueryProductDetailsParams.newBuilder()
             .setProductList(
-                listOf(
+                LevelPacks.productIds.map { product ->
                     QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(PRODUCT)
-                        .setProductType(PlayClient.ProductType.SUBS)
-                        .build(),
-                ),
+                        .setProductId(product)
+                        .setProductType(PlayClient.ProductType.INAPP)
+                        .build()
+                },
             )
             .build()
-        val details = client.queryProductDetails(params).productDetailsList?.firstOrNull()
-        return if (details == null) Outcome.Failure(AppError.NotFound()) else Outcome.Success(details)
+        return client.queryProductDetails(params).productDetailsList.orEmpty()
     }
 
     private suspend fun connect(): Outcome<Unit> {
@@ -185,10 +179,6 @@ class PlayBillingClient @Inject constructor(
             },
         )
         return ready.await()
-    }
-
-    private companion object {
-        const val PRODUCT = "afterhours.premium.monthly"
     }
 }
 

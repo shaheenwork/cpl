@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +23,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursEasing
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.decorativeTween
@@ -51,9 +55,20 @@ import com.shnapps.couple.core.model.Intensity
  *
  * Each names a ceiling rather than a promise: picking Extreme rules nothing out in advance, it
  * does not mean everything will be.
+ *
+ * A level in [locked] carries a lock instead of its dots and calls [onLocked] rather than changing
+ * anything (V2 rule 5). It stays on the track, in its place, at its colour: hiding what has not
+ * been bought would make the ramp a different length for different couples, and a couple cannot
+ * decide whether they want Spicy if the app will not admit it exists.
  */
 @Composable
-fun TierPicker(selected: Intensity, onTier: (Intensity) -> Unit, modifier: Modifier = Modifier) {
+fun TierPicker(
+    selected: Intensity,
+    onTier: (Intensity) -> Unit,
+    modifier: Modifier = Modifier,
+    locked: Set<Intensity> = emptySet(),
+    onLocked: (Intensity) -> Unit = {},
+) {
     val spacing = AfterhoursTheme.spacing
 
     Column(
@@ -76,7 +91,14 @@ fun TierPicker(selected: Intensity, onTier: (Intensity) -> Unit, modifier: Modif
             horizontalArrangement = Arrangement.spacedBy(spacing.xs),
         ) {
             Intensity.entries.forEach { tier ->
-                Segment(tier, selected, onTier, Modifier.weight(1f))
+                val shut = tier in locked
+                Segment(
+                    tier = tier,
+                    selected = selected,
+                    onTier = if (shut) onLocked else onTier,
+                    locked = shut,
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
     }
@@ -87,6 +109,7 @@ private fun Segment(
     tier: Intensity,
     selected: Intensity,
     onTier: (Intensity) -> Unit,
+    locked: Boolean,
     modifier: Modifier,
 ) {
     val spacing = AfterhoursTheme.spacing
@@ -114,11 +137,23 @@ private fun Segment(
             .selectable(selected = isSelected, onClick = { onTier(tier) }, role = Role.RadioButton)
             // Named for a screen reader whether or not the word is drawn, because the dots alone
             // are "five circles" to anything that is not looking at them.
-            .semantics { contentDescription = tier.label }
+            .semantics { contentDescription = if (locked) "${'$'}{tier.label}, locked" else tier.label }
             .padding(vertical = spacing.sm),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(spacing.xxs, Alignment.CenterVertically),
     ) {
-        Text(text = tier.dots, style = MaterialTheme.typography.labelSmall, color = label)
+        if (locked) {
+            Icon(
+                imageVector = AfterhoursIcons.Lock,
+                contentDescription = null,
+                tint = AfterhoursTheme.colors.textFaint,
+                modifier = Modifier.size(LOCK),
+            )
+        } else {
+            Text(text = tier.dots, style = MaterialTheme.typography.labelSmall, color = label)
+        }
     }
 }
+
+/** The lock on a segment: the height of the dots it replaces, so the track does not jump. */
+private val LOCK = 14.dp

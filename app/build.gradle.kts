@@ -151,7 +151,7 @@ dependencies {
     implementation(project(":feature:send"))
     implementation(project(":feature:settings"))
     implementation(project(":core:notifications"))
-    implementation(project(":feature:paywall"))
+    implementation(project(":feature:store"))
 
     // Only the builds that talk to Play: `dev` has a fake client and never loads the library.
     "stagingImplementation"(libs.play.billing)

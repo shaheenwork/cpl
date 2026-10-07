@@ -355,9 +355,14 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
 - **The primitive renderers live in `:core:ui`**, not in `:feature:games`: two players draw them now,
   and a feature may not import another feature. A second renderer for a primitive is what §11.1
   forbids, so they belong to neither feature.
-- **The free tier limits volume, never intensity** (M9). Thirty cards a day, one guided evening a
-  week, checked when a run *starts* so nothing is cut off mid-evening, counted on the phone so it
-  works with no account. `everything_free` in Remote Config turns all of it off.
+- **The money is the top of the range, not the volume** (V2 rule 5, D-135). Mild and Flirty are free
+  for ever; Spicy, Hot and Extreme are one-time packs, and **a pack opens every level below it** —
+  a ceiling with a hole in it would skip rungs on the climb. Everything is open for the first month
+  after install (`PackageManager.firstInstallTime`), and `everything_free` in Remote Config opens it
+  globally. Nothing counts cards: there is no limit that can stop an evening that has started.
+- The ceiling is applied in `InstantPlayRepository` — deck, guided evening and dealt game alike —
+  never on a screen. A purchase is recorded on the phone (`ownedLevels`) because an unpaired phone
+  has no account; Play is the authority and `restore` asks it, on demand and on opening the store.
 
 ---
 

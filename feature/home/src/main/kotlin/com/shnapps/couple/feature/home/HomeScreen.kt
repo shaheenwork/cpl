@@ -50,6 +50,7 @@ import com.shnapps.couple.core.ui.ApartThread
 import com.shnapps.couple.core.ui.ChoiceRow
 import com.shnapps.couple.core.ui.Entrance
 import com.shnapps.couple.core.ui.ErrorBanner
+import com.shnapps.couple.core.ui.LockedLevelCard
 import com.shnapps.couple.core.ui.PremiumNudge
 import com.shnapps.couple.core.ui.ScreenHeading
 import com.shnapps.couple.core.ui.ScreenScaffold
@@ -89,6 +90,8 @@ fun HomeScreen(
             onOpenWaiting = viewModel::openWaiting,
             onDismissError = viewModel::dismissError,
             onDismissGate = viewModel::dismissGate,
+            onLockedTier = viewModel::tapLocked,
+            onDismissLocked = viewModel::dismissLocked,
         ),
         modifier = modifier,
     )
@@ -116,6 +119,11 @@ data class HomeActions(
     val onInspector: (() -> Unit)? = null,
     val onPlay: (gameId: String) -> Unit = {},
     val onTier: (Intensity) -> Unit = {},
+    /** A level they tapped that they have not bought: the card, then the store (V2 rule 5). */
+    val onLockedTier: (Intensity) -> Unit = {},
+    val onDismissLocked: () -> Unit = {},
+    /** The store, opened on a particular pack. */
+    val onStore: (Intensity) -> Unit = {},
     /** Together in a room, or apart on two phones: which half of the app this is. */
     val onMode: (Mode) -> Unit = {},
     val onOpenWaiting: () -> Unit = {},
@@ -185,7 +193,24 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
 
             // How far tonight goes belongs with the room it sets, directly under the toggle.
             Entrance(index = 2) {
-                TierPicker(selected = state.tier, onTier = actions.onTier)
+                TierPicker(
+                    selected = state.tier,
+                    onTier = actions.onTier,
+                    locked = state.access.locked.toSet(),
+                    onLocked = actions.onLockedTier,
+                )
+            }
+
+            // What a locked level costs, said where the tap happened and nowhere else.
+            state.lockedLevel?.let { level ->
+                Entrance(index = 2) {
+                    LockedLevelCard(
+                        level = level,
+                        price = state.lockedPrice,
+                        onUnlock = { actions.onStore(level) },
+                        onDismiss = actions.onDismissLocked,
+                    )
+                }
             }
 
             if (state.mode == Mode.APART) {

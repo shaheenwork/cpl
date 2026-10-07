@@ -3,6 +3,7 @@ package com.shnapps.couple.core.testing
 import com.shnapps.couple.core.datastore.AppPreferences
 import com.shnapps.couple.core.datastore.AppPreferencesStore
 import com.shnapps.couple.core.datastore.PlaySettingsStore
+import com.shnapps.couple.core.datastore.PurchaseStore
 import com.shnapps.couple.core.model.AppLockMode
 import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.Intensity
@@ -13,7 +14,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 
 /** In-memory [AppPreferencesStore] that really keeps what is written to it. */
-class FakeAppPreferencesStore(initial: AppPreferences = AppPreferences()) : AppPreferencesStore, PlaySettingsStore {
+class FakeAppPreferencesStore(
+    initial: AppPreferences = AppPreferences(),
+) : AppPreferencesStore, PlaySettingsStore, PurchaseStore {
 
     val state = MutableStateFlow(initial)
 
@@ -61,20 +64,8 @@ class FakeAppPreferencesStore(initial: AppPreferences = AppPreferences()) : AppP
         )
     }
 
-    override suspend fun countCard(day: Long) {
-        val sameDay = state.value.cardDay == day
-        state.value = state.value.copy(
-            cardDay = day,
-            cardsDealt = if (sameDay) state.value.cardsDealt + 1 else 1,
-        )
-    }
-
-    override suspend fun countNight(week: Long) {
-        val sameWeek = state.value.nightWeek == week
-        state.value = state.value.copy(
-            nightWeek = week,
-            nightsPlanned = if (sameWeek) state.value.nightsPlanned + 1 else 1,
-        )
+    override suspend fun unlock(levels: Set<Intensity>) {
+        state.value = state.value.copy(ownedLevels = state.value.ownedLevels + levels)
     }
 
     override suspend fun setLimit(tag: LimitTag, answer: LimitAnswer?) {

@@ -8,6 +8,8 @@ import com.shnapps.couple.core.data.account.AccountRepository
 import com.shnapps.couple.core.data.auth.AuthRepository
 import com.shnapps.couple.core.data.billing.BillingRepository
 import com.shnapps.couple.core.data.couple.CoupleRepository
+import com.shnapps.couple.core.data.entitlement.LevelAccess
+import com.shnapps.couple.core.data.entitlement.LevelAccessRepository
 import com.shnapps.couple.core.model.Entitlement
 import com.shnapps.couple.core.security.DiscreetIcon
 import com.shnapps.couple.core.security.DiscreetIcons
@@ -32,6 +34,8 @@ data class SettingsUiState(
     val email: String? = null,
     val paired: Boolean = false,
     val entitlement: Entitlement = Entitlement(),
+    /** Which packs this phone has, and how far they reach (V2 rule 5). */
+    val access: LevelAccess = LevelAccess.FREE,
     val exporting: Boolean = false,
     val export: ExportSummary? = null,
     val busy: Boolean = false,
@@ -54,6 +58,7 @@ class SettingsViewModel @Inject constructor(
     private val icons: DiscreetIcons,
     auth: AuthRepository,
     billing: BillingRepository,
+    levels: LevelAccessRepository,
 ) : ViewModel() {
 
     private val local = MutableStateFlow(SettingsUiState(icon = icons.current()))
@@ -69,14 +74,20 @@ class SettingsViewModel @Inject constructor(
         local.update { it.copy(icon = icons.current()) }
     }
 
-    val uiState: StateFlow<SettingsUiState> =
-        combine(local, auth.currentProfile, auth.authState, billing.entitlement) { state, profile, user, tier ->
-            state.copy(
-                email = user?.email,
-                paired = profile?.coupleId != null,
-                entitlement = tier,
-            )
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), SettingsUiState())
+    val uiState: StateFlow<SettingsUiState> = combine(
+        local,
+        auth.currentProfile,
+        auth.authState,
+        billing.entitlement,
+        levels.access,
+    ) { state, profile, user, tier, access ->
+        state.copy(
+            email = user?.email,
+            paired = profile?.coupleId != null,
+            entitlement = tier,
+            access = access,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), SettingsUiState())
 
     /** "Everything we hold about you, as a file." Written by the server, fetched as this user. */
     fun export(into: File) {

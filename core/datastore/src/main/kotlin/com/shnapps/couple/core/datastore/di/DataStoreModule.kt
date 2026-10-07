@@ -3,6 +3,7 @@ package com.shnapps.couple.core.datastore.di
 import com.shnapps.couple.core.datastore.AppPreferencesDataSource
 import com.shnapps.couple.core.datastore.AppPreferencesStore
 import com.shnapps.couple.core.datastore.PlaySettingsStore
+import com.shnapps.couple.core.datastore.PurchaseStore
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -21,4 +22,9 @@ abstract class DataStoreModule {
     @Binds
     @Singleton
     abstract fun bindPlaySettingsStore(impl: AppPreferencesDataSource): PlaySettingsStore
+
+    /** And again, under the name the store asks for. */
+    @Binds
+    @Singleton
+    abstract fun bindPurchaseStore(impl: AppPreferencesDataSource): PurchaseStore
 }

@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.google.common.truth.Truth.assertThat
+import com.shnapps.couple.core.data.entitlement.LevelAccess
 import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.model.Game
@@ -84,7 +85,7 @@ class HomeAccessibilityTest {
     }
 
     private fun state(company: Company = Company.ALONE) =
-        HomeUiState(company = company, games = games, tier = Intensity.HOT)
+        HomeUiState(company = company, games = games, tier = Intensity.HOT, access = LevelAccess.OPEN)
 
     private fun compose(fontScale: Float, content: @Composable () -> Unit) {
         composeRule.setContent {

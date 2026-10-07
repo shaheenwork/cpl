@@ -75,12 +75,6 @@ internal fun GameNightContent(
             centred = true,
         ) {
             when {
-                state.outOfNights -> AfterhoursCard(
-                    eyebrow = "That's this week",
-                    title = "One guided evening a week on the free plan.",
-                    body = "Cards are still there, and every tier and every game is free. " +
-                        "Premium takes the count off for both of you.",
-                )
                 state.nothingToPlan -> AfterhoursCard(
                     eyebrow = "Nothing to plan",
                     title = "Not enough at this tier for a whole evening.",
@@ -132,7 +126,7 @@ private fun dockFor(
     onAgain: () -> Unit,
     onBack: () -> Unit,
 ): (@Composable ColumnScope.() -> Unit) = when {
-    state.outOfNights || state.nothingToPlan -> {
+    state.nothingToPlan -> {
         {
             GlowButton(
                 text = "Back",

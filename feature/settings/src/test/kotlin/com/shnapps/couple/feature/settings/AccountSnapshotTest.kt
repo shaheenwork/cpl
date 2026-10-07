@@ -10,9 +10,11 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.google.common.truth.Truth.assertThat
+import com.shnapps.couple.core.data.entitlement.LevelAccess
 import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.model.Entitlement
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Tier
 import org.junit.Rule
 import org.junit.Test
@@ -43,10 +45,13 @@ class AccountSnapshotTest {
         val state = SettingsUiState(
             paired = true,
             entitlement = Entitlement(tier = Tier.PREMIUM),
+            access = LevelAccess(ceiling = Intensity.HOT, owned = setOf(Intensity.HOT)),
         )
         capture("settings-hub") { SettingsContent(state, SettingsRoutes(), SettingsActions()) }
         // Nothing here is an account: this phone is either on its own or half of a pair (V2).
         composeRule.onNodeWithText("Paired with their phone.").assertIsDisplayed()
+        // What they own, said as a fact. Nobody is sold anything from a settings list.
+        composeRule.onNodeWithText("Hot and below. Restore, or go further.").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("HOW IT LOOKS ON YOUR HOME SCREEN").assertIsDisplayed()
         composeRule.onNodeWithText("Export my data").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Unpair").performScrollTo().assertIsDisplayed()

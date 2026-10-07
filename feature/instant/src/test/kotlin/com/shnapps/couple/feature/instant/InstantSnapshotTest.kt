@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.shnapps.couple.core.data.entitlement.LevelAccess
 import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.engine.InstantCard
@@ -101,6 +102,30 @@ class InstantSnapshotTest {
         composeRule.onNodeWithText("That's us for tonight").assertIsDisplayed()
     }
 
+    @Test
+    fun `the dial says which levels are not theirs yet`() {
+        // Locked, not hidden: a couple cannot decide whether they want Spicy if the app will not
+        // admit it exists, and hiding it makes the ramp a different length for different couples.
+        capture("instant-locked-dial") {
+            // Flirty, because that is the only heat such a phone can be playing at: the deck is
+            // clamped to the ceiling, so a locked dial never sits under a Hot card.
+            play(state(access = LevelAccess.FREE).copy(tier = Intensity.FLIRTY))
+        }
+    }
+
+    @Test
+    fun `a locked level tapped is a card, not a wall`() {
+        capture("instant-locked-level") {
+            play(
+                state(access = LevelAccess.FREE).copy(
+                    tier = Intensity.FLIRTY,
+                    lockedLevel = Intensity.SPICY,
+                    lockedPrice = "£3.99",
+                ),
+            )
+        }
+    }
+
     @Composable
     private fun play(state: InstantPlayUiState) {
         InstantPlayContent(
@@ -113,8 +138,7 @@ class InstantSnapshotTest {
             onTurnUp = {},
             onKeepHeat = {},
             onTier = {},
-            onStartTimer = {},
-            onStopTimer = {},
+            onToggleTimer = {},
             onKeepGoing = {},
         )
     }
@@ -131,6 +155,7 @@ class InstantSnapshotTest {
         offeringHotter: Intensity? = null,
         runComplete: Boolean = false,
         played: Int = 2,
+        access: LevelAccess = LevelAccess.OPEN,
     ) = InstantPlayUiState(
         card = card,
         tier = Intensity.HOT,
@@ -141,6 +166,8 @@ class InstantSnapshotTest {
         refusing = refusing,
         offeringHotter = offeringHotter,
         runComplete = runComplete,
+        // Open: the first month after install, which is what most of these shots are of.
+        access = access,
     )
 
     private companion object {

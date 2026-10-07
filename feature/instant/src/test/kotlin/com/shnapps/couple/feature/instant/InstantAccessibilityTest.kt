@@ -110,8 +110,7 @@ class InstantAccessibilityTest {
             onTurnUp = {},
             onKeepHeat = {},
             onTier = {},
-            onStartTimer = {},
-            onStopTimer = {},
+            onToggleTimer = {},
             onKeepGoing = {},
         )
     }

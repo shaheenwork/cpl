@@ -2532,3 +2532,48 @@ and `firebase.json` binds the emulators to `0.0.0.0` rather than localhost, beca
 listening only on the loopback cannot be reached from a phone whatever address the phone is given.
 That does put the dev emulators on the local network while they are running — they hold fake data
 for a fake project, and the alternative is that a real device cannot be developed against at all.
+
+---
+
+## D-135 — Packs are a ladder, and the phone keeps the receipt
+
+V2 sells the top of the range instead of limiting how much a couple may play. The old model —
+thirty cards a day, one guided evening a week, every level free — is gone with `Allowances`, and
+with it the only thing in this app that could ever stop an evening that had already started.
+
+Three decisions inside that are not obvious.
+
+**A pack opens every level below it.** The store sells Spicy, Hot and "Everything", and buying Hot
+gives Spicy with it. That is not generosity, it is the only shape the rest of the app can hold: a
+level is a *ceiling* everywhere — the deck climbs towards it, a run escalates towards it, a game's
+rounds are drawn under it — so a couple who owned Extreme and not Spicy would have a deck with a
+hole in the middle and a climb that skipped two rungs. It also answers the design's "three packs
+and a bundle": the bundle **is** the top pack, and the store says so rather than listing a fourth
+tile that costs a different amount for the same thing.
+
+**The purchase is recorded on this phone.** There is no account in v2, so for a phone that has never
+paired — and a couple who only ever play in the same room never will — there is no server document
+to write an entitlement into. So `buy` writes a line in DataStore (`ownedLevels`) and Play is asked
+again on demand: `restore` queries `queryPurchasesAsync(INAPP)`, and the store screen does it on
+arrival so a reinstalled phone finds its packs without anybody knowing there is a button for it.
+The products are one-time and non-consumable for exactly that reason.
+
+This is a knowing departure from "the client never decides entitlement" (D-091), and it is bounded
+by what is being gated: these packs open *content that already shipped inside the APK*, so the worst
+a tampered phone gets is cards already on its own disk. Every gate that costs the project something
+— a night built on the server, an arc, a surprise — is still decided on the server from the server's
+own record, and none of that moved. A subscription from before this change still counts: premium
+opens everything, exactly as the top pack does.
+
+**The opening month comes from the package manager.** `firstInstallTime` is a date the system
+already keeps, survives app data being cleared, and needs no document, no network and no clock
+nobody can check. A reinstall starts the month again; that is the trade, and the alternative is an
+account. A package manager that will not answer is read as "just now" rather than "long ago",
+because the one person who cannot argue about it should not be the one who loses the month.
+
+The ceiling is applied in `DefaultInstantPlayRepository`, not on a screen — the deck, a guided
+evening and a dealt game are all clamped there — for the same reason the server clamps a night: a
+ceiling only the UI applies is a ceiling the next caller forgets. The stored preference is left
+alone while it is clamped, so buying a pack restores the evening they had rather than making them
+set it again. And the climb never offers a level nobody owns: "shall we turn it up?" followed by a
+price is the one sales pitch this app must not make.

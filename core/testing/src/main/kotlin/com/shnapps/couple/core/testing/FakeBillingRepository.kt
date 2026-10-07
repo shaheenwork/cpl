@@ -4,16 +4,16 @@ import android.app.Activity
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.billing.BillingRepository
-import com.shnapps.couple.core.data.billing.PremiumOffer
+import com.shnapps.couple.core.data.billing.LevelPacks
+import com.shnapps.couple.core.data.billing.PackOffer
 import com.shnapps.couple.core.model.Entitlement
-import com.shnapps.couple.core.model.SubscriptionState
-import com.shnapps.couple.core.model.Tier
+import com.shnapps.couple.core.model.Intensity
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
- * In-memory [BillingRepository] that behaves the way the real one does: buying produces nothing
- * until the *server* says what it is worth, so a failure leaves the couple exactly as free as
- * they were.
+ * In-memory [BillingRepository] that behaves the way the real one does: a purchase is recorded on
+ * the phone, a restore asks the store, and a failure leaves the couple exactly as free as they
+ * were. A real object with real state, not a mock (D-013).
  */
 class FakeBillingRepository(
     initial: Entitlement = Entitlement(),
@@ -22,36 +22,40 @@ class FakeBillingRepository(
     val current = MutableStateFlow(initial)
     override val entitlement = current
 
-    var offer = PremiumOffer(productId = "afterhours.premium.monthly", price = "£4.99", period = "P1M")
-    var failNext: AppError? = null
-    var restorable: Boolean = false
+    /** What this fake store holds for the account, for a restore to find. */
+    var holding: Set<Intensity> = emptySet()
 
-    var purchases = 0
+    var failNext: AppError? = null
+
+    /** What has been bought through this fake, in order, so a test can assert the one tap. */
+    val bought = mutableListOf<Intensity>()
+
+    /** How many times the store has been asked what it holds. */
+    var restores = 0
         private set
 
-    override suspend fun offer(): Outcome<PremiumOffer> = Outcome.Success(offer)
+    override suspend fun offers(): Outcome<List<PackOffer>> = Outcome.Success(
+        LevelPacks.productIds.mapNotNull { product ->
+            LevelPacks.levelOf(product)?.let { PackOffer(it, product, price = "£${it.level}.99") }
+        },
+    )
 
-    override suspend fun subscribe(activity: Activity): Outcome<Entitlement> {
-        purchases += 1
+    override suspend fun buy(activity: Activity, level: Intensity): Outcome<Set<Intensity>> {
         failNext?.let {
             failNext = null
             return Outcome.Failure(it)
         }
-        return granted()
+        bought += level
+        holding = holding + level
+        return Outcome.Success(setOf(level))
     }
 
-    override suspend fun restore(): Outcome<Entitlement> {
+    override suspend fun restore(): Outcome<Set<Intensity>> {
+        restores += 1
         failNext?.let {
             failNext = null
             return Outcome.Failure(it)
         }
-        if (!restorable) return Outcome.Failure(AppError.NotFound())
-        return granted()
-    }
-
-    private fun granted(): Outcome<Entitlement> {
-        val entitlement = Entitlement(tier = Tier.PREMIUM, state = SubscriptionState.ACTIVE)
-        current.value = entitlement
-        return Outcome.Success(entitlement)
+        return Outcome.Success(holding)
     }
 }

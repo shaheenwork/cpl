@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.google.common.truth.Truth.assertThat
+import com.shnapps.couple.core.data.entitlement.LevelAccess
 import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.model.ExperienceType
@@ -159,7 +160,13 @@ class HomeSnapshotTest {
         composeRule.onNodeWithText("Something is coming.").performScrollTo().assertIsDisplayed()
     }
 
-    private fun state(company: Company) = HomeUiState(company = company, games = games, tier = Intensity.HOT)
+    private fun state(company: Company) = HomeUiState(
+        company = company,
+        games = games,
+        tier = Intensity.HOT,
+        // Open, as it is for the first month after install (V2 rule 5).
+        access = LevelAccess.OPEN,
+    )
 
     private companion object {
         const val SETTLE_MS = 2_000L

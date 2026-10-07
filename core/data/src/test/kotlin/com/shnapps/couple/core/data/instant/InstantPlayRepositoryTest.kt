@@ -2,6 +2,7 @@ package com.shnapps.couple.core.data.instant
 
 import com.google.common.truth.Truth.assertThat
 import com.shnapps.couple.core.common.Outcome
+import com.shnapps.couple.core.data.entitlement.LevelAccess
 import com.shnapps.couple.core.data.limits.LimitsRepository
 import com.shnapps.couple.core.engine.NightLength
 import com.shnapps.couple.core.model.ContentItem
@@ -11,6 +12,7 @@ import com.shnapps.couple.core.model.LimitTag
 import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.testing.FakeAppPreferencesStore
 import com.shnapps.couple.core.testing.FakeContentRepository
+import com.shnapps.couple.core.testing.FakeLevelAccessRepository
 import com.shnapps.couple.core.testing.TestContent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,7 +38,11 @@ class InstantPlayRepositoryTest {
         override suspend fun set(tag: LimitTag, answer: LimitAnswer): Outcome<Unit> = Outcome.Success(Unit)
     }
 
-    private fun repository() = DefaultInstantPlayRepository(content, preferences, preferences, limits)
+    /** Open, as it is for the first month after install. The clamp has its own tests below. */
+    private val levels = FakeLevelAccessRepository(LevelAccess.OPEN)
+
+    private fun repository() =
+        DefaultInstantPlayRepository(content, preferences, preferences, limits, levels)
 
     @Test
     fun `the card player deals from the lane it was asked for`() = runTest {
@@ -66,6 +72,45 @@ class InstantPlayRepositoryTest {
         repository.setLane("FLIRT")
 
         assertThat(repository.deck.first().packs).containsExactly("FLIRT")
+    }
+
+    @Test
+    fun `the deck never goes past what this phone may play`() = runTest {
+        val repository = repository()
+        repository.setTier(Intensity.EXTREME)
+        levels.access.value = LevelAccess.FREE
+
+        // Clamped in the repository rather than on the screen, for the same reason the server
+        // clamps a night: a ceiling only the UI applies is a ceiling the next caller forgets.
+        assertThat(repository.tier.first()).isEqualTo(Intensity.FLIRTY)
+        assertThat(repository.deck.first().cards.map { it.intensity }.toSet())
+            .containsNoneOf(Intensity.SPICY, Intensity.HOT, Intensity.EXTREME)
+    }
+
+    @Test
+    fun `the heat they asked for comes back the moment a pack opens it`() = runTest {
+        val repository = repository()
+        repository.setTier(Intensity.EXTREME)
+        levels.access.value = LevelAccess.FREE
+        assertThat(repository.tier.first()).isEqualTo(Intensity.FLIRTY)
+
+        // Nothing was overwritten while it was locked, so buying the pack restores the evening
+        // they had rather than making them set it again.
+        levels.access.value = LevelAccess(ceiling = Intensity.EXTREME, owned = setOf(Intensity.EXTREME))
+
+        assertThat(repository.tier.first()).isEqualTo(Intensity.EXTREME)
+    }
+
+    @Test
+    fun `a guided evening is clamped too, and so is a game`() = runTest {
+        val repository = repository()
+        repository.setTier(Intensity.EXTREME)
+        levels.access.value = LevelAccess(ceiling = Intensity.SPICY, owned = setOf(Intensity.SPICY))
+
+        val night = repository.planNight(NightLength.LONG)
+
+        assertThat(night.cards.map { it.card.intensity }.toSet())
+            .containsNoneOf(Intensity.HOT, Intensity.EXTREME)
     }
 
     private companion object {

@@ -10,6 +10,7 @@ import com.shnapps.couple.core.testing.FakeAuthRepository
 import com.shnapps.couple.core.testing.FakeBillingRepository
 import com.shnapps.couple.core.testing.FakeCoupleRepository
 import com.shnapps.couple.core.testing.FakeDiscreetIcons
+import com.shnapps.couple.core.testing.FakeLevelAccessRepository
 import com.shnapps.couple.core.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -50,9 +51,11 @@ class SettingsViewModelTest {
         assertThat(screen.uiState.value.icon).isEqualTo(DiscreetIcon.CALCULATOR)
     }
 
+    private val levels = FakeLevelAccessRepository()
+
     private fun test(body: suspend TestScope.() -> Unit) = runTest(mainDispatcherRule.testDispatcher) { body() }
 
-    private fun TestScope.screen() = SettingsViewModel(account, couples, icons, auth, billing).also { vm ->
+    private fun TestScope.screen() = SettingsViewModel(account, couples, icons, auth, billing, levels).also { vm ->
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         advanceUntilIdle()
     }
