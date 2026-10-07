@@ -132,6 +132,9 @@ internal fun PredictionRenderer(
     onSubmit: (Answer) -> Unit,
 ) {
     Asked(whoFor(prediction.seat, players), prediction.text)
+    // What they were asked, under what is being asked here: a guess at an answer to a question
+    // nobody showed you is not a guess.
+    prediction.asked?.let { Quoted(it) }
     val options = prediction.options
     if (options == null) {
         TypedAnswer(label = "Your guess", onSubmit = { onSubmit(Answer.Text(it)) })
@@ -711,6 +714,16 @@ private fun Asked(who: String, text: String) {
     if (text.isNotEmpty()) {
         Text(text = text, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
     }
+}
+
+/** Somebody else's question, quoted here for the person guessing at its answer. */
+@Composable
+private fun Quoted(text: String) {
+    Text(
+        text = "“$text”",
+        style = MaterialTheme.typography.titleMedium,
+        color = AfterhoursTheme.colors.textMuted,
+    )
 }
 
 @Composable

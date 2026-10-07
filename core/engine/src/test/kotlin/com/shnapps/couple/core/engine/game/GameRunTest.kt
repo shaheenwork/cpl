@@ -158,6 +158,9 @@ class GameRunTest {
         val prediction = (run.moment as GameMoment.Turn).primitive as RoundPrimitive.Prediction
         assertThat(prediction.text).isEqualTo("What did they choose?")
         assertThat(prediction.options!!.map { it.label }).containsExactly("Stay in", "Go out").inOrder()
+        // And the question they were actually asked: four options under "what did they choose?"
+        // are the answers to a question the guesser was never shown.
+        assertThat(prediction.asked).isEqualTo("The prompt p.")
         run = run.submit(Answer.Picked("0"))!!.proceed()
         val reveal = (run.moment as GameMoment.Turn).primitive as RoundPrimitive.Reveal
         assertThat(reveal.verdict).isEqualTo(Verdict.Point(1))

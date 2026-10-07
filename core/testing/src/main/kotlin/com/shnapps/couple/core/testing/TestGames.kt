@@ -26,6 +26,7 @@ object TestGames {
     const val CHOICES = "TEST_CHOICES"
     const val TRUTH_OR_DARE = "TEST_TRUTH_OR_DARE"
     const val DICE = "TEST_DICE"
+    const val GUESSING = "TEST_GUESSING"
 
     val choices = Game(
         id = CHOICES,
@@ -101,7 +102,38 @@ object TestGames {
         ),
     )
 
-    val games = listOf(choices, truthOrDare, dice)
+    /** Hot or Not's shape: one answers in private, the other guesses at what they said. */
+    val guessing = Game(
+        id = GUESSING,
+        title = "Hot or not",
+        tagline = "Guess what they said.",
+        description = "One of you answers in private and the other guesses.",
+        modes = setOf(Mode.TOGETHER),
+        rounds = 3,
+        turns = TurnOrder.ALTERNATE,
+        scoring = Scoring.POINTS,
+        promptKinds = emptyList(),
+        steps = listOf(
+            step(
+                GamePrimitive.CHOICE,
+                StepAudience.ACTIVE,
+                isPrivate = true,
+                text = StepText.Prompt,
+                options = StepOptions.FromPrompt,
+            ),
+            step(
+                GamePrimitive.PREDICTION,
+                StepAudience.OTHER,
+                isPrivate = true,
+                text = StepText.Literal("What did they choose?"),
+                options = StepOptions.FromPrompt,
+                of = listOf(0),
+            ),
+            step(GamePrimitive.REVEAL, StepAudience.TOGETHER, of = listOf(0, 1), outcome = RevealOutcome.PREDICTED),
+        ),
+    )
+
+    val games = listOf(choices, truthOrDare, dice, guessing)
 
     val choicePrompts = (1..5).map { n ->
         prompt("choices_$n", CHOICES, "Would you rather, number $n?", options = listOf("Stay in $n", "Go out $n"))
@@ -112,6 +144,15 @@ object TestGames {
     }
     val dares = (1..5).map { n ->
         prompt("tod_d$n", TRUTH_OR_DARE, "A dare to take, number $n.", kind = PromptKind.DARE)
+    }
+
+    val guessingPrompts = (1..5).map { n ->
+        prompt(
+            id = "guess_$n",
+            game = GUESSING,
+            text = "Morning or midnight, number $n?",
+            options = listOf("Morning $n", "Midnight $n"),
+        )
     }
 
     val dicePrompts = (1..5).map { n ->

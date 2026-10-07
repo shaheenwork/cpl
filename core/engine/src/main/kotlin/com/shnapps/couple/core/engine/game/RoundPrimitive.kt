@@ -56,6 +56,15 @@ sealed interface RoundPrimitive {
         val text: String,
         /** Null when the guess is typed. */
         val options: List<Option>?,
+        /**
+         * The question the other partner was actually asked.
+         *
+         * A guess needs it. "What did they choose?" over four options says nothing about what the
+         * question was — the guesser was shown the answers to a question they never saw, and on
+         * two phones there is no one next to them to say it out loud. Null when this step already
+         * shows the prompt itself, so it is never said twice.
+         */
+        val asked: String? = null,
     ) : RoundPrimitive {
         override fun accepts(answer: Answer): Boolean =
             if (options == null) answer is Answer.Text && answer.text.isNotBlank() else answer.picks(options)

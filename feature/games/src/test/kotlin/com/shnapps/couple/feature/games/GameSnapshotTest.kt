@@ -235,6 +235,20 @@ class GameSnapshotTest {
     }
 
     @Test
+    fun guessingWhatTheyChose() {
+        // The guesser's screen. It used to be "What did they choose?" and four options — the
+        // answers to a question nobody had shown them, which on two phones is unanswerable.
+        val state = playing(TestGames.guessing, TestGames.guessingPrompts) { run ->
+            run.proceed().submit(Answer.Picked("0"))!!.proceed()
+        }
+
+        capture("game-guess") { GameContent(state, GameActions()) }
+
+        composeRule.onNodeWithText("What did they choose?").assertIsDisplayed()
+        composeRule.onNodeWithText("“Morning or midnight, number 1?”").assertIsDisplayed()
+    }
+
+    @Test
     fun watchingThemChooseApart() {
         // The first half of their turn: they are picking, and this phone has a shape for the round
         // but not yet a task. Before this it said "Over to them." and looked like a dead screen.

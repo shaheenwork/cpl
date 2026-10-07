@@ -141,7 +141,9 @@ internal class RoundReading(private val state: RunState) {
             GamePrimitive.CHOICE -> RoundPrimitive.Choice(take.step, seat, text, options(step.options, step.of, seat))
             GamePrimitive.PREDICTION -> {
                 val options = if (step.answer == AnswerKind.TEXT) null else options(step.options, step.of, seat)
-                RoundPrimitive.Prediction(take.step, seat, text, options)
+                // The round's own question, unless this step is already showing it.
+                val asked = promptInPlay()?.text?.takeIf { step.text != StepText.Prompt }
+                RoundPrimitive.Prediction(take.step, seat, text, options, asked)
             }
             GamePrimitive.VOTE -> RoundPrimitive.Vote(take.step, seat, text, options(step.options, step.of, seat))
             GamePrimitive.REVEAL -> reveal(take, step)
