@@ -12,4 +12,8 @@ dependencies {
     api(project(":core:model"))
     implementation(project(":core:common"))
     implementation(libs.androidx.datastore.preferences)
+
+    // The real store, against real DataStore. ApplicationProvider comes with androidx.test.ext,
+    // and Robolectric itself comes from the library convention.
+    testImplementation(libs.androidx.junit)
 }

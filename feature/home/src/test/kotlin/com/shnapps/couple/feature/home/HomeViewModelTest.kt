@@ -1,14 +1,11 @@
 package com.shnapps.couple.feature.home
 
 import com.google.common.truth.Truth.assertThat
-import com.shnapps.couple.core.analytics.AnalyticsEvent
-import com.shnapps.couple.core.analytics.AnalyticsLogger
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.model.AuthUser
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.Intensity
-import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionState
 import com.shnapps.couple.core.model.UserProfile
@@ -42,7 +39,6 @@ class HomeViewModelTest {
 
     private fun test(body: suspend TestScope.() -> Unit) = runTest(mainDispatcherRule.testDispatcher) { body() }
 
-    private val logged = mutableListOf<AnalyticsEvent>()
     private val nights = FakeNightRepository()
     private val instant = FakeInstantPlayRepository()
     private val gameStarts = FakeGameRepository()
@@ -58,7 +54,6 @@ class HomeViewModelTest {
         nights = nights,
         instant = instant,
         gameStarts = gameStarts,
-        analytics = AnalyticsLogger { logged += it },
         auth = auth,
     ).also { vm ->
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
@@ -125,27 +120,6 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `one tap makes a whole evening, and the screen opens it`() = test {
-        paired()
-        val vm = home()
-
-        act { vm.surprise() }
-
-        assertThat(nights.calls).containsExactly("surprise")
-        assertThat(vm.uiState.value.opened)
-            .isEqualTo(Opened.Session(nights.night.experienceId, ExperienceType.NIGHT))
-        assertThat(logged).containsExactly(AnalyticsEvent.SurpriseCreated)
-    }
-
-    @Test
-    fun `a mystery is asked for as one`() = test {
-        paired()
-        val vm = home()
-        act { vm.surprise(mystery = true) }
-        assertThat(nights.calls).containsExactly("surprise:mystery")
-    }
-
-    @Test
     fun `nothing starts while the couple already has something under way`() = test {
         paired()
         nights.session.value = NightSession(
@@ -165,19 +139,17 @@ class HomeViewModelTest {
         val vm = home()
 
         assertThat(vm.uiState.value.canStart).isFalse()
-        act { vm.surprise() }
-        assertThat(nights.calls).isEmpty()
         act { vm.play(TestGames.TRUTH_OR_DARE) }
         assertThat(gameStarts.calls).isEmpty()
     }
 
     @Test
-    fun `an evening that cannot be built is said plainly, and nothing is left half-done`() = test {
+    fun `a game that cannot be started is said plainly, and nothing is left half-done`() = test {
         paired()
         val vm = home()
-        nights.surpriseResult = Outcome.Failure(AppError.Validation(HomeViewModel.NOT_ENOUGH_CONTENT))
+        gameStarts.startResult = Outcome.Failure(AppError.Validation(HomeViewModel.NOT_ENOUGH_CONTENT))
 
-        act { vm.surprise() }
+        act { vm.play(TestGames.TRUTH_OR_DARE) }
 
         assertThat(vm.uiState.value.error).isEqualTo(HomeError.NOT_ENOUGH_CONTENT)
         assertThat(vm.uiState.value.making).isFalse()
@@ -185,44 +157,9 @@ class HomeViewModelTest {
         act(vm::dismissError)
         assertThat(vm.uiState.value.error).isNull()
 
-        nights.surpriseResult = Outcome.Failure(AppError.Network())
-        act { vm.surprise() }
+        gameStarts.startResult = Outcome.Failure(AppError.Network())
+        act { vm.play(TestGames.TRUTH_OR_DARE) }
         assertThat(vm.uiState.value.error).isEqualTo(HomeError.OFFLINE)
-    }
-
-    @Test
-    fun `an evening the partner planned waits on this screen, and opening it says so`() = test {
-        paired()
-        nights.plannedNights.value = listOf(
-            NightPlan(experienceId = "planned_night", mine = false, chapterCount = 5, opened = false),
-        )
-        val vm = home()
-
-        assertThat(vm.uiState.value.waitingForMe?.chapterCount).isEqualTo(5)
-        assertThat(vm.uiState.value.plannedByMe).isNull()
-
-        act(vm::openWaiting)
-
-        assertThat(nights.calls).containsExactly("openPlan:planned_night")
-        assertThat(vm.uiState.value.opened).isEqualTo(Opened.Session("planned_night", ExperienceType.NIGHT))
-    }
-
-    @Test
-    fun `an evening planned on this phone is only ever a shape, and says whether it landed`() = test {
-        paired()
-        nights.plannedNights.value = listOf(
-            NightPlan(experienceId = "for_them", mine = true, chapterCount = 4, opened = false),
-        )
-        val vm = home()
-
-        assertThat(vm.uiState.value.plannedByMe?.opened).isFalse()
-        // Nothing about it is waiting for this phone: it is theirs to find.
-        assertThat(vm.uiState.value.waitingForMe).isNull()
-        act(vm::openWaiting)
-        assertThat(nights.calls).isEmpty()
-
-        act { nights.plannedNights.value = listOf(NightPlan("for_them", mine = true, chapterCount = 4, opened = true)) }
-        assertThat(vm.uiState.value.plannedByMe?.opened).isTrue()
     }
 
     @Test

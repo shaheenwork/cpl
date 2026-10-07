@@ -129,10 +129,10 @@ class AppPreferencesDataSource @Inject constructor(
 
     override suspend fun setLimit(tag: LimitTag, answer: LimitAnswer?) {
         context.dataStore.edit { prefs ->
-            val kept = prefs[Keys.LIMITS].orEmpty().filterNot { it.startsWith("${'$'}{tag.name}=") }
+            val kept = prefs[Keys.LIMITS].orEmpty().filterNot { it.startsWith("${tag.name}=") }
             prefs[Keys.LIMITS] = when (answer) {
                 null -> kept.toSet()
-                else -> kept.toSet() + "${'$'}{tag.name}=${'$'}{answer.name}"
+                else -> kept.toSet() + "${tag.name}=${answer.name}"
             }
         }
     }

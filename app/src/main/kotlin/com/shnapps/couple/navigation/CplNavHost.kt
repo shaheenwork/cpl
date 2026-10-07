@@ -73,7 +73,6 @@ fun CplNavHost(
                 // Declining is a real outcome, not a nudge to try again. There is no account to
                 // send anyone back to, so the app simply closes.
                 onNotOldEnough = { onExit() },
-                onPairInstead = { navController.navigate(Route.Pairing) },
             )
         }
 
@@ -197,7 +196,6 @@ private fun Home(navController: NavHostController) {
             onGameNight = { navController.navigate(Route.GameNight) },
             onSettings = { navController.navigate(Route.Settings) },
             onPairPartner = { navController.navigate(Route.Pairing) },
-            onPaywall = { navController.navigate(Route.Store()) },
             onStore = { level -> navController.navigate(Route.Store(level.name)) },
             onDealtGame = { gameId -> navController.navigate(Route.DealtGame(gameId)) },
             onOpen = { experienceId, _ -> navController.navigate(Route.Game(experienceId)) },

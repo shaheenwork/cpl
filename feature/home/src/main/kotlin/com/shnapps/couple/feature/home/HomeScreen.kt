@@ -36,17 +36,15 @@ import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.designsystem.theme.ProvideTier
 import com.shnapps.couple.core.model.ExperienceType
-import com.shnapps.couple.core.model.Gate
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Mode
-import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionState
 import com.shnapps.couple.core.ui.ChoiceRow
 import com.shnapps.couple.core.ui.Entrance
 import com.shnapps.couple.core.ui.ErrorBanner
+import com.shnapps.couple.core.ui.FreeRunBanner
 import com.shnapps.couple.core.ui.LockedLevelCard
-import com.shnapps.couple.core.ui.PremiumNudge
 import com.shnapps.couple.core.ui.ScreenHeading
 import com.shnapps.couple.core.ui.ScreenScaffold
 import com.shnapps.couple.core.ui.SecureScreen
@@ -82,9 +80,7 @@ fun HomeScreen(
             onPlay = viewModel::play,
             onTier = viewModel::setTier,
             onMode = viewModel::setMode,
-            onOpenWaiting = viewModel::openWaiting,
             onDismissError = viewModel::dismissError,
-            onDismissGate = viewModel::dismissGate,
             onLockedTier = viewModel::tapLocked,
             onDismissLocked = viewModel::dismissLocked,
         ),
@@ -101,7 +97,6 @@ data class HomeActions(
     val onSettings: () -> Unit = {},
     /** Signed in, but nobody joined yet: the pairing handshake. */
     val onPairPartner: () -> Unit = {},
-    val onPaywall: (Gate) -> Unit = {},
     /** A game dealt on this phone, for anyone the server does not know. */
     val onDealtGame: (gameId: String) -> Unit = {},
     /** Something the server built, and the session both phones follow. */
@@ -118,9 +113,7 @@ data class HomeActions(
     val onStore: (Intensity) -> Unit = {},
     /** Together in a room, or apart on two phones: which half of the app this is. */
     val onMode: (Mode) -> Unit = {},
-    val onOpenWaiting: () -> Unit = {},
     val onDismissError: () -> Unit = {},
-    val onDismissGate: () -> Unit = {},
 )
 
 @Composable
@@ -161,25 +154,27 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
             }
 
             state.error?.let { error -> ErrorBanner(message = error.message(), onDismiss = actions.onDismissError) }
-            // A limit, said where the tap happened — never over an evening that has started (§19).
-            state.gate?.let { gate ->
-                PremiumNudge(
-                    gate = gate,
-                    onSeeWhatsIncluded = { actions.onPaywall(gate) },
-                    onDismiss = actions.onDismissGate,
-                )
+
+            // Everything is open, and when that stops. A date, never a countdown (V2 rule 5).
+            state.access.freeUntilMillis?.let { until ->
+                Entrance(index = 1) { FreeRunBanner(untilMillis = until) }
             }
 
             // What is already happening comes before anything that could be started, and it is
             // the one lit object on the screen when it is there.
             state.active?.let { session -> UnderWay(session, actions.onOpen) }
-            state.waitingForMe?.let { plan -> SomethingWaiting(plan, state.canStart, actions.onOpenWaiting) }
 
             // Which half of the app this is, before anything about tonight: together in a room,
             // or apart on two phones. A toggle rather than two home screens, because the app has
             // one home and the brief has one Home.
             Entrance(index = 1) {
                 ModeToggle(selected = state.mode, onMode = actions.onMode)
+            }
+
+            // Apart says what it needs of them, in one line under the control it belongs to: these
+            // two phones are a pair, or they are not yet (V2 rule 2).
+            if (state.mode == Mode.APART) {
+                Entrance(index = 1) { PairedLine(state.company, actions.onPairPartner) }
             }
 
             // How far tonight goes belongs with the room it sets, directly under the toggle.
@@ -207,10 +202,6 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
             // One grid, both modes. The toggle says how a game is played — one phone between
             // them, or a phone each — not which half of an app they are in (V2 rule 3): there is
             // no second surface any more, so there is nothing else for it to switch to.
-            if (state.mode == Mode.APART && !state.company.paired) {
-                Entrance(index = 3) { PairFirst(state.company, actions) }
-            }
-
             Section("Or play something", index = 3) {
                 // Game Night is first and is not one of the games in the catalogue: it is a plan
                 // over the whole of it, so it has no entry in games.json (M5).
@@ -300,56 +291,35 @@ private fun Start(state: HomeUiState, actions: HomeActions) {
 }
 
 /**
- * Two phones, and only one of them here yet (V2 rule 2).
+ * Whether these two phones are a pair, under the toggle that asks it (V2 rule 2).
  *
  * Apart is not a second half of the app any more — it is the same games, played a phone each — so
- * the only thing this says is the one thing that is actually missing. Everything below it still
- * works on this phone alone, which is why it is a row and not a wall.
+ * the only thing this has to say is the one thing that might be missing. A line and a quiet word,
+ * not a section and not a wall: everything below still works on this phone alone.
  */
 @Composable
-private fun PairFirst(company: Company, actions: HomeActions) {
-    Section("Two phones") {
-        ChoiceRow(
-            title = "Pair with their phone",
-            subtitle = "Twenty seconds, once. After that these two phones stay a pair.",
-            icon = AfterhoursIcons.Spark,
-            trailing = if (company.signedIn) "Pair" else null,
-            onClick = actions.onPairPartner,
-        )
-    }
-}
-
-/**
- * What their partner planned, unopened (§13, §2.5 #2).
- *
- * The card used to be the whole of it: a question, and nothing that answered it. Both answers are
- * here, and so is what happens if neither is given — which is nothing, because it waits.
- */
-@Composable
-private fun SomethingWaiting(plan: NightPlan, canOpen: Boolean, onOpen: () -> Unit) {
-    CinematicCard(
-        modifier = Modifier.fillMaxWidth(),
-        glowing = true,
-        contentDescription = "They planned an evening for you. ${plan.chapterCount} cards, planned by them.",
-    ) {
-        Text(text = "FOR YOU", style = EyebrowTextStyle, color = AfterhoursTheme.colors.brass)
+private fun PairedLine(company: Company, onPair: () -> Unit) {
+    if (company.paired) {
         Text(
-            text = "They planned an evening for you.",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = "${plan.chapterCount} cards. That's all either of you knows until you open it.",
+            text = "Paired with their phone.",
             style = MaterialTheme.typography.bodyMedium,
             color = AfterhoursTheme.colors.textMuted,
         )
+        return
     }
-    GlowButton(text = "Open it", onClick = onOpen, enabled = canOpen, modifier = Modifier.fillMaxWidth())
-    Text(
-        text = "Nothing happens to it if you leave it. It waits.",
-        style = MaterialTheme.typography.bodyMedium,
-        color = AfterhoursTheme.colors.textMuted,
-    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "Not paired yet.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = AfterhoursTheme.colors.textMuted,
+            modifier = Modifier.weight(1f),
+        )
+        GlowButton(text = "Pair", onClick = onPair, style = GlowButtonStyle.Quiet)
+    }
 }
 
 /** What the couple already has going, from either phone: the way back into it. */

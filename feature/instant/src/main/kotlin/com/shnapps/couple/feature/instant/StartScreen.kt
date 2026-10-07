@@ -30,7 +30,6 @@ import com.shnapps.couple.core.ui.TierPicker
 fun StartScreen(
     onStarted: () -> Unit,
     onNotOldEnough: () -> Unit,
-    onPairInstead: () -> Unit,
     viewModel: StartViewModel = hiltViewModel(),
 ) {
     SecureScreen()
@@ -45,7 +44,6 @@ fun StartScreen(
         onTier = viewModel::setTier,
         onConfirm = viewModel::confirmAge,
         onNotOldEnough = onNotOldEnough,
-        onPairInstead = onPairInstead,
     )
 }
 
@@ -55,13 +53,13 @@ internal fun StartContent(
     onTier: (Intensity) -> Unit,
     onConfirm: () -> Unit,
     onNotOldEnough: () -> Unit,
-    onPairInstead: () -> Unit,
 ) {
     ScreenColumn {
         ScreenHeading(
             eyebrow = "Afterhours",
-            headline = "Two questions, then we start.",
-            body = "No account. No setup. Nothing leaves this phone until you ask it to.",
+            headline = "One question, then we start.",
+            body = "No account, no sign-up, no email. Nothing leaves this phone unless you pair it " +
+                "with theirs.",
         )
 
         Text(
@@ -79,12 +77,6 @@ internal fun StartContent(
         GlowButton(
             text = "We're both 18 or over — start",
             onClick = onConfirm,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        GlowButton(
-            text = "My partner isn't here",
-            onClick = onPairInstead,
-            style = GlowButtonStyle.Secondary,
             modifier = Modifier.fillMaxWidth(),
         )
         GlowButton(

@@ -137,7 +137,7 @@ private fun Segment(
             .selectable(selected = isSelected, onClick = { onTier(tier) }, role = Role.RadioButton)
             // Named for a screen reader whether or not the word is drawn, because the dots alone
             // are "five circles" to anything that is not looking at them.
-            .semantics { contentDescription = if (locked) "${'$'}{tier.label}, locked" else tier.label }
+            .semantics { contentDescription = if (locked) "${tier.label}, locked" else tier.label }
             .padding(vertical = spacing.sm),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(spacing.xxs, Alignment.CenterVertically),

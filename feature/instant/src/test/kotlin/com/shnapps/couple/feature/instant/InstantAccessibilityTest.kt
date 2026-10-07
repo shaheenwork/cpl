@@ -52,7 +52,6 @@ class InstantAccessibilityTest {
                 onTier = {},
                 onConfirm = {},
                 onNotOldEnough = {},
-                onPairInstead = {},
             )
         }
 

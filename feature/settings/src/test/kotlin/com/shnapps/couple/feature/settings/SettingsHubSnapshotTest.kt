@@ -23,13 +23,16 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Settings and the end of an account (BUILD_PROMPT.md §14.9) — including the part that has to be
- * said out loud before anyone taps it: deleting an account takes the couple with it.
+ * Settings, which in v2 is four groups and no account (V2 rule 1).
+ *
+ * The assertions that matter are the absences. There is nothing to sign out of, nothing to export
+ * and nothing to delete, because the only thing this app has is a pair of phones — so the one
+ * destructive control is "Unpair and wipe", and it says in one sentence exactly what it clears.
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [35], qualifiers = "w392dp-h840dp-xhdpi")
-class AccountSnapshotTest {
+class SettingsHubSnapshotTest {
 
     @get:Rule
     val composeRule = createComposeRule()
@@ -41,7 +44,7 @@ class AccountSnapshotTest {
     }
 
     @Test
-    fun everythingAboutThisAccount() {
+    fun theWholeOfSettings() {
         val state = SettingsUiState(
             paired = true,
             entitlement = Entitlement(tier = Tier.PREMIUM),
@@ -53,45 +56,17 @@ class AccountSnapshotTest {
         // What they own, said as a fact. Nobody is sold anything from a settings list.
         composeRule.onNodeWithText("Hot and below. Restore, or go further.").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("HOW IT LOOKS ON YOUR HOME SCREEN").assertIsDisplayed()
-        composeRule.onNodeWithText("Export my data").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Unpair").performScrollTo().assertIsDisplayed()
-    }
-
-    @Test
-    fun whatAnExportLeaves() {
-        val state = SettingsUiState(
-            email = "alex@example.com",
-            export = ExportSummary(fileName = "afterhours-1790000000000.json", bytes = 20_480),
-        )
-        capture("settings-exported") { SettingsContent(state, SettingsRoutes(), SettingsActions()) }
-        // Below the fold on a phone this size, but on the screen and readable by a screen reader.
-        composeRule.onNodeWithText("afterhours-1790000000000.json — 20480 bytes, on this phone.").assertExists()
-        composeRule.onNodeWithText("Our copy is deleted after a week. Yours is yours.").assertExists()
-    }
-
-    @Test
-    fun theEndOfAnAccount() {
-        capture("settings-delete") {
-            DeleteAccountContent(SettingsUiState(paired = true), sure = false, actions = DeleteAccountActions())
-        }
-        composeRule.onNodeWithText("This cannot be undone.").assertIsDisplayed()
-        // The part nobody expects, said before the first tap.
+        // The one destructive thing in the app, and the sentence says the whole of it.
+        composeRule.onNodeWithText("Unpair and wipe").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText(
-            "• The couple — and with it every evening you played, every memory you kept, and everything " +
-                "either of you sent the other.",
-        ).assertIsDisplayed()
-        composeRule.onNodeWithText("I understand what goes").assertIsDisplayed()
-        // The button that actually deletes is behind that one.
-        assertThat(composeRule.onAllNodesWithText("Delete everything, permanently").fetchSemanticsNodes()).isEmpty()
-    }
-
-    @Test
-    fun onceTheyHaveSaidTheyUnderstand() {
-        capture("settings-delete-sure") {
-            DeleteAccountContent(SettingsUiState(paired = true), sure = true, actions = DeleteAccountActions())
+            "Clears the pair on both phones and everything you shared. Your own limits stay on this phone.",
+        ).performScrollTo().assertIsDisplayed()
+        // Nothing that looks like an account: there is not one to delete, export, or sign out of.
+        for (word in listOf("Export my data", "Delete", "Sign out", "Signed in")) {
+            assertThat(
+                composeRule.onAllNodesWithText(word, substring = true).fetchSemanticsNodes(),
+            ).isEmpty()
         }
-        composeRule.onNodeWithText("Delete everything, permanently").assertIsDisplayed()
-        composeRule.onNodeWithText("Keep my account").assertIsDisplayed()
     }
 
     private companion object {

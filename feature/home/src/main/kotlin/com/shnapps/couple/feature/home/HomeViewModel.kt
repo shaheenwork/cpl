@@ -2,22 +2,17 @@ package com.shnapps.couple.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.shnapps.couple.core.analytics.AnalyticsEvent
-import com.shnapps.couple.core.analytics.AnalyticsLogger
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.auth.AuthRepository
-import com.shnapps.couple.core.data.billing.gate
 import com.shnapps.couple.core.data.entitlement.LevelAccess
 import com.shnapps.couple.core.data.game.GameRepository
 import com.shnapps.couple.core.data.instant.InstantPlayRepository
 import com.shnapps.couple.core.data.night.NightRepository
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.Game
-import com.shnapps.couple.core.model.Gate
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Mode
-import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -73,13 +68,7 @@ data class HomeUiState(
     val making: Boolean = false,
     /** Set once there is something to play; the screen opens it and calls [HomeViewModel.onShown]. */
     val opened: Opened? = null,
-    /** Something the partner planned, waiting to be found (§2.5 #2). */
-    val waitingForMe: NightPlan? = null,
-    /** Something this phone's user planned for them, and whether they have opened it. */
-    val plannedByMe: NightPlan? = null,
     val error: HomeError? = null,
-    /** A limit they reached: the screen offers what premium includes, and nothing is lost (§19). */
-    val gate: Gate? = null,
     /** How far this phone may go: what the heat dial draws locks on (V2 rule 5). */
     val access: LevelAccess = LevelAccess.FREE,
     /** A locked level they tapped here. Nothing changes; the store is one tap on. */
@@ -108,7 +97,6 @@ class HomeViewModel @Inject constructor(
     private val nights: NightRepository,
     private val instant: InstantPlayRepository,
     private val gameStarts: GameRepository,
-    private val analytics: AnalyticsLogger,
     auth: AuthRepository,
 ) : ViewModel() {
 
@@ -133,24 +121,18 @@ class HomeViewModel @Inject constructor(
     /** What this phone can play on its own: the list, how far it goes, and how far it may. */
     private val ownDeck = combine(instant.games, instant.tier, instant.access, ::Triple)
 
-    /** What the couple has going, and what one of them left for the other. */
-    private val theirs = combine(nights.activeSession, nights.plans) { active, plans -> active to plans }
-
     val uiState: StateFlow<HomeUiState> = combine(
         local,
         company,
         ownDeck,
-        theirs,
-    ) { state, company, (games, tier, access), (active, plans) ->
+        nights.activeSession,
+    ) { state, company, (games, tier, access), active ->
         state.copy(
             company = company,
             games = games,
             tier = tier,
             access = access,
             active = active,
-            // Theirs first: an evening waiting to be found is the best thing on this screen.
-            waitingForMe = plans.firstOrNull { !it.mine },
-            plannedByMe = plans.firstOrNull { it.mine },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), HomeUiState())
 
@@ -208,50 +190,22 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** Surprise us, and a mystery: one tap, and the app decides (§14.2). */
-    fun surprise(mystery: Boolean = false) {
-        if (!uiState.value.canStart) return
-        local.update { it.copy(making = true, error = null) }
-        viewModelScope.launch {
-            val result = nights.surprise(mystery)
-            // One event for both: which of the two taps it was is not worth recording.
-            if (result is Outcome.Success) analytics.log(AnalyticsEvent.SurpriseCreated)
-            finish(result.map { it.experienceId }, ExperienceType.NIGHT)
-        }
-    }
-
-    /**
-     * Something waiting for them (§13): opening it tells the partner it landed — never what
-     * happened next — and hands the evening to the player.
-     */
-    fun openWaiting() {
-        val plan = uiState.value.waitingForMe ?: return
-        if (!uiState.value.canStart) return
-        local.update { it.copy(making = true, error = null) }
-        viewModelScope.launch {
-            finish(nights.openPlan(plan.experienceId).map { plan.experienceId }, ExperienceType.NIGHT)
-        }
-    }
-
     /** The screen has opened what was made: the next tap starts again from nothing. */
     fun onShown() = local.update { it.copy(opened = null) }
 
     fun dismissError() = local.update { it.copy(error = null) }
 
-    fun dismissGate() = local.update { it.copy(gate = null) }
-
-    /** One ending for every tap that asks the server for something (§19). */
+    /**
+     * One ending for every tap that asks the server for something.
+     *
+     * No gate is mapped here any more: v2's limits are levels, and a level is refused by the deck
+     * before anything is asked for (V2 rule 5). Nothing home can start is behind a server gate —
+     * starting a game never calls one — so a refusal here is an error, not a price.
+     */
     private fun finish(result: Outcome<String>, type: ExperienceType) = local.update { state ->
         when (result) {
             is Outcome.Success -> state.copy(making = false, opened = Opened.Session(result.value, type))
-            is Outcome.Failure -> {
-                val gate = result.error.gate()
-                state.copy(
-                    making = false,
-                    gate = gate,
-                    error = if (gate == null) result.error.toHomeError() else null,
-                )
-            }
+            is Outcome.Failure -> state.copy(making = false, error = result.error.toHomeError())
         }
     }
 

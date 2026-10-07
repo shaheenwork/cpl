@@ -43,13 +43,13 @@ class InstantSnapshotTest {
                 onTier = {},
                 onConfirm = {},
                 onNotOldEnough = {},
-                onPairInstead = {},
             )
         }
 
         // Everything the first screen asks for, and nothing else: an age, a tier, a way in.
-        composeRule.onNodeWithText("Two questions, then we start.").assertIsDisplayed()
+        composeRule.onNodeWithText("One question, then we start.").assertIsDisplayed()
         composeRule.onNodeWithText("We're both 18 or over — start").assertIsDisplayed()
+        composeRule.onNodeWithText("I'm not 18").assertIsDisplayed()
     }
 
     @Test

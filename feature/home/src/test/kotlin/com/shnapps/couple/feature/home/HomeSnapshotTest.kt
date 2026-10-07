@@ -16,7 +16,6 @@ import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Mode
-import com.shnapps.couple.core.model.NightPlan
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.Scoring
 import com.shnapps.couple.core.model.SessionState
@@ -84,19 +83,6 @@ class HomeSnapshotTest {
     }
 
     @Test
-    fun `something waiting has both answers on the screen`() {
-        val waiting = state(Company.PAIRED).copy(
-            waitingForMe = NightPlan(experienceId = "planned", mine = false, chapterCount = 5, opened = false),
-        )
-        capture("home-waiting") { HomeContent(waiting, HomeActions()) }
-
-        // The card used to be a question above a void: no button, and nothing saying what to do.
-        composeRule.onNodeWithText("They planned an evening for you.").assertIsDisplayed()
-        composeRule.onNodeWithText("Open it").assertIsDisplayed()
-        composeRule.onNodeWithText("Nothing happens to it if you leave it. It waits.").assertIsDisplayed()
-    }
-
-    @Test
     fun `something under way has the way back into it`() {
         val state = state(Company.PAIRED).copy(
             active = NightSession(
@@ -129,6 +115,8 @@ class HomeSnapshotTest {
         capture("home-apart") { HomeContent(state, HomeActions()) }
 
         composeRule.onNodeWithText("Two phones, one evening.").assertIsDisplayed()
+        // Said under the toggle that asks it, in one line, and only in this mode.
+        composeRule.onNodeWithText("Paired with their phone.").assertIsDisplayed()
         composeRule.onNodeWithText("Truth or Dare").performScrollTo().assertIsDisplayed()
     }
 
@@ -138,9 +126,35 @@ class HomeSnapshotTest {
 
         capture("home-apart-unpaired") { HomeContent(state, HomeActions()) }
 
-        composeRule.onNodeWithText("Pair with their phone").performScrollTo().assertIsDisplayed()
-        // Everything still works on this phone alone, so it is a row and not a wall.
+        composeRule.onNodeWithText("Not paired yet.").assertIsDisplayed()
+        composeRule.onNodeWithText("Pair").assertIsDisplayed()
+        // Everything still works on this phone alone, so it is a line and not a wall.
         composeRule.onNodeWithText("Game Night").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `the free month says when it ends, and never counts down`() {
+        val free = state(Company.ALONE).copy(
+            access = LevelAccess(
+                ceiling = Intensity.EXTREME,
+                owned = emptySet(),
+                freeForNow = true,
+                freeUntilMillis = NOVEMBER_14,
+            ),
+        )
+        capture("home-free-month") { HomeContent(free, HomeActions()) }
+
+        composeRule.onNodeWithText("Everything unlocked until 14 November.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `when the month is over the dial says which levels are not theirs`() {
+        val locked = state(Company.ALONE).copy(access = LevelAccess.FREE, tier = Intensity.FLIRTY)
+        capture("home-locked") { HomeContent(locked, HomeActions()) }
+
+        // Locked, not hidden: the ramp is the same length for every couple.
+        composeRule.onNodeWithContentDescription("Spicy, locked").assertExists()
+        composeRule.onNodeWithContentDescription("Extreme, locked").assertExists()
     }
 
     private fun state(company: Company) = HomeUiState(
@@ -153,6 +167,9 @@ class HomeSnapshotTest {
 
     private companion object {
         const val SETTLE_MS = 2_000L
+
+        /** 14 November 2026, midday UTC: the date the design's banner says. */
+        const val NOVEMBER_14 = 1_794_657_600_000L
 
         val games = listOf(
             game("TRUTH_OR_DARE", "Truth or Dare", "The classic, with better questions."),

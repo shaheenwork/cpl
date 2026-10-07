@@ -169,7 +169,7 @@ class DrawAndDialTest {
     /** The run after an answer the primitive must accept: a refusal here is the test failing. */
     private fun GameRun.take(answer: Answer): GameRun {
         val at = ready()
-        return checkNotNull(at.submit(answer)) { "the run refused ${'$'}answer at ${'$'}{at.moment}" }
+        return checkNotNull(at.submit(answer)) { "the run refused $answer at ${at.moment}" }
     }
 
     private fun startSpin(fromRound: Int = 0): GameRun = start(spin, spinRounds, fromRound)
