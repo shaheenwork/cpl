@@ -11,6 +11,7 @@ import com.shnapps.couple.core.model.GamePrompt
 import com.shnapps.couple.core.model.GameStep
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Mode
+import com.shnapps.couple.core.model.PromptKind
 import com.shnapps.couple.core.model.RevealOutcome
 import com.shnapps.couple.core.model.Scoring
 import com.shnapps.couple.core.model.StepAudience
@@ -99,9 +100,75 @@ class TwoPhoneRunTest {
         assertThat(decodeAnswer(awkward.encode()!!)).isEqualTo(Answer.Text("one two — three"))
     }
 
+    @Test
+    fun `a game of turns, apart - the other phone watches the round rather than being told nothing`() {
+        // Truth or Dare's shape: a choice and a challenge, both the active player's, neither
+        // private. On two phones the partner has no step at all — which is why they were shown
+        // "the game is on the other phone" for the whole evening.
+        var theirs = turnGame(seat = 1)
+
+        assertThat(theirs.watchingOnly()).isTrue()
+        val before = theirs.moment as GameMoment.Waiting
+        assertThat(before.seat).isEqualTo(0)
+        // Nothing known yet: whose turn it is, and nothing else.
+        assertThat(before.watching).isNull()
+
+        // The server's reveal, as soon as the one it asked has answered — a one-sided reveal.
+        theirs = theirs.receive(seat = 0, answer = Answer.Picked("DARE"))
+
+        val watching = (theirs.moment as GameMoment.Waiting).watching
+        assertThat(watching).isNotNull()
+        assertThat(watching!!.kind).isEqualTo(PromptKind.DARE)
+        assertThat(watching.text).isEqualTo("Do the dare")
+        // And it stays there: the round is the other phone's to finish.
+        assertThat(theirs.moment).isInstanceOf(GameMoment.Waiting::class.java)
+    }
+
+    @Test
+    fun `the active phone has its answer to send the moment it chooses, not when the round ends`() {
+        var mine = turnGame(seat = 0)
+
+        mine = mine.submit(Answer.Picked("DARE"))!!
+
+        // Sent now rather than at the end of the round: the partner is watching, and waiting for
+        // the dare until it had been done would be no better than not showing it at all.
+        assertThat(mine.answerToSend()).isEqualTo(Answer.Picked("DARE"))
+        assertThat(mine.watchingOnly()).isFalse()
+        assertThat(mine.moment).isInstanceOf(GameMoment.Turn::class.java)
+    }
+
+    @Test
+    fun `a private round tells the watching phone nothing at all`() {
+        // Would You Rather: each answers in secret. On two phones that secret holds exactly as it
+        // does on one, so the waiting screen says who, never what.
+        var theirs = run(seat = 1)
+        theirs = theirs.receive(seat = 0, answer = Answer.Picked("1"))
+
+        assertThat((theirs.moment as? GameMoment.Waiting)?.watching).isNull()
+    }
+
     // ---- helpers -------------------------------------------------------------------------------
 
     private fun run(seat: Int) = start(wouldYouRather, seat)
+
+    /**
+     * Truth or Dare's shape, released as the server releases it: every round carries one prompt of
+     * each kind, and which one is played is decided by the choice.
+     */
+    private fun turnGame(seat: Int): GameRun {
+        val prompts = (1..3).flatMap { round ->
+            listOf(
+                prompt("t$round", truthOrDare.id).copy(kind = PromptKind.TRUTH, text = "Say the truth"),
+                prompt("d$round", truthOrDare.id).copy(kind = PromptKind.DARE, text = "Do the dare"),
+            )
+        }
+        val byId = prompts.associateBy { it.id }
+        val released = ReleasedGame.fromServer(
+            ServerGame(truthOrDare.id, (1..3).map { listOf("t$it", "d$it") }, emptyList(), effectiveIntensity = 5),
+            truthOrDare,
+        ) { byId[it] }
+        return GameRun.start(released, players, firstSeat = 0, fromRound = 0, phone = seat)
+    }
 
     private fun start(game: Game, seat: Int): GameRun {
         val prompts = (1..3).map { prompt("p$it", game.id) }
@@ -124,7 +191,8 @@ class TwoPhoneRunTest {
             answer: AnswerKind? = null,
             of: List<Int> = emptyList(),
             outcome: RevealOutcome? = null,
-        ) = GameStep(primitive, who, isPrivate, text, options, answer, of, outcome, seconds = null, kindFrom = null)
+            kindFrom: Int? = null,
+        ) = GameStep(primitive, who, isPrivate, text, options, answer, of, outcome, seconds = null, kindFrom = kindFrom)
 
         fun game(id: String, vararg steps: GameStep) = Game(
             id = id,
@@ -149,6 +217,28 @@ class TwoPhoneRunTest {
                 options = StepOptions.FromPrompt,
             ),
             step(GamePrimitive.REVEAL, StepAudience.TOGETHER, of = listOf(0), outcome = RevealOutcome.MATCH),
+        )
+
+        /** Truth or Dare's shape: the active player chooses, then does what they drew. */
+        val truthOrDare = Game(
+            id = "SHAPED_LIKE_TRUTH_OR_DARE",
+            title = "Truth or Dare",
+            tagline = "",
+            description = "",
+            modes = setOf(Mode.TOGETHER),
+            rounds = 3,
+            turns = TurnOrder.ALTERNATE,
+            scoring = Scoring.NONE,
+            promptKinds = listOf(PromptKind.TRUTH, PromptKind.DARE),
+            steps = listOf(
+                step(
+                    GamePrimitive.CHOICE,
+                    StepAudience.ACTIVE,
+                    text = StepText.Literal("Truth or dare?"),
+                    options = StepOptions.Fixed(listOf("TRUTH", "DARE")),
+                ),
+                step(GamePrimitive.CHALLENGE, StepAudience.ACTIVE, text = StepText.Prompt, kindFrom = 0),
+            ),
         )
 
         fun prompt(id: String, game: String) = GamePrompt(

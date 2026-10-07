@@ -254,7 +254,26 @@ class GameViewModel @Inject constructor(
             .filterKeys { who -> who != seat || mine == null }
             .mapNotNull { (who, encoded) -> encoded?.let(::decodeAnswer)?.let { who to it } }
             .fold(run) { current, (who, answer) -> current.receive(who, answer) }
-        setRun(if (told.moment is GameMoment.Waiting) told.proceed() else told)
+        // A phone with nothing to do this round stays where it is: the answer that just arrived is
+        // the thing it was waiting to be shown (§12).
+        val stays = told.watchingOnly()
+        setRun(if (told.moment is GameMoment.Waiting && !stays) told.proceed() else told)
+    }
+
+    /**
+     * The phone that only watched a round has no way of its own to leave it (§12).
+     *
+     * The round ended because the other partner finished it, not because anything happened here —
+     * so this phone follows the session rather than its own interpreter, which is still sitting on
+     * the turn it was watching.
+     */
+    private fun onWatcherFollows(started: StartedGame, session: NightSession) {
+        val watching = local.value.run ?: return
+        if (!session.state.inChapter || session.currentChapter <= watching.round) return
+        if (!watching.watchingOnly()) return
+        sentRound = null
+        receivedRound = null
+        setRun(startRun(started, session, fromRound = session.currentChapter))
     }
 
     /** A phone that restarted mid-game picks the game up at the round the server has. */
@@ -270,6 +289,7 @@ class GameViewModel @Inject constructor(
             if (answered) sentRound = session.currentChapter
             setRun(if (answered) run.awaitingReveal() else run)
         }
+        if (plays) onWatcherFollows(started, session)
         if (session.state == SessionState.COMPLETED && session.isHost && !completedLogged) {
             completedLogged = true
             analytics.log(AnalyticsEvent.GameCompleted(started.released.game.id))
@@ -348,15 +368,24 @@ class GameViewModel @Inject constructor(
     }
 
     /**
-     * This phone's answer for the round, sent once (§12.2). Everything it does alone is done, so
-     * there is nothing more the other phone could be waiting for.
+     * This phone's answer for the round, sent once (§12.2).
+     *
+     * **As soon as there is one**, rather than when the round ends. In a game of turns the partner
+     * is watching rather than answering, and the server reveals the round the moment the one it
+     * asked has answered — so sending the choice at the end of the round would show them the dare
+     * only after it had been done, which is no better than not showing it at all.
+     *
+     * A phone with nothing to send still says so once it has finished, because the chapter is
+     * waiting on it.
      */
     private fun sendAnswer(run: GameRun) {
-        val waiting = run.moment is GameMoment.Waiting || run.moment is GameMoment.RoundOver
-        if (!waiting || sentRound == run.round) return
+        if (sentRound == run.round) return
+        val answer = run.answerToSend()
+        val done = run.moment is GameMoment.Waiting || run.moment is GameMoment.RoundOver
+        if (answer == null && !done) return
         val round = run.round
         sentRound = round
-        act { games.submit(requireSession(), round, run.answerToSend()?.encode()) }
+        act { games.submit(requireSession(), round, answer?.encode()) }
     }
 
     /**
@@ -389,8 +418,11 @@ class GameViewModel @Inject constructor(
     fun nextRound() {
         val run = local.value.run ?: return
         val over = run.moment as? GameMoment.RoundOver ?: return
-        // On two phones the round is only over once both have seen it; the server says when.
-        if (run.phone != null && uiState.value.session?.state == SessionState.REVEAL) return
+        // On two phones a round that asked both of them is over only once both have seen it; the
+        // server says when. A round that asked one of them is over when they are done — nobody is
+        // waiting to see anything they have not already been watching.
+        val asksBoth = run.phone?.let { run.asksSeat(1 - it) } ?: false
+        if (asksBoth && uiState.value.session?.state == SessionState.REVEAL) return
         sentRound = null
         receivedRound = null
         act {

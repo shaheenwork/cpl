@@ -35,15 +35,20 @@ data class Game(
      * the protocol needs. And it included nothing that the protocol would have stalled on, so the
      * mistake only ever cost a game.
      *
-     * Truth or Dare and Heat Dice ask one person per round and nothing of the other, so apart they
-     * would leave a round waiting for an answer that is never coming. They are one-phone games
-     * until the protocol can reveal a round that only one of them answered.
+     * A game of turns asks one of them and nothing of the other. That works apart too — the server
+     * reveals the round as soon as the one it asked has answered — but only when the round is
+     * **open**: the partner's phone spends the round watching, and there is nothing to watch if
+     * what the other answered is a secret. Truth or Dare is open and plays apart; Heat Dice asks
+     * nobody anything, so there is nothing to reveal and nothing to show, and it stays a game for
+     * one phone passed between them.
      */
     val playableApart: Boolean
         get() {
             val asked = steps.filter { it.asksForAnAnswer }
-            return asked.any { it.who == StepAudience.EACH || it.who == StepAudience.TOGETHER } ||
+            if (asked.isEmpty()) return false
+            val both = asked.any { it.who == StepAudience.EACH || it.who == StepAudience.TOGETHER } ||
                 (asked.any { it.who == StepAudience.ACTIVE } && asked.any { it.who == StepAudience.OTHER })
+            return both || steps.none { it.isPrivate }
         }
 
     /**

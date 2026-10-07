@@ -3,6 +3,8 @@
  * every stage is a pure function tested directly and mirrored exactly by :core:engine.
  */
 
+import { type GameStepShape } from '../session/answerers';
+
 /** Raised whenever output changes for identical inputs (BUILD_PROMPT.md section 10.6). */
 export const ENGINE_VERSION = 1;
 
@@ -71,6 +73,11 @@ export interface GameDefinition {
   rounds: number;
   /** Each round holds one prompt of every kind listed, in this order; none listed, one prompt. */
   promptKinds: string[];
+  /**
+   * The round's steps, as the bundle carries them. Choosing rounds has no use for these; the
+   * session protocol does, to know whether a round asks one of them or both (section 12).
+   */
+  steps?: GameStepShape[];
 }
 
 /** Raised whenever a game's rounds change for identical inputs (engine/SPEC.md section 10). */

@@ -157,7 +157,7 @@ describe('two phones, one session, end to end', () => {
     // One session at a time per couple: the round above is still under way.
     const playing = (await clientRead(alex, `couples/${coupleId}`)).fields?.activeSessionId?.stringValue;
     if (playing) await ok('endSession', { sessionId: playing, action: 'STOP' }, alex);
-    const game = await ok('startGame', { game: 'ME_OR_YOU', intensity: 1 }, alex);
+    const game = await ok('startGame', { game: 'FANTASY_MATCH', intensity: 1 }, alex);
     const session = await ok('createSession', { experienceId: game.experienceId, kind: 'TWO_DEVICE' }, sam);
     const sessionId = session.sessionId as string;
     const path = `couples/${coupleId}/sessions/${sessionId}/submissions`;

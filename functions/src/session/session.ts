@@ -18,6 +18,7 @@
 import { FieldValue, Timestamp, type DocumentData, type DocumentReference, type Firestore, type Transaction } from 'firebase-admin/firestore';
 import { activeCoupleOf, blockedNow, defaultDeps, type GenerateDeps } from '../experience/generate';
 import { ServiceError } from '../shared/errors';
+import { ANSWERED_BY } from './answerers';
 import { isTerminal, step, type SessionEvent, type SessionSnapshot, type SessionState, type Transition } from './transitions';
 
 /** A session untouched for this long no longer holds the couple's place (D-059). */
@@ -72,6 +73,9 @@ export function snapshotOf(session: DocumentData, members: readonly string[]): S
     members,
     submitted: Object.keys(session.submittedBy ?? {}),
     seen: Object.keys(session.seenBy ?? {}),
+    // Who a chapter asks, and which phone is seat 0: together they say whose answer completes it.
+    answeredBy: ANSWERED_BY.includes(session.answeredBy) ? session.answeredBy : undefined,
+    hostUid: typeof session.hostUid === 'string' ? session.hostUid : null,
   };
 }
 
@@ -271,6 +275,9 @@ export async function createSession(db: Firestore, uid: string, input: unknown, 
       currentChapter: -1,
       chapterCount: chapters.length,
       consentRequired,
+      // Copied from the experience, where it was decided from the game's own steps. A night asks
+      // both of them by definition, so anything but a game is BOTH.
+      answeredBy: ANSWERED_BY.includes(experience.answeredBy) ? experience.answeredBy : 'BOTH',
       consentAcks: plannedBy === null ? {} : { [plannedBy]: true },
       submittedBy: {},
       seenBy: {},

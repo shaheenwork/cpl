@@ -30,7 +30,7 @@ internal class RoundReading(private val state: RunState) {
 
     fun moment(): GameMoment = when (val slot = slots().getOrElse(state.position) { Slot.End }) {
         is Slot.HandOff -> GameMoment.HandOff(state.round, slot.seat)
-        is Slot.Wait -> GameMoment.Waiting(state.round, slot.seat)
+        is Slot.Wait -> GameMoment.Waiting(state.round, slot.seat, watching())
         Slot.Gather -> GameMoment.Gather(state.round)
         is Slot.Take -> {
             val prompted = showsPrompt(game.steps[slot.step])
@@ -225,6 +225,27 @@ internal class RoundReading(private val state: RunState) {
     }
 
     fun answerOf(step: Int, seat: Int?): Answer? = state.answers[AnswerKey(step, seat)]
+
+    /**
+     * What the other partner is openly doing, for the phone waiting on them (§12).
+     *
+     * Two conditions, and both are about what this phone is *allowed* to know. The round has to be
+     * open — a step either of them answers in secret keeps its secret on two phones as well — and
+     * the answer that decides which prompt is in play has to have arrived, which it does with the
+     * server's reveal. Before that there is nothing to show but whose turn it is.
+     *
+     * This is what makes a game of turns playable apart at all: without it the partner's phone
+     * says "they're answering" for the whole evening and the dare is something only one of them
+     * ever sees.
+     */
+    private fun watching(): Watched? {
+        val phone = state.phone ?: return null
+        val theirs = takes.filter { it.seat != null && it.seat != phone }
+        val open = theirs.isNotEmpty() && theirs.none { game.steps[it.step].isPrivate }
+        val answered = theirs.any { answerOf(it.step, it.seat) != null }
+        if (!open || !answered) return null
+        return promptInPlay()?.let { Watched(kind = it.kind, text = it.text) }
+    }
 
     /**
      * The step [seat] answers in this round: the last one that asks them for something only they

@@ -113,7 +113,7 @@ describe('starting a game', () => {
     await db.doc(`users/${b}/boundaries/${theme}`).set({ level: 'NEVER', updatedAt: new Date(NOW) });
     await recomputeCouple(db, coupleId, NOW);
     const byId = await prompts();
-    for (const gameId of ['TRUTH_OR_DARE', 'DEEP_TALK', 'COUPLE_BATTLE']) {
+    for (const gameId of ['TRUTH_OR_DARE', 'WOULD_YOU_RATHER', 'WIN_IT_OWE_IT']) {
       for (let seed = 1; seed <= 4; seed++) {
         const game = await startGame(db, a, { game: gameId, intensity: 5 }, NOW, deps(seed));
         for (const id of released(game)) assert.ok(!byId.get(id)!.excludedByBoundaries.includes(theme), `${id} carries ${theme}`);
@@ -141,7 +141,7 @@ describe('starting a game', () => {
   it("the more careful partner's content level caps a game, whatever is asked", async () => {
     const { a } = await couple([5, 2]);
     const byId = await prompts();
-    const game = await startGame(db, a, { game: 'ME_OR_YOU', intensity: 5 }, NOW, deps());
+    const game = await startGame(db, a, { game: 'FANTASY_MATCH', intensity: 5 }, NOW, deps());
     assert.equal(game.effectiveIntensity, 2);
     for (const id of released(game)) assert.ok(byId.get(id)!.intensity <= 2, id);
   });
@@ -149,16 +149,16 @@ describe('starting a game', () => {
   it('refuses unknown games, fields the server decides, and anyone unpaired', async () => {
     const { a } = await couple();
     await rejects(startGame(db, a, { game: 'STRIP_POKER', intensity: 3 }, NOW, deps()), 'invalid-argument', 'game');
-    await rejects(startGame(db, a, { game: 'ME_OR_YOU', intensity: 6 }, NOW, deps()), 'invalid-argument', 'intensity');
-    await rejects(startGame(db, a, { game: 'ME_OR_YOU', intensity: 3, seed: 1 }, NOW, deps()), 'invalid-argument', 'unknown field seed');
+    await rejects(startGame(db, a, { game: 'FANTASY_MATCH', intensity: 6 }, NOW, deps()), 'invalid-argument', 'intensity');
+    await rejects(startGame(db, a, { game: 'FANTASY_MATCH', intensity: 3, seed: 1 }, NOW, deps()), 'invalid-argument', 'unknown field seed');
     await db.doc('users/loner').set({ contentLevel: 5 });
-    await rejects(startGame(db, 'loner', { game: 'ME_OR_YOU', intensity: 3 }, NOW, deps()), 'failed-precondition', 'not-paired');
+    await rejects(startGame(db, 'loner', { game: 'FANTASY_MATCH', intensity: 3 }, NOW, deps()), 'failed-precondition', 'not-paired');
   });
 
   it('is rate limited per user', async () => {
     const { a } = await couple([1, 1]);
-    for (let i = 0; i < GAME_LIMIT; i++) await startGame(db, a, { game: 'DEEP_TALK', intensity: 1 }, NOW, deps(i));
-    await rejects(startGame(db, a, { game: 'DEEP_TALK', intensity: 1 }, NOW, deps()), 'resource-exhausted');
+    for (let i = 0; i < GAME_LIMIT; i++) await startGame(db, a, { game: 'WOULD_YOU_RATHER', intensity: 1 }, NOW, deps(i));
+    await rejects(startGame(db, a, { game: 'WOULD_YOU_RATHER', intensity: 1 }, NOW, deps()), 'resource-exhausted');
   });
 });
 
@@ -170,7 +170,7 @@ describe('playing a game', () => {
 
   it('plays through a session, and counts as a game played', async () => {
     const { a, coupleId } = await couple();
-    const game = await startGame(db, a, { game: 'DEEP_TALK', intensity: 2 }, NOW, deps());
+    const game = await startGame(db, a, { game: 'WOULD_YOU_RATHER', intensity: 2 }, NOW, deps());
     const { sessionId, state, chapterCount } = await createSession(db, a, { experienceId: game.experienceId }, NOW);
     assert.equal(state, 'READY');
     assert.equal(chapterCount, game.rounds.length);
@@ -228,7 +228,7 @@ describe('playing a game', () => {
 
   it('a limit set halfway through a game holds for the rest of it', async () => {
     const { a, b, coupleId } = await couple();
-    const game = await startGame(db, a, { game: 'WHO_KNOWS_WHO', intensity: 3 }, NOW, deps());
+    const game = await startGame(db, a, { game: 'HOT_OR_NOT', intensity: 3 }, NOW, deps());
     const byId = await prompts();
     const { sessionId } = await createSession(db, a, { experienceId: game.experienceId }, NOW);
     await advance(a, sessionId, -1);
@@ -247,7 +247,7 @@ describe('playing a game', () => {
 
   it("a partner's ask-first set mid-game blocks what it covers, even the host's own", async () => {
     const { a, coupleId } = await couple();
-    const game = await startGame(db, a, { game: 'TWO_TRUTHS_AND_A_LIE', intensity: 3 }, NOW, deps());
+    const game = await startGame(db, a, { game: 'HOT_OR_NOT', intensity: 3 }, NOW, deps());
     const byId = await prompts();
     const { sessionId } = await createSession(db, a, { experienceId: game.experienceId }, NOW);
     await advance(a, sessionId, -1);

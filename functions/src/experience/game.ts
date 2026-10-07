@@ -15,6 +15,7 @@
 import { Timestamp, type Firestore } from 'firebase-admin/firestore';
 import { generateGame } from '../engine/game';
 import { type CoupleContext, type EngineRequest } from '../engine/types';
+import { answeredBy } from '../session/answerers';
 import { ServiceError } from '../shared/errors';
 import { consumeRateLimit } from '../shared/rateLimit';
 import {
@@ -108,6 +109,9 @@ export async function startGame(
   await ref.set({
     type: 'GAME',
     game: game.id,
+    // Who each round asks, read off the game's steps: a game of turns asks one of them, and its
+    // chapters are revealed as soon as that one has answered (section 12).
+    answeredBy: answeredBy(game),
     mode: request.mode,
     intensity,
     effectiveIntensity: result.effectiveIntensity,

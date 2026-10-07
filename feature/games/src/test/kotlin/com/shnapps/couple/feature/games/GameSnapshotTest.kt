@@ -235,6 +235,29 @@ class GameSnapshotTest {
     }
 
     @Test
+    fun watchingTheirTurnApart() {
+        // A game of turns, a phone each: this is the partner's phone while the other one does the
+        // dare. Before this it said "the game is on the other phone" for the whole evening.
+        val released = released(TestGames.truthOrDare, TestGames.truths + TestGames.dares)
+        val watching = GameRun.start(released, GamePlayers("Alex", "Sam"), phone = 1)
+            .receive(seat = 0, answer = Answer.Picked("DARE"))
+        val state = GameUiState(
+            started = StartedGame("e", released),
+            players = GamePlayers("Alex", "Sam"),
+            session = session(SessionState.REVEAL, round = 0, kind = SessionKind.TWO_DEVICE),
+            run = watching,
+            twoPhones = true,
+        ).let { it.copy(stage = GameStages.stageOf(it, awaitingSession = false)) }
+
+        capture("game-watching") { GameContent(state, GameActions()) }
+
+        composeRule.onNodeWithText("A dare to take, number 1.").assertIsDisplayed()
+        composeRule.onNodeWithText("Alex drew a dare.").assertIsDisplayed()
+        // Nothing to press: the round belongs to the other phone, and the safe word is still here.
+        composeRule.onNodeWithText("Stop").assertIsDisplayed()
+    }
+
+    @Test
     fun partnerPhoneNeverShowsTheGame() {
         val released = released(TestGames.choices, choicePrompts)
         val state = GameUiState(

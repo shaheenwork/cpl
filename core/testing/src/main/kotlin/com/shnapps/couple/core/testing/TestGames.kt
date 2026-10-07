@@ -66,8 +66,9 @@ object TestGames {
                 text = StepText.Literal("Truth or dare?"),
                 options = StepOptions.Fixed(listOf("TRUTH", "DARE")),
             ),
+            // No reaction step: the shipped game has none either. "How was that?" after every
+            // round was an extra tap for nothing, and the fixtures mirror the games.
             step(GamePrimitive.CHALLENGE, StepAudience.ACTIVE, text = StepText.Prompt, kindFrom = 0),
-            step(GamePrimitive.REACTION, StepAudience.OTHER, text = StepText.Literal("How did they do?")),
         ),
     )
 
@@ -97,7 +98,6 @@ object TestGames {
                     ),
                 ),
             ),
-            step(GamePrimitive.REACTION, StepAudience.ACTIVE, text = StepText.Literal("How was that?")),
         ),
     )
 

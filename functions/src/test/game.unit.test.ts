@@ -49,11 +49,7 @@ describe('every game can be played', () => {
     // Named rather than counted: a game disappearing from the bundle is a content mistake that
     // no other test would notice, because everything else here loops over whatever is there.
     assert.deepEqual(games.map((each) => each.id).sort(), [
-      'BLIND_TASTE', 'BUILD_THE_FANTASY', 'COUPLE_BATTLE', 'DEEP_TALK', 'DIRTY_DICE', 'DONT_MOVE',
-      'EARN_IT', 'IN_YOUR_WORDS', 'ME_OR_YOU', 'PREDICT_MY_ANSWER', 'RATE_IT', 'RED_LIGHT',
-      'SAY_IT_OUT_LOUD', 'SPIN',
-      'STRIP_ROUND', 'THE_BET', 'THREE_MINUTES', 'TRUTH_OR_DARE', 'TWO_TRUTHS_AND_A_LIE',
-      'WHO_KNOWS_WHO', 'WOULD_YOU_RATHER', 'YES_NO_MAYBE',
+      'FANTASY_MATCH', 'HEAT_DICE', 'HOT_OR_NOT', 'TRUTH_OR_DARE', 'WIN_IT_OWE_IT', 'WOULD_YOU_RATHER',
     ]);
   });
 
@@ -157,14 +153,14 @@ describe('the chokepoint holds for games', () => {
 
   it('never hands out the whole permitted set', () => {
     // A game whose permitted prompts are few: the released set must still leave one out.
-    const few = prompts.filter((prompt) => prompt.game === 'DEEP_TALK' && prompt.intensity === 1).slice(0, 7);
-    const result = played(generateGame(few, { ...game('DEEP_TALK'), rounds: 6 }, request({ intensity: 1 }), openContext()));
+    const few = prompts.filter((prompt) => prompt.game === 'WOULD_YOU_RATHER' && prompt.intensity === 1).slice(0, 7);
+    const result = played(generateGame(few, { ...game('WOULD_YOU_RATHER'), rounds: 6 }, request({ intensity: 1 }), openContext()));
     assert.ok(released(result).length < few.length);
   });
 
   it('refuses rather than play fewer than the minimum rounds', () => {
-    const few = prompts.filter((prompt) => prompt.game === 'ME_OR_YOU').slice(0, GAME_MIN_ROUNDS - 1);
-    assert.equal(generateGame(few, game('ME_OR_YOU'), request({ intensity: 5 }), openContext()), 'NOT_ENOUGH_CONTENT');
+    const few = prompts.filter((prompt) => prompt.game === 'FANTASY_MATCH').slice(0, GAME_MIN_ROUNDS - 1);
+    assert.equal(generateGame(few, game('FANTASY_MATCH'), request({ intensity: 5 }), openContext()), 'NOT_ENOUGH_CONTENT');
   });
 
   it('a disabled prompt is never chosen', () => {
@@ -190,7 +186,7 @@ describe('the chokepoint holds for games', () => {
 });
 
 describe('cooldowns keep a game fresh, and give way before it cannot be played', () => {
-  const each = game('ME_OR_YOU');
+  const each = game('FANTASY_MATCH');
   const all = prompts.filter((prompt) => prompt.game === each.id);
 
   it('prefers prompts not played recently', () => {

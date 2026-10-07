@@ -240,3 +240,49 @@ describe('an ended night stays ended', () => {
     }
   });
 });
+
+describe('a game of turns, played a phone each (section 12)', () => {
+  // Truth or Dare asks whoever's turn it is and nothing of the other, so a chapter that waited
+  // for two answers would wait for ever. On two paired devices it did exactly that: the game ran
+  // on one phone and the other said it was elsewhere.
+  const turns = (chapter: number, overrides: Partial<SessionSnapshot> = {}) =>
+    session({
+      state: 'CHAPTER_ACTIVE',
+      currentChapter: chapter,
+      answeredBy: 'ACTIVE',
+      hostUid: 'uid_a',
+      ...overrides,
+    });
+
+  it('is revealed as soon as the one it asked has answered', () => {
+    // Chapter 0 is the host's turn: seat 0 is the phone that opened the session.
+    const after = changed(step(turns(0), { type: 'SUBMIT', uid: 'uid_a', chapter: 0 }));
+    assert.equal(after.state, 'BOTH_SUBMITTED');
+  });
+
+  it('asks the other partner on the next chapter, and nobody else', () => {
+    const after = changed(step(turns(1), { type: 'SUBMIT', uid: 'uid_b', chapter: 1 }));
+    assert.equal(after.state, 'BOTH_SUBMITTED');
+  });
+
+  it('takes an answer from the partner whose turn it is not, and still waits for the turn', () => {
+    // Nothing asks for it, but a phone that sends one must not be an error — and it must not
+    // complete the chapter on behalf of the person whose turn it is.
+    const after = changed(step(turns(0), { type: 'SUBMIT', uid: 'uid_b', chapter: 0 }));
+    assert.equal(after.state, 'AWAITING_SUBMISSIONS');
+  });
+
+  it('still waits for both when the game asks both', () => {
+    const both = session({ state: 'CHAPTER_ACTIVE', currentChapter: 0, answeredBy: 'BOTH', hostUid: 'uid_a' });
+    const first = changed(step(both, { type: 'SUBMIT', uid: 'uid_a', chapter: 0 }));
+    assert.equal(first.state, 'AWAITING_SUBMISSIONS');
+    const second = changed(step({ ...both, state: 'AWAITING_SUBMISSIONS', submitted: ['uid_a'] }, { type: 'SUBMIT', uid: 'uid_b', chapter: 0 }));
+    assert.equal(second.state, 'BOTH_SUBMITTED');
+  });
+
+  it('a session written before any of this existed waits for both, as it always did', () => {
+    const old = session({ state: 'CHAPTER_ACTIVE', currentChapter: 0 });
+    const after = changed(step(old, { type: 'SUBMIT', uid: 'uid_a', chapter: 0 }));
+    assert.equal(after.state, 'AWAITING_SUBMISSIONS');
+  });
+});

@@ -2577,3 +2577,48 @@ ceiling only the UI applies is a ceiling the next caller forgets. The stored pre
 alone while it is clamped, so buying a pack restores the evening they had rather than making them
 set it again. And the climb never offers a level nobody owns: "shall we turn it up?" followed by a
 price is the one sales pitch this app must not make.
+
+---
+
+## D-136 — A round that asks one of them, revealed to both
+
+Two paired phones could not play Truth or Dare. The game ran entirely on the phone that started it
+— both turns — while the other said "the game is on the other phone". Three things were wrong, and
+only the first was a wiring mistake.
+
+**Nothing ever asked for a two-phone session.** `Route.Game(experienceId)` left `twoPhones` false
+at the one place it was constructed, so every game a paired couple started opened as `ONE_DEVICE`.
+The whole `TWO_DEVICE` path was built, tested and unreachable. Home decides it now from the mode it
+is in.
+
+**The protocol only knew how to reveal a round both of them answered.** `applySubmission` wrote the
+reveal when the session reached `BOTH_SUBMITTED`, which is never for a game of turns: Truth or Dare
+asks whoever's turn it is and nothing of the other. So the chapter waited for an answer that no
+game was ever going to ask anybody for.
+
+A chapter is now revealed when **everyone it asked** has answered. Who that is comes from the
+game's own steps — `answeredBy`, written onto the experience when it is built and copied to the
+session — and from the chapter number: seat 0 is the phone that opened the session, and turns
+alternate, which is the same arithmetic the interpreter does on both phones, so neither of them
+decides whose turn it is. A session written before any of this exists has no `answeredBy` and reads
+as BOTH, which is what it was created under.
+
+Nothing about privacy changes, and that falls out rather than being guarded: a chapter that asks
+one of them can only be a chapter with nothing to keep from anybody, while every private answer in
+the catalogue belongs to a game where both answer and is still held until the second one lands.
+
+**The answer was sent too late to be worth seeing.** A phone sent its answer when the round ended,
+so even with a one-sided reveal the partner would have been shown the dare *after* it was done. It
+sends as soon as it has one. For Truth or Dare that is the moment the choice is made, which is what
+makes the partner's phone a window onto the round rather than a receipt for it.
+
+What the partner sees is `GameMoment.Waiting.watching`: the prompt in play, once the reveal has
+said which it is, and only when no step in the round is private. The phone with nothing to do that
+round stays on it — the answer that just arrived is the thing it was waiting to be shown — and
+follows the session when the other partner finishes.
+
+`playableApart` changed with it. It was "every step belongs to both", which excluded Hot or Not
+(one answers, the other guesses — one answer each, exactly what the protocol needs). It is now:
+both are asked, **or** one is asked and the round is open. Five of the six games play apart; Heat
+Dice asks nobody anything, so there is nothing to reveal and nothing to watch, and it stays a game
+for one phone passed between them.

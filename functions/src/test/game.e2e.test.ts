@@ -77,8 +77,8 @@ describe('a game, end to end', () => {
   });
 
   it('refuses a signed-out caller, and anyone not in a couple', async () => {
-    assert.equal((await call('startGame', { game: 'ME_OR_YOU', intensity: 1 })).error?.status, 'UNAUTHENTICATED');
-    const refused = await call('startGame', { game: 'ME_OR_YOU', intensity: 1 }, stranger);
+    assert.equal((await call('startGame', { game: 'FANTASY_MATCH', intensity: 1 })).error?.status, 'UNAUTHENTICATED');
+    const refused = await call('startGame', { game: 'FANTASY_MATCH', intensity: 1 }, stranger);
     assert.equal(refused.error?.status, 'FAILED_PRECONDITION');
     assert.equal(refused.error?.message, 'not-paired');
   });
@@ -110,7 +110,7 @@ describe('a game, end to end', () => {
   });
 
   it('refuses a payload choosing the seed, and a game that does not exist', async () => {
-    assert.equal((await call('startGame', { game: 'ME_OR_YOU', intensity: 1, seed: 7 }, host)).error?.status, 'INVALID_ARGUMENT');
+    assert.equal((await call('startGame', { game: 'FANTASY_MATCH', intensity: 1, seed: 7 }, host)).error?.status, 'INVALID_ARGUMENT');
     assert.equal((await call('startGame', { game: 'NOT_A_GAME', intensity: 1 }, host)).error?.status, 'INVALID_ARGUMENT');
   });
 });

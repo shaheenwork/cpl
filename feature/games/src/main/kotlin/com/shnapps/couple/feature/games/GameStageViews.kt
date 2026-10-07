@@ -22,11 +22,14 @@ import com.shnapps.couple.core.designsystem.icon.icon
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.engine.game.GameMoment
+import com.shnapps.couple.core.engine.game.Watched
 import com.shnapps.couple.core.model.CloseCheckIn
 import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.Intensity
+import com.shnapps.couple.core.model.PromptKind
 import com.shnapps.couple.core.model.Scoring
 import com.shnapps.couple.core.model.SessionEndReason
+import com.shnapps.couple.core.ui.AfterhoursCard
 import com.shnapps.couple.core.ui.PrimitiveRenderer
 import com.shnapps.couple.core.ui.ScreenColumn
 import com.shnapps.couple.core.ui.ScreenHeading
@@ -205,15 +208,9 @@ internal fun PlayingStage(moment: GameMoment, state: GameUiState, actions: GameA
             } else {
                 HandOff(state.players, moment.seat, actions.onProceed)
             }
-            is GameMoment.Waiting -> WaitingOnThem(
-                message = when {
-                    state.twoPhones -> "Over to them."
-                    state.players.named -> "${state.players.name(moment.seat)} is answering."
-                    else -> "They're answering."
-                },
-                detail = "You'll both see the answers at once.",
-                away = state.partnerAway,
-            )
+            // Watching them play their turn, or simply waiting on an answer they are keeping to
+            // themselves until the reveal (§12).
+            is GameMoment.Waiting -> TheirTurn(moment, state)
             is GameMoment.Gather -> {
                 ScreenHeading(
                     eyebrow = "Answers are in",
@@ -260,6 +257,58 @@ private fun RoundOver(moment: GameMoment.RoundOver, state: GameUiState, actions:
             onClick = actions.onNextRound,
             enabled = !state.busy,
             modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+/** Their turn: what they drew, when it is open, and otherwise only that it is theirs. */
+@Composable
+private fun TheirTurn(moment: GameMoment.Waiting, state: GameUiState) {
+    val watched = moment.watching
+    if (watched != null) {
+        WatchingThem(watched = watched, players = state.players, seat = moment.seat, away = state.partnerAway)
+        return
+    }
+    WaitingOnThem(
+        message = when {
+            state.twoPhones -> "Over to them."
+            state.players.named -> "${state.players.name(moment.seat)} is answering."
+            else -> "They're answering."
+        },
+        detail = "You'll both see the answers at once.",
+        away = state.partnerAway,
+    )
+}
+
+/**
+ * Their turn, and what they drew (§12).
+ *
+ * The whole point of pairing for a game of turns: the dare is on both phones, so one of them is
+ * doing it and the other can see what it was. It is read-only by construction — this phone has no
+ * step in the round at all — and it stays until the other finishes and the session moves on.
+ */
+@Composable
+private fun WatchingThem(watched: Watched, players: GamePlayers, seat: Int, away: Boolean) {
+    val who = if (players.named) players.name(seat) else "They"
+    val drew = when (watched.kind) {
+        PromptKind.TRUTH -> "a truth"
+        PromptKind.DARE -> "a dare"
+        null -> "this"
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.md)) {
+        AfterhoursCard(
+            eyebrow = if (players.named) "${who.uppercase()}'S TURN" else "THEIR TURN",
+            title = watched.text,
+            body = if (players.named) "$who drew $drew." else "They drew $drew.",
+        )
+        Text(
+            text = if (away) {
+                "Your partner dropped out — waiting for them to come back."
+            } else {
+                "Doing it now. The round moves on when they're done."
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = AfterhoursTheme.colors.textMuted,
         )
     }
 }

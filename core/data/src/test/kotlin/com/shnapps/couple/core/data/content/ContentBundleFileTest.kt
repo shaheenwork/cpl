@@ -206,15 +206,16 @@ class ContentBundleFileTest {
         val prompts = parsed.prompts.mapNotNull { ContentBundleParser.parsePrompt(it.json) }
         ContentBundleParser.parseGames(parsed.gamesJson).forEach { game ->
             val released = released(game, prompts.filter { it.game == game.id })
-            // The session protocol reveals a round when **both** phones have answered it, so a
-            // game offered apart must give each seat something to answer in the round. One that
-            // does not would leave the round waiting for an answer that is never coming — which is
-            // exactly what Truth or Dare did on two paired devices before this was checked.
+            // Apart, a round has to be answerable and watchable. Either both seats are asked —
+            // and the reveal comes when the second answers — or one is asked and the other spends
+            // the round watching, which only works if nothing in it is private.
             val asksBoth = (0..1).all { seat ->
                 GameRun.start(released, PLAYERS, phone = seat).asksSeat(seat)
             }
+            val asksOne = (0..1).any { seat -> GameRun.start(released, PLAYERS, phone = seat).asksSeat(seat) }
+            val open = game.steps.none { it.isPrivate }
             assertWithMessage("${game.id}: playableApart says ${game.playableApart}")
-                .that(asksBoth).isEqualTo(game.playableApart)
+                .that(asksBoth || (asksOne && open)).isEqualTo(game.playableApart)
         }
     }
 

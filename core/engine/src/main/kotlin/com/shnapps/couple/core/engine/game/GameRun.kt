@@ -3,6 +3,7 @@ package com.shnapps.couple.core.engine.game
 import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.model.GamePrompt
+import com.shnapps.couple.core.model.PromptKind
 import com.shnapps.couple.core.model.RevealOutcome
 
 /** Where a game being played stands, and what the phone shows for it. */
@@ -18,8 +19,14 @@ sealed interface GameMoment {
     /** A primitive to take. [canSkip]: it shows the round's prompt, so "Not this one" applies. */
     data class Turn(override val round: Int, val primitive: RoundPrimitive, val canSkip: Boolean) : GameMoment
 
-    /** On two phones: what the other partner is answering, while this one waits (§12). */
-    data class Waiting(override val round: Int, val seat: Int) : GameMoment
+    /**
+     * On two phones: the other partner's turn, while this one waits (§12).
+     *
+     * [watching] is what they are openly doing — the dare they drew — once the server has said.
+     * Null while nothing is known, and null for ever when the round is private: a game where each
+     * answers in secret stays secret on two phones exactly as it does on one.
+     */
+    data class Waiting(override val round: Int, val seat: Int, val watching: Watched? = null) : GameMoment
 
     /**
      * The round is over. [playedPromptId] is what was played — the dare, not the truth, when
@@ -177,6 +184,16 @@ class GameRun private constructor(private val state: RunState) {
     fun asksSeat(seat: Int): Boolean = reading.answeringStepFor(seat) != null
 
     /**
+     * This phone has nothing to do in this round but watch (§12).
+     *
+     * True on the partner's phone through a game of turns: the round belongs to the other seat
+     * from end to end. The phone that is watching must not be moved past its wait when the
+     * partner's answer arrives — the answer is the thing it was waiting to be shown.
+     */
+    fun watchingOnly(): Boolean =
+        state.phone != null && reading.slots().none { it is Slot.Take && it.seat == state.phone }
+
+    /**
      * [answer], given by [seat] to step [step] on the other phone, as the server's reveal reported
      * it. The reveal is then read exactly as it is when one phone holds both answers.
      */
@@ -326,6 +343,9 @@ internal data class RunState(
 }
 
 internal data class AnswerKey(val step: Int, val seat: Int?)
+
+/** What the other partner drew, for the phone that is watching them play it (§12). */
+data class Watched(val kind: PromptKind?, val text: String)
 
 /** One place in a round: a hand-off, a gathering, a step taken by a seat (or both), the end. */
 internal sealed interface Slot {

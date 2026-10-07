@@ -17,6 +17,7 @@
  * an error, so a client that lost a reply can simply send it again. Anything else outside the
  * table is illegal, and the callable rejects it with a typed error (section 12.2).
  */
+import { expectedAnswerers, type AnsweredBy } from './answerers';
 
 export const SESSION_STATES = [
   'WAITING_FOR_PARTNER',
@@ -83,6 +84,16 @@ export interface SessionSnapshot {
   members: readonly string[];
   /** Members who have answered the chapter they are on (two phones). */
   submitted?: readonly string[];
+  /**
+   * Who each chapter asks: both of them, or whoever's turn it is.
+   *
+   * Decided from the game's own steps when the experience is built, and copied onto the session.
+   * Absent on every session made before a game of turns could be played apart, which reads as
+   * BOTH — the behaviour those sessions were created under.
+   */
+  answeredBy?: AnsweredBy;
+  /** The phone that opened the session: seat 0, and so the active player in chapter 0. */
+  hostUid?: string | null;
   /** Members who have seen its reveal. */
   seen?: readonly string[];
 }
@@ -129,6 +140,18 @@ function othersDone(s: SessionSnapshot, uid: string, done: readonly string[]): b
   return s.members.every((member) => member === uid || done.includes(member));
 }
 
+/**
+ * Everyone this chapter *asked*, but [uid], has already answered.
+ *
+ * The difference from [othersDone] is the whole of one-sided play: a chapter that asks one of them
+ * is complete when that one has answered, rather than waiting for a second answer the game never
+ * asks anybody for.
+ */
+function expectedDone(s: SessionSnapshot, uid: string, done: readonly string[]): boolean {
+  const expected = expectedAnswerers(s.members, s.hostUid ?? null, s.currentChapter, s.answeredBy);
+  return expected.every((member) => member === uid || done.includes(member));
+}
+
 /** The state a session is really in, looking through a pause. */
 function underlying(s: SessionSnapshot): SessionState {
   return s.state === 'PAUSED' && s.pausedFrom !== null ? s.pausedFrom : s.state;
@@ -162,7 +185,9 @@ export function step(s: SessionSnapshot, event: SessionEvent): Step {
       // A retry of an answer already recorded, or one sent after the reveal it belongs to.
       if (submitted.includes(event.uid)) return UNCHANGED;
       if (s.state !== 'CHAPTER_ACTIVE' && s.state !== 'AWAITING_SUBMISSIONS') return ILLEGAL;
-      const last = othersDone(s, event.uid, submitted);
+      // "BOTH_SUBMITTED" now means "everyone this chapter asked": for a game of turns that is one
+      // of them, and the reveal goes out as soon as they have answered.
+      const last = expectedDone(s, event.uid, submitted);
       return changed(s, { state: last ? 'BOTH_SUBMITTED' : 'AWAITING_SUBMISSIONS', submit: event.uid });
     }
     case 'REVEAL_READY': {
