@@ -173,6 +173,17 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
                 ModeToggle(selected = state.mode, onMode = actions.onMode)
             }
 
+            // What the toggle actually does, said under it. It decides whether a game opens on one
+            // phone or on both, and a couple who paired two phones and were handed one of them had
+            // no way of knowing that from the two words above (§12).
+            Entrance(index = 1) {
+                Text(
+                    text = state.mode.describesPlay,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AfterhoursTheme.colors.textFaint,
+                )
+            }
+
             // Apart says what it needs of them, in one line under the control it belongs to: these
             // two phones are a pair, or they are not yet (V2 rule 2).
             if (state.mode == Mode.APART) {

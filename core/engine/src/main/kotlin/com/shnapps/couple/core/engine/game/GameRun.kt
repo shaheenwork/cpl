@@ -344,8 +344,21 @@ internal data class RunState(
 
 internal data class AnswerKey(val step: Int, val seat: Int?)
 
-/** What the other partner drew, for the phone that is watching them play it (§12). */
-data class Watched(val kind: PromptKind?, val text: String)
+/**
+ * What the other partner is on, for the phone watching them play it (§12).
+ *
+ * Two states, and the first one matters as much as the second: a turn opens with a choice nobody
+ * has made yet, and a watching phone that says nothing until it is made has a dead screen for the
+ * half of the round where its partner is deciding.
+ */
+data class Watched(
+    /** TRUTH or DARE, once they have chosen. Null while they are choosing. */
+    val kind: PromptKind?,
+    /** What they drew. Null while they are choosing. */
+    val text: String?,
+    /** They are still picking: the round has a shape but not yet a task. */
+    val choosing: Boolean,
+)
 
 /** One place in a round: a hand-off, a gathering, a step taken by a seat (or both), the end. */
 internal sealed interface Slot {

@@ -8,6 +8,8 @@ import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.couple.CoupleRepository
 import com.shnapps.couple.core.data.couple.PendingInvite
+import com.shnapps.couple.core.data.instant.InstantPlayRepository
+import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.PairingRole
 import com.shnapps.couple.core.model.PairingState
 import com.shnapps.couple.core.model.PairingStatus
@@ -16,6 +18,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -66,6 +70,7 @@ data class PairingUiState(
 @HiltViewModel
 class PairingViewModel @Inject constructor(
     private val couples: CoupleRepository,
+    private val instant: InstantPlayRepository,
     pendingInvite: PendingInvite,
     private val analytics: AnalyticsLogger,
 ) : ViewModel() {
@@ -90,6 +95,14 @@ class PairingViewModel @Inject constructor(
         pendingInvite.consume()?.let { code ->
             form.update { it.copy(codeInput = code) }
             enteringCode.value = true
+        }
+        // Paired, so the app opens apart: a phone each, both of them seeing every round. That is
+        // what pairing is *for* — the only reason to do it is to play on two phones — and leaving
+        // the mode where it was meant a couple who had just paired started a game on one phone and
+        // the other was told the game was elsewhere (§12).
+        viewModelScope.launch {
+            couples.coupleId.filterNotNull().first()
+            instant.setMode(Mode.APART)
         }
     }
 

@@ -289,28 +289,38 @@ private fun TheirTurn(moment: GameMoment.Waiting, state: GameUiState) {
  */
 @Composable
 private fun WatchingThem(watched: Watched, players: GamePlayers, seat: Int, away: Boolean) {
-    val who = if (players.named) players.name(seat) else "They"
-    val drew = when (watched.kind) {
-        PromptKind.TRUTH -> "a truth"
-        PromptKind.DARE -> "a dare"
-        null -> "this"
-    }
+    val who = if (players.named) players.name(seat) else null
     Column(verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.md)) {
         AfterhoursCard(
-            eyebrow = if (players.named) "${who.uppercase()}'S TURN" else "THEIR TURN",
-            title = watched.text,
-            body = if (players.named) "$who drew $drew." else "They drew $drew.",
+            eyebrow = who?.let { "${it.uppercase()}'S TURN" } ?: "THEIR TURN",
+            // While they are choosing there is no task yet, so the turn itself is the headline.
+            // "They're choosing" with a name in it would read "Alex're", so the name takes the
+            // verb that fits it.
+            title = watched.text ?: who?.let { "$it is choosing." } ?: "They're choosing.",
+            body = watchedBody(watched, who),
         )
         Text(
-            text = if (away) {
-                "Your partner dropped out — waiting for them to come back."
-            } else {
-                "Doing it now. The round moves on when they're done."
-            },
+            text = watchedFooter(watched, away),
             style = MaterialTheme.typography.bodyMedium,
             color = AfterhoursTheme.colors.textMuted,
         )
     }
+}
+
+private fun watchedBody(watched: Watched, who: String?): String {
+    if (watched.choosing) return "Truth or dare. You'll see it the moment they pick."
+    val drew = when (watched.kind) {
+        PromptKind.TRUTH -> "a truth"
+        PromptKind.DARE -> "a dare"
+        null -> "it"
+    }
+    return "${who ?: "They"} drew $drew."
+}
+
+private fun watchedFooter(watched: Watched, away: Boolean): String = when {
+    away -> "Your partner dropped out — waiting for them to come back."
+    watched.choosing -> "Nothing for you to press. It's their turn."
+    else -> "Doing it now. The round moves on when they're done."
 }
 
 /** Waiting on the other phone — and saying so plainly when it has gone quiet (§12.3). */

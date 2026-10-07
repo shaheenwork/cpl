@@ -6,10 +6,12 @@ import com.shnapps.couple.core.analytics.AnalyticsLogger
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.couple.PendingInvite
+import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.PairingRole
 import com.shnapps.couple.core.model.PairingState
 import com.shnapps.couple.core.model.PairingStatus
 import com.shnapps.couple.core.testing.FakeCoupleRepository
+import com.shnapps.couple.core.testing.FakeInstantPlayRepository
 import com.shnapps.couple.core.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -33,11 +35,12 @@ class PairingViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val couples = FakeCoupleRepository()
+    private val instant = FakeInstantPlayRepository()
     private val pendingInvite = PendingInvite()
     private val logged = mutableListOf<AnalyticsEvent>()
 
     private fun TestScope.viewModel(): PairingViewModel =
-        PairingViewModel(couples, pendingInvite, AnalyticsLogger { logged += it }).also { vm ->
+        PairingViewModel(couples, instant, pendingInvite, AnalyticsLogger { logged += it }).also { vm ->
             // uiState is WhileSubscribed, as on a real screen; keep a subscriber alive.
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         }
@@ -48,6 +51,22 @@ class PairingViewModelTest {
     fun `starts by offering both paths`() = runTest(mainDispatcherRule.testDispatcher) {
         assertThat(viewModel().step).isEqualTo(PairingStep.Choose)
     }
+
+    @Test
+    fun `pairing leaves the app apart, which is the only reason to pair`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val vm = viewModel()
+            assertThat(vm.step).isEqualTo(PairingStep.Choose)
+            assertThat(instant.mode.value).isEqualTo(Mode.TOGETHER)
+
+            couples.couple.value = "c1"
+            advanceUntilIdle()
+
+            // Otherwise a couple pairs two phones, starts a game, and the second phone is told the
+            // game is on the other one — which is exactly what happened on two real devices.
+            assertThat(vm.step).isEqualTo(PairingStep.Paired)
+            assertThat(instant.mode.value).isEqualTo(Mode.APART)
+        }
 
     @Test
     fun `an invite link opens straight onto the code, prefilled`() = runTest(mainDispatcherRule.testDispatcher) {

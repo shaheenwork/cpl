@@ -6,6 +6,7 @@ import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.model.AuthUser
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.Intensity
+import com.shnapps.couple.core.model.Mode
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionState
 import com.shnapps.couple.core.model.UserProfile
@@ -94,6 +95,44 @@ class HomeViewModelTest {
         assertThat(vm.uiState.value.opened)
             .isInstanceOf(Opened.Session::class.java)
         assertThat((vm.uiState.value.opened as Opened.Session).type).isEqualTo(ExperienceType.GAME)
+    }
+
+    @Test
+    fun `apart, a game that can be played a phone each opens on both of them`() = test {
+        paired()
+        val vm = home()
+        act { vm.setMode(Mode.APART) }
+
+        act { vm.play(TestGames.TRUTH_OR_DARE) }
+
+        // The session's kind is decided here and nowhere else. It was left at its default for the
+        // whole of v2, so every game a paired couple started ran on one phone and the other was
+        // told the game was elsewhere.
+        assertThat((vm.uiState.value.opened as Opened.Session).twoPhones).isTrue()
+    }
+
+    @Test
+    fun `together, the same game is one phone passed between them`() = test {
+        paired()
+        val vm = home()
+        act { vm.setMode(Mode.TOGETHER) }
+
+        act { vm.play(TestGames.TRUTH_OR_DARE) }
+
+        assertThat((vm.uiState.value.opened as Opened.Session).twoPhones).isFalse()
+    }
+
+    @Test
+    fun `a game that asks one of them and shows the other nothing stays on one phone`() = test {
+        paired()
+        val vm = home()
+        act { vm.setMode(Mode.APART) }
+
+        act { vm.play(TestGames.DICE) }
+
+        // Heat Dice asks nobody anything: there is no answer to reveal and so nothing for the
+        // other phone to watch. Apart or not, it is passed between them.
+        assertThat((vm.uiState.value.opened as Opened.Session).twoPhones).isFalse()
     }
 
     @Test

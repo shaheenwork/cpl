@@ -67,43 +67,31 @@ That is a bad way for this to be decided, and §3 replaces it.
 
 ---
 
-## 3. Deciding how a game is played
+## 3. Deciding how a game is played — **DONE, and not the way this brief first said**
 
-**Problem with the toggle.** It is a persistent setting on home, two taps away from the game, and
-nothing on the game screen says which mode it is in. A couple who paired two phones and started a
-game reasonably expect both phones to play. The mode is also a statement about *where they are*,
-which the app cannot know and should not make them re-declare every evening.
+**What this brief proposed:** pairing decides it outright, with a "Just this phone" escape on the
+game's first screen.
 
-**Decision.** Pairing is the signal. When a couple is paired and the game can be played apart, the
-session is `TWO_DEVICE`. The Together/Apart toggle stops deciding it.
+**What was built instead, and why.** The escape hatch cannot work as described: ending a session
+marks its experience `ABANDONED`, so the same game cannot be reopened in the other mode — "just
+this phone" would have meant throwing the dealt game away and starting another. And the toggle is
+not wrong, it was only unexplained and defaulted the wrong way: Together/Apart is exactly the
+question of whether they are in the same room, which is the thing the app cannot know.
 
-Rationale: a `TWO_DEVICE` session is *strictly* better in the same room — each phone shows the
-round, the one whose turn it is has the buttons, and there is nothing to pass. The only thing it
-costs is that both phones must have the app open, which is true by construction when they are
-paired and both opened it.
+So:
 
-**Keep one escape.** Where the toggle sits now, put a line of text on the game's own first screen:
-
-> *Both phones are playing. ⟶ Just this phone*
-
-Tapping it ends the session and opens the game ONE_DEVICE, for the case where one of them is out of
-battery or in the shower. It is a sentence, not a mode.
-
-**Changes**
-
-- `HomeViewModel.play()`: `val apart = state.company.paired && game.playableApart` — drop
-  `state.mode == Mode.APART`.
-- Home's grid subtitle: keep "One phone between you" on games where `!playableApart`, drop the
-  `mode == APART` condition around it.
-- `GameStage.Ready` (the game's first screen) gains the "Just this phone" line.
-- The Together/Apart toggle keeps its other job — it is still what the heat dial and the deck read
-  for `Mode.TOGETHER` vs `Mode.APART` content filtering — but it no longer decides session kind.
-
----
+- **Pairing leaves the app in Apart.** `PairingViewModel` sets `Mode.APART` the moment a couple
+  exists. Pairing's only purpose is playing on two phones; starting there is what the couple just
+  asked for, and it is the default they were never given.
+- **The toggle says what it does to a game**, under it, in a line: *"A phone each. Both of you see
+  every round."* / *"One phone, passed between you."* Two words with no consequence attached were
+  the whole of the confusion — nothing on home said that Together meant the second phone would be
+  shut out.
+- `HomeViewModel.play()` keeps reading the mode. The same-room evening is one tap, not a lost game.
 
 ## 4. The round, mirrored
 
-### 4.1 What the watching phone is shown — **PARTLY DONE**
+### 4.1 What the watching phone is shown — **DONE**
 
 `GameMoment.Waiting(round, seat, watching: Watched?)` already carries the prompt in play once the
 reveal has arrived, and `WatchingThem` already draws it as a card with no buttons. **DONE.**
@@ -123,6 +111,9 @@ data class Watched(
     val choosing: Boolean,     // true while they are still picking
 )
 ```
+
+Built. The watching phone shows **"Alex is choosing."** through the first half of the turn and the
+dare itself through the second, with nothing to press in either.
 
 - Open round, nothing answered yet → `Watched(kind = null, text = null, choosing = true)` →
   **"Alex's turn." / *They're choosing: truth or dare.*"**

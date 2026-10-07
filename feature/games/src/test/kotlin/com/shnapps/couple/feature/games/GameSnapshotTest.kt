@@ -235,6 +235,26 @@ class GameSnapshotTest {
     }
 
     @Test
+    fun watchingThemChooseApart() {
+        // The first half of their turn: they are picking, and this phone has a shape for the round
+        // but not yet a task. Before this it said "Over to them." and looked like a dead screen.
+        val released = released(TestGames.truthOrDare, TestGames.truths + TestGames.dares)
+        val waiting = GameRun.start(released, GamePlayers("Alex", "Sam"), phone = 1)
+        val state = GameUiState(
+            started = StartedGame("e", released),
+            players = GamePlayers("Alex", "Sam"),
+            session = session(SessionState.CHAPTER_ACTIVE, round = 0, kind = SessionKind.TWO_DEVICE),
+            run = waiting,
+            twoPhones = true,
+        ).let { it.copy(stage = GameStages.stageOf(it, awaitingSession = false)) }
+
+        capture("game-watching-choice") { GameContent(state, GameActions()) }
+
+        composeRule.onNodeWithText("Alex is choosing.").assertIsDisplayed()
+        composeRule.onNodeWithText("Truth or dare. You'll see it the moment they pick.").assertIsDisplayed()
+    }
+
+    @Test
     fun watchingTheirTurnApart() {
         // A game of turns, a phone each: this is the partner's phone while the other one does the
         // dare. Before this it said "the game is on the other phone" for the whole evening.

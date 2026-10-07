@@ -110,8 +110,10 @@ class TwoPhoneRunTest {
         assertThat(theirs.watchingOnly()).isTrue()
         val before = theirs.moment as GameMoment.Waiting
         assertThat(before.seat).isEqualTo(0)
-        // Nothing known yet: whose turn it is, and nothing else.
-        assertThat(before.watching).isNull()
+        // The half of the round where they are deciding: the turn is known, the task is not. A
+        // phone that said nothing until the choice was made had a dead screen for half of every
+        // round, which is most of what "the game is on the other phone" felt like.
+        assertThat(before.watching).isEqualTo(Watched(kind = null, text = null, choosing = true))
 
         // The server's reveal, as soon as the one it asked has answered — a one-sided reveal.
         theirs = theirs.receive(seat = 0, answer = Answer.Picked("DARE"))
@@ -120,6 +122,7 @@ class TwoPhoneRunTest {
         assertThat(watching).isNotNull()
         assertThat(watching!!.kind).isEqualTo(PromptKind.DARE)
         assertThat(watching.text).isEqualTo("Do the dare")
+        assertThat(watching.choosing).isFalse()
         // And it stays there: the round is the other phone's to finish.
         assertThat(theirs.moment).isInstanceOf(GameMoment.Waiting::class.java)
     }

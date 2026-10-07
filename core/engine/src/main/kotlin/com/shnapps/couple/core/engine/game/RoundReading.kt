@@ -241,10 +241,14 @@ internal class RoundReading(private val state: RunState) {
     private fun watching(): Watched? {
         val phone = state.phone ?: return null
         val theirs = takes.filter { it.seat != null && it.seat != phone }
+        // Private at any step and there is nothing to show: a game where each answers in secret
+        // keeps its secret on two phones exactly as it does on one. That rule is the reason the
+        // mirroring can be as open as it is everywhere else.
         val open = theirs.isNotEmpty() && theirs.none { game.steps[it.step].isPrivate }
+        if (!open) return null
         val answered = theirs.any { answerOf(it.step, it.seat) != null }
-        if (!open || !answered) return null
-        return promptInPlay()?.let { Watched(kind = it.kind, text = it.text) }
+        if (!answered) return Watched(kind = null, text = null, choosing = true)
+        return promptInPlay()?.let { Watched(kind = it.kind, text = it.text, choosing = false) }
     }
 
     /**
