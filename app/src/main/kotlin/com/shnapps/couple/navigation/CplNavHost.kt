@@ -1,6 +1,5 @@
 package com.shnapps.couple.navigation
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -50,7 +49,9 @@ fun CplNavHost(
     // back stack and take the player's ViewModel out of the composition with it — the run, the
     // round, the answer in flight — and the whole point of it is that the game does not notice.
     // It is hosted here because only :app may depend on every feature it has to cover (§4.2).
-    Box(modifier = modifier) {
+    // It wraps the graph rather than sitting beside it, because the way *in* to the chat is
+    // offered to each screen's own bar (LocalBarExtra) instead of floating over it.
+    ChatLayer(modifier = modifier) {
         NavHost(
             navController = navController,
             startDestination = Route.Splash,
@@ -178,7 +179,6 @@ fun CplNavHost(
                 ContentInspectorScreen(onBack = { navController.popBackStack() })
             }
         }
-        ChatLayer()
     }
 }
 

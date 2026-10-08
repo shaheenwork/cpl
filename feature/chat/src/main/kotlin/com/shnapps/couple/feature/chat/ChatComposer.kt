@@ -193,7 +193,9 @@ private fun Field(value: String, onValueChange: (String) -> Unit, modifier: Modi
     Box(
         modifier = modifier
             .clip(MaterialTheme.shapes.extraLarge)
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            // A step above the panel it sits on. On `surfaceContainerLow` it was the panel's own
+            // colour, so the field had no edges and the placeholder floated in mid-air.
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .padding(horizontal = spacing.md, vertical = spacing.item),
     ) {
         if (value.isEmpty()) {

@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.shnapps.couple.core.designsystem.component.LocalBarExtra
 import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursEasing
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
@@ -173,7 +174,16 @@ private fun TopBar(
             modifier = Modifier.weight(1f),
         )
 
-        if (trailing != null) trailing() else Box(modifier = Modifier.size(spacing.touchTarget))
+        // The chat, when there is one, sits beside the screen's own control rather than on top
+        // of it. The bar decides where; the layer only decides what (LocalBarExtra).
+        val extra = LocalBarExtra.current
+        extra?.invoke()
+        when {
+            trailing != null -> trailing()
+            // With an extra and no trailing control, the extra is the trailing control: a blank
+            // 48 dp box after it would push it off the edge it belongs on.
+            extra == null -> Box(modifier = Modifier.size(spacing.touchTarget))
+        }
     }
 }
 

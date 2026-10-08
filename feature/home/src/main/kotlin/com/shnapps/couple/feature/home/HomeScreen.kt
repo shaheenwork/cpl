@@ -50,6 +50,7 @@ import com.shnapps.couple.core.ui.ScreenScaffold
 import com.shnapps.couple.core.ui.SecureScreen
 import com.shnapps.couple.core.ui.TierPicker
 import com.shnapps.couple.core.ui.Wordmark
+import com.shnapps.couple.core.ui.rememberNudge
 
 @Composable
 fun HomeScreen(
@@ -346,14 +347,29 @@ private fun PairedLine(company: Company, onPair: () -> Unit) {
 @Composable
 private fun UnderWay(session: NightSession, onOpen: (String, ExperienceType) -> Unit) {
     val what = if (session.experienceType == ExperienceType.GAME) "game" else "evening"
+    // Theirs, and waiting on this phone. The one case worth interrupting somebody for: they did
+    // not start it, they may not be holding the phone, and nothing else on this screen moves.
+    val theirs = !session.isHost
     val line = when {
         session.state == SessionState.PAUSED -> "Your $what is paused. Either of you can pick it up."
         session.state == SessionState.WAITING_FOR_PARTNER && !session.consented ->
             "Your $what is waiting for an \"I'm in\"."
         session.isHost -> "Your $what is waiting. Pick up where you left off."
-        else -> "A $what is playing on the other phone."
+        else -> "They've started a $what. It's waiting for you."
     }
-    CinematicCard(modifier = Modifier.fillMaxWidth(), glowing = true, contentDescription = line) {
+
+    val nudge = rememberNudge()
+    // Once, when it appears — not on every recomposition, and not again while it sits there.
+    LaunchedEffect(session.experienceId, theirs) {
+        if (theirs) nudge()
+    }
+
+    CinematicCard(
+        modifier = Modifier.fillMaxWidth(),
+        glowing = true,
+        pulsing = theirs,
+        contentDescription = line,
+    ) {
         Text(text = "UNDER WAY", style = EyebrowTextStyle, color = AfterhoursTheme.colors.brass)
         Text(text = line, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
     }

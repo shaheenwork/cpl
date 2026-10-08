@@ -196,6 +196,23 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
 - **Media is on screen before it leaves the phone** (`ChatUiState.outgoing`). The upload comes
   before the message (D-083), so until it finishes there is nothing to draw and a tap on send looks
   like a tap on nothing. `ChatMedia.preview` decodes the local file for it, beside the upload.
+- The panel is a **sheet**: `surfaceContainer` with a rim, not `surface`, which is the same black as
+  everything behind it. Anything drawn on it goes a step higher — their bubbles and the composer
+  field on `surfaceContainerHigh`, a covered plate on `surfaceContainerLowest`.
+- It lands on the newest when it opens (`scrollToItem`, not animated — the panel is sliding at the
+  same moment), and follows anything of this phone's own wherever the list had been scrolled to.
+
+### One control, every bar
+
+- An app-wide control is **offered**, never placed: `LocalBarExtra` in `:core:designsystem` holds
+  it and each bar draws it where that bar's own controls go — `ScreenScaffold`'s top bar beside the
+  screen's `trailing`, `StopPauseBar` beside Pause and Stop. The chat is the only thing in it.
+- A floating affordance lands on whatever the screen already had in that corner; it is how the
+  settings button disappeared on home for a while. `ScreenScaffoldTest` holds both in place.
+- `rememberNudge()` in `:core:ui` is one buzz, for one thing: the *other* phone started an evening.
+  Never for this phone's own taps. `VIBRATE` is install-time, so nothing is ever asked for.
+- `CinematicCard(pulsing = true)` breathes instead of simply being lit — also only for something
+  the other phone started. Two pulsing things on a screen is none.
 - Renderers that two features would need live in `:core:ui`; these are the chat's own, so they stay
   in `:feature:chat`.
 - The camera needs `:feature:chat`'s `FileProvider` (`${applicationId}.files`). `CAMERA` is

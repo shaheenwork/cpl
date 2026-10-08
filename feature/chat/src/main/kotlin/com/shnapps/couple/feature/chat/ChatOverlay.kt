@@ -26,6 +26,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,10 +39,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
+import com.shnapps.couple.core.designsystem.component.LocalBarExtra
 import com.shnapps.couple.core.designsystem.component.raised
 import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
-import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.MediaKind
 import com.shnapps.couple.core.model.MessageMedia
 import com.shnapps.couple.core.ui.ErrorBanner
@@ -59,21 +60,25 @@ import java.io.File
  * panic, and the first of them closing a chat must not count as the first of two (M8).
  */
 @Composable
-fun ChatLayer(modifier: Modifier = Modifier, viewModel: ChatViewModel = hiltViewModel()) {
+fun ChatLayer(
+    modifier: Modifier = Modifier,
+    viewModel: ChatViewModel = hiltViewModel(),
+    content: @Composable () -> Unit,
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    if (!state.paired) return
 
     Box(modifier = modifier.fillMaxSize()) {
-        // Closed: one small thing in the corner, with a dot when they have said something. It is
-        // never the primary action on any screen and never takes the heat accent.
-        AnimatedVisibility(
-            visible = !state.open,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.align(Alignment.TopEnd).padding(AfterhoursTheme.spacing.sm),
-        ) {
-            ChatAffordance(unread = state.unread, onOpen = viewModel::open)
-        }
+        // The way in is **offered**, not placed. Floating it in a corner put it exactly on top of
+        // whatever that screen already had there — on home, the settings button, which simply
+        // vanished underneath it. Each bar now puts it where that bar's own controls go.
+        CompositionLocalProvider(
+            LocalBarExtra provides if (state.paired) {
+                { ChatAffordance(unread = state.unread, onOpen = viewModel::open) }
+            } else {
+                null
+            },
+            content = content,
+        )
 
         AnimatedVisibility(
             visible = state.open,
@@ -160,12 +165,23 @@ private fun Panel(state: ChatUiState, actions: ChatActions, modifier: Modifier =
     val shape = RoundedCornerShape(topStart = PANEL_CORNER, topEnd = PANEL_CORNER)
     Column(
         modifier = modifier
+            // A sheet, and it has to look like one. Drawn on `surface` it was the same black as
+            // everything else, so the chat opened and nothing appeared to have happened: no edge,
+            // no ground, nothing to say which part of the screen you were now in. It is lifted a
+            // step off the scene, with the rim every other raised object in this app has.
+            .raised(color = MaterialTheme.colorScheme.surfaceContainer, shape = shape)
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = spacing.md),
     ) {
         Handle()
         ChatBar(onClose = actions.onClose, onStop = actions.onStop)
+        // The bar sits on the conversation; a hairline says where one ends and the other begins.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(spacing.hairline)
+                .background(AfterhoursTheme.colors.edgeFaint),
+        )
         Conversation(state = state, actions = actions, modifier = Modifier.weight(1f))
         state.error?.let { ErrorBanner(message = it.message(), onDismiss = actions.onDismissError) }
         Composer(state = state, actions = actions)
@@ -234,9 +250,9 @@ private fun ChatBar(onClose: () -> Unit, onStop: () -> Unit) {
             )
         }
         Text(
-            text = "THE TWO OF YOU",
-            style = EyebrowTextStyle,
-            color = AfterhoursTheme.colors.textFaint,
+            text = "The two of you",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier.weight(1f),
         )

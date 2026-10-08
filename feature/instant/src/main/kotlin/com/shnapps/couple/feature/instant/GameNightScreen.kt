@@ -1,18 +1,30 @@
 package com.shnapps.couple.feature.instant
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
+import com.shnapps.couple.core.designsystem.component.raised
 import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
+import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.designsystem.theme.ProvideTier
 import com.shnapps.couple.core.engine.NightLength
 import com.shnapps.couple.core.engine.NightPhase
@@ -71,7 +83,7 @@ internal fun GameNightContent(
             } else {
                 null
             },
-            dock = dockFor(state, onLength, onPlan, onNext, onAgain, onBack),
+            dock = dockFor(state, onPlan, onNext, onAgain, onBack),
             centred = true,
         ) {
             when {
@@ -80,12 +92,10 @@ internal fun GameNightContent(
                     title = "Not enough at this tier for a whole evening.",
                     body = "Turn it up, or take it a card at a time instead.",
                 )
-                state.night == null -> ScreenHeading(
-                    eyebrow = "Game Night",
-                    headline = "How long have you got?",
-                    body = "It warms up, builds, peaks, and lands somewhere gentle. " +
-                        "Nothing in it goes past ${state.tier.label}.",
-                )
+                // The length is a choice, not an action, so it is on the screen with the question
+                // it answers. Stacked in the dock it sat eight dp off "Start the evening", which
+                // read as one control with four extra buttons glued to its top.
+                state.night == null -> Asking(state = state, onLength = onLength)
                 state.finished -> AfterhoursCard(
                     eyebrow = "That's the evening",
                     title = "Nicely done, both of you.",
@@ -115,12 +125,16 @@ private fun Playing(state: GameNightUiState) {
     }
 }
 
-/** What the dock offers, which is one question: which of the screen's four states it is in. */
-@Suppress("LongParameterList") // Four states, four ways on.
+/**
+ * What the dock offers, which is one question: which of the screen's four states it is in.
+ *
+ * One control per state. The length used to be in here too, which is what made the dock read as
+ * one five-headed control — a dock is for the thing that moves the screen on, and a length is a
+ * choice the screen is asking about.
+ */
 @Composable
 private fun dockFor(
     state: GameNightUiState,
-    onLength: (NightLength) -> Unit,
     onPlan: () -> Unit,
     onNext: () -> Unit,
     onAgain: () -> Unit,
@@ -138,7 +152,6 @@ private fun dockFor(
     }
     state.night == null -> {
         {
-            LengthPicker(selected = state.length, onLength = onLength)
             GlowButton(
                 text = if (state.planning) "Planning…" else "Start the evening",
                 onClick = onPlan,
@@ -177,19 +190,82 @@ private fun dockFor(
 }
 
 /** Thirty, forty-five or an hour. Three across, like every other choice in the app. */
+/**
+ * The one question this screen asks before an evening exists.
+ *
+ * The heading, the shape of the evening, and the four lengths, as one thing. The lengths used to
+ * live in the dock directly above the button that acts on them, which is where an action goes, not
+ * a choice — and the eight dp between them made the whole dock read as one four-headed control.
+ */
+@Composable
+private fun Asking(state: GameNightUiState, onLength: (NightLength) -> Unit) {
+    val spacing = AfterhoursTheme.spacing
+    Column(verticalArrangement = Arrangement.spacedBy(spacing.group)) {
+        ScreenHeading(
+            eyebrow = "Game Night",
+            headline = "How long have you got?",
+            body = "It warms up, builds, peaks, and lands somewhere gentle. " +
+                "Nothing in it goes past ${state.tier.label}.",
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(spacing.tight)) {
+            Text(
+                text = "THE EVENING",
+                style = EyebrowTextStyle,
+                color = AfterhoursTheme.colors.textFaint,
+            )
+            LengthPicker(selected = state.length, onLength = onLength)
+        }
+    }
+}
+
+/**
+ * The three lengths, as three cells of one object.
+ *
+ * Not three buttons. `GlowButtonStyle.Quiet` draws no container at all, so the two they had *not*
+ * chosen read as captions rather than as the other two options — the row looked like one button
+ * with some text beside it, which is half of why this screen felt broken.
+ */
 @Composable
 private fun LengthPicker(selected: NightLength, onLength: (NightLength) -> Unit) {
+    val spacing = AfterhoursTheme.spacing
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(spacing.sm),
     ) {
         NightLength.entries.forEach { length ->
-            GlowButton(
-                text = length.label,
+            LengthCell(
+                label = length.label,
+                chosen = length == selected,
                 onClick = { onLength(length) },
-                style = if (length == selected) GlowButtonStyle.Secondary else GlowButtonStyle.Quiet,
                 modifier = Modifier.weight(1f),
             )
         }
+    }
+}
+
+@Composable
+private fun LengthCell(label: String, chosen: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val spacing = AfterhoursTheme.spacing
+    val tier = AfterhoursTheme.tier
+    val shape = MaterialTheme.shapes.medium
+    Box(
+        modifier = modifier
+            .heightIn(min = spacing.xxl)
+            .clip(shape)
+            .raised(
+                color = if (chosen) tier.container else MaterialTheme.colorScheme.surfaceContainer,
+                shape = shape,
+                rimTop = if (chosen) tier.rim else AfterhoursTheme.colors.rimTop,
+            )
+            .selectable(selected = chosen, onClick = onClick)
+            .padding(horizontal = spacing.sm, vertical = spacing.item),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = if (chosen) tier.onContainer else AfterhoursTheme.colors.textMuted,
+            textAlign = TextAlign.Center,
+        )
     }
 }

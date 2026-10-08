@@ -58,6 +58,10 @@ fun StopPauseBar(
         horizontalArrangement = Arrangement.spacedBy(spacing.sm, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // A game played a phone each is where a conversation is most wanted, and this bar is the
+        // only one that screen has. Nothing is drawn when there is no chat.
+        BarExtra()
+
         TextButton(
             onClick = onPauseToggle,
             modifier = Modifier.heightIn(min = spacing.touchTarget),

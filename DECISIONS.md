@@ -2770,3 +2770,45 @@ looked like a tap on nothing. `ChatUiState.outgoing` holds what is going up and 
 dimmed bubble at the end of the conversation — the photo itself, decoded from the local file by
 `ChatMedia.preview` beside the upload rather than before it, or the waveform the recording already
 produced. It disappears as the real message arrives.
+
+---
+
+## D-141 — An app-wide control is offered to a bar, never floated over one
+
+The chat drew its own way in at the top-right corner of the screen, which is exactly where home
+draws its settings button. Settings did not move or shrink; it was simply underneath, and gone.
+
+A layer cannot know what a screen has already put where. So it stops guessing: `LocalBarExtra`
+(`:core:designsystem`) carries one composable the whole app may offer, and each **bar** decides
+where it goes — `ScreenScaffold`'s top bar draws it beside the screen's own trailing control,
+`StopPauseBar` draws it beside Pause and Stop, so a game played a phone each has it too. A bar that
+does not draw it shows nothing, which is right for the age gate, pairing and the lock screen: there
+is nobody to talk to on any of them.
+
+It holds a composable rather than an icon and a lambda because the layer owns what the control is —
+an unread mark, for one — and the bar owns only where it sits. `ChatLayer` therefore wraps the nav
+host rather than sitting beside it in a `Box`.
+
+Two things came with it, both about a phone that is not in somebody's hand.
+
+**One buzz, for one thing.** `rememberNudge()` fires when the *other* phone has started something
+and this one is being asked to pick it up. Never for this phone's own taps — a screen that buzzes
+at its own user buzzes constantly and stops meaning anything. `VIBRATE` is install-time, so nothing
+is ever asked for, and a phone with it switched off does nothing.
+
+**And the card breathes.** `CinematicCard(pulsing = true)`, for the same case and no other: the
+difference between "there is a card here" and "this is for you, now". It collapses to its lit
+resting state under reduce-motion rather than to anything dimmer, because the glow is still saying
+the card is waiting.
+
+## D-142 — A choice is not an action, and does not belong in the dock
+
+Game Night's four lengths sat in the dock, eight dp above "Start the evening". Three faults in one:
+the gap was the dock's own `sm`, which is for two buttons that do the same kind of thing; a dock is
+where the control that moves the screen on lives, not where a question is asked; and
+`GlowButtonStyle.Quiet` draws no container at all, so the two lengths *not* chosen read as captions
+rather than as the other two options.
+
+The lengths moved onto the screen, under the heading that asks about them, as three cells of one
+object — the chosen one filled with the tier's container and rimmed, the others on
+`surfaceContainer`. The dock holds one button. `GameNightSnapshotTest` is new and holds it there.

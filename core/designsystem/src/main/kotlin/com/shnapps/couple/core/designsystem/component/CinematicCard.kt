@@ -1,5 +1,10 @@
 package com.shnapps.couple.core.designsystem.component
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import com.shnapps.couple.core.designsystem.theme.AfterhoursEasing
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 
 /**
@@ -32,6 +38,14 @@ fun CinematicCard(
     onClick: (() -> Unit)? = null,
     shape: Shape = MaterialTheme.shapes.large,
     glowing: Boolean = false,
+    /**
+     * Breathes, rather than simply being lit.
+     *
+     * For one thing only: something waiting on this phone that the *other* phone started. A card
+     * that moves is the difference between "there is a card here" and "this is for you, now", and
+     * a screen with two of them has neither.
+     */
+    pulsing: Boolean = false,
     contentDescription: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -40,12 +54,33 @@ fun CinematicCard(
     // Bound to a local so the semantics setter below is not shadowed by the parameter.
     val description = contentDescription
 
+    // Decorative, so it collapses to its lit resting state under reduce-motion rather than
+    // settling anywhere dimmer: the glow still says the card is waiting.
+    val breath = if (pulsing && !AfterhoursTheme.reduceMotion) {
+        rememberInfiniteTransition(label = "pulse").animateFloat(
+            initialValue = PULSE_LOW,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(AfterhoursTheme.motion.ambient, easing = AfterhoursEasing.Breathing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "pulse",
+        ).value
+    } else {
+        1f
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
             .then(
                 if (glowing) {
-                    Modifier.bloom(color = tier.rim, cornerRadius = spacing.lg, spread = spacing.xl)
+                    Modifier.bloom(
+                        color = tier.rim,
+                        cornerRadius = spacing.lg,
+                        spread = spacing.xl * breath,
+                        alpha = breath,
+                    )
                 } else {
                     Modifier
                 },
@@ -72,3 +107,6 @@ fun CinematicCard(
 
 /** How bright a lit panel's top edge goes. Enough to read as light, not as a stroke. */
 private const val RIM_LIT = 0.30f
+
+/** How far the glow falls back on the out-breath. Never to nothing: it is still lit. */
+private const val PULSE_LOW = 0.45f

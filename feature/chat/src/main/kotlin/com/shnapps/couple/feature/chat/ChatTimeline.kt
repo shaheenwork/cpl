@@ -80,8 +80,19 @@ internal fun Conversation(state: ChatUiState, actions: ChatActions, modifier: Mo
         val scope = rememberCoroutineScope()
         val adrift by remember { derivedAdrift(listState) }
 
+        // Opening lands on the newest, and lands there rather than travelling to it: the panel is
+        // sliding up at the same moment, and a list animating through a month of messages behind
+        // it is the opposite of arriving where you left off.
+        LaunchedEffect(Unit) {
+            if (entries.isNotEmpty()) listState.scrollToItem(entries.lastIndex)
+        }
+
+        // Anything of this phone's own takes the view with it, wherever it had been scrolled to.
+        // Having to find what you just sent is absurd, and it is the one case where moving
+        // somebody who scrolled back is what they meant.
+        val ours = entries.lastOrNull()?.let { it is Entry.Sending || (it as? Entry.Bubble)?.message?.mine == true }
         LaunchedEffect(entries.size) {
-            if (!adrift) listState.animateScrollToItem(entries.lastIndex)
+            if (!adrift || ours == true) listState.animateScrollToItem(entries.lastIndex)
         }
 
         LazyColumn(
