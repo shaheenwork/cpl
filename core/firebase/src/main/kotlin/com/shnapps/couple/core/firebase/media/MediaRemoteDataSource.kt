@@ -29,6 +29,10 @@ data class MediaDoc(
     val sentAtMillis: Long?,
     val viewedAtMillis: Long?,
     val expiresAtMillis: Long?,
+    /** A voice note's length in seconds, or null. */
+    val seconds: Int?,
+    /** A voice note's waveform, or empty. */
+    val levels: List<Int>,
 )
 
 /** Where the server says to upload, and how long what lands there will live. */
@@ -44,13 +48,24 @@ data class ReservedMedia(val itemId: String, val path: String, val expiresAtMill
  */
 interface MediaRemoteDataSource {
     /** A path to upload to, and the record that will describe what arrives. */
-    suspend fun reserve(kind: String, note: String?, burnAfterView: Boolean, ttlMs: Long?): Outcome<ReservedMedia>
+    suspend fun reserve(
+        kind: String,
+        note: String?,
+        burnAfterView: Boolean,
+        ttlMs: Long?,
+        seconds: Int?,
+        levels: List<Int>,
+    ): Outcome<ReservedMedia>
 
     /** Uploads [file] to the reserved [path]. */
     suspend fun upload(path: String, file: File, contentType: String): Outcome<Unit>
 
-    /** The object has landed: the server checks it is really there and sends it. */
-    suspend fun confirm(itemId: String): Outcome<Unit>
+    /**
+     * The object has landed: the server checks it is really there and sends it.
+     *
+     * [quiet] suppresses the notification, for media a message is about to announce itself.
+     */
+    suspend fun confirm(itemId: String, quiet: Boolean): Outcome<Unit>
 
     /** Opening one. Returns whether it burned — the server deleted it as it was read. */
     suspend fun view(itemId: String): Outcome<Boolean>
@@ -74,12 +89,16 @@ class FirebaseMediaRemoteDataSource @Inject constructor(
         note: String?,
         burnAfterView: Boolean,
         ttlMs: Long?,
+        seconds: Int?,
+        levels: List<Int>,
     ): Outcome<ReservedMedia> {
         val payload = buildMap<String, Any> {
             put("kind", kind)
             put("burnAfterView", burnAfterView)
             note?.let { put("note", it) }
             ttlMs?.let { put("ttlMs", it) }
+            seconds?.let { put("seconds", it) }
+            if (levels.isNotEmpty()) put("levels", levels)
         }
         return functions.callFunction("reserveMedia", payload) { data ->
             ReservedMedia(
@@ -96,8 +115,8 @@ class FirebaseMediaRemoteDataSource @Inject constructor(
         Unit
     }
 
-    override suspend fun confirm(itemId: String): Outcome<Unit> =
-        functions.callFunction("confirmMedia", mapOf("itemId" to itemId)) { }
+    override suspend fun confirm(itemId: String, quiet: Boolean): Outcome<Unit> =
+        functions.callFunction("confirmMedia", mapOf("itemId" to itemId, "quiet" to quiet)) { }
 
     override suspend fun view(itemId: String): Outcome<Boolean> =
         functions.callFunction("viewMedia", mapOf("itemId" to itemId)) { it["burned"] == true }
@@ -135,5 +154,7 @@ private fun DocumentSnapshot.toMedia(): MediaDoc? {
         sentAtMillis = getTimestamp("sentAt")?.toDate()?.time,
         viewedAtMillis = getTimestamp("viewedAt")?.toDate()?.time,
         expiresAtMillis = getTimestamp("expiresAt")?.toDate()?.time,
+        seconds = getLong("seconds")?.toInt(),
+        levels = (get("levels") as? List<*>).orEmpty().mapNotNull { (it as? Number)?.toInt() },
     )
 }

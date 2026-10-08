@@ -19,12 +19,15 @@ import { grantPremium } from './support';
 import {
   DEFAULT_TTL_MS,
   MAX_NOTE,
+  MAX_SECONDS,
   PENDING_TTL_MS,
+  WAVEFORM_BARS,
   confirmMedia,
   expireMedia,
   reserveMedia,
   viewMedia,
 } from '../media/media';
+import type { PushMessage, Sender } from '../notify/notify';
 import { createPairingCode, requestPairing, respondToPairing } from '../pairing/pairing';
 import { ServiceError } from '../shared/errors';
 
@@ -183,6 +186,61 @@ describe('a voice note or a photo sent to the partner', () => {
     assert.deepEqual(await expireMedia(db, storage, NOW + PENDING_TTL_MS + 120_000), { deleted: 0 });
   });
 
+  it("carries a voice note's length and shape, so the other phone can draw it", async () => {
+    const { a, coupleId } = await couple();
+    const levels = Array.from({ length: WAVEFORM_BARS }, (_, index) => index * 2);
+
+    const reserved = await reserveMedia(db, a, { kind: 'VOICE', seconds: 7, levels }, NOW);
+
+    // On the record, not on the message: the message rules are held to five keys on purpose
+    // (SECURITY.md section 7.3 row U), and this describes the media rather than the saying of it.
+    const stored = (await read(`couples/${coupleId}/media/${reserved.itemId}`))!;
+    assert.equal(stored.seconds, 7);
+    assert.deepEqual(stored.levels, levels);
+  });
+
+  it('drops a waveform of the wrong shape rather than refusing the send', async () => {
+    const { a, coupleId } = await couple();
+
+    const short = await reserveMedia(db, a, { kind: 'VOICE', levels: [1, 2, 3] }, NOW);
+    const tooLoud = await reserveMedia(
+      db,
+      a,
+      { kind: 'VOICE', levels: Array.from({ length: WAVEFORM_BARS }, () => 400) },
+      NOW,
+    );
+
+    // A bar chart is not worth failing a voice note over: it draws flat instead.
+    assert.equal((await read(`couples/${coupleId}/media/${short.itemId}`))!.levels, null);
+    assert.equal((await read(`couples/${coupleId}/media/${tooLoud.itemId}`))!.levels, null);
+    await rejects(reserveMedia(db, a, { kind: 'VOICE', seconds: MAX_SECONDS + 1 }, NOW), 'invalid-argument', 'seconds');
+  });
+
+  it('can be confirmed quietly, so a photo in the chat is one notification and not two', async () => {
+    const { a, b } = await couple();
+    await db.doc(`users/${b}/fcmTokens/t1`).set({ token: 'token_b', updatedAt: NOW });
+    const sent: PushMessage[] = [];
+    const sender: Sender = {
+      async send(_tokens, message) {
+        sent.push(message);
+        return { failed: [] };
+      },
+    };
+
+    const loud = await reserveMedia(db, a, { kind: 'PHOTO' }, NOW);
+    await upload(loud.path);
+    await confirmMedia(db, storage, a, { itemId: loud.itemId }, NOW, sender);
+    assert.equal(sent.length, 1);
+
+    const quiet = await reserveMedia(db, a, { kind: 'PHOTO' }, NOW);
+    await upload(quiet.path);
+    await confirmMedia(db, storage, a, { itemId: quiet.itemId, quiet: true }, NOW, sender);
+
+    // The message that carries it is what tells them, and the chat's own trigger rate-limits a
+    // conversation. Letting this one speak as well is two pushes for one photo.
+    assert.equal(sent.length, 1);
+  });
+
   it('refuses what it cannot read, and a stranger with no couple', async () => {
     const { a } = await couple();
     await rejects(reserveMedia(db, a, { kind: 'FILM' }, NOW), 'invalid-argument', 'kind');
@@ -191,5 +249,10 @@ describe('a voice note or a photo sent to the partner', () => {
     await rejects(reserveMedia(db, a, { kind: 'VOICE', note: 'x'.repeat(MAX_NOTE + 1) }, NOW), 'invalid-argument', 'note');
     await rejects(reserveMedia(db, 'nobody', { kind: 'VOICE' }, NOW), 'failed-precondition', 'not-paired');
     await rejects(viewMedia(db, storage, a, { itemId: 'not_a_real_one' }, NOW), 'not-found', 'media');
+    await rejects(
+      confirmMedia(db, storage, a, { itemId: 'x', loud: true }, NOW),
+      'invalid-argument',
+      'unknown field loud',
+    );
   });
 });

@@ -2692,3 +2692,49 @@ Two smaller calls. The overlay carries **Stop**, because it covers a screen that
 something (M7) and the safe word is on every one of those; it reaches `NightRepository` directly
 rather than through any feature. And **back closes the chat and goes no further**, which also means
 it must not count as the first of the two back presses that mean panic (M8).
+
+---
+
+## D-139 — A photo you can see, and the rule that makes it awkward
+
+The chat shipped with a working pipe and a prototype's face: a photo arrived as the words "A
+photo", the camera could not be opened at all, and the microphone did nothing. Three causes, none
+of them cosmetic.
+
+**There is no URL to give an image loader.** Nothing in this app mints a download URL (D-083), so
+the bytes come back only through `MediaRepository.open`, which fetches them with the signed-in
+user's own credentials. That is why there is no Coil here and why adding one would not have helped.
+The decode is `BitmapFactory` in two passes — bounds first, then `inSampleSize` — on the IO
+dispatcher, with the last twelve bitmaps kept by media id.
+
+**`open` is not a read.** It calls `viewMedia`, and a burn-after-view item is *deleted as it is
+read*. So a chat cannot load photos because they scrolled into view: that would burn every
+once-only photo the moment it appeared. `ChatMedia` splits the two — `wanted` fetches what is safe
+to fetch without being asked, `look` is the tap — and a once-only photo draws a covered plate from
+what the record already says, having fetched nothing. The sender's own photo is drawn from the file
+they uploaded, keyed by media id, so seeing a photo you just took costs no read at all.
+
+**A message does not say what its media is.** It carries a `mediaId` and nothing else, which is not
+enough to decide how to draw it. `DefaultChatRepository` now joins `media.inbox` into the
+conversation, and a message whose record has not arrived yet keeps `media = null` and draws as
+loading — never as "an ordinary photo", because guessing that is how a once-only one gets burned.
+
+**The waveform travels with the record, not with the audio.** `VoiceRecorder` gained
+`amplitude()`; `DefaultChatVoice` polls it ten times a second and `VoiceLevels` reduces the peaks
+to forty bars. They go on the media record, written by the server through `reserveMedia` — *not* on
+the message, because `validMessage` is held to five keys and that tightness is a §7.3 row worth
+keeping. Both phones then draw the same shape without either decoding the file.
+
+**The ticking belongs to the collaborator.** `ChatVoice` and `ChatMedia` are interfaces with their
+own polling, because a ViewModel that polled in a loop of its own hangs `advanceUntilIdle()` for
+ever (D-076). The fakes in the chat's test source set do not tick at all.
+
+**The camera needed a `FileProvider`**, declared in `:feature:chat`'s own manifest with
+`${applicationId}.files` — a fixed authority makes dev and staging collide at install. `CAMERA` is
+deliberately *not* declared: without it in the manifest, `ACTION_IMAGE_CAPTURE` needs no runtime
+permission, and declaring one the app does not use would only mean asking for it.
+
+**And one bug found by reading.** `confirmMedia` notified unconditionally and `onMessageCreated`
+notified again, so a photo sent in the chat pushed twice. `confirmMedia` now takes `quiet`, which
+`ChatRepository.send` passes: the message is what tells them, and the chat's own trigger is already
+rate-limited.

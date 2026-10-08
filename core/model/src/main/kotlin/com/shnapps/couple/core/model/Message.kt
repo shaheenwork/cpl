@@ -18,9 +18,39 @@ data class Message(
     /** The media record this points at, for [MessageKind.VOICE] and [MessageKind.PHOTO]. */
     val mediaId: String?,
     val atMillis: Long,
+    /**
+     * What the media record says about itself, once it has arrived.
+     *
+     * Null while it has not. The message and the record come down two listeners and either may be
+     * first, so a null here means *not yet* and draws as loading — never as broken.
+     */
+    val media: MessageMedia? = null,
 ) {
     /** Whether it is still on its way: Firestore has it locally but the server has not confirmed. */
     val pending: Boolean get() = atMillis == 0L
+}
+
+/**
+ * The facts a screen needs about a message's photo or voice note.
+ *
+ * Not the bytes, and not a URL to them — there is no such thing here (D-083). What this carries is
+ * everything needed to decide *how to draw it before fetching it*, which matters because fetching
+ * a once-only item is what destroys it.
+ */
+data class MessageMedia(
+    val id: String,
+    val kind: MediaKind,
+    /** Opening it deletes it, really — so it is never fetched until it is asked for. */
+    val burnAfterView: Boolean,
+    /** Already looked at: a once-only one is gone, an ordinary one is merely read. */
+    val opened: Boolean,
+    /** A voice note's length, or null. */
+    val seconds: Int?,
+    /** A voice note's waveform, or empty. [MediaItem.WAVEFORM_BARS] bars, each 0..100. */
+    val levels: List<Int>,
+) {
+    /** Nothing left to fetch: it burned as it was read, and saying so is all that is left. */
+    val gone: Boolean get() = burnAfterView && opened
 }
 
 enum class MessageKind {

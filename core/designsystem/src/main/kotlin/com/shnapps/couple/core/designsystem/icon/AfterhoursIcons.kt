@@ -49,6 +49,9 @@ object AfterhoursIcons {
     val Moon = icon("Moon", "M20 14.6A8.1 8.1 0 0 1 9.4 4A8.6 8.6 0 1 0 20 14.6Z")
     val Clock = icon("Clock", "M3.5 12a8.5 8.5 0 0 1 17.0 0a8.5 8.5 0 0 1 -17.0 0", "M12 7.5V12l3 1.8")
     val Skip = icon("Skip", "M5 5l8 7-8 7z", "M18 5v14")
+
+    /** Starting a voice note. Filled, unlike the rest of the set: at 20 dp an outline closes up. */
+    val Play = icon("Play", "M7 4.5l12 7.5-12 7.5z")
     val Pause = icon("Pause", "M9.5 5v14", "M14.5 5v14")
     val Stop = icon("Stop", "M6 6h12v12H6z")
 

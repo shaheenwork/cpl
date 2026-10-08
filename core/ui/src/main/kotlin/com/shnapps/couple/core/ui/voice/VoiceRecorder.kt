@@ -27,6 +27,19 @@ interface VoiceRecorder {
 
     /** Throws away whatever is in progress: the screen left, or the ViewModel was cleared. */
     fun cancel()
+
+    /**
+     * The loudest sample since this was last called, 0..[MAX_AMPLITUDE], or 0 when not recording.
+     *
+     * Read on a timer while recording: it drives the live meter in the composer, and the peaks it
+     * returns become the waveform that travels with the note so both phones draw the same shape.
+     */
+    fun amplitude(): Int
+
+    companion object {
+        /** `MediaRecorder.getMaxAmplitude` is a signed 16-bit sample. */
+        const val MAX_AMPLITUDE = 32_767
+    }
 }
 
 @Singleton
@@ -90,6 +103,14 @@ class AndroidVoiceRecorder @Inject constructor(
         recorder = null
         file?.delete()
         file = null
+    }
+
+    @Suppress("TooGenericExceptionCaught", "SwallowedException")
+    override fun amplitude(): Int = try {
+        recorder?.maxAmplitude ?: 0
+    } catch (error: Throwable) {
+        // It is being torn down, or was never prepared. A flat bar is the right answer.
+        0
     }
 
     @Suppress("DEPRECATION") // The pre-S constructor, for the phones that still need it.

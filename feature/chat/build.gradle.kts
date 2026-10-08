@@ -9,6 +9,7 @@ android {
 }
 
 dependencies {
-    // A photo comes from the system picker or the camera; a voice note from :core:ui's recorder.
+    // The camera, the gallery picker and the microphone permission all come back through a
+    // launcher, and a launcher belongs to the composition.
     implementation(libs.androidx.activity.compose)
 }

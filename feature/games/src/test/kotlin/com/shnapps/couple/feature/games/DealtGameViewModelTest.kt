@@ -186,6 +186,8 @@ class DealtGameViewModelTest {
         override fun stop(): Outcome<File> = Outcome.Failure(AppError.Unknown())
 
         override fun cancel() = Unit
+
+        override fun amplitude(): Int = 0
     }
 
     private companion object {

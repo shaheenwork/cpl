@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The one place a camera may write, and the only thing the provider will serve: this app's own
+  cache. Nothing of the gallery, nothing of external storage, and nothing that outlives the cache.
+-->
+<paths>
+    <cache-path name="shared" path="." />
+</paths>

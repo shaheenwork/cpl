@@ -37,8 +37,21 @@ interface MediaRepository {
     /** What the two of them have sent each other, newest first. */
     val inbox: Flow<List<MediaItem>>
 
-    /** Sends [file] to the partner. [note] is a short line; [burnAfterView] deletes it on opening. */
-    suspend fun send(kind: MediaKind, file: File, note: String?, burnAfterView: Boolean): Outcome<String>
+    /**
+     * Sends [file] to the partner. [note] is a short line; [burnAfterView] deletes it on opening.
+     *
+     * [seconds] and [levels] describe a voice note so it can be drawn without being decoded, and
+     * [quiet] holds back the notification for media something else is about to announce.
+     */
+    suspend fun send(
+        kind: MediaKind,
+        file: File,
+        note: String?,
+        burnAfterView: Boolean,
+        seconds: Int? = null,
+        levels: List<Int> = emptyList(),
+        quiet: Boolean = false,
+    ): Outcome<String>
 
     /**
      * Opens [itemId]: fetches the bytes into the app's own cache with this user's credentials,
@@ -78,15 +91,20 @@ class DefaultMediaRepository @Inject constructor(
         file: File,
         note: String?,
         burnAfterView: Boolean,
+        seconds: Int?,
+        levels: List<Int>,
+        quiet: Boolean,
     ): Outcome<String> {
-        val reserved = when (val result = remote.reserve(kind.name, note, burnAfterView, ttlMs = null)) {
+        val reserved = when (
+            val result = remote.reserve(kind.name, note, burnAfterView, ttlMs = null, seconds, levels)
+        ) {
             is Outcome.Failure -> return result
             is Outcome.Success -> result.value
         }
         val contentType = if (kind == MediaKind.VOICE) VOICE_TYPE else PHOTO_TYPE
         return when (val upload = remote.upload(reserved.path, file, contentType)) {
             is Outcome.Failure -> upload
-            is Outcome.Success -> remote.confirm(reserved.itemId).map { reserved.itemId }
+            is Outcome.Success -> remote.confirm(reserved.itemId, quiet).map { reserved.itemId }
         }
     }
 
@@ -119,4 +137,6 @@ private fun MediaDoc.toItem(uid: String): MediaItem = MediaItem(
     sentAtMillis = sentAtMillis,
     viewedAtMillis = viewedAtMillis,
     expiresAtMillis = expiresAtMillis,
+    seconds = seconds,
+    levels = levels,
 )

@@ -5,9 +5,11 @@ import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.auth.AuthRepository
 import com.shnapps.couple.core.data.media.MediaRepository
 import com.shnapps.couple.core.firebase.chat.ChatRemoteDataSource
+import com.shnapps.couple.core.model.MediaItem
 import com.shnapps.couple.core.model.MediaKind
 import com.shnapps.couple.core.model.Message
 import com.shnapps.couple.core.model.MessageKind
+import com.shnapps.couple.core.model.MessageMedia
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -26,6 +28,11 @@ data class Chat(
     val unread: Int = 0,
     /** Whether there is anybody to talk to. False is not an empty chat — it is no chat at all. */
     val paired: Boolean = false,
+    /**
+     * When this phone last looked. The screen needs it as well as the count: the count says how
+     * many are new, and this says which one is the first of them.
+     */
+    val lastReadMillis: Long = 0L,
 )
 
 /**
@@ -49,7 +56,14 @@ interface ChatRepository {
      * resolves; this order can only ever leave a confirmed record nobody references, which the
      * hourly sweep takes away (D-083).
      */
-    suspend fun send(kind: MediaKind, file: File, text: String?, burnAfterView: Boolean): Outcome<Unit>
+    suspend fun send(
+        kind: MediaKind,
+        file: File,
+        text: String?,
+        burnAfterView: Boolean,
+        seconds: Int? = null,
+        levels: List<Int> = emptyList(),
+    ): Outcome<String>
 
     /** Takes a message back, for both of them. Only its author may. */
     suspend fun unsay(messageId: String): Outcome<Unit>
@@ -79,7 +93,12 @@ class DefaultChatRepository @Inject constructor(
             combine(
                 remote.observe(coupleId, PAGE),
                 remote.observeRead(coupleId),
-            ) { documents, read ->
+                // What a message's media *is*, which the message itself does not say. Without this
+                // a screen cannot tell a once-only photo from an ordinary one, and fetching one to
+                // find out is what destroys it (D-083).
+                media.inbox,
+            ) { documents, read, inbox ->
+                val records = inbox.associateBy { it.id }
                 val messages = documents.mapNotNull { document ->
                     MessageKind.of(document.kind)?.let { kind ->
                         Message(
@@ -89,6 +108,7 @@ class DefaultChatRepository @Inject constructor(
                             text = document.text,
                             mediaId = document.mediaId,
                             atMillis = document.atMillis ?: 0L,
+                            media = document.mediaId?.let { records[it]?.describe() },
                         )
                     }
                 }
@@ -96,6 +116,7 @@ class DefaultChatRepository @Inject constructor(
                 Chat(
                     paired = true,
                     messages = messages,
+                    lastReadMillis = lastRead,
                     // Theirs, since this phone last looked. A message still on its way has no
                     // timestamp, and it is this phone's own, so it never counts.
                     unread = messages.count { !it.mine && it.atMillis > lastRead },
@@ -115,15 +136,28 @@ class DefaultChatRepository @Inject constructor(
         file: File,
         text: String?,
         burnAfterView: Boolean,
-    ): Outcome<Unit> {
-        val sent = media.send(kind, file, text?.trim()?.takeIf { it.isNotEmpty() }, burnAfterView)
+        seconds: Int?,
+        levels: List<Int>,
+    ): Outcome<String> {
+        // quiet: the message written next is what tells them, and the chat's own trigger holds a
+        // conversation to one push every few minutes. Letting confirmMedia speak too means two
+        // notifications for one photo.
+        val sent = media.send(
+            kind = kind,
+            file = file,
+            note = text?.trim()?.takeIf { it.isNotEmpty() },
+            burnAfterView = burnAfterView,
+            seconds = seconds,
+            levels = levels,
+            quiet = true,
+        )
         return when (sent) {
             is Outcome.Failure -> sent
             is Outcome.Success -> write(
                 kind = if (kind == MediaKind.VOICE) MessageKind.VOICE else MessageKind.PHOTO,
                 text = text?.trim()?.takeIf { it.isNotEmpty() },
                 mediaId = sent.value,
-            )
+            ).map { sent.value }
         }
     }
 
@@ -149,3 +183,18 @@ class DefaultChatRepository @Inject constructor(
         const val EMPTY = "empty-message"
     }
 }
+
+/**
+ * What a screen may know about a message's media before it is fetched.
+ *
+ * `mine` is left out on purpose: whose it is, is the message's business, and a record and its
+ * message always agree about it.
+ */
+private fun MediaItem.describe(): MessageMedia = MessageMedia(
+    id = id,
+    kind = kind,
+    burnAfterView = burnAfterView,
+    opened = viewedAtMillis != null,
+    seconds = seconds,
+    levels = levels,
+)

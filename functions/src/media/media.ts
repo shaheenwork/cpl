@@ -38,8 +38,14 @@ export const DEFAULT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const MAX_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 export const PENDING_TTL_MS = 60 * 60 * 1000;
 
-const RESERVE_KEYS = new Set(['kind', 'burnAfterView', 'ttlMs', 'note']);
+const RESERVE_KEYS = new Set(['kind', 'burnAfterView', 'ttlMs', 'note', 'seconds', 'levels']);
+const CONFIRM_KEYS = new Set(['itemId', 'quiet']);
 const ITEM_ID = /^[A-Za-z0-9_-]{1,64}$/;
+
+/** A voice note's shape, for drawing it: this many bars, each this high at most. */
+export const WAVEFORM_BARS = 40;
+export const MAX_LEVEL = 100;
+export const MAX_SECONDS = 5 * 60;
 
 function invalid(reason: string): never {
   throw new ServiceError('invalid-argument', reason);
@@ -74,6 +80,24 @@ interface ReserveRequest {
   burnAfterView: boolean;
   ttlMs: number;
   note: string | null;
+  /** A voice note's length. Null for a photo, and for a voice note from an older app. */
+  seconds: number | null;
+  /** Its waveform, sampled while recording: WAVEFORM_BARS bars, each 0..MAX_LEVEL. */
+  levels: number[] | null;
+}
+
+/**
+ * The waveform as it arrived, or null.
+ *
+ * Drawn on both phones, so it travels with the record rather than being measured from the audio —
+ * which would mean decoding it twice and agreeing by luck. Anything that is not the right shape is
+ * dropped rather than refused: a bar chart is not worth failing a send over.
+ */
+function levelsOf(raw: unknown): number[] | null {
+  if (!Array.isArray(raw) || raw.length !== WAVEFORM_BARS) return null;
+  const levels = raw.map((level) => (Number.isFinite(level) ? Math.floor(Number(level)) : -1));
+  if (levels.some((level) => level < 0 || level > MAX_LEVEL)) return null;
+  return levels;
 }
 
 export function parseReserve(input: unknown): ReserveRequest {
@@ -87,12 +111,38 @@ export function parseReserve(input: unknown): ReserveRequest {
     invalid('ttlMs');
   }
   if (note !== undefined && note !== null && (typeof note !== 'string' || note.length > MAX_NOTE)) invalid('note');
+  const { seconds } = raw;
+  if (seconds !== undefined && seconds !== null) {
+    if (!Number.isInteger(seconds) || (seconds as number) < 0 || (seconds as number) > MAX_SECONDS) invalid('seconds');
+  }
   return {
     kind: kind as MediaKind,
     burnAfterView: burnAfterView === true,
     ttlMs: (ttlMs as number) ?? DEFAULT_TTL_MS,
     note: typeof note === 'string' && note.length > 0 ? note : null,
+    seconds: typeof seconds === 'number' ? seconds : null,
+    levels: levelsOf(raw.levels),
   };
+}
+
+interface ConfirmRequest {
+  itemId: string;
+  /**
+   * Don't notify. Media sent inside the chat is announced by the message that carries it, and the
+   * chat's own trigger rate-limits a conversation to one push every few minutes — two notifications
+   * for one photo is what happens without this.
+   */
+  quiet: boolean;
+}
+
+export function parseConfirm(input: unknown): ConfirmRequest {
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) invalid('request');
+  const raw = input as Record<string, unknown>;
+  for (const key of Object.keys(raw)) if (!CONFIRM_KEYS.has(key)) invalid(`unknown field ${key}`);
+  const itemId = raw.itemId;
+  if (typeof itemId !== 'string' || !ITEM_ID.test(itemId)) invalid('itemId');
+  if (raw.quiet !== undefined && typeof raw.quiet !== 'boolean') invalid('quiet');
+  return { itemId, quiet: raw.quiet === true };
 }
 
 /** A place to upload to, and the document that will describe what lands there. */
@@ -111,6 +161,8 @@ export async function reserveMedia(db: Firestore, uid: string, input: unknown, n
     path,
     note: request.note,
     burnAfterView: request.burnAfterView,
+    seconds: request.seconds,
+    levels: request.levels,
     createdAt: Timestamp.fromMillis(nowMs),
     sentAt: null,
     viewedAt: null,
@@ -128,7 +180,7 @@ export async function confirmMedia(
   nowMs: number,
   sender: Sender = fcmSender,
 ): Promise<{ itemId: string }> {
-  const itemId = idOf(input);
+  const { itemId, quiet } = parseConfirm(input);
   const { coupleId, members } = await activeCoupleOf(db, uid);
   const ref = db.doc(`couples/${coupleId}/media/${itemId}`);
   const snapshot = await ref.get();
@@ -141,7 +193,8 @@ export async function confirmMedia(
   if (!exists) throw new ServiceError('failed-precondition', 'nothing-uploaded');
   await ref.update({ state: 'SENT', sentAt: Timestamp.fromMillis(nowMs) });
   // Not what it is, not even whether it is a voice note: that they sent something (section 16.2).
-  await notifyPartner(db, members, uid, 'THEY_SENT_SOMETHING', itemId, nowMs, sender);
+  // Unless the caller is about to say it some other way — see ConfirmRequest.quiet.
+  if (!quiet) await notifyPartner(db, members, uid, 'THEY_SENT_SOMETHING', itemId, nowMs, sender);
   return { itemId };
 }
 

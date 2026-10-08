@@ -83,6 +83,7 @@ class ContentChokepointTest {
          * and played because somebody pressed play (§13).
          */
         val SOUND_MAKERS = listOf(
+            "core/ui/src/main/kotlin/com/shnapps/couple/core/ui/voice/NotePlayer.kt",
             "core/ui/src/main/kotlin/com/shnapps/couple/core/ui/voice/VoicePlayer.kt",
             "core/ui/src/main/kotlin/com/shnapps/couple/core/ui/voice/VoiceRecorder.kt",
         )

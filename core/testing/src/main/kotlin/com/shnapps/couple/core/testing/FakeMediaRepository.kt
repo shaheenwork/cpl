@@ -20,6 +20,9 @@ class FakeMediaRepository : MediaRepository {
 
     /** Every send, in order: kind, note and whether it burns. */
     val sent = mutableListOf<Triple<MediaKind, String?, Boolean>>()
+
+    /** Whether each send asked for the notification to be held back. */
+    val quietly = mutableListOf<Boolean>()
     val opened = mutableListOf<String>()
 
     var failNext: AppError? = null
@@ -29,12 +32,16 @@ class FakeMediaRepository : MediaRepository {
         file: File,
         note: String?,
         burnAfterView: Boolean,
+        seconds: Int?,
+        levels: List<Int>,
+        quiet: Boolean,
     ): Outcome<String> {
         failNext?.let {
             failNext = null
             return Outcome.Failure(it)
         }
         sent += Triple(kind, note, burnAfterView)
+        quietly += quiet
         val id = "media_${sent.size}"
         items.value = items.value + MediaItem(
             id = id,
@@ -45,6 +52,8 @@ class FakeMediaRepository : MediaRepository {
             sentAtMillis = SENT_AT,
             viewedAtMillis = null,
             expiresAtMillis = null,
+            seconds = seconds,
+            levels = levels,
         )
         return Outcome.Success(id)
     }
@@ -66,9 +75,16 @@ class FakeMediaRepository : MediaRepository {
     }
 
     /** The partner, on their own phone: sends something. */
-    fun theySend(kind: MediaKind, note: String? = null, burnAfterView: Boolean = false): MediaItem {
+    fun theySend(
+        kind: MediaKind,
+        note: String? = null,
+        burnAfterView: Boolean = false,
+        id: String = "from_them_${items.value.size}",
+        seconds: Int? = null,
+        levels: List<Int> = emptyList(),
+    ): MediaItem {
         val item = MediaItem(
-            id = "from_them_${items.value.size}",
+            id = id,
             kind = kind,
             mine = false,
             note = note,
@@ -76,6 +92,8 @@ class FakeMediaRepository : MediaRepository {
             sentAtMillis = SENT_AT,
             viewedAtMillis = null,
             expiresAtMillis = null,
+            seconds = seconds,
+            levels = levels,
         )
         items.value = items.value + item
         return item

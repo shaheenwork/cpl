@@ -20,10 +20,12 @@ import java.io.File
 /**
  * The conversation (CHAT_PROMPT.md).
  *
- * Two rules carry the weight here, and both are about order. Media is confirmed before the message
- * that points at it exists, because the other way round draws a spinner that never resolves. And a
- * phone with no partner has no chat at all — not an empty one, which would attach a listener and
- * draw a composer for a conversation with nobody.
+ * Three rules carry the weight here. Media is confirmed before the message that points at it
+ * exists, because the other way round draws a spinner that never resolves. A phone with no partner
+ * has no chat at all — not an empty one, which would attach a listener and draw a composer for a
+ * conversation with nobody. And a message carrying media is joined to that media's record, because
+ * a screen cannot otherwise tell a once-only photo from an ordinary one, and finding out by
+ * fetching it is what destroys it.
  */
 class ChatRepositoryTest {
 
@@ -69,7 +71,11 @@ class ChatRepositoryTest {
         )
         remote.read.value = mapOf(ME to 20L)
 
-        assertThat(repository.chat.first().unread).isEqualTo(1)
+        val chat = repository.chat.first()
+
+        assertThat(chat.unread).isEqualTo(1)
+        // The screen needs the mark as well as the count: the count says how many, this says which.
+        assertThat(chat.lastReadMillis).isEqualTo(20L)
     }
 
     @Test
@@ -86,16 +92,72 @@ class ChatRepositoryTest {
     }
 
     @Test
-    fun `a photo is confirmed before the message that points at it exists`() = runTest {
+    fun `a message carrying media says what that media is`() = runTest {
+        paired()
+        media.theySend(MediaKind.VOICE, id = "v1", burnAfterView = true, seconds = 7, levels = List(40) { 30 })
+        remote.documents.value = listOf(
+            MessageDoc("m1", fromUid = THEM, kind = "VOICE", text = null, mediaId = "v1", atMillis = 10),
+        )
+
+        val record = repository.chat.first().messages.single().media
+
+        // Everything needed to draw it without fetching it, which for a once-only one is the
+        // difference between showing it and destroying it (D-083).
+        assertThat(record?.burnAfterView).isTrue()
+        assertThat(record?.opened).isFalse()
+        assertThat(record?.seconds).isEqualTo(7)
+        assertThat(record?.levels).hasSize(40)
+    }
+
+    @Test
+    fun `a message whose record has not arrived yet says nothing about it, rather than wrongly`() = runTest {
+        paired()
+        remote.documents.value = listOf(
+            MessageDoc("m1", fromUid = THEM, kind = "PHOTO", text = null, mediaId = "not_here_yet", atMillis = 10),
+        )
+
+        val message = repository.chat.first().messages.single()
+
+        // Two listeners, either may be first. Null means "not yet" and draws as loading; guessing
+        // `burnAfterView = false` here would burn a once-only photo on arrival.
+        assertThat(message.mediaId).isEqualTo("not_here_yet")
+        assertThat(message.media).isNull()
+    }
+
+    @Test
+    fun `a photo is confirmed before the message that points at it exists, and quietly`() = runTest {
         paired()
 
-        repository.send(MediaKind.PHOTO, File("proof.jpg"), text = "proof", burnAfterView = false)
+        val result = repository.send(MediaKind.PHOTO, File("proof.jpg"), text = "proof", burnAfterView = false)
 
         // The order is the whole of it: a message pointing at an unconfirmed record draws a
         // spinner that never resolves, while a confirmed record nobody references is swept.
         assertThat(media.sent).hasSize(1)
         assertThat(remote.sent.single().third).isEqualTo("media_1")
         assertThat(remote.sent.single().first).isEqualTo(MessageKind.PHOTO.name)
+        // The message is what tells them. Letting confirmMedia notify as well is two pushes for
+        // one photo, which is what the chat shipped with.
+        assertThat(media.quietly).containsExactly(true)
+        // The id comes back, so the sender's own phone can draw the photo it already has.
+        assertThat((result as Outcome.Success).value).isEqualTo("media_1")
+    }
+
+    @Test
+    fun `a voice note's length and shape travel with it`() = runTest {
+        paired()
+
+        repository.send(
+            kind = MediaKind.VOICE,
+            file = File("note.m4a"),
+            text = null,
+            burnAfterView = false,
+            seconds = 7,
+            levels = List(40) { 50 },
+        )
+
+        val item = media.items.value.single()
+        assertThat(item.seconds).isEqualTo(7)
+        assertThat(item.levels).hasSize(40)
     }
 
     @Test

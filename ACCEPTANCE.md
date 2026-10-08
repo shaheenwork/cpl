@@ -255,3 +255,37 @@ step in PROGRESS.md under their own phases.
 devices, notification delivery, and the Play purchase flow. Each needs something this machine does
 not have — a second device, a real Firebase project, a Play account — and each is named in
 PROGRESS.md and HUMAN_SETUP.md.
+
+---
+
+## The conversation, on two phones
+
+Not yet walked — written down so it can be, and so the parts most likely to be wrong are named
+rather than discovered. The chat is a layer over whatever is playing, so every step is done
+**with a game under way**, not from home.
+
+1. **A photo from the camera.** A taps **+ → Take one**, takes a picture, sends it. B sees the
+   image itself, not the word "photo". The camera opens with no permission prompt — `CAMERA` is
+   not declared, so there should not be one. If there is, the manifest has gained it by accident.
+2. **A photo from the gallery.** A taps **+ → Choose one**. Nothing of the gallery is read but
+   the chosen file, and it is copied into this app's cache before it goes anywhere.
+3. **Once only.** A sends a burn-after-view photo. B sees *"Once only. Tap to look."* **without
+   anything having been fetched** — check `node functions/scripts/dev-couple.js media`: the bytes
+   are still there. B taps, sees it, scrolls away and back: *"Seen. It's gone now."*, no tap
+   target, and the same command now says the object is gone.
+4. **A voice note.** B taps **+ → Record**, grants the microphone, speaks for about seven seconds,
+   sends. A sees a waveform with real variation and `0:07`, plays it, and the bars fill left to
+   right. Starting a second note stops the first.
+5. **The microphone refused.** B denies the permission. One line in the composer says so, the mic
+   stays where it is, and no dialog appears. Granting it afterwards works.
+6. **One push, not two.** A sends a photo in the chat. B's phone shows **one** notification, and
+   it says nothing about what was sent.
+7. **The game does not notice.** A opens the chat mid-round, sends something, closes it. The round
+   has not moved, the answer in flight is still in flight, and back closed the chat without
+   counting towards panic.
+8. **Offline.** Airplane mode on A. Three messages sit at 60% with "Sending…". Mode off: they land
+   in order, and nothing was typed twice.
+9. **Grouping and days.** Messages sent a minute apart are one run with one timestamp; one sent
+   six minutes later starts a new run. Left running past midnight, the separator says TODAY on the
+   right side of it.
+10. **200% type.** Every bubble readable, nothing clipped, the waveform unchanged.

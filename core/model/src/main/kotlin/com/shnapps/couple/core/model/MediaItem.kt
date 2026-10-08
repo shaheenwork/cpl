@@ -18,7 +18,21 @@ data class MediaItem(
     /** When the partner opened it, for one that does not burn. */
     val viewedAtMillis: Long?,
     val expiresAtMillis: Long?,
+    /** A voice note's length. Null for a photo, and for a note an older app sent. */
+    val seconds: Int? = null,
+    /**
+     * A voice note's waveform: [WAVEFORM_BARS] bars, each 0..100, sampled while it was recorded.
+     *
+     * It travels with the record rather than being measured from the audio, so both phones draw
+     * the same shape without either of them decoding the file to find out what it looks like.
+     */
+    val levels: List<Int> = emptyList(),
 ) {
     /** Waiting to be opened: sent by the partner, and never looked at. */
     val unopened: Boolean get() = !mine && sentAtMillis != null && viewedAtMillis == null
+
+    companion object {
+        /** How many bars a waveform has, here and on the server. */
+        const val WAVEFORM_BARS = 40
+    }
 }

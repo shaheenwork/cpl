@@ -169,6 +169,28 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   the app uses `<project>.firebasestorage.app` — `bucketOf()` names it explicitly (D-084).
 - `node functions/scripts/dev-couple.js media` lists what has been sent and whether the bytes are
   still there.
+- **`open()` is not a read.** It calls `viewMedia`, and a burn-after-view item is deleted as it is
+  read. Nothing may fetch media because it came into view: `ChatMedia.wanted` loads what is safe to
+  load, `look` is the tap, and a once-only item is drawn from what its record already says (D-139).
+- A voice note's length and waveform are on the **media record**, sent with `reserveMedia` and
+  written by the server — never on the message, whose rules are held to five keys (§7.3 row U).
+  `VoiceLevels.of` makes the forty bars; both phones draw them without decoding the audio.
+- Media sent from the chat confirms with `quiet: true`. The message announces it, and the chat's
+  own trigger is rate-limited; without it one photo is two pushes.
+
+### The conversation, drawn
+
+- The chat is a layer `:app` hangs over the nav host — never a route (D-138). `ChatViewModel` is
+  one instance for the whole app.
+- **The ticking is the collaborator's.** `ChatVoice` polls the microphone and the player,
+  `ChatMedia` fetches and decodes; both are interfaces, and their fakes do not tick. A ViewModel
+  with a loop of its own hangs `advanceUntilIdle()` for ever (D-076).
+- `Timeline.of` is pure: day separators in the phone's own zone, runs of five minutes, the unread
+  mark. `TimelineTest` is where a grouping change is proved, not a golden.
+- Renderers that two features would need live in `:core:ui`; these are the chat's own, so they stay
+  in `:feature:chat`.
+- The camera needs `:feature:chat`'s `FileProvider` (`${applicationId}.files`). `CAMERA` is
+  deliberately not declared — with it, `ACTION_IMAGE_CAPTURE` would need a runtime permission.
 
 ### Things left for later
 
