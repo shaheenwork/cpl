@@ -47,6 +47,18 @@ internal class FakeChatMedia : ChatMedia {
         shown.value = shown.value + (record.id to result(record))
     }
 
+    /** Previews asked for, in order: a send must show something before the upload finishes. */
+    val previewed = mutableListOf<String>()
+
+    override suspend fun preview(key: String, file: File) {
+        previewed += key
+        shown.value = shown.value + (key to Shown.Loading)
+    }
+
+    override fun forget(key: String) {
+        shown.value = shown.value - key
+    }
+
     override fun clear() {
         looked.clear()
         offered.clear()

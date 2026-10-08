@@ -187,6 +187,15 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   with a loop of its own hangs `advanceUntilIdle()` for ever (D-076).
 - `Timeline.of` is pure: day separators in the phone's own zone, runs of five minutes, the unread
   mark. `TimelineTest` is where a grouping change is proved, not a golden.
+- **A bubble wraps its content**, up to `BUBBLE_SHARE` of the list's width measured once by the
+  `BoxWithConstraints` around it — never `fillMaxWidth(share)`, which gives two words a banner.
+  The gap inside a run is `xxs` and between runs `item`; a timestamp sits *under* the bubble, so a
+  bubble holds only what was said.
+- **Every photo is the same size**: `wide × PHOTO_RATIO`, cropped. Sizing a tile to its own image
+  made a portrait into a column and a panorama into a sliver.
+- **Media is on screen before it leaves the phone** (`ChatUiState.outgoing`). The upload comes
+  before the message (D-083), so until it finishes there is nothing to draw and a tap on send looks
+  like a tap on nothing. `ChatMedia.preview` decodes the local file for it, beside the upload.
 - Renderers that two features would need live in `:core:ui`; these are the chat's own, so they stay
   in `:feature:chat`.
 - The camera needs `:feature:chat`'s `FileProvider` (`${applicationId}.files`). `CAMERA` is

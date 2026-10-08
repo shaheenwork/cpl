@@ -15,10 +15,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -27,86 +27,105 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.MediaItem
-import com.shnapps.couple.core.model.MessageMedia
 
 /**
- * A photo, as wide as the bubble it is in.
+ * A photo in a bubble.
+ *
+ * **Every photo is the same size.** The tile is [wide] across and [PHOTO_RATIO] tall whatever the
+ * photo's own shape, and the photo is cropped into it; tapping shows the whole thing. Sizing each
+ * tile to its own image made a tall photo into a tall bubble and a panorama into a sliver, and
+ * turned the column into a ragged mess.
  *
  * Four states, and the difference between two of them is the whole feature: an ordinary photo is
  * fetched as it arrives, a once-only one is not fetched until it is tapped, because fetching it is
  * what deletes it (D-083).
  */
 @Composable
-internal fun PhotoTile(record: MessageMedia, shown: Shown?, onLook: () -> Unit, onOpen: () -> Unit) {
+internal fun PhotoTile(
+    shown: Shown?,
+    wide: Dp,
+    burnAfterView: Boolean,
+    gone: Boolean,
+    onLook: () -> Unit,
+    onOpen: () -> Unit,
+) {
+    val tile = Modifier.width(wide).aspectRatio(PHOTO_RATIO)
     when {
         shown is Shown.Photo -> Image(
             painter = BitmapPainter(shown.image),
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(shown.image.width.toFloat() / shown.image.height)
-                .clip(MaterialTheme.shapes.medium)
-                .tap(onOpen),
+            modifier = tile.tap(onOpen),
         )
 
-        record.gone -> Plate(AfterhoursIcons.Eye, "Seen. It's gone now.", onClick = null)
+        gone -> Plate(tile, AfterhoursIcons.Eye, "Seen. It's gone now.", onClick = null)
 
-        record.burnAfterView && shown !is Shown.Loading ->
-            Plate(AfterhoursIcons.Lock, "Once only. Tap to look.", onClick = onLook)
+        burnAfterView && shown !is Shown.Loading ->
+            Plate(tile, AfterhoursIcons.Lock, "Once only. Tap to look.", onClick = onLook)
 
-        shown is Shown.Failed -> Plate(AfterhoursIcons.Eye, "Didn't load. Tap to try again.", onLook)
+        shown is Shown.Failed -> Plate(tile, AfterhoursIcons.Eye, "Didn't load. Tap to try again.", onLook)
 
-        else -> Shimmer(MaterialTheme.shapes.medium)
+        else -> Shimmer(tile)
     }
 }
 
 /**
- * A voice note: play, waveform, length.
+ * A voice note: play, waveform, length — at the same width as a photo, for the same reason.
  *
  * The waveform travelled with the record rather than being measured here, so both phones draw the
- * same shape. A note from before there were waveforms draws a flat bar, and still plays.
+ * same shape. A note from before there were waveforms draws a flat bar, and still plays. [onPlay]
+ * is null for one that is still uploading: there is nothing to play yet.
  */
 @Composable
-internal fun VoiceBar(record: MessageMedia, playing: Playing?, mine: Boolean, onPlay: () -> Unit) {
+internal fun VoiceStrip(
+    levels: List<Int>,
+    seconds: Int,
+    fraction: Float,
+    playing: Boolean,
+    mine: Boolean,
+    wide: Dp,
+    onPlay: (() -> Unit)?,
+) {
     val spacing = AfterhoursTheme.spacing
     val ink = if (mine) AfterhoursTheme.tier.onContainer else AfterhoursTheme.tier.onDark
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(spacing.sm),
-        modifier = Modifier.fillMaxWidth().tap(onPlay),
+        horizontalArrangement = Arrangement.spacedBy(spacing.xs),
+        modifier = Modifier
+            .width(wide)
+            .let { if (onPlay == null) it else it.tap(onPlay) }
+            .padding(horizontal = spacing.sm, vertical = spacing.xs),
     ) {
         Box(modifier = Modifier.size(spacing.touchTarget), contentAlignment = Alignment.Center) {
             Icon(
-                imageVector = if (playing != null) AfterhoursIcons.Pause else AfterhoursIcons.Play,
+                imageVector = if (playing) AfterhoursIcons.Pause else AfterhoursIcons.Play,
                 contentDescription = null,
                 tint = ink,
                 modifier = Modifier.size(GLYPH),
             )
         }
         Waveform(
-            levels = record.levels,
-            fraction = playing?.fraction ?: 0f,
+            levels = levels,
+            fraction = fraction,
             played = ink,
             rest = AfterhoursTheme.colors.textFaint,
             modifier = Modifier.weight(1f).height(WAVE),
         )
         Text(
-            text = clock(playing?.seconds ?: record.seconds ?: 0),
+            text = clock(seconds),
             style = MaterialTheme.typography.bodySmall,
             color = AfterhoursTheme.colors.textFaint,
         )
@@ -130,7 +149,7 @@ internal fun Waveform(
     val bars = levels.ifEmpty { List(MediaItem.WAVEFORM_BARS) { FLAT } }
     Canvas(modifier = modifier.clearAndSetSemantics { }) {
         val step = size.width / bars.size
-        // In pixels, so the cap has to be converted: a bare 3.5f is a hairline on a dense screen
+        // In pixels, so the cap has to be converted: a bare 2f is a hairline on a dense screen
         // and a fat bar on a cheap one.
         val thickness = (step * BAR_SHARE).coerceAtMost(MAX_BAR.dp.toPx())
         bars.forEachIndexed { index, level ->
@@ -149,14 +168,11 @@ internal fun Waveform(
 
 /** A covered tile: a once-only photo, one that has gone, or one that would not load. */
 @Composable
-private fun Plate(icon: ImageVector, words: String, onClick: (() -> Unit)?) {
+private fun Plate(tile: Modifier, icon: ImageVector, words: String, onClick: (() -> Unit)?) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm),
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(PLATE)
-            .clip(MaterialTheme.shapes.medium)
+        modifier = tile
             // Lowest, not highest: surfaceContainerHighest is the same colour as the bubble this
             // sits on, so a plate drawn in it is invisible — which is how the first draft looked.
             .background(MaterialTheme.colorScheme.surfaceContainerLowest)
@@ -182,7 +198,7 @@ private fun Plate(icon: ImageVector, words: String, onClick: (() -> Unit)?) {
 
 /** A photo on its way: the shape it will be, breathing, rather than a spinner on a grey box. */
 @Composable
-private fun Shimmer(shape: Shape) {
+private fun Shimmer(tile: Modifier) {
     val alpha = if (AfterhoursTheme.reduceMotion) {
         DIM
     } else {
@@ -193,13 +209,7 @@ private fun Shimmer(shape: Shape) {
             label = "shimmer",
         ).value
     }
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(PLATE)
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = alpha)),
-    )
+    Box(modifier = tile.background(MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = alpha)))
 }
 
 /** A corner nudged in on the side a bubble is on, so a run of them points at whoever said it. */
@@ -239,7 +249,6 @@ private const val DIGITS = 2
 private const val FLAT = 12
 private const val BAR_SHARE = 0.45f
 private const val MAX_BAR = 2
-private const val PLATE = 4f / 3f
 private const val DIM = 0.35f
 private const val BRIGHT = 0.7f
 private const val SHIMMER_MS = 900

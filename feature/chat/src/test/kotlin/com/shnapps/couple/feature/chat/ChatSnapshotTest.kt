@@ -5,6 +5,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -133,6 +135,41 @@ class ChatSnapshotTest {
     }
 
     @Test
+    fun somethingOnItsWayUp() {
+        val state = ChatUiState(
+            open = true,
+            paired = true,
+            messages = listOf(said("m1", mine = false, text = "send me one", at = at(21, 2))),
+            outgoing = listOf(
+                Outgoing(id = "going_1", kind = MediaKind.PHOTO, text = "here", seconds = null, levels = emptyList()),
+                Outgoing(id = "going_2", kind = MediaKind.VOICE, text = null, seconds = 7, levels = WAVE),
+            ),
+            shown = mapOf("going_1" to Shown.Photo(swatch())),
+        )
+
+        capture("chat-sending") { ChatContent(state, ChatActions()) }
+
+        // The upload is the slow part. Before this, a tap on send looked like a tap on nothing.
+        composeRule.onAllNodesWithText("Sending…").onFirst().assertIsDisplayed()
+    }
+
+    @Test
+    fun aPhotoIsTheSameSizeWhateverShapeItIs() {
+        val state = ChatUiState(
+            open = true,
+            paired = true,
+            messages = listOf(photo("m1", mine = false, text = null), photo("m2", mine = true, text = null)),
+            shown = mapOf(
+                // A panorama and a portrait: both bubbles come out the same.
+                "media_m1" to Shown.Photo(swatch(WIDE_PHOTO, SHORT_PHOTO)),
+                "media_m2" to Shown.Photo(swatch(SHORT_PHOTO, WIDE_PHOTO)),
+            ),
+        )
+
+        capture("chat-photo-sizes") { ChatContent(state, ChatActions()) }
+    }
+
+    @Test
     fun recording() {
         val state = ChatUiState(
             open = true,
@@ -194,8 +231,11 @@ class ChatSnapshotTest {
     }
 
     /** A plain bitmap: this is about layout, not about what the photo is of. */
-    private fun swatch(): androidx.compose.ui.graphics.ImageBitmap =
-        Bitmap.createBitmap(SWATCH_WIDE, SWATCH_TALL, Bitmap.Config.ARGB_8888).asImageBitmap()
+    private fun swatch(
+        wide: Int = SWATCH_WIDE,
+        tall: Int = SWATCH_TALL,
+    ): androidx.compose.ui.graphics.ImageBitmap =
+        Bitmap.createBitmap(wide, tall, Bitmap.Config.ARGB_8888).asImageBitmap()
 
     private fun at(hour: Int, minute: Int): Long = LocalDateTime
         .of(2026, 10, 8, hour, minute)
@@ -257,6 +297,8 @@ class ChatSnapshotTest {
         const val SWATCH_WIDE = 480
         const val SWATCH_TALL = 320
         const val BIG_TYPE = 2f
+        const val WIDE_PHOTO = 1_200
+        const val SHORT_PHOTO = 400
 
         /** A plausible waveform rather than a flat line, so the golden shows the real thing. */
         val WAVE = List(40) { index -> 20 + (index * 7) % 70 }

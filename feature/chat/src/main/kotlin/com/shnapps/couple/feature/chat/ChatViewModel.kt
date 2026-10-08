@@ -19,10 +19,20 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
+import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 
 /** Why something could not be sent. Never a reason to lose what was typed. */
 enum class ChatError { OFFLINE, MIC_REFUSED, OTHER }
+
+/** Something this phone is uploading: not a message yet, and drawn as though it nearly is. */
+data class Outgoing(
+    val id: String,
+    val kind: MediaKind,
+    val text: String?,
+    val seconds: Int?,
+    val levels: List<Int>,
+)
 
 /** Immutable screen state (BUILD_PROMPT.md §4.1; enforced by :architecture). */
 data class ChatUiState(
@@ -36,6 +46,14 @@ data class ChatUiState(
     val draft: String = "",
     /** A voice note being recorded right now, with how long and how loud. */
     val recording: Recording? = null,
+    /**
+     * Media going up right now, before any message points at it.
+     *
+     * It is drawn as a bubble of its own at the end of the conversation, because an upload takes
+     * seconds and a photo that disappears into a tapped button for that long looks like one that
+     * did not send.
+     */
+    val outgoing: List<Outgoing> = emptyList(),
     /** The note playing, and how far through it. */
     val playing: Playing? = null,
     /** What this phone has fetched, by media id. Absent means not fetched — see [ChatMedia]. */
@@ -145,7 +163,13 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch { report(chat.say(words)) }
     }
 
-    /** A photo or a voice note, with whatever was typed beside it. */
+    /**
+     * A photo or a voice note, with whatever was typed beside it.
+     *
+     * It appears on the screen before it leaves the phone. The upload is the slow part — seconds
+     * on a bad connection — and until it finishes there is no message and nothing to draw, so the
+     * tap looked like it had done nothing at all.
+     */
     fun send(
         kind: MediaKind,
         file: File,
@@ -154,13 +178,25 @@ class ChatViewModel @Inject constructor(
         levels: List<Int> = emptyList(),
     ) {
         val note = local.value.draft.trim().takeIf { it.isNotEmpty() }
-        local.update { it.copy(draft = "", sending = true, error = null) }
+        val going = Outgoing(
+            id = "going_${uploads.incrementAndGet()}",
+            kind = kind,
+            text = note,
+            seconds = seconds,
+            levels = levels,
+        )
+        local.update {
+            it.copy(draft = "", sending = true, error = null, outgoing = it.outgoing + going)
+        }
+        // Decoded beside the upload rather than before it, so the bytes start moving at once.
+        viewModelScope.launch { if (kind == MediaKind.PHOTO) media.preview(going.id, file) }
         viewModelScope.launch {
             val result = chat.send(kind, file, note, burnAfterView, seconds, levels)
             // Our own: already on this phone, so it draws without a round trip — and without
             // spending a read on a photo we took ourselves.
             if (result is Outcome.Success) media.keep(result.value, file)
-            local.update { it.copy(sending = false) }
+            media.forget(going.id)
+            local.update { it.copy(sending = false, outgoing = it.outgoing - going) }
             report(result.map { })
         }
     }
@@ -249,6 +285,9 @@ class ChatViewModel @Inject constructor(
         val why = if (result.error is AppError.Network) ChatError.OFFLINE else ChatError.OTHER
         local.update { it.copy(error = why) }
     }
+
+    /** Tells one upload from the next while neither has a message id yet. */
+    private val uploads = AtomicInteger()
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L

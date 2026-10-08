@@ -14,6 +14,7 @@ import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionState
 import com.shnapps.couple.core.testing.FakeNightRepository
 import com.shnapps.couple.core.testing.MainDispatcherRule
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -148,6 +149,42 @@ class ChatViewModelTest {
         assertThat(vm.uiState.value.draft).isEmpty()
         // Already on this phone: drawing it must not spend a read, and must not go near open().
         assertThat(media.kept.keys).containsExactly("media_1")
+    }
+
+    @Test
+    fun `media on its way up is on the screen before it leaves the phone`() = test {
+        chat.conversation.value = Chat(paired = true)
+        val vm = screen()
+        chat.hold = true
+
+        act { vm.send(MediaKind.PHOTO, File("proof.jpg")) }
+
+        // The upload is the slow part, and until it finishes there is no message to draw. Without
+        // this the tap looks like it did nothing at all.
+        val going = vm.uiState.value.outgoing.single()
+        assertThat(going.kind).isEqualTo(MediaKind.PHOTO)
+        assertThat(media.previewed).containsExactly(going.id)
+
+        act { chat.release() }
+
+        assertThat(vm.uiState.value.outgoing).isEmpty()
+        assertThat(vm.uiState.value.shown).doesNotContainKey(going.id)
+    }
+
+    @Test
+    fun `a voice note on its way up carries the waveform it will be drawn with`() = test {
+        chat.conversation.value = Chat(paired = true)
+        val vm = screen()
+        chat.hold = true
+
+        act { vm.record(granted = true) }
+        act(vm::finishRecording)
+
+        val going = vm.uiState.value.outgoing.single()
+        assertThat(going.seconds).isEqualTo(7)
+        assertThat(going.levels).hasSize(40)
+        // Nothing to decode: the bars came from the recording, not from the file.
+        assertThat(media.previewed).isEmpty()
     }
 
     @Test
@@ -388,6 +425,15 @@ class ChatViewModelTest {
             return Outcome.Success(Unit)
         }
 
+        /** Keeps a send suspended, the way a real upload does, so the screen can be looked at. */
+        var hold = false
+        private var waiting: CompletableDeferred<Unit>? = null
+
+        fun release() {
+            waiting?.complete(Unit)
+            waiting = null
+        }
+
         override suspend fun send(
             kind: MediaKind,
             file: File,
@@ -396,6 +442,11 @@ class ChatViewModelTest {
             seconds: Int?,
             levels: List<Int>,
         ): Outcome<String> {
+            if (hold) {
+                val gate = CompletableDeferred<Unit>()
+                waiting = gate
+                gate.await()
+            }
             sent += kind to text
             lastSeconds = seconds
             lastLevels = levels

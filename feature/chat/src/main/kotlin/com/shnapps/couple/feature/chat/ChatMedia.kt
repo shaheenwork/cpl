@@ -73,6 +73,17 @@ interface ChatMedia {
      */
     suspend fun look(record: MessageMedia)
 
+    /**
+     * Decodes a file this phone is about to send, under [key], so it can be shown while it goes up.
+     *
+     * An upload takes seconds on a bad connection, and a photo that vanishes into a tapped button
+     * for that long looks like a photo that did not send.
+     */
+    suspend fun preview(key: String, file: File)
+
+    /** Drops one preview: its upload finished, or failed. */
+    fun forget(key: String)
+
     /** Everything decoded is dropped: the chat closed, or the account did. */
     fun clear()
 }
@@ -129,6 +140,17 @@ class DefaultChatMedia @Inject constructor(
         }
         if (result is Shown.Photo) remember(record.id)
         state.update { it + (record.id to result) }
+    }
+
+    override suspend fun preview(key: String, file: File) {
+        state.update { it + (key to Shown.Loading) }
+        val drawn = decode(file)?.let(Shown::Photo) ?: Shown.Failed
+        state.update { it + (key to drawn) }
+    }
+
+    override fun forget(key: String) {
+        decoded.remove(key)
+        state.update { it - key }
     }
 
     override fun clear() {

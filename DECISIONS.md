@@ -2738,3 +2738,35 @@ permission, and declaring one the app does not use would only mean asking for it
 notified again, so a photo sent in the chat pushed twice. `confirmMedia` now takes `quiet`, which
 `ChatRepository.send` passes: the message is what tells them, and the chat's own trigger is already
 rate-limited.
+
+---
+
+## D-140 — A bubble is as wide as what is in it; a photo never is
+
+Three faults found on the device, all of them in the same place: a conversation is a column of
+things of different sizes, and the first draft got every one of those sizes from the wrong place.
+
+**`fillMaxWidth(0.82f)` is not "at most 82%".** It is *exactly* 82%, so "ok" and a paragraph drew
+the same banner and the column read as a form. The list now measures once —
+`BoxWithConstraints` around the `LazyColumn` — and hands every bubble a `widthIn(max = …)` while
+the bubble wraps its content. One measurement for the list, not one per row.
+
+**A photo tile is a fixed shape, and the photo is cropped into it.** `aspectRatio` taken from the
+decoded image made a portrait into a tall column and a panorama into a sliver, which is the ragged
+look the device check complained about. Every photo is now `wide × PHOTO_RATIO`; tapping one shows
+the whole thing, so nothing is lost by cropping the tile.
+
+**The padding belongs to the text, not to the bubble.** With it on the bubble, a photo floated in a
+frame of the bubble's own colour. Now the words carry their own padding and a photo sits flush to
+the bubble's edges, clipped by the bubble's corners.
+
+Two more spacing calls, both about telling a run from a new one: the gap inside a run is `xxs` and
+between runs `item`, and the timestamp moved **outside** the bubble, under the last of its run. A
+bubble now holds only what was said, which is why they got shorter as well as narrower.
+
+**And sending shows.** Media is uploaded before the message that points at it exists (D-083), so
+for the whole of the slow part there was no message, nothing on the screen, and a tap on send that
+looked like a tap on nothing. `ChatUiState.outgoing` holds what is going up and draws it as a
+dimmed bubble at the end of the conversation — the photo itself, decoded from the local file by
+`ChatMedia.preview` beside the upload rather than before it, or the waveform the recording already
+produced. It disappears as the real message arrives.

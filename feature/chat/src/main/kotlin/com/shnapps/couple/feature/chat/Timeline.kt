@@ -24,6 +24,14 @@ internal sealed interface Entry {
      * a row read as five separate interruptions rather than one person talking.
      */
     data class Bubble(val message: Message, val first: Boolean, val last: Boolean) : Entry
+
+    /**
+     * Media this phone is uploading. Not a message yet, and drawn at the end of the conversation.
+     *
+     * It is not part of [Timeline.of], because it is not part of what was said — it is what this
+     * phone is in the middle of doing.
+     */
+    data class Sending(val outgoing: Outgoing) : Entry
 }
 
 /**
@@ -87,3 +95,21 @@ internal object Timeline {
     /** "14 November" — no year, because a conversation nobody has scrolled that far back in. */
     private val DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM")
 }
+
+/**
+ * The maximum a bubble may be: wide enough to read, narrow enough that the side it is on is
+ * obvious at a glance.
+ *
+ * A *maximum*, not a width. Every bubble being the same width is how the first draft looked, and
+ * it made "ok" read as an announcement.
+ */
+internal const val BUBBLE_SHARE = 0.78f
+
+/**
+ * A photo's shape in the conversation, whatever shape the photo is.
+ *
+ * Uniform on purpose: a tall photo making a tall bubble and a wide one making a short one turns a
+ * conversation into a ragged column. The photo is cropped to fit, and tapping it shows the whole
+ * thing.
+ */
+internal const val PHOTO_RATIO = 4f / 3f
