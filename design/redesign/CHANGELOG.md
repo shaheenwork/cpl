@@ -2,7 +2,26 @@
 
 What the redesign changes, what it keeps, and what it changes about behaviour. The prototype is
 `afterhours-redesign.html`. The behaviour below is **in the app** (phase 1, DECISIONS.md D-143 and
-D-144); the visual changes are the prototype's until phase 2 ports them.
+D-144), and so is the foundation of the look (phase 2, D-145) — see *Ported so far* for exactly
+which parts; everything else under *What changed visually* is still the prototype's.
+
+## Ported so far
+
+| Part | In the app | Notes |
+|---|---|---|
+| Palette, colour scheme, tier colours | Yes — `theme/Color.kt`, `theme/ColorScheme.kt` | Velvets lifted a step, Extreme's fill lifted to `#BA1530`, `outline` kept at 3:1 (D-145) |
+| The room: key light in tonight's heat, wine bounces, silk, grain | Yes — `theme/Scene.kt`, `LightTheRoom` | Calm after Stop and on screens with no scaffold |
+| Buttons: sheen and rim ring, velvet secondary | Yes — `GlowButton` | |
+| Heat picker: flame cells, heat bar, hint | Yes — `TierPicker` | Names drop at large type, flames keep the height |
+| Heat chip and sheets | Yes (phase 1) | |
+| Face-down card and sigil | Yes (phase 1) — `TurnOverCard` | |
+| Store packs in their own heat, with flames | Yes | |
+| Eyebrow and the italic tease | Yes — `EyebrowTextStyle`, `TeaseTextStyle` | Card title and body keep the app's sizes |
+| Home as a grid with game glyphs, the sliding Together/Apart thumb, the pairing strip | Not yet | |
+| The watching phone's large initial | Not yet | |
+| The wax seal mark, pairing tiles, the card face's tease line and moods | Not yet | |
+| Copy changes in the table below | Not yet | |
+| The Extreme gate's lock | Never — the gate is gone (D-144) | |
 
 ## Behaviour changes
 

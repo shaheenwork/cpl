@@ -82,6 +82,7 @@ internal fun GameNightContent(
         val playing = state.night != null && !state.finished && !state.stopped
 
         ScreenScaffold(
+            calm = state.stopped,
             title = if (playing) "Game Night" else null,
             onBack = onBack,
             backLabel = "Leave the evening",

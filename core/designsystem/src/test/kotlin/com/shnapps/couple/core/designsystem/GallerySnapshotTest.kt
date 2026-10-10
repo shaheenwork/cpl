@@ -16,6 +16,8 @@ import com.shnapps.couple.core.designsystem.gallery.AnticipationSpecimen
 import com.shnapps.couple.core.designsystem.gallery.ButtonsSpecimen
 import com.shnapps.couple.core.designsystem.gallery.CardsSpecimen
 import com.shnapps.couple.core.designsystem.gallery.EmptySpecimen
+import com.shnapps.couple.core.designsystem.gallery.FaceDownSpecimen
+import com.shnapps.couple.core.designsystem.gallery.HeatSpecimen
 import com.shnapps.couple.core.designsystem.gallery.IconSpecimen
 import com.shnapps.couple.core.designsystem.gallery.LightSpecimen
 import com.shnapps.couple.core.designsystem.gallery.MeasureSpecimen
@@ -89,6 +91,10 @@ class GallerySnapshotTest {
     @Test fun voice() = capture("voice") { VoiceSpecimen() }
 
     @Test fun safety() = capture("safety") { SafetySpecimen() }
+
+    @Test fun heat() = capture("heat") { HeatSpecimen() }
+
+    @Test fun faceDown() = capture("face-down") { FaceDownSpecimen() }
 
     @Test fun empty() = capture("empty") { EmptySpecimen() }
 

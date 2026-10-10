@@ -127,6 +127,7 @@ internal fun InstantPlayContent(state: InstantPlayUiState, actions: DeckActions)
     ProvideTier(state.tier) {
         Box(modifier = Modifier.fillMaxSize()) {
             ScreenScaffold(
+                calm = state.stopped,
                 title = if (state.playing) "Tonight" else null,
                 onBack = actions.onBack,
                 trailing = if (state.showsTierPicker) {

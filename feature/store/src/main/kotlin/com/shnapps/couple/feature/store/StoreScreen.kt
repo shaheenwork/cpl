@@ -8,15 +8,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.CinematicCard
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
+import com.shnapps.couple.core.designsystem.component.HeatFlames
 import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
+import com.shnapps.couple.core.designsystem.theme.ProvideTier
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.ui.ErrorBanner
 import com.shnapps.couple.core.ui.FreeRunBanner
@@ -120,24 +123,33 @@ private fun PackCard(
     freeForNow: Boolean,
     onBuy: () -> Unit,
 ) {
-    // Lit only for the pack they came here for. Three glowing cards is a smear, and a store that
+    // Each pack in its own heat, so what a couple is buying is the colour it will light the room.
+    // Lit only for the pack they came here for: three glowing cards is a smear, and a store that
     // leans on one of them is the "most popular" badge the brief rules out.
+    ProvideTier(pack.level) { PackCardBody(pack, asked, busy, freeForNow, onBuy) }
+}
+
+@Composable
+private fun PackCardBody(
+    pack: StoreUiState.Pack,
+    asked: Boolean,
+    busy: Boolean,
+    freeForNow: Boolean,
+    onBuy: () -> Unit,
+) {
     CinematicCard(modifier = Modifier.fillMaxWidth(), glowing = asked) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = pack.level.label.uppercase(),
                 style = EyebrowTextStyle,
-                color = AfterhoursTheme.colors.brass,
+                color = AfterhoursTheme.tier.onDark,
                 modifier = Modifier.weight(1f),
             )
-            Text(
-                text = pack.level.dots,
-                style = MaterialTheme.typography.labelSmall,
-                color = AfterhoursTheme.colors.textMuted,
-            )
+            HeatFlames(count = pack.level.ordinal + 1)
         }
         Text(
             text = contents(pack.level),

@@ -2862,3 +2862,50 @@ removed: the paired session's "I'm in" on each phone (D-061), which is the serve
 separate people agreed, and nothing on one phone can stand in for it. Stop, Too far, the limits
 profile and aftercare after Hot and Extreme are all unchanged, and a pack still opens only the levels
 it pays for (D-135).
+
+## D-145 — After dark: the palette, the room's light, and the heat as flames
+
+The second half of the redesign port is paint, and it is almost all values. `design/redesign/
+tokens.json` was shaped like the Compose theme on purpose, so the port is `Palette`, the colour
+scheme, `AfterhoursColors` and `tierColors` taking new values, not a rewrite of a single screen.
+
+**The palette.** Near-black with red in it (`#0A0508`), four velvets above it, wine for the bounce
+light, ember and flame for the app's own heat, gold as the one metal, and blush for every word. The
+five tiers run cool to hot — lavender, orchid, rose, scarlet, and a red so deep its rim is the flame
+— each a different hue, so a person can tell them apart at a glance.
+
+Three values moved from the prototype, each because a test the app already had said so:
+
+- **The velvets were lifted.** `ContrastTest` holds that each ground is a visible luminance step
+  above the last; the prototype's steps were 0.0019 and 0.0023, under the 0.003 a person can see on
+  an OLED at low brightness. They keep their hue and gain about two steps of value each.
+- **Extreme's fill went from `#B3122E` to `#BA1530`.** At 2.93:1 on the room it was a filled button
+  a thumb could not find; the non-text threshold is 3:1.
+- **`outline` is not the hairline.** The hairline measures 1.7:1 and is right for edges that should
+  barely register; a field's border has to be seen, so `outline` is its own 3.8:1 tone.
+
+**The room is lit in tonight's heat.** `Modifier.scene()` used to light every screen the same
+burgundy. The key light is now overhead and takes the tier of whatever screen is up: `ScreenScaffold`
+calls `LightTheRoom(tier.accent)`, the newest caller wins, and the light falls back as callers leave.
+It is a claim list rather than a single value because two screens are composed at once during a
+navigation transition. After Stop the scaffold passes `calm = true` and the light has no heat in it at
+all. Screens with no scaffold — the lock screen, pairing, onboarding — are always calm, which is right
+for every one of them. The colour is animated in the draw phase, so a change of heat redraws the room
+without recomposing what is on it.
+
+**The heat as flames.** `TierPicker` is five cells of `HeatFlames` and a name, a bar under them that
+runs cool to hot with an ember on tonight, and a line in the display face's italic saying what that
+level means. The flames do not grow with the type; at large type the cells drop their names and keep
+their height, and the chosen level is named once under the bar — the property the dots had that made
+them survive 200 % type, which `InstantAccessibilityTest` holds. Each cell's description is "Level 3 of 5, Spicy", so the count is
+never colour alone. The store's packs take their own tier, so a pack is shown in the colour it would
+light the room.
+
+**Buttons.** A primary button has a sheen where the light catches its top edge and a ring in the
+tier's rim; a secondary one is velvet rather than a bare outline. Both are `Modifier` work inside
+`GlowButton`, so no screen changed to get them.
+
+Kept on purpose: the type scale (only the eyebrow and a new `TeaseTextStyle` changed — the card body
+stays at 19/30, larger than the prototype's 17/27, because it is the one thing a couple reads), the
+spacing, the shapes, and Inter (§6.5). Playfair's italic is synthesised; bundling the real italic is
+a font download, left for when someone asks for it.

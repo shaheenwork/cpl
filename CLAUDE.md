@@ -353,6 +353,10 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
 
 - Reach tokens through `AfterhoursTheme.colors / .spacing / .motion / .elevations`, and
   Material slots through `MaterialTheme`. Never hardcode a colour, a dp or a duration.
+- The values come from `design/redesign/tokens.json` (D-145); change a colour there and in
+  `theme/Color.kt` together, and `ContrastTest` decides whether it may ship.
+- **The room is lit in tonight's heat.** `ScreenScaffold` calls `LightTheRoom(tier.accent)`; pass
+  `calm = true` after Stop. A screen never draws its own background or its own key light.
 - **Dark only.** `AfterhoursTheme` takes no `darkTheme` flag and ignores the system
   setting (DECISIONS.md D-009).
 - Decorative movement goes through `decorativeTween(..., reduceMotion)` so it collapses

@@ -2,6 +2,8 @@ package com.shnapps.couple.core.designsystem.component
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -20,8 +22,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -38,10 +45,10 @@ import com.shnapps.couple.core.designsystem.theme.decorativeTween
  * the test, because a person deciding at eleven at night reads weight before they read
  * colour.
  *
- *  - **Primary** takes the heat's fill. One per screen. It blooms, which is why the rule
- *    about one per screen matters: two bloomed buttons is a lit row, and a lit row is a
- *    smear.
- *  - **Secondary** is a rim and a label. No fill until it is pressed.
+ *  - **Primary** takes the heat's fill, with a sheen across its top and a ring in the heat's rim
+ *    (D-145). One per screen. It blooms, which is why the rule about one per screen matters: two
+ *    bloomed buttons is a lit row, and a lit row is a smear.
+ *  - **Secondary** is velvet: a fill a step above the room, its rim, and a label.
  *  - **Quiet** is a label.
  *
  * Press is a scale of [PRESSED_SCALE] and a brighter fill — never a bigger halo, which is
@@ -118,40 +125,41 @@ fun GlowButton(
     val sized = modifier
         .scale(press)
         .heightIn(min = spacing.touchTarget)
+    val shape = MaterialTheme.shapes.medium
 
     when (style) {
         GlowButtonStyle.Primary -> Button(
             onClick = click,
             modifier = sized
-                .then(
-                    if (enabled) {
-                        Modifier.bloom(
-                            color = tier.rim,
-                            cornerRadius = BUTTON_CORNER,
-                            spread = BLOOM_SPREAD,
-                        )
-                    } else {
-                        Modifier
-                    },
-                )
+                .lit(enabled = enabled, fill = fill, shape = shape)
                 .heightIn(min = PRIMARY_HEIGHT),
             enabled = enabled,
             interactionSource = interactionSource,
-            shape = MaterialTheme.shapes.medium,
+            shape = shape,
             colors = ButtonDefaults.buttonColors(
-                containerColor = fill,
+                containerColor = Color.Transparent,
                 contentColor = tier.onAccent,
-                disabledContainerColor = fill,
+                disabledContainerColor = Color.Transparent,
                 disabledContentColor = tier.onAccent.copy(alpha = DISABLED_LABEL),
             ),
         ) { label() }
 
         GlowButtonStyle.Secondary -> Button(
             onClick = click,
-            modifier = sized.rim(MaterialTheme.shapes.medium),
+            modifier = sized
+                .clip(shape)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.surfaceContainerHighest,
+                            MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ),
+                    ),
+                )
+                .rim(shape),
             enabled = enabled,
             interactionSource = interactionSource,
-            shape = MaterialTheme.shapes.medium,
+            shape = shape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = if (pressed) {
                     MaterialTheme.colorScheme.onSurface.copy(alpha = SECONDARY_PRESSED)
@@ -177,6 +185,31 @@ fun GlowButton(
     }
 }
 
+/**
+ * A primary button's surface: its bloom, the heat's fill, a sheen where the light catches its top
+ * edge, and a ring in the heat's rim — what makes a filled button an object rather than a patch.
+ * Disabled, it is the fill alone: nothing about a button that does nothing should glow.
+ */
+@Composable
+private fun Modifier.lit(enabled: Boolean, fill: Color, shape: Shape): Modifier {
+    val tier = AfterhoursTheme.tier
+    val sheen = MaterialTheme.colorScheme.onBackground
+    if (!enabled) return clip(shape).background(fill)
+    return bloom(color = tier.rim, cornerRadius = BUTTON_CORNER, spread = BLOOM_SPREAD)
+        .clip(shape)
+        .background(fill)
+        .drawBehind {
+            drawRect(
+                brush = Brush.radialGradient(
+                    colors = listOf(sheen.copy(alpha = SHEEN), sheen.copy(alpha = 0f)),
+                    center = Offset(size.width / 2f, 0f),
+                    radius = size.width * SHEEN_REACH,
+                ),
+            )
+        }
+        .border(AfterhoursTheme.spacing.hairline, tier.rim.copy(alpha = RING), shape)
+}
+
 private val ICON = 18.dp
 private val PRIMARY_HEIGHT = 52.dp
 private val BUTTON_CORNER = 16.dp
@@ -188,3 +221,8 @@ private const val PRESSED_FILL = 0.86f
 private const val DISABLED_FILL = 0.30f
 private const val DISABLED_LABEL = 0.55f
 private const val SECONDARY_PRESSED = 0.06f
+
+/** The sheen across a primary button's top, how far it reaches, and its ring in the heat's rim. */
+private const val SHEEN = 0.22f
+private const val SHEEN_REACH = 0.7f
+private const val RING = 0.4f

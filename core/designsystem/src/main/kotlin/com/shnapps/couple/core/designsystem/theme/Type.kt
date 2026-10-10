@@ -5,6 +5,7 @@ import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
@@ -173,11 +174,26 @@ val AfterhoursTypography = Typography(
  */
 val EyebrowTextStyle = TextStyle(
     fontFamily = BodyFontFamily,
-    fontWeight = FontWeight.Medium,
-    fontSize = 11.sp,
-    lineHeight = 14.sp,
-    letterSpacing = 2.4.sp,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 12.sp,
+    lineHeight = 16.sp,
+    letterSpacing = 2.2.sp,
     fontFeatureSettings = CAPS_PUNCTUATION,
+)
+
+/**
+ * The tease: a line in the display face, in italic, said under its breath (D-145).
+ *
+ * For what a level means, an invitation on the back of a card, a caption that is meant to be
+ * read in a voice. Never for an instruction — something a person has to *do* is set upright.
+ */
+val TeaseTextStyle = TextStyle(
+    fontFamily = DisplayFontFamily,
+    fontWeight = FontWeight.Normal,
+    fontStyle = FontStyle.Italic,
+    fontSize = 18.sp,
+    lineHeight = 26.sp,
+    letterSpacing = 0.sp,
 )
 
 /**

@@ -122,6 +122,7 @@ internal fun DealtGameContent(
     ProvideTier(state.tier) {
         Box(modifier = Modifier.fillMaxSize()) {
             ScreenScaffold(
+                calm = state.stopped,
                 title = state.title.takeIf { it.isNotEmpty() && playing && !state.askingNames },
                 onBack = onBack,
                 backLabel = "Leave the game",

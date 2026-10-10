@@ -4,54 +4,53 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
 
 /**
- * Material 3 is the substrate, fully re-themed (BUILD_PROMPT.md §15.1).
+ * Material 3 is the substrate, fully re-themed (BUILD_PROMPT.md §15.1, D-145).
  *
- * Dark-only on purpose. A light scheme is not offered: the product is a private room
- * after dark, and a light mode would be a different product. `AfterhoursTheme` therefore
- * ignores the system light/dark setting rather than half-supporting it.
+ * Dark-only on purpose. A light scheme is not offered: the product is a private room after dark,
+ * and a light mode would be a different product. `AfterhoursTheme` therefore ignores the system
+ * light/dark setting rather than half-supporting it.
  */
 internal fun afterhoursColorScheme(): ColorScheme = darkColorScheme(
-    primary = Palette.Burgundy,
-    onPrimary = Palette.Scene,
-    primaryContainer = Palette.BurgundyContainer,
-    onPrimaryContainer = Palette.OnBurgundyContainer,
+    primary = Palette.Ember,
+    onPrimary = Palette.Base,
+    primaryContainer = Palette.Wine,
+    onPrimaryContainer = Palette.Blush,
 
-    secondary = Palette.Plum,
-    onSecondary = Palette.Scene,
-    secondaryContainer = Palette.PlumContainer,
-    onSecondaryContainer = Palette.OnPlumContainer,
+    secondary = Palette.Flame,
+    onSecondary = Palette.Base,
+    secondaryContainer = Palette.WineDeep,
+    onSecondaryContainer = Palette.Blush,
 
-    tertiary = Palette.Brass,
-    onTertiary = Palette.Scene,
-    tertiaryContainer = Palette.BrassContainer,
-    onTertiaryContainer = Palette.OnBrassContainer,
+    tertiary = Palette.Gold,
+    onTertiary = Palette.Base,
+    tertiaryContainer = Palette.GoldContainer,
+    onTertiaryContainer = Palette.OnGoldContainer,
 
-    background = Palette.Scene,
-    onBackground = Palette.Cream,
+    background = Palette.Base,
+    onBackground = Palette.Blush,
 
-    surface = Palette.Scene,
-    onSurface = Palette.Cream,
-    surfaceVariant = Palette.Raised,
-    onSurfaceVariant = Palette.CreamMuted,
+    surface = Palette.Base,
+    onSurface = Palette.Blush,
+    surfaceVariant = Palette.Velvet1,
+    onSurfaceVariant = Palette.BlushMuted,
 
-    // Three grounds, not five (DESIGN_PROMPT.md §4.2). Material has five slots; they map
-    // onto the three a person can actually tell apart, so a component that reaches for
-    // `surfaceContainer` gets the row ground and one that reaches for `High` gets the card.
-    surfaceContainerLowest = Palette.Scene,
-    surfaceContainerLow = Palette.Raised,
-    surfaceContainer = Palette.Raised,
-    surfaceContainerHigh = Palette.Card,
-    surfaceContainerHighest = Palette.Card,
+    // Four grounds over Material's five slots. A component that reaches for `surfaceContainer`
+    // gets the row ground, `High` gets the card, and `Highest` is something set on a card.
+    surfaceContainerLowest = Palette.Base,
+    surfaceContainerLow = Palette.Velvet1,
+    surfaceContainer = Palette.Velvet1,
+    surfaceContainerHigh = Palette.Velvet2,
+    surfaceContainerHighest = Palette.Velvet3,
 
-    inverseSurface = Palette.Cream,
-    inverseOnSurface = Palette.Scene,
-    inversePrimary = Palette.BurgundyDeep,
+    inverseSurface = Palette.Blush,
+    inverseOnSurface = Palette.Base,
+    inversePrimary = Palette.Wine,
 
     outline = Palette.Outline,
-    outlineVariant = Palette.OutlineFaint,
+    outlineVariant = Palette.HairlineFaint,
 
     error = Palette.Signal,
-    onError = Palette.Scene,
+    onError = Palette.Base,
     errorContainer = Palette.SignalContainer,
     onErrorContainer = Palette.OnSignalContainer,
 

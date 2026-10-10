@@ -2,6 +2,7 @@ package com.shnapps.couple.core.designsystem.gallery
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -25,19 +26,24 @@ import com.shnapps.couple.core.designsystem.component.DurationPicker
 import com.shnapps.couple.core.designsystem.component.EmptyState
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
+import com.shnapps.couple.core.designsystem.component.HeatFlames
 import com.shnapps.couple.core.designsystem.component.IntensityDial
 import com.shnapps.couple.core.designsystem.component.LockedCard
 import com.shnapps.couple.core.designsystem.component.MoodChipRow
 import com.shnapps.couple.core.designsystem.component.PreferenceSwipeCard
+import com.shnapps.couple.core.designsystem.component.RailAction
 import com.shnapps.couple.core.designsystem.component.RevealCard
 import com.shnapps.couple.core.designsystem.component.RevealState
+import com.shnapps.couple.core.designsystem.component.SafetyRail
 import com.shnapps.couple.core.designsystem.component.StopPauseBar
+import com.shnapps.couple.core.designsystem.component.TurnOverCard
 import com.shnapps.couple.core.designsystem.component.VoiceRecorderBar
 import com.shnapps.couple.core.designsystem.component.VoiceState
 import com.shnapps.couple.core.designsystem.component.WaitingForPartner
 import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
+import com.shnapps.couple.core.designsystem.theme.ProvideTier
 import com.shnapps.couple.core.model.BoundaryLevel
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Mood
@@ -81,6 +87,8 @@ fun ComponentGallery(modifier: Modifier = Modifier) {
         item { GallerySection("Waiting and time") { WaitingSpecimen() } }
         item { GallerySection("Voice") { VoiceSpecimen() } }
         item { GallerySection("Safety") { SafetySpecimen() } }
+        item { GallerySection("Heat") { HeatSpecimen() } }
+        item { GallerySection("Face down") { FaceDownSpecimen() } }
         item { GallerySection("Empty") { EmptySpecimen() } }
     }
 }
@@ -250,7 +258,35 @@ internal fun VoiceSpecimen() {
 
 @Composable
 internal fun SafetySpecimen() {
-    StopPauseBar(onPauseToggle = {}, onStop = {})
+    val spacing = AfterhoursTheme.spacing
+    Column(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
+        StopPauseBar(onPauseToggle = {}, onStop = {})
+        // The rail on a card being played: Stop first, then Too far (D-143).
+        SafetyRail(onStop = {}) {
+            RailAction(label = "Too far", icon = AfterhoursIcons.Skip, onClick = {})
+        }
+    }
+}
+
+/** The flames at every level, each in its own tier: the count is the level, the colour the tier. */
+@Composable
+internal fun HeatSpecimen() {
+    val spacing = AfterhoursTheme.spacing
+    Row(horizontalArrangement = Arrangement.spacedBy(spacing.lg)) {
+        Intensity.entries.forEach { tier ->
+            ProvideTier(tier) { HeatFlames(count = tier.ordinal + 1) }
+        }
+    }
+}
+
+/** A card dealt face down, at Hot: velvet, the gold edges, the sigil, and nothing of the card. */
+@Composable
+internal fun FaceDownSpecimen() {
+    ProvideTier(Intensity.HOT) {
+        TurnOverCard(revealed = false, onReveal = {}, label = "Card 03") {
+            Text("Never composed while face down.")
+        }
+    }
 }
 
 @Composable

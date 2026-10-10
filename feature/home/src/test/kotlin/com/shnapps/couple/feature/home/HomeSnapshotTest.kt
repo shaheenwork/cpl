@@ -153,8 +153,8 @@ class HomeSnapshotTest {
         capture("home-locked") { HomeContent(locked, HomeActions()) }
 
         // Locked, not hidden: the ramp is the same length for every couple.
-        composeRule.onNodeWithContentDescription("Spicy, locked").assertExists()
-        composeRule.onNodeWithContentDescription("Extreme, locked").assertExists()
+        composeRule.onNodeWithContentDescription("Level 3 of 5, Spicy, locked").assertExists()
+        composeRule.onNodeWithContentDescription("Level 5 of 5, Extreme, locked").assertExists()
     }
 
     private fun state(company: Company) = HomeUiState(

@@ -33,6 +33,7 @@ import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursEasing
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
+import com.shnapps.couple.core.designsystem.theme.LightTheRoom
 import com.shnapps.couple.core.designsystem.theme.decorativeTween
 
 /**
@@ -75,9 +76,15 @@ fun ScreenScaffold(
      * (D-143). A screen with a rail carries the chat there, so its top bar does not as well.
      */
     rail: (@Composable () -> Unit)? = null,
+    /**
+     * The room's light without heat in it: after Stop, the light goes calm (D-145). Otherwise the
+     * room is lit in whatever tier this screen provides.
+     */
+    calm: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val spacing = AfterhoursTheme.spacing
+    LightTheRoom(if (calm) null else AfterhoursTheme.tier.accent)
     val scroll = rememberScrollState()
     val scrolled by remember { derivedStateOf { scroll.value > 0 } }
     val hairline by animateFloatAsState(

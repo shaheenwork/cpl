@@ -25,49 +25,40 @@ class ContrastTest {
 
     @Test
     fun `body text pairs meet AA`() {
-        assertContrast("onBackground on background", Palette.Cream, Palette.Scene, AA_NORMAL)
-        assertContrast("onSurface on surface", Palette.Cream, Palette.Scene, AA_NORMAL)
+        assertContrast("onBackground on background", Palette.Blush, Palette.Base, AA_NORMAL)
+        assertContrast("onSurface on surface", Palette.Blush, Palette.Base, AA_NORMAL)
         assertContrast(
             "onSurfaceVariant on surfaceVariant",
-            Palette.CreamMuted,
-            Palette.Raised,
+            Palette.BlushMuted,
+            Palette.Velvet1,
             AA_NORMAL,
         )
         // Cream muted has to stay legible on every step of the surface stack, since cards
         // sit on cards.
-        assertContrast("muted on surfaceHighest", Palette.CreamMuted, Palette.Card, AA_NORMAL)
+        assertContrast("muted on surfaceHigh", Palette.BlushMuted, Palette.Velvet2, AA_NORMAL)
+        assertContrast("muted on surfaceHighest", Palette.BlushMuted, Palette.Velvet3, AA_NORMAL)
     }
 
     @Test
     fun `faint text stays readable on every ground`() {
         // textFaint carries hints, timestamps and helper copy. It is allowed to recede,
         // but it is still body text, so it still owes 4.5:1.
-        assertContrast("faint on background", Palette.CreamFaint, Palette.Scene, AA_NORMAL)
-        assertContrast("faint on surfaceHigh", Palette.CreamFaint, Palette.Card, AA_NORMAL)
-        assertContrast("faint on surfaceHighest", Palette.CreamFaint, Palette.Card, AA_NORMAL)
+        assertContrast("faint on background", Palette.BlushFaint, Palette.Base, AA_NORMAL)
+        assertContrast("faint on surfaceHigh", Palette.BlushFaint, Palette.Velvet2, AA_NORMAL)
+        assertContrast("faint on surfaceHighest", Palette.BlushFaint, Palette.Velvet3, AA_NORMAL)
     }
 
     @Test
     fun `accent pairs meet AA`() {
-        assertContrast("onPrimary on primary", Palette.Scene, Palette.Burgundy, AA_NORMAL)
-        assertContrast(
-            "onPrimaryContainer on primaryContainer",
-            Palette.OnBurgundyContainer,
-            Palette.BurgundyContainer,
-            AA_NORMAL,
-        )
-        assertContrast("onSecondary on secondary", Palette.Scene, Palette.Plum, AA_NORMAL)
-        assertContrast(
-            "onSecondaryContainer on secondaryContainer",
-            Palette.OnPlumContainer,
-            Palette.PlumContainer,
-            AA_NORMAL,
-        )
-        assertContrast("onTertiary on tertiary", Palette.Scene, Palette.Brass, AA_NORMAL)
+        assertContrast("onPrimary on primary", Palette.Base, Palette.Ember, AA_NORMAL)
+        assertContrast("onPrimaryContainer on primaryContainer", Palette.Blush, Palette.Wine, AA_NORMAL)
+        assertContrast("onSecondary on secondary", Palette.Base, Palette.Flame, AA_NORMAL)
+        assertContrast("onSecondaryContainer on secondaryContainer", Palette.Blush, Palette.WineDeep, AA_NORMAL)
+        assertContrast("onTertiary on tertiary", Palette.Base, Palette.Gold, AA_NORMAL)
         assertContrast(
             "onTertiaryContainer on tertiaryContainer",
-            Palette.OnBrassContainer,
-            Palette.BrassContainer,
+            Palette.OnGoldContainer,
+            Palette.GoldContainer,
             AA_NORMAL,
         )
     }
@@ -76,47 +67,48 @@ class ContrastTest {
     fun `stop and error signalling meets AA`() {
         // STOP must be unmistakable from every session state (§3.1), so its contrast is
         // not negotiable.
-        assertContrast("onError on error", Palette.Scene, Palette.Signal, AA_NORMAL)
+        assertContrast("onError on error", Palette.Base, Palette.Signal, AA_NORMAL)
         assertContrast(
             "onErrorContainer on errorContainer",
             Palette.OnSignalContainer,
             Palette.SignalContainer,
             AA_NORMAL,
         )
-        assertContrast("error on background", Palette.Signal, Palette.Scene, AA_NORMAL)
+        assertContrast("error on background", Palette.Signal, Palette.Base, AA_NORMAL)
     }
 
     @Test
     fun `accents are distinguishable against the grounds they sit on`() {
-        assertContrast("primary on background", Palette.Burgundy, Palette.Scene, AA_NORMAL)
-        assertContrast("secondary on background", Palette.Plum, Palette.Scene, AA_NORMAL)
-        assertContrast("brass on raised", Palette.Brass, Palette.Raised, AA_LARGE)
+        assertContrast("primary on background", Palette.Ember, Palette.Base, AA_NORMAL)
+        assertContrast("secondary on background", Palette.Flame, Palette.Base, AA_NORMAL)
+        assertContrast("gold on the card", Palette.Gold, Palette.Velvet2, AA_NORMAL)
+        assertContrast("brass on raised", Palette.Gold, Palette.Velvet1, AA_LARGE)
     }
 
     @Test
     fun `outlines meet the non-text threshold`() {
-        assertContrast("outline on background", Palette.Outline, Palette.Scene, AA_LARGE)
-        assertContrast("outline on the card", Palette.Outline, Palette.Card, AA_LARGE)
+        assertContrast("outline on background", Palette.Outline, Palette.Base, AA_LARGE)
+        assertContrast("outline on the card", Palette.Outline, Palette.Velvet2, AA_LARGE)
     }
 
     @Test
     fun `background is never pure black`() {
-        // Pure #000 reads as cheap OLED rather than as a dim room (§15.1).
-        assertThat(Palette.Scene).isNotEqualTo(Color(0xFF000000))
-        assertThat(Palette.Scene.luminance()).isGreaterThan(0.0)
+        // Pure #000 reads as a switched-off screen rather than as a dim room (§15.1).
+        assertThat(Palette.Base).isNotEqualTo(Color(0xFF000000))
+        assertThat(Palette.Base.luminance()).isGreaterThan(0.0)
     }
 
     /**
      * The grounds have to be far enough apart to be *seen* apart (DESIGN_PROMPT.md §4.2).
      *
      * There used to be five, spanning under five percent of luminance in total, which meant
-     * the app had one surface colour and nothing could be told from anything else. Three,
-     * each a clear step up, is what a person can read on an OLED at low brightness with
-     * grain over it.
+     * the app had one surface colour and nothing could be told from anything else. Each of the
+     * four velvets is a clear step up, which is what a person can read on an OLED at low
+     * brightness with grain over it — and why the prototype's velvets were lifted (D-145).
      */
     @Test
-    fun `the three grounds are far enough apart to be seen apart`() {
-        val stack = listOf(Palette.Scene, Palette.Raised, Palette.Card)
+    fun `the grounds are far enough apart to be seen apart`() {
+        val stack = listOf(Palette.Base, Palette.Velvet1, Palette.Velvet2, Palette.Velvet3)
         stack.map { it.luminance() }.zipWithNext().forEach { (lower, higher) ->
             assertWithMessage("each ground must be a visible step above the last")
                 .that(higher - lower)
@@ -128,25 +120,26 @@ class ContrastTest {
      * Every tier, on every ground it is drawn on (§4.4).
      *
      * A heat owns the accent on a card, the label on a filled button and the text inside its
-     * own container. Hot is the one that had to be designed rather than picked: oxblood is
-     * deep enough that dark text fails on it, which is why its filled state takes cream.
+     * own container. Extreme is the one that had to be designed rather than picked: its red is
+     * deep enough that dark text fails on it, which is why its filled state takes blush, and it
+     * was lifted until the fill could be found on the room at all.
      */
     @Test
     fun `every tier is legible on every ground it is drawn on`() {
         Intensity.entries.forEach { tier ->
             val colors = tierColors(tier)
-            assertContrast("${tier.label} text on card", colors.onDark, Palette.Card, AA_NORMAL)
-            assertContrast("${tier.label} text on raised", colors.onDark, Palette.Raised, AA_NORMAL)
+            assertContrast("${tier.label} text on card", colors.onDark, Palette.Velvet2, AA_NORMAL)
+            assertContrast("${tier.label} text on raised", colors.onDark, Palette.Velvet1, AA_NORMAL)
             assertContrast("${tier.label} label on its fill", colors.onAccent, colors.accent, AA_NORMAL)
             assertContrast("${tier.label} in its container", colors.onContainer, colors.container, AA_NORMAL)
-            assertContrast("${tier.label} fill on the scene", colors.accent, Palette.Scene, AA_LARGE)
+            assertContrast("${tier.label} fill on the scene", colors.accent, Palette.Base, AA_LARGE)
         }
     }
 
     /** The scanner's two colours, which do not follow the theme and still have to be read. */
     @Test
     fun `a pairing code is readable by a camera`() {
-        assertContrast("code modules on the plate", Palette.Scene, Palette.Cream, AA_NORMAL)
+        assertContrast("code modules on the plate", Palette.Base, Palette.Blush, AA_NORMAL)
     }
 
     private fun assertContrast(label: String, foreground: Color, background: Color, min: Double) {
