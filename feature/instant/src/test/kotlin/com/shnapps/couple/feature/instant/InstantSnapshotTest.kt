@@ -2,6 +2,8 @@ package com.shnapps.couple.feature.instant
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -53,14 +55,26 @@ class InstantSnapshotTest {
     }
 
     @Test
+    fun `a card arrives face down, and nothing about it is on the screen yet`() {
+        capture("instant-face-down") { play(state(revealed = false)) }
+
+        // Face down means absent: the card's words are not in the tree until it is turned (D-143).
+        composeRule.onNodeWithContentDescription("A card, face down. Tap to reveal it.").assertIsDisplayed()
+        composeRule.onNodeWithText(card.title).assertDoesNotExist()
+        // Nobody can have done a card nobody has read.
+        composeRule.onNodeWithText("Done").assertIsNotEnabled()
+    }
+
+    @Test
     fun `a card, and the three things you can do about it`() {
         capture("instant-card") { play(state()) }
 
-        // Done and Skip dock within thumb reach; "Too far" is a safety control in the bar,
-        // where it cannot be mistaken for a third choice (DESIGN_PROMPT.md §6.2).
+        // Done and Skip dock within thumb reach; Stop and "Too far" are on the safety rail under
+        // them, where a thumb already is and where neither can be mistaken for a third choice.
         composeRule.onNodeWithText("Skip").assertIsDisplayed()
-        composeRule.onNodeWithText("Done").assertIsDisplayed()
+        composeRule.onNodeWithText("Done").assertIsEnabled()
         composeRule.onNodeWithText("Too far").assertIsDisplayed()
+        composeRule.onNodeWithText("Stop").assertIsDisplayed()
     }
 
     @Test
@@ -108,8 +122,9 @@ class InstantSnapshotTest {
         // admit it exists, and hiding it makes the ramp a different length for different couples.
         capture("instant-locked-dial") {
             // Flirty, because that is the only heat such a phone can be playing at: the deck is
-            // clamped to the ceiling, so a locked dial never sits under a Hot card.
-            play(state(access = LevelAccess.FREE).copy(tier = Intensity.FLIRTY))
+            // clamped to the ceiling, so a locked dial never sits under a Hot card. Opened from
+            // the heat chip in the bar, which is where the dial lives now (D-143).
+            play(state(access = LevelAccess.FREE).copy(tier = Intensity.FLIRTY, sheet = DeckSheet.HEAT))
         }
     }
 
@@ -130,16 +145,7 @@ class InstantSnapshotTest {
     private fun play(state: InstantPlayUiState) {
         InstantPlayContent(
             state = state,
-            onBack = {},
-            onDone = {},
-            onSkip = {},
-            onTooFar = {},
-            onRefuse = {},
-            onTurnUp = {},
-            onKeepHeat = {},
-            onTier = {},
-            onToggleTimer = {},
-            onKeepGoing = {},
+            actions = DeckActions(),
         )
     }
 
@@ -156,6 +162,7 @@ class InstantSnapshotTest {
         runComplete: Boolean = false,
         played: Int = 2,
         access: LevelAccess = LevelAccess.OPEN,
+        revealed: Boolean = true,
     ) = InstantPlayUiState(
         card = card,
         tier = Intensity.HOT,
@@ -168,6 +175,8 @@ class InstantSnapshotTest {
         runComplete = runComplete,
         // Open: the first month after install, which is what most of these shots are of.
         access = access,
+        // Turned over, which is what most of these shots are of: the card a couple reads.
+        revealedId = if (revealed) card.id else null,
     )
 
     private companion object {

@@ -2,29 +2,32 @@ package com.shnapps.couple.core.ui
 
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
-import com.shnapps.couple.core.model.Intensity
+import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 
-/**
- * The safe word: a stop on every screen that plays anything (the brief's consent section).
+/*
+ * The safe word, and what follows it (the brief's consent section).
  *
- * Not the same thing as "Too far", and the difference matters. Too far is about one card — it hides
- * that card and, if asked, everything like it, and the evening carries on. This stops the evening.
- * A couple who need it need it now, so it is one tap from anywhere, it never asks a question first,
- * and it does not care what was mid-flight.
+ * Stop itself is `StopPill` on the `SafetyRail` (`:core:designsystem`), on every screen that plays
+ * anything (D-143). Not the same thing as "Too far", and the difference matters. Too far is about
+ * one card — it hides that card and, if asked, everything like it, and the evening carries on. Stop
+ * ends the evening. A couple who need it need it now, so it is one tap from anywhere, it never asks
+ * a question first, and it does not care what was mid-flight.
  *
  * What follows a stop is deliberately calm: no accent, no bloom, nothing that reads as a failure.
- * Two ways on, and one of them is simply ending — [PausedContent] draws it and the screens supply
- * the two lambdas.
+ * Two ways on, and one of them is simply ending.
+ *
+ * There is no Extreme gate here any more. Choosing Extreme is the consent: a level is a ceiling a
+ * couple set together, and asking them again on top of it was a second question nobody had asked
+ * for (D-144). A paired session still asks both phones for "I'm in" before it starts — that is the
+ * server's, and it is untouched.
  */
-@Composable
-fun SafeWordAction(onStop: () -> Unit) {
-    BarAction(label = "Stop", icon = AfterhoursIcons.Shield, onClick = onStop)
-}
 
 /**
  * Where a stop lands.
@@ -39,6 +42,7 @@ fun PausedContent() {
         title = "Everything's stopped.",
         body = "Nothing is waiting on either of you. Take as long as you like — turn it right " +
             "down and carry on gently, or end here.",
+        meta = "Breathe. Check in with each other.",
         lit = false,
     )
 }
@@ -50,7 +54,7 @@ fun ColumnScope.PausedDock(onGentle: () -> Unit, onEnd: () -> Unit) {
         text = "Turn it down to Mild",
         onClick = onGentle,
         style = GlowButtonStyle.Secondary,
-        leadingIcon = AfterhoursIcons.Shield,
+        leadingIcon = AfterhoursIcons.Down,
         modifier = Modifier.fillMaxWidth(),
     )
     GlowButton(
@@ -62,38 +66,40 @@ fun ColumnScope.PausedDock(onGentle: () -> Unit, onEnd: () -> Unit) {
 }
 
 /**
- * The Extreme gate (the brief's consent section): two taps, every session.
+ * "Too far": one question, two answers, and nobody is told (§3.1).
  *
- * Asked once a session rather than once ever, because "we are both up for this tonight" is a
- * different statement from "we were up for it in March". Two taps rather than one because the
- * question is whether *both* of them want it, and a single tap is one person's answer.
- *
- * It gates the top tier only. Every tier below is governed by the limits profile and the tier
- * itself; adding a confirmation to each of them would make the control meaningless by repetition.
+ * The same words on the deck and in a game, because it is the same statement — this one, or
+ * everything like it. "Never" writes the card's own themes to this phone, which is how a limit is
+ * learned in the moment instead of in a form. It never leaves the phone and the partner never sees
+ * it. Keeping the card is the third way out and the quiet one: changing your mind costs nothing.
  */
 @Composable
-fun ExtremeGateContent(tier: Intensity) {
-    AfterhoursCard(
-        eyebrow = tier.label,
-        title = "Both of you want this?",
-        body = "Extreme is the furthest this goes. Nothing here is a dare and nothing is a " +
-            "measure of anything — the stop is on every screen, and it works mid-anything.",
-        lit = true,
+fun ColumnScope.RefusalChoices(onRefuse: (Boolean) -> Unit, onKeep: () -> Unit) {
+    Text(
+        text = "Skip this kind of thing?",
+        style = MaterialTheme.typography.headlineSmall,
+        color = MaterialTheme.colorScheme.onSurface,
     )
-}
-
-/** Confirming takes two taps. Turning it down takes one, which is the way round it should be. */
-@Composable
-fun ColumnScope.ExtremeGateDock(confirmed: Boolean, onConfirm: () -> Unit, onDown: () -> Unit) {
+    Text(
+        text = "Nobody is told. Not tonight, not ever — your partner never sees this.",
+        style = MaterialTheme.typography.bodyMedium,
+        color = AfterhoursTheme.colors.textMuted,
+    )
     GlowButton(
-        text = if (confirmed) "Yes — both of us" else "We're both in",
-        onClick = onConfirm,
-        leadingIcon = AfterhoursIcons.Check,
+        text = "Just this one",
+        onClick = { onRefuse(false) },
+        style = GlowButtonStyle.Secondary,
         modifier = Modifier.fillMaxWidth(),
     )
     GlowButton(
-        text = "Not tonight — turn it down",
-        onClick = onDown,
+        text = "Never show me these again",
+        onClick = { onRefuse(true) },
+        style = GlowButtonStyle.Secondary,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    GlowButton(
+        text = "Keep this one",
+        onClick = onKeep,
         style = GlowButtonStyle.Quiet,
         modifier = Modifier.fillMaxWidth(),
     )

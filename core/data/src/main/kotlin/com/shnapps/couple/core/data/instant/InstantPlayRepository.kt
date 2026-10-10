@@ -16,6 +16,7 @@ import com.shnapps.couple.core.model.ContentItem
 import com.shnapps.couple.core.model.ContentPack
 import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.GamePlayers
+import com.shnapps.couple.core.model.GamePrompt
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Mode
 import kotlinx.coroutines.flow.Flow
@@ -88,6 +89,13 @@ interface InstantPlayRepository {
 
     /** "Not this kind of thing." Silent, immediate, and never sent anywhere. */
     suspend fun refuse(card: InstantCard, alsoItsKind: Boolean)
+
+    /**
+     * The same statement about a game's prompt (D-143): "too far" inside a game. [alsoItsKind]
+     * writes the prompt's own themes, which every deck and every game dealt on this phone then
+     * leaves out — the same as a card's.
+     */
+    suspend fun refusePrompt(prompt: GamePrompt, alsoItsKind: Boolean)
 
     /** Every game the app ships, whether or not anyone has signed in. */
     val games: Flow<List<Game>>
@@ -268,4 +276,7 @@ class DefaultInstantPlayRepository @Inject constructor(
      */
     override suspend fun refuse(card: InstantCard, alsoItsKind: Boolean) =
         play.refuse(card.id, if (alsoItsKind) card.themes else emptySet())
+
+    override suspend fun refusePrompt(prompt: GamePrompt, alsoItsKind: Boolean) =
+        play.refuse(prompt.id, if (alsoItsKind) prompt.excludedByBoundaries else emptySet())
 }

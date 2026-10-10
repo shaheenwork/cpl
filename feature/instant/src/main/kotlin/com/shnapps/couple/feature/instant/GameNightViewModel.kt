@@ -26,6 +26,8 @@ data class GameNightUiState(
     val planning: Boolean = false,
     /** The plan was asked for and the content could not fill it. Said, never shown as blank. */
     val nothingToPlan: Boolean = false,
+    /** The safe word was used. The evening is off the screen until they say which way on (M7). */
+    val stopped: Boolean = false,
 ) {
     val card: NightCard? get() = night?.cardAt(position)
     val total: Int get() = night?.size ?: 0
@@ -91,4 +93,22 @@ class GameNightViewModel @Inject constructor(
 
     /** Back to the choice, with the evening let go of. */
     fun again() = _uiState.update { GameNightUiState(length = it.length, tier = it.tier) }
+
+    /**
+     * The safe word, in a guided evening (M7, D-143). Game Night had no Stop at all.
+     *
+     * It asks nothing and the evening is still there underneath: turning it down plans the same
+     * length again at Mild, because a plan's climb was settled for the old tier and cannot simply
+     * carry on at a new one.
+     */
+    fun stop() = _uiState.update { it.copy(stopped = true) }
+
+    /** From a stop: right down to the gentlest tier, and the evening planned again there. */
+    fun carryOnGently() {
+        _uiState.update { it.copy(stopped = false) }
+        viewModelScope.launch {
+            instant.setTier(Intensity.MILD)
+            plan()
+        }
+    }
 }

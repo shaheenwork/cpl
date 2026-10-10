@@ -30,7 +30,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
-import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
 import com.shnapps.couple.core.model.AppLockMode
 import com.shnapps.couple.core.security.BiometricAuthenticator
 import com.shnapps.couple.core.ui.SecureScreen
@@ -69,8 +68,8 @@ fun AppLockScreen(
             viewModel.onBiometricResult(
                 biometricAuthenticator.authenticate(
                     activity = activity,
-                    title = "Welcome back",
-                    subtitle = "Unlock your private world",
+                    title = UNLOCK_TITLE,
+                    subtitle = UNLOCK_SUBTITLE,
                     negativeButtonText = "Use PIN",
                 ),
             )
@@ -87,8 +86,8 @@ fun AppLockScreen(
                 viewModel.onBiometricResult(
                     biometricAuthenticator.authenticate(
                         activity = activity,
-                        title = "Welcome back",
-                        subtitle = "Unlock your private world",
+                        title = UNLOCK_TITLE,
+                        subtitle = UNLOCK_SUBTITLE,
                         negativeButtonText = "Use PIN",
                     ),
                 )
@@ -97,6 +96,14 @@ fun AppLockScreen(
         modifier = modifier,
     )
 }
+
+/*
+ * Neutral on purpose (D-144). With the launcher icon set to Notes or Calculator, this is the screen
+ * somebody else sees when they open "Notes" — and "Unlock your private world" told them exactly what
+ * it was. It says what a lock screen says, and nothing more.
+ */
+private const val UNLOCK_TITLE = "Unlock"
+private const val UNLOCK_SUBTITLE = "Confirm it's you"
 
 @Composable
 internal fun AppLockContent(
@@ -119,12 +126,7 @@ internal fun AppLockContent(
         Spacer(Modifier.weight(1f))
 
         Text(
-            text = "LOCKED",
-            style = EyebrowTextStyle,
-            color = AfterhoursTheme.colors.brass,
-        )
-        Text(
-            text = "Welcome back to your private world.",
+            text = "Enter your PIN",
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,

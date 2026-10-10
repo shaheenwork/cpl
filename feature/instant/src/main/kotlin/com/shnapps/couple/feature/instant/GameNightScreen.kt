@@ -21,6 +21,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
+import com.shnapps.couple.core.designsystem.component.SafetyRail
 import com.shnapps.couple.core.designsystem.component.raised
 import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
@@ -30,6 +31,8 @@ import com.shnapps.couple.core.engine.NightLength
 import com.shnapps.couple.core.engine.NightPhase
 import com.shnapps.couple.core.ui.AfterhoursCard
 import com.shnapps.couple.core.ui.Dealt
+import com.shnapps.couple.core.ui.PausedContent
+import com.shnapps.couple.core.ui.PausedDock
 import com.shnapps.couple.core.ui.RunProgress
 import com.shnapps.couple.core.ui.ScreenHeading
 import com.shnapps.couple.core.ui.ScreenScaffold
@@ -58,6 +61,8 @@ fun GameNightScreen(
         onNext = viewModel::next,
         onAgain = viewModel::again,
         onBack = onBack,
+        onStop = viewModel::stop,
+        onGentle = viewModel::carryOnGently,
     )
 }
 
@@ -70,9 +75,11 @@ internal fun GameNightContent(
     onNext: () -> Unit,
     onAgain: () -> Unit,
     onBack: () -> Unit,
+    onStop: () -> Unit = {},
+    onGentle: () -> Unit = {},
 ) {
     ProvideTier(state.tier) {
-        val playing = state.night != null && !state.finished
+        val playing = state.night != null && !state.finished && !state.stopped
 
         ScreenScaffold(
             title = if (playing) "Game Night" else null,
@@ -83,10 +90,21 @@ internal fun GameNightContent(
             } else {
                 null
             },
-            dock = dockFor(state, onPlan, onNext, onAgain, onBack),
+            dock = if (state.stopped) {
+                { PausedDock(onGentle = onGentle, onEnd = onBack) }
+            } else {
+                dockFor(state, onPlan, onNext, onAgain, onBack)
+            },
             centred = true,
+            // The safe word, on every screen that plays anything: Game Night had none (D-143).
+            rail = if (playing) {
+                { SafetyRail(onStop = onStop) }
+            } else {
+                null
+            },
         ) {
             when {
+                state.stopped -> PausedContent()
                 state.nothingToPlan -> AfterhoursCard(
                     eyebrow = "Nothing to plan",
                     title = "Not enough at this tier for a whole evening.",

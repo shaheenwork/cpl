@@ -2,8 +2,11 @@ package com.shnapps.couple.feature.instant
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -15,12 +18,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.CinematicCard
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
+import com.shnapps.couple.core.designsystem.component.RailAction
+import com.shnapps.couple.core.designsystem.component.SafetyRail
+import com.shnapps.couple.core.designsystem.component.TurnOverCard
 import com.shnapps.couple.core.designsystem.component.raised
 import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
@@ -28,16 +35,16 @@ import com.shnapps.couple.core.designsystem.theme.ProvideTier
 import com.shnapps.couple.core.engine.InstantCard
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.ui.AfterhoursCard
-import com.shnapps.couple.core.ui.BarAction
+import com.shnapps.couple.core.ui.AfterhoursSheet
 import com.shnapps.couple.core.ui.Dealt
-import com.shnapps.couple.core.ui.ExtremeGateContent
-import com.shnapps.couple.core.ui.ExtremeGateDock
+import com.shnapps.couple.core.ui.HeatChip
+import com.shnapps.couple.core.ui.LaneChip
 import com.shnapps.couple.core.ui.LanePicker
 import com.shnapps.couple.core.ui.LockedLevelCard
 import com.shnapps.couple.core.ui.PausedContent
 import com.shnapps.couple.core.ui.PausedDock
+import com.shnapps.couple.core.ui.RefusalChoices
 import com.shnapps.couple.core.ui.RunProgress
-import com.shnapps.couple.core.ui.SafeWordAction
 import com.shnapps.couple.core.ui.ScreenScaffold
 import com.shnapps.couple.core.ui.SecureScreen
 import com.shnapps.couple.core.ui.TierPicker
@@ -50,6 +57,10 @@ import com.shnapps.couple.core.ui.TimerRing
  * line — a card, and three things you can do about it: do it, skip it, or say it is not your kind of
  * thing. The last of those is how this app learns a limit, and it costs one tap in the moment
  * instead of twenty cards beforehand.
+ *
+ * The card arrives face down and is turned over by a tap (D-143). The heat and the lane are chips
+ * that open their pickers, rather than two dials under the card; Stop and Too far live on the rail
+ * at the bottom, where a thumb already is.
  */
 @Composable
 fun InstantPlayScreen(
@@ -62,212 +73,260 @@ fun InstantPlayScreen(
 
     InstantPlayContent(
         state = state,
-        onBack = onBack,
-        onDone = viewModel::done,
-        onSkip = viewModel::skip,
-        onTooFar = viewModel::tooFar,
-        onRefuse = viewModel::refuse,
-        onTurnUp = viewModel::turnUp,
-        onKeepHeat = viewModel::keepTier,
-        onTier = { tier -> viewModel.turnUp(tier) },
-        onLocked = viewModel::tapLocked,
-        onDismissLocked = viewModel::dismissSheet,
-        onStore = { state.lockedLevel?.let(onStore) },
-        onToggleTimer = viewModel::toggleTimer,
-        onKeepGoing = viewModel::keepGoing,
-        onLane = viewModel::setLane,
-        onStop = viewModel::stop,
-        onGentle = viewModel::carryOnGently,
-        onConfirmExtreme = viewModel::confirmExtreme,
-        onDeclineExtreme = viewModel::declineExtreme,
+        actions = DeckActions(
+            onBack = onBack,
+            onReveal = viewModel::reveal,
+            onDone = viewModel::done,
+            onSkip = viewModel::skip,
+            onTooFar = viewModel::tooFar,
+            onRefuse = viewModel::refuse,
+            onTurnUp = viewModel::turnUp,
+            onKeepHeat = viewModel::keepTier,
+            onTier = { tier -> viewModel.turnUp(tier) },
+            onLocked = viewModel::tapLocked,
+            onDismiss = viewModel::dismissSheet,
+            onStore = { state.lockedLevel?.let(onStore) },
+            onToggleTimer = viewModel::toggleTimer,
+            onKeepGoing = viewModel::keepGoing,
+            onLane = viewModel::setLane,
+            onStop = viewModel::stop,
+            onGentle = viewModel::carryOnGently,
+            onOpenSheet = viewModel::showSheet,
+            onCloseSheet = { viewModel.showSheet(null) },
+        ),
     )
 }
 
-@Suppress("LongParameterList", "CyclomaticComplexMethod") // One screen, one card, every way past it.
+/** Every way past a card, gathered so the content is easy to draw in a test. */
+internal data class DeckActions(
+    val onBack: () -> Unit = {},
+    val onReveal: () -> Unit = {},
+    val onDone: () -> Unit = {},
+    val onSkip: () -> Unit = {},
+    val onTooFar: () -> Unit = {},
+    val onRefuse: (Boolean) -> Unit = {},
+    val onTurnUp: (Intensity) -> Unit = {},
+    val onKeepHeat: () -> Unit = {},
+    val onTier: (Intensity) -> Unit = {},
+    val onLocked: (Intensity) -> Unit = {},
+    val onDismiss: () -> Unit = {},
+    val onStore: () -> Unit = {},
+    val onToggleTimer: () -> Unit = {},
+    val onKeepGoing: () -> Unit = {},
+    val onLane: (String?) -> Unit = {},
+    val onStop: () -> Unit = {},
+    val onGentle: () -> Unit = {},
+    val onOpenSheet: (DeckSheet) -> Unit = {},
+    val onCloseSheet: () -> Unit = {},
+)
+
 @Composable
-internal fun InstantPlayContent(
-    state: InstantPlayUiState,
-    onBack: () -> Unit,
-    onDone: () -> Unit,
-    onSkip: () -> Unit,
-    onTooFar: () -> Unit,
-    onRefuse: (Boolean) -> Unit,
-    onTurnUp: (Intensity) -> Unit,
-    onKeepHeat: () -> Unit,
-    onTier: (Intensity) -> Unit,
-    onToggleTimer: () -> Unit,
-    onKeepGoing: () -> Unit,
-    onLane: (String?) -> Unit = {},
-    onStop: () -> Unit = {},
-    onGentle: () -> Unit = {},
-    onConfirmExtreme: () -> Unit = {},
-    onDeclineExtreme: () -> Unit = {},
-    onLocked: (Intensity) -> Unit = {},
-    onDismissLocked: () -> Unit = {},
-    onStore: () -> Unit = {},
-) {
+internal fun InstantPlayContent(state: InstantPlayUiState, actions: DeckActions) {
     // Everything on this screen takes the run's tier: the card's rim, the primary action,
     // the eyebrow (DESIGN_PROMPT.md §4.4). One setting, and the whole room changes.
     ProvideTier(state.tier) {
-        val playing = state.playing
-
-        // Typed up front rather than inline: a `when` whose branches are composable lambdas
-        // needs the expected type to be stated somewhere, and a slot is easier to read here.
-        val trailing: (@Composable () -> Unit)? = if (playing) {
-            {
-                // Two different things, and the difference is the point: "Too far" is about this
-                // card, "Stop" is about the evening (M7).
-                Row {
-                    BarAction(label = "Too far", icon = AfterhoursIcons.Skip, onClick = onTooFar)
-                    SafeWordAction(onStop = onStop)
-                }
+        Box(modifier = Modifier.fillMaxSize()) {
+            ScreenScaffold(
+                title = if (state.playing) "Tonight" else null,
+                onBack = actions.onBack,
+                trailing = if (state.showsTierPicker) {
+                    { HeatChip(tier = state.tier, onClick = { actions.onOpenSheet(DeckSheet.HEAT) }) }
+                } else {
+                    null
+                },
+                belowBar = if (state.playing) {
+                    { DeckHeader(state = state, actions = actions) }
+                } else {
+                    null
+                },
+                dock = dockFor(state, actions),
+                // One card, centred in what is left: this screen is an object, not a list.
+                centred = true,
+                // Stop is on the rail whatever else is on the screen, except once it has been used.
+                rail = if (state.stopped) null else { { DeckRail(state = state, actions = actions) } },
+            ) {
+                DeckBody(state = state, actions = actions)
             }
-        } else {
-            null
+            DeckSheets(state = state, actions = actions)
         }
-        val belowBar: (@Composable () -> Unit)? = if (playing) {
-            // `position` is already the 0-based index of the card on screen. Subtracting one
-            // pinned the rail to the first segment for the whole run — found on the device.
-            { RunProgress(current = state.position, total = state.runLength) }
-        } else {
-            null
-        }
-        val dock: (@Composable ColumnScope.() -> Unit)? = when {
-            // The locked card carries its own two buttons, in the card, where the tap happened.
-            state.refusing != null || state.offeringHotter != null || state.lockedLevel != null -> null
-            state.gating -> {
-                { ExtremeGateDock(confirmed = false, onConfirm = onConfirmExtreme, onDown = onDeclineExtreme) }
-            }
-            state.stopped -> {
-                { PausedDock(onGentle = onGentle, onEnd = onBack) }
-            }
-            state.runComplete -> {
-                {
-                    GlowButton(
-                        text = "Keep going",
-                        onClick = onKeepGoing,
-                        leadingIcon = AfterhoursIcons.Flame,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    GlowButton(
-                        text = "That's us for tonight",
-                        onClick = onBack,
-                        style = GlowButtonStyle.Quiet,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-            playing -> {
-                {
-                    Row(horizontalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm)) {
-                        GlowButton(
-                            text = "Skip",
-                            onClick = onSkip,
-                            style = GlowButtonStyle.Secondary,
-                            leadingIcon = AfterhoursIcons.Skip,
-                            modifier = Modifier.weight(SKIP_WIDTH),
-                        )
-                        GlowButton(
-                            text = "Done",
-                            onClick = onDone,
-                            leadingIcon = AfterhoursIcons.Check,
-                            modifier = Modifier.weight(DONE_WIDTH),
-                        )
-                    }
-                }
-            }
-            else -> null
-        }
+    }
+}
 
-        ScreenScaffold(
-            title = if (playing) "Tonight" else null,
-            onBack = onBack,
-            // A safety control belongs in the bar, always reachable and never competing with
-            // the thing a couple is actually doing (§6.2).
-            trailing = trailing,
-            belowBar = belowBar,
-            dock = dock,
-            // One card, centred in what is left: this screen is an object, not a list.
-            centred = true,
-        ) {
-            when {
-                // The stop comes before everything, including a question the screen was asking.
-                state.stopped -> PausedContent()
-                state.gating -> ExtremeGateContent(tier = state.tier)
-                state.refusing != null -> RefusalQuestion(onRefuse = onRefuse)
-                state.offeringHotter != null -> HotterQuestion(
-                    next = state.offeringHotter,
-                    onTurnUp = onTurnUp,
-                    onKeep = onKeepHeat,
-                )
-                state.runComplete -> RunComplete(played = state.played, aftercare = state.aftercare)
-                state.card != null -> Playing(
-                    card = state.card,
-                    tier = state.tier,
-                    lane = state.laneLabel,
-                    timer = state.timer,
-                    position = state.position,
-                    onToggleTimer = onToggleTimer,
-                )
-                state.loading -> Dealing()
-                else -> Empty()
-            }
+/** Stop, always; Too far while a card is up. */
+@Composable
+private fun DeckRail(state: InstantPlayUiState, actions: DeckActions) {
+    SafetyRail(onStop = actions.onStop) {
+        if (state.playing) RailAction(label = "Too far", icon = AfterhoursIcons.Skip, onClick = actions.onTooFar)
+    }
+}
 
-            // A level they do not have, tapped. **Not a wall**: the card they were playing is
-            // still above it, the dial is only out of the way while this is being read, and "Not
-            // now" puts the evening back exactly as it was (V2 rule 5).
-            state.lockedLevel?.let { level ->
-                LockedLevelCard(
-                    level = level,
-                    price = state.lockedPrice,
-                    onUnlock = onStore,
-                    onDismiss = onDismissLocked,
-                )
-            }
+/** The heat, the lanes and "too far", each rising over the card it is about. */
+@Composable
+private fun BoxScope.DeckSheets(state: InstantPlayUiState, actions: DeckActions) {
+    AfterhoursSheet(
+        visible = state.sheet == DeckSheet.HEAT,
+        onDismiss = actions.onCloseSheet,
+        title = "How far tonight",
+    ) {
+        TierPicker(
+            selected = state.tier,
+            onTier = actions.onTier,
+            locked = state.access.locked.toSet(),
+            onLocked = { level ->
+                actions.onCloseSheet()
+                actions.onLocked(level)
+            },
+        )
+    }
+    AfterhoursSheet(visible = state.sheet == DeckSheet.LANES, onDismiss = actions.onCloseSheet, title = "A lane") {
+        LanePicker(lanes = state.lanes, selected = state.lane, onLane = actions.onLane)
+    }
+    AfterhoursSheet(visible = state.refusing != null, onDismiss = actions.onDismiss, title = "Too far") {
+        RefusalChoices(onRefuse = actions.onRefuse, onKeep = actions.onDismiss)
+    }
+}
 
-            if (state.showsTierPicker) {
-                // How far, then what kind. Two dials, and the second one is the packs the app has
-                // always shipped and never offered (D-125).
-                TierPicker(
-                    selected = state.tier,
-                    onTier = onTier,
-                    locked = state.access.locked.toSet(),
-                    onLocked = onLocked,
-                )
-                LanePicker(lanes = state.lanes, selected = state.lane, onLane = onLane)
-            }
+/** Where the run is, and which lane it deals from. */
+@Composable
+private fun DeckHeader(state: InstantPlayUiState, actions: DeckActions) {
+    Column(verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.xs)) {
+        // `position` is already the 0-based index of the card on screen. Subtracting one
+        // pinned the rail to the first segment for the whole run — found on the device.
+        RunProgress(current = state.position, total = state.runLength)
+        if (state.lanes.isNotEmpty()) {
+            LaneChip(
+                label = state.laneLabel,
+                icon = AfterhoursIcons.Lanes,
+                onClick = { actions.onOpenSheet(DeckSheet.LANES) },
+                modifier = Modifier.padding(horizontal = AfterhoursTheme.spacing.gutter),
+            )
         }
     }
 }
 
 @Composable
-private fun Playing(
-    card: InstantCard,
-    tier: Intensity,
-    lane: String?,
-    timer: CardTimer?,
-    position: Int,
-    onToggleTimer: () -> Unit,
-) {
-    val spacing = AfterhoursTheme.spacing
-
-    // The one moment the app performs: a card being laid down, restarting on each new card.
-    Dealt(key = card.id) {
-        AfterhoursCard(
-            eyebrow = listOfNotNull(lane, tier.label, "${card.minutes} min").joinToString(" · "),
-            title = card.title,
-            body = card.body,
-            meta = "Whoever's holding the phone",
-            index = position,
+private fun DeckBody(state: InstantPlayUiState, actions: DeckActions) {
+    when {
+        // The stop comes before everything, including a question the screen was asking.
+        state.stopped -> PausedContent()
+        state.offeringHotter != null -> HotterQuestion(
+            next = state.offeringHotter,
+            onTurnUp = actions.onTurnUp,
+            onKeep = actions.onKeepHeat,
         )
+        state.runComplete -> RunComplete(played = state.played, aftercare = state.aftercare)
+        state.card != null -> Playing(
+            state = state,
+            card = state.card,
+            onReveal = actions.onReveal,
+            onToggleTimer = actions.onToggleTimer,
+        )
+        state.loading -> Dealing()
+        else -> Empty()
     }
 
-    // A clock is a shape, not a third call to action (§5.7). It only appears once somebody
-    // asked for one, and tapping it is how it stops.
+    // A level they do not have, tapped. **Not a wall**: the card they were playing is still above
+    // it, and "Not now" puts the evening back exactly as it was (V2 rule 5).
+    state.lockedLevel?.let { level ->
+        LockedLevelCard(
+            level = level,
+            price = state.lockedPrice,
+            onUnlock = actions.onStore,
+            onDismiss = actions.onDismiss,
+        )
+    }
+}
+
+/** What the dock offers, which is one question: which state the screen is in. */
+private fun dockFor(state: InstantPlayUiState, actions: DeckActions): (@Composable ColumnScope.() -> Unit)? = when {
+    // The locked card carries its own two buttons, in the card, where the tap happened.
+    state.offeringHotter != null || state.lockedLevel != null -> null
+    state.stopped -> {
+        { PausedDock(onGentle = actions.onGentle, onEnd = actions.onBack) }
+    }
+    state.runComplete -> {
+        {
+            GlowButton(
+                text = "Keep going",
+                onClick = actions.onKeepGoing,
+                leadingIcon = AfterhoursIcons.Flame,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            GlowButton(
+                text = "That's us for tonight",
+                onClick = actions.onBack,
+                style = GlowButtonStyle.Quiet,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+    state.card != null -> {
+        { PlayingDock(revealed = state.revealed, actions = actions) }
+    }
+    else -> null
+}
+
+@Composable
+private fun ColumnScope.PlayingDock(revealed: Boolean, actions: DeckActions) {
+    Row(horizontalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm)) {
+        GlowButton(
+            text = "Skip",
+            onClick = actions.onSkip,
+            style = GlowButtonStyle.Secondary,
+            leadingIcon = AfterhoursIcons.Skip,
+            modifier = Modifier.weight(SKIP_WIDTH),
+        )
+        // Done means "we did it", which nobody can say about a card nobody has read.
+        GlowButton(
+            text = "Done",
+            onClick = actions.onDone,
+            enabled = revealed,
+            leadingIcon = AfterhoursIcons.Check,
+            modifier = Modifier.weight(DONE_WIDTH),
+        )
+    }
+    Text(
+        text = "Skip is always free — pass, no questions asked.",
+        style = MaterialTheme.typography.bodySmall,
+        color = AfterhoursTheme.colors.textFaint,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+@Composable
+private fun Playing(state: InstantPlayUiState, card: InstantCard, onReveal: () -> Unit, onToggleTimer: () -> Unit) {
+    val spacing = AfterhoursTheme.spacing
+    val timer = state.timer
+
+    // The one moment the app performs: a card being laid down, restarting on each new card. It
+    // lands face down, wearing its own tier, so a run that climbs visibly warms.
+    Dealt(key = card.id) {
+        ProvideTier(card.intensity) {
+            TurnOverCard(
+                revealed = state.revealed,
+                onReveal = onReveal,
+                label = "Card ${(state.position + 1).toString().padStart(2, '0')}",
+            ) {
+                AfterhoursCard(
+                    eyebrow = listOfNotNull(state.laneLabel, card.intensity.label, "${card.minutes} min")
+                        .joinToString(" · "),
+                    title = card.title,
+                    body = card.body,
+                    meta = "Whoever's holding the phone",
+                    index = state.position,
+                )
+            }
+        }
+    }
+
+    // A clock is a shape, not a third call to action (§5.7). It only appears once somebody asked
+    // for one, and only for a card that has been read.
     if (timer == null) {
         GlowButton(
             text = "Start the ${card.minutes} minutes",
             onClick = onToggleTimer,
+            enabled = state.revealed,
             style = GlowButtonStyle.Quiet,
             leadingIcon = AfterhoursIcons.Clock,
             modifier = Modifier.fillMaxWidth(),
@@ -322,30 +381,6 @@ private fun RunComplete(played: Int, aftercare: InstantCard?) {
             lit = false,
         )
     }
-}
-
-/** Two taps, and nobody is told: the whole of how a limit is set now. */
-@Composable
-private fun RefusalQuestion(onRefuse: (Boolean) -> Unit) {
-    CinematicCard(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "Skip this kind of thing?",
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = "Nobody is told. Not tonight, not ever — your partner never sees this.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = AfterhoursTheme.colors.textMuted,
-        )
-    }
-    GlowButton(text = "Just this one", onClick = { onRefuse(false) }, modifier = Modifier.fillMaxWidth())
-    GlowButton(
-        text = "Never show me these again",
-        onClick = { onRefuse(true) },
-        style = GlowButtonStyle.Secondary,
-        modifier = Modifier.fillMaxWidth(),
-    )
 }
 
 /** Offered after a run of yeses, never applied on their behalf. */

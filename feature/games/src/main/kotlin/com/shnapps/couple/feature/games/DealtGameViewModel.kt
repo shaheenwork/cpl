@@ -8,6 +8,7 @@ import com.shnapps.couple.core.engine.game.Answer
 import com.shnapps.couple.core.engine.game.GameMoment
 import com.shnapps.couple.core.engine.game.GameRun
 import com.shnapps.couple.core.model.GamePlayers
+import com.shnapps.couple.core.model.GamePrompt
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.navigation.Route
 import com.shnapps.couple.core.ui.namesReady
@@ -38,6 +39,10 @@ data class DealtGameUiState(
     val skippedNames: Boolean = false,
     /** How far this phone is playing, so the screen can take its colour (DESIGN_PROMPT.md §4.4). */
     val tier: Intensity = Intensity.DEFAULT,
+    /** The safe word was used. The game is off the screen until they say which way on (M7). */
+    val stopped: Boolean = false,
+    /** "Too far" was pressed on this prompt: the one question is being asked. */
+    val refusing: GamePrompt? = null,
 ) {
     /**
      * Asked once, at the first hand-off, and never again (D-121).
@@ -138,6 +143,59 @@ class DealtGameViewModel @Inject constructor(
     /** "Not this one": a different prompt for this round, from what was dealt for it. */
     fun skipPrompt() {
         show(run?.skipPrompt())
+    }
+
+    /**
+     * The safe word, in a game (M7, D-143).
+     *
+     * A game on one phone had no Stop at all — only the deck and the two-phone game did. It asks
+     * nothing, and the game it stopped is still there underneath: turning it down deals the same
+     * game again, at Mild.
+     */
+    fun stop() {
+        _uiState.update { it.copy(stopped = true, refusing = null) }
+    }
+
+    /** From a stop: right down to the gentlest tier, and the same game dealt again there. */
+    fun carryOnGently() {
+        _uiState.update { it.copy(stopped = false) }
+        viewModelScope.launch {
+            instant.setTier(Intensity.MILD)
+            deal()
+        }
+    }
+
+    /** "Too far" on the prompt in play. Nothing has happened yet; the question is asked. */
+    fun tooFar() {
+        val prompt = run?.promptInPlay() ?: return
+        _uiState.update { it.copy(refusing = prompt) }
+    }
+
+    /** Changed their mind. The prompt stays exactly where it was. */
+    fun keepPrompt() {
+        _uiState.update { it.copy(refusing = null) }
+    }
+
+    /**
+     * "Just this one", or "never show me these again" (D-143).
+     *
+     * Either way this prompt goes, as "Not this one" would have taken it. "Never" also writes its
+     * themes to this phone — so the next deck and the next game leave them out — and takes every
+     * prompt still to come in *this* game that is about them, because "never" that waits for the
+     * next game is not never.
+     */
+    fun refuse(alsoItsKind: Boolean) {
+        val prompt = _uiState.value.refusing ?: return
+        _uiState.update { it.copy(refusing = null) }
+        viewModelScope.launch { instant.refusePrompt(prompt, alsoItsKind) }
+        val current = run ?: return
+        val blocked = if (alsoItsKind) {
+            prompt.excludedByBoundaries.flatMapTo(HashSet()) { current.promptsAbout(it) } - prompt.id
+        } else {
+            emptySet()
+        }
+        run = current.withBlocked(blocked, fromRound = current.round + 1)
+        skipPrompt()
     }
 
     private fun show(next: GameRun?) {

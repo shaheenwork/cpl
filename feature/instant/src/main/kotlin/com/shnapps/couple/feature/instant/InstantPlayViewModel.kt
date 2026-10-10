@@ -45,12 +45,13 @@ data class InstantPlayUiState(
     /** The safe word was used. Everything stops until they say which way on (M7). */
     val stopped: Boolean = false,
     /**
-     * Extreme was chosen and has not been confirmed for this session yet (M7).
-     *
-     * Asked once a session rather than once ever: "we are both up for this tonight" is a different
-     * statement from having said so in March.
+     * The card that has been turned over. Cards are dealt face down (D-143), so a new card is
+     * unread until somebody taps it — and since this names a card rather than holding a flag, a
+     * new card is face down without anything having to remember to reset it.
      */
-    val gating: Boolean = false,
+    val revealedId: String? = null,
+    /** The heat or the lanes, opened from their chips over the card. */
+    val sheet: DeckSheet? = null,
     /** The card written to land on, offered once a Hot or Extreme run is done (M7). */
     val aftercare: InstantCard? = null,
     /**
@@ -73,16 +74,22 @@ data class InstantPlayUiState(
     /** The tier is reachable while a card is up, and not while the screen is asking something. */
     val showsTierPicker: Boolean
         get() = card != null && refusing == null && offeringHotter == null &&
-            !runComplete && !stopped && !gating && lockedLevel == null
+            !runComplete && !stopped && lockedLevel == null
 
     /** Whether a card is actually being played, which is the only time a stop means anything. */
     val playing: Boolean
         get() = card != null && refusing == null && offeringHotter == null &&
-            !runComplete && !stopped && !gating && lockedLevel == null
+            !runComplete && !stopped && lockedLevel == null
+
+    /** The card on screen has been turned over: it can be read, timed and done. */
+    val revealed: Boolean get() = card != null && card.id == revealedId
 
     /** What the lane is called, for the card's own eyebrow. Null while dealing from all of them. */
     val laneLabel: String? get() = lanes.firstOrNull { it.id == lane }?.title
 }
+
+/** What can be opened over the card from its chips. */
+enum class DeckSheet { HEAT, LANES }
 
 /**
  * The card, and the two taps that move it on (REDESIGN_PROMPT.md §5.3).
@@ -124,9 +131,6 @@ class InstantPlayViewModel @Inject constructor(
     /** Everything this phone has ever been dealt, as the deck last saw it. */
     private var played = emptySet<String>()
 
-    /** Whether the top tier has been confirmed for this session (M7). */
-    private var extremeConfirmed = false
-
     init {
         // What this phone may play, and whether the free run is still on (V2 rule 5). Collected
         // rather than read once, because a pack bought from the card below unlocks the dial here.
@@ -153,7 +157,6 @@ class InstantPlayViewModel @Inject constructor(
                             lanes = deal.lanes,
                             lane = deal.lane,
                             loading = false,
-                            gating = deal.tier == Intensity.EXTREME && !extremeConfirmed,
                         )
                     }
                 }
@@ -193,6 +196,7 @@ class InstantPlayViewModel @Inject constructor(
      * because the control is the same object: the ring they started is the ring they tap.
      */
     fun toggleTimer() {
+        if (!_uiState.value.revealed) return
         if (_uiState.value.timer != null) {
             clock.stop()
             return
@@ -229,11 +233,14 @@ class InstantPlayViewModel @Inject constructor(
      * index carries on for the same reason it does there — the evening has already climbed.
      */
     fun setLane(pack: String?) {
-        if (pack == _uiState.value.lane) return
+        if (pack == _uiState.value.lane) {
+            showSheet(null)
+            return
+        }
         seed = System.currentTimeMillis()
         dealt = emptySet()
         clock.stop()
-        _uiState.update { it.copy(lane = pack, position = 0, runComplete = false, streak = 0) }
+        _uiState.update { it.copy(lane = pack, position = 0, runComplete = false, streak = 0, sheet = null) }
         viewModelScope.launch { instant.setLane(pack) }
     }
 
@@ -279,7 +286,7 @@ class InstantPlayViewModel @Inject constructor(
      */
     fun stop() {
         clock.stop()
-        _uiState.update { it.copy(stopped = true, refusing = null, offeringHotter = null, streak = 0) }
+        _uiState.update { it.copy(stopped = true, refusing = null, offeringHotter = null, streak = 0, sheet = null) }
     }
 
     /** From a stop: right down to the gentlest tier, and carry on. */
@@ -288,16 +295,20 @@ class InstantPlayViewModel @Inject constructor(
         viewModelScope.launch { instant.setTier(Intensity.MILD) }
     }
 
-    /** Both of them said yes to the top tier, for this session. */
-    fun confirmExtreme() {
-        extremeConfirmed = true
-        _uiState.update { it.copy(gating = false) }
+    /**
+     * The card turned over.
+     *
+     * Dealt face down so there is a moment before it is read (D-143). Nothing about the card is
+     * different for being hidden — it was chosen when it was dealt — and the timer and Done wait
+     * for it, because neither means anything about a card nobody has read.
+     */
+    fun reveal() {
+        _uiState.update { it.copy(revealedId = it.card?.id) }
     }
 
-    /** Not tonight. The tier comes down rather than the screen simply closing. */
-    fun declineExtreme() {
-        _uiState.update { it.copy(gating = false) }
-        viewModelScope.launch { instant.setTier(Intensity.HOT) }
+    /** The heat or the lanes, opened over the card from their chip; `null` closes whichever is open. */
+    fun showSheet(sheet: DeckSheet?) {
+        _uiState.update { it.copy(sheet = sheet) }
     }
 
     /** "Not now", wherever it is: the refusal question, the hotter question, or a pack's price. */
@@ -319,7 +330,7 @@ class InstantPlayViewModel @Inject constructor(
     }
 
     fun turnUp(tier: Intensity) {
-        _uiState.update { it.copy(offeringHotter = null) }
+        _uiState.update { it.copy(offeringHotter = null, sheet = null) }
         viewModelScope.launch {
             instant.setTier(tier)
             advance()

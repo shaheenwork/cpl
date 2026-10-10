@@ -101,6 +101,71 @@ class DealtGameViewModelTest {
     }
 
     @Test
+    fun `the safe word stops a game on one phone, and asks nothing`() = runTest {
+        val viewModel = viewModel()
+
+        viewModel.stop()
+
+        // A game on one phone had no Stop at all (D-143). Now it has the same one as everything else.
+        assertThat(viewModel.uiState.value.stopped).isTrue()
+        assertThat(instant.refused).isEmpty()
+    }
+
+    @Test
+    fun `turning it down after a stop deals the same game again at Mild`() = runTest {
+        val viewModel = viewModel()
+        viewModel.stop()
+
+        viewModel.carryOnGently()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.stopped).isFalse()
+        assertThat(instant.tier.value).isEqualTo(Intensity.MILD)
+        assertThat(instant.dealt).hasSize(2)
+    }
+
+    @Test
+    fun `too far asks about the prompt in play, and keeping it changes nothing`() = runTest {
+        val viewModel = viewModel()
+        val before = viewModel.uiState.value.moment
+
+        viewModel.tooFar()
+        assertThat(viewModel.uiState.value.refusing).isNotNull()
+
+        viewModel.keepPrompt()
+
+        assertThat(viewModel.uiState.value.refusing).isNull()
+        assertThat(viewModel.uiState.value.moment).isEqualTo(before)
+        assertThat(instant.refused).isEmpty()
+    }
+
+    @Test
+    fun `just this one is written as this prompt, and never as its kind`() = runTest {
+        val viewModel = viewModel()
+        viewModel.tooFar()
+        val prompt = viewModel.uiState.value.refusing!!
+
+        viewModel.refuse(alsoItsKind = false)
+        advanceUntilIdle()
+
+        assertThat(instant.refused).containsExactly(prompt.id to false)
+        assertThat(viewModel.uiState.value.refusing).isNull()
+    }
+
+    @Test
+    fun `never writes the prompt's kind to this phone, where every deck and game leaves it out`() = runTest {
+        val viewModel = viewModel()
+        viewModel.tooFar()
+        val prompt = viewModel.uiState.value.refusing!!
+
+        viewModel.refuse(alsoItsKind = true)
+        advanceUntilIdle()
+
+        // Nobody is told. It goes to this phone's own refusals, the same place a card's goes.
+        assertThat(instant.refused).containsExactly(prompt.id to true)
+    }
+
+    @Test
     fun `playing it again deals a new game rather than rewinding`() = runTest {
         val viewModel = viewModel()
         viewModel.answer(Answer.Done)

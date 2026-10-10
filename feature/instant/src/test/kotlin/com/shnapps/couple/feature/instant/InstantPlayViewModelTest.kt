@@ -14,6 +14,7 @@ import com.shnapps.couple.core.model.ContentPack
 import com.shnapps.couple.core.model.ContentStatus
 import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.GamePlayers
+import com.shnapps.couple.core.model.GamePrompt
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.InteractionType
 import com.shnapps.couple.core.model.Mode
@@ -145,6 +146,7 @@ class InstantPlayViewModelTest {
     @Test
     fun `no clock runs until someone starts one`() = runTest {
         val viewModel = viewModel()
+        viewModel.reveal()
 
         assertThat(viewModel.uiState.value.timer).isNull()
 
@@ -156,6 +158,7 @@ class InstantPlayViewModelTest {
     @Test
     fun `the clock counts down, and stops when it is stopped`() = runTest {
         val viewModel = viewModel()
+        viewModel.reveal()
         viewModel.toggleTimer()
 
         mainDispatcherRule.testDispatcher.scheduler.advanceTimeBy(3_100)
@@ -215,7 +218,6 @@ class InstantPlayViewModelTest {
     fun `carrying on keeps the heat rather than climbing again`() = runTest {
         instant.tierState.value = Intensity.EXTREME
         val viewModel = viewModel()
-        viewModel.confirmExtreme()
         val opener = viewModel.uiState.value.card!!.intensity
 
         repeat(6) { viewModel.skip() }
@@ -342,45 +344,62 @@ class InstantPlayViewModelTest {
     }
 
     @Test
-    fun `the top tier is confirmed once a session, and declining turns it down`() = runTest {
+    fun `choosing Extreme is the consent, and it plays straight away`() = runTest {
         instant.tierState.value = Intensity.EXTREME
         val viewModel = viewModel()
 
-        assertThat(viewModel.uiState.value.gating).isTrue()
-        assertThat(viewModel.uiState.value.playing).isFalse()
-
-        viewModel.confirmExtreme()
-
-        assertThat(viewModel.uiState.value.gating).isFalse()
+        // There used to be a "both of you want this?" screen here. The level is a ceiling the
+        // couple chose together; asking again on top of it was a question nobody asked for (D-144).
         assertThat(viewModel.uiState.value.playing).isTrue()
+        assertThat(viewModel.uiState.value.card).isNotNull()
     }
 
     @Test
-    fun `declining the top tier comes down rather than closing the screen`() = runTest {
-        instant.tierState.value = Intensity.EXTREME
+    fun `a card arrives face down, and only a read card can be timed`() = runTest {
         val viewModel = viewModel()
+        val card = viewModel.uiState.value.card!!
 
-        viewModel.declineExtreme()
+        assertThat(viewModel.uiState.value.revealed).isFalse()
+        viewModel.toggleTimer()
+        assertThat(viewModel.uiState.value.timer).isNull()
+
+        viewModel.reveal()
+
+        assertThat(viewModel.uiState.value.revealed).isTrue()
+        assertThat(viewModel.uiState.value.card!!.id).isEqualTo(card.id)
+    }
+
+    @Test
+    fun `the next card is face down again, without anything having to remember to turn it`() = runTest {
+        val viewModel = viewModel()
+        viewModel.reveal()
+
+        viewModel.done()
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.gating).isFalse()
-        assertThat(instant.tierSet).isEqualTo(Intensity.HOT)
+        // The reveal names a card, so a new card is unread by construction.
+        assertThat(viewModel.uiState.value.revealed).isFalse()
     }
 
     @Test
-    fun `nothing below the top tier is gated`() = runTest {
-        instant.tierState.value = Intensity.HOT
+    fun `the heat and the lanes open over the card, and choosing closes them`() = runTest {
         val viewModel = viewModel()
 
-        // Adding a confirmation to every tier would make the control meaningless by repetition.
-        assertThat(viewModel.uiState.value.gating).isFalse()
+        viewModel.showSheet(DeckSheet.HEAT)
+        assertThat(viewModel.uiState.value.sheet).isEqualTo(DeckSheet.HEAT)
+        viewModel.turnUp(Intensity.HOT)
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.sheet).isNull()
+
+        viewModel.showSheet(DeckSheet.LANES)
+        viewModel.showSheet(null)
+        assertThat(viewModel.uiState.value.sheet).isNull()
     }
 
     @Test
     fun `a hot run ends with something written to land on`() = runTest {
         instant.tierState.value = Intensity.HOT
         val viewModel = viewModel()
-        viewModel.confirmExtreme()
 
         repeat(6) { viewModel.skip() }
         advanceUntilIdle()
@@ -522,6 +541,8 @@ class InstantPlayViewModelTest {
         override suspend fun refuse(card: InstantCard, alsoItsKind: Boolean) {
             refusals += card to alsoItsKind
         }
+
+        override suspend fun refusePrompt(prompt: GamePrompt, alsoItsKind: Boolean) = Unit
 
         // The card player never starts a game; these exist so the fake is the whole repository.
         override val games: Flow<List<Game>> = MutableStateFlow(emptyList())

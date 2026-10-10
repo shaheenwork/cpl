@@ -2,7 +2,6 @@ package com.shnapps.couple.core.ui
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,10 +10,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
@@ -29,9 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shnapps.couple.core.designsystem.component.LocalBarExtra
 import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
@@ -75,6 +70,11 @@ fun ScreenScaffold(
      * exists to remove.
      */
     centred: Boolean = false,
+    /**
+     * The safety rail, under the dock: Stop and its company, on every screen that plays anything
+     * (D-143). A screen with a rail carries the chat there, so its top bar does not as well.
+     */
+    rail: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val spacing = AfterhoursTheme.spacing
@@ -91,7 +91,7 @@ fun ScreenScaffold(
     )
 
     Column(modifier = modifier.fillMaxSize()) {
-        TopBar(title = title, onBack = onBack, backLabel = backLabel, trailing = trailing)
+        TopBar(title = title, onBack = onBack, backLabel = backLabel, trailing = trailing, barExtra = rail == null)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -136,6 +136,7 @@ fun ScreenScaffold(
                 content = dock,
             )
         }
+        rail?.invoke()
     }
 }
 
@@ -145,6 +146,7 @@ private fun TopBar(
     onBack: (() -> Unit)?,
     backLabel: String,
     trailing: (@Composable () -> Unit)?,
+    barExtra: Boolean,
 ) {
     val spacing = AfterhoursTheme.spacing
     Row(
@@ -176,7 +178,7 @@ private fun TopBar(
 
         // The chat, when there is one, sits beside the screen's own control rather than on top
         // of it. The bar decides where; the layer only decides what (LocalBarExtra).
-        val extra = LocalBarExtra.current
+        val extra = if (barExtra) LocalBarExtra.current else null
         extra?.invoke()
         when {
             trailing != null -> trailing()
@@ -203,40 +205,4 @@ fun Wordmark(modifier: Modifier = Modifier) {
     )
 }
 
-/**
- * A control in the bar: an icon and a word, for something that is not the screen's business.
- *
- * "Too far" lives here rather than in the dock. It is a safety control and it must always be
- * reachable, but as a third filled button beside Done it competed with the thing a couple is
- * actually doing — and a safety control that looks like a choice is a worse safety control.
- */
-@Composable
-fun BarAction(
-    label: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val spacing = AfterhoursTheme.spacing
-    Row(
-        modifier = modifier
-            // A safety control is small on purpose and must still be a full target (§20).
-            .heightIn(min = spacing.touchTarget)
-            .widthIn(min = spacing.touchTarget)
-            .clickable(onClick = onClick)
-            .padding(horizontal = spacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(spacing.xs),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = AfterhoursTheme.colors.textFaint,
-            modifier = Modifier.size(BAR_ICON),
-        )
-        Text(text = label, style = MaterialTheme.typography.labelMedium, color = AfterhoursTheme.colors.textFaint)
-    }
-}
-
-private val BAR_ICON = 16.dp
 private val WORDMARK_TRACKING = 3.2.sp

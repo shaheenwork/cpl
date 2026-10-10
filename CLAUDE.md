@@ -206,7 +206,8 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
 
 - An app-wide control is **offered**, never placed: `LocalBarExtra` in `:core:designsystem` holds
   it and each bar draws it where that bar's own controls go — `ScreenScaffold`'s top bar beside the
-  screen's `trailing`, `StopPauseBar` beside Pause and Stop. The chat is the only thing in it.
+  screen's `trailing`, or `SafetyRail` beside Stop on a screen that plays (a screen with a `rail`
+  does not draw it twice). The chat is the only thing in it.
 - A floating affordance lands on whatever the screen already had in that corner; it is how the
   settings button disappeared on home for a while. `ScreenScaffoldTest` holds both in place.
 - `rememberNudge()` in `:core:ui` is one buzz, for one thing: the *other* phone started an evening.
@@ -399,8 +400,13 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   themes, a partition, with every theme either owned or explicitly governed by the tier (M3).
   `TaxonomyFileTest` fails the build on a theme nobody owns.
 - **Stop is not Too far.** Too far is about one card; the safe word stops the evening, asks nothing,
-  and is on every screen that plays anything (M7). Extreme is gated twice a session, once. Aftercare
-  after any Hot or Extreme run comes from cards written to land on.
+  and is on every screen that plays anything (M7) — always the `StopPill` at the start of
+  `SafetyRail`, at the bottom, one-phone games and Game Night included (D-143). There is no Extreme
+  gate on one phone: choosing the tier is the consent (D-144); the paired "I'm in" is the server's
+  and stays. Aftercare after any Hot or Extreme run comes from cards written to land on.
+- **The deck deals face down** (`TurnOverCard`, D-143): nothing of a card is composed until it is
+  turned, and Done and the timer wait for it. The heat and the lanes are chips that open an
+  `AfterhoursSheet` — in the screen's own window, never a dialog, so `SecureScreen` covers it.
 - A game with no account is dealt by `ReleasedGame.forHeat`, not by the server, and `autoHeat`
   decides whether it climbs to the tier or opens at it (M4). `fromServer` remains the only way once
   a couple is signed in.

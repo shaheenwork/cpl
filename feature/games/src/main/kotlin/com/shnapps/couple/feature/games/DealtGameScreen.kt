@@ -2,6 +2,7 @@ package com.shnapps.couple.feature.games
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
@@ -18,6 +19,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.GlowButton
 import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
+import com.shnapps.couple.core.designsystem.component.RailAction
+import com.shnapps.couple.core.designsystem.component.SafetyRail
 import com.shnapps.couple.core.designsystem.component.raised
 import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
@@ -26,7 +29,11 @@ import com.shnapps.couple.core.engine.game.Answer
 import com.shnapps.couple.core.engine.game.GameMoment
 import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.ui.AfterhoursCard
+import com.shnapps.couple.core.ui.AfterhoursSheet
+import com.shnapps.couple.core.ui.PausedContent
+import com.shnapps.couple.core.ui.PausedDock
 import com.shnapps.couple.core.ui.PrimitiveRenderer
+import com.shnapps.couple.core.ui.RefusalChoices
 import com.shnapps.couple.core.ui.RunProgress
 import com.shnapps.couple.core.ui.ScreenScaffold
 import com.shnapps.couple.core.ui.SecureScreen
@@ -66,9 +73,25 @@ fun DealtGameScreen(
             onSecondName = viewModel::setSecondName,
             onConfirmNames = viewModel::confirmNames,
             onSkipNames = viewModel::skipNames,
+            safety = GameSafety(
+                onStop = viewModel::stop,
+                onGentle = viewModel::carryOnGently,
+                onTooFar = viewModel::tooFar,
+                onRefuse = viewModel::refuse,
+                onKeep = viewModel::keepPrompt,
+            ),
         )
     }
 }
+
+/** Stop and Too far, which a game on one phone did not have (D-143). */
+internal data class GameSafety(
+    val onStop: () -> Unit = {},
+    val onGentle: () -> Unit = {},
+    val onTooFar: () -> Unit = {},
+    val onRefuse: (Boolean) -> Unit = {},
+    val onKeep: () -> Unit = {},
+)
 
 @Suppress("LongParameterList") // A game screen: the moment, and every way past it.
 @Composable
@@ -83,53 +106,97 @@ internal fun DealtGameContent(
     onSecondName: (String) -> Unit = {},
     onConfirmNames: () -> Unit = {},
     onSkipNames: () -> Unit = {},
+    safety: GameSafety = GameSafety(),
 ) {
     val finished = state.moment is GameMoment.Finished
     val playing = !state.loading && !state.nothingToPlay && !finished
+    // Too far is about a prompt, so it is offered only while one is up and can be swapped out.
+    val refusable = !state.stopped && (state.moment as? GameMoment.Turn)?.canSkip == true
 
-    val dock = dockFor(state, onBack, onSkipPrompt, onPlayAgain, onConfirmNames, onSkipNames)
+    val dock: (@Composable ColumnScope.() -> Unit)? = if (state.stopped) {
+        { PausedDock(onGentle = safety.onGentle, onEnd = onBack) }
+    } else {
+        dockFor(state, onBack, onSkipPrompt, onPlayAgain, onConfirmNames, onSkipNames)
+    }
 
     ProvideTier(state.tier) {
-        ScreenScaffold(
-            title = state.title.takeIf { it.isNotEmpty() && playing && !state.askingNames },
-            onBack = onBack,
-            backLabel = "Leave the game",
-            belowBar = if (playing && state.rounds > 0 && !state.askingNames) {
-                { RunProgress(current = state.round, total = state.rounds) }
-            } else {
-                null
-            },
-            dock = dock,
-            centred = true,
-        ) {
-            when {
-                state.loading -> Dealing()
-                // Asked once, at the first hand-off, and never again (D-121).
-                state.askingNames -> WhoIsPlaying(
-                    first = state.firstName,
-                    second = state.secondName,
-                    onFirst = onFirstName,
-                    onSecond = onSecondName,
+        Box(modifier = Modifier.fillMaxSize()) {
+            ScreenScaffold(
+                title = state.title.takeIf { it.isNotEmpty() && playing && !state.askingNames },
+                onBack = onBack,
+                backLabel = "Leave the game",
+                belowBar = if (playing && state.rounds > 0 && !state.askingNames) {
+                    { RunProgress(current = state.round, total = state.rounds) }
+                } else {
+                    null
+                },
+                dock = dock,
+                centred = true,
+                rail = railFor(shown = playing && !state.stopped, refusable = refusable, safety = safety),
+            ) {
+                GameBody(
+                    state = state,
+                    onProceed = onProceed,
+                    onAnswer = onAnswer,
+                    onFirstName = onFirstName,
+                    onSecondName = onSecondName,
                 )
-                state.nothingToPlay -> NothingToPlay()
-                else -> {
-                    // What this game is, in the game's own words, while its first round is up.
-                    if (state.showsRule) {
-                        Text(
-                            text = state.rule,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = AfterhoursTheme.colors.textMuted,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                    Moment(
-                        moment = state.moment,
-                        players = state.players,
-                        onProceed = onProceed,
-                        onAnswer = onAnswer,
-                    )
-                }
             }
+            AfterhoursSheet(visible = state.refusing != null, onDismiss = safety.onKeep, title = "Too far") {
+                RefusalChoices(onRefuse = safety.onRefuse, onKeep = safety.onKeep)
+            }
+        }
+    }
+}
+
+/** The safe word, on every screen that plays anything — a game on one phone included. */
+private fun railFor(shown: Boolean, refusable: Boolean, safety: GameSafety): (@Composable () -> Unit)? =
+    if (shown) {
+        {
+            SafetyRail(onStop = safety.onStop) {
+                if (refusable) RailAction(label = "Too far", icon = AfterhoursIcons.Skip, onClick = safety.onTooFar)
+            }
+        }
+    } else {
+        null
+    }
+
+/** Whichever state the game is in: stopped, dealing, asking names, or a moment of play. */
+@Composable
+private fun GameBody(
+    state: DealtGameUiState,
+    onProceed: () -> Unit,
+    onAnswer: (Answer) -> Unit,
+    onFirstName: (String) -> Unit,
+    onSecondName: (String) -> Unit,
+) {
+    when {
+        state.stopped -> PausedContent()
+        state.loading -> Dealing()
+        // Asked once, at the first hand-off, and never again (D-121).
+        state.askingNames -> WhoIsPlaying(
+            first = state.firstName,
+            second = state.secondName,
+            onFirst = onFirstName,
+            onSecond = onSecondName,
+        )
+        state.nothingToPlay -> NothingToPlay()
+        else -> {
+            // What this game is, in the game's own words, while its first round is up.
+            if (state.showsRule) {
+                Text(
+                    text = state.rule,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AfterhoursTheme.colors.textMuted,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            Moment(
+                moment = state.moment,
+                players = state.players,
+                onProceed = onProceed,
+                onAnswer = onAnswer,
+            )
         }
     }
 }

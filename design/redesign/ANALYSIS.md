@@ -203,27 +203,37 @@ that happens to be dark red. Specifically:
 What is good and stays: the dark ground; Playfair for headlines; one primary action docked at the
 bottom; one lit object per screen; the honest, warm copy; 48 dp targets; reduce-motion handling.
 
-## 6. Open questions — answers needed before the app changes
+## 6. Open questions — answered
 
-The preview proceeds on the assumption in **bold**; nothing in the app changes until you answer.
+The preview proceeds on the assumption in **bold**. The user's answers follow each question, and
+phase 1 of the port made them (DECISIONS.md D-143, D-144).
 
 1. **Add Stop to one-phone games and Game Night?** (§4.1) **Assumed yes — shown in the preview as
    proposed.** It restores M7; it is a new control on two screens.
+   *Answered: yes.*
 2. **Gate Extreme in Game Night and one-phone games too?** (§4.2) **Assumed yes, once per session,
    shared with the deck's gate.**
+   *Answered: no — and remove it from the deck too. They chose the heat level; that is the consent.
+   The paired "I'm in" stays, because it is the server hearing from two phones.*
 3. **Too far in one-phone games?** (§4.3) **Assumed yes, beside "Not this one".**
+   *Answered: yes.*
 4. **Face-down cards with tap-to-reveal on the deck.** This adds one tap per card. It is the heart of
    the new mood, and it is a behaviour change. **Assumed: shown in the preview, with a setting to
    deal face up.** Alternative: the card turns over by itself after a beat, keeping today's tap
    count.
+   *Answered: that is OK — always face down, no setting.*
 5. **Fonts.** Playfair Display stays for display. **Assumed: Inter stays** for UI (bundled, proven at
    200 %); Jost is shown as an alternative in the designer panel, ~120 KB to bundle.
+   *Answered: yes, Inter stays.*
 6. **Action-row names.** **Assumed: Done, Skip, Too far are kept.** "Do it / Pass / Next" was
    suggested; "Pass — no questions asked" is used as the *explanation* under Skip, not as a rename.
+   *Answered: yes, the names stay.*
 7. **The tier picker leaves the deck screen** and becomes a single heat chip that opens it. Same
    control, one tap further. **Assumed yes** — say no and it stays inline.
+   *Answered: yes.*
 8. **The lock screen says "Enter PIN" and nothing else** (§4.7). A copy change, but one that alters
    what the screen discloses. **Assumed yes.**
+   *Answered: yes.*
 
 ## 7. Regression checklist
 
@@ -256,7 +266,7 @@ yes. Nothing is *not in preview*, and nothing failed.
 | 17 | Stop on every playing screen, one tap, no question | Pass · Proposed | Today's screens pass. One-phone games and Game Night have no Stop in the app (§4.1); the prototype adds it, marked |
 | 18 | Stop → "Everything's stopped" → Mild or End | Pass | "Turn it down to Mild" carries on with what was stopped |
 | 19 | Too far: one question, two answers, private | Pass · Proposed | Proposed in one-phone games (§4.3) |
-| 20 | Extreme gate: two taps to confirm, one to turn down, once a session, no Extreme content | Pass · Proposed | Proposed before Game Night and games too (§4.2) |
+| 20 | Extreme gate: two taps to confirm, one to turn down, once a session, no Extreme content | Retired | Removed everywhere on the user's answer to §6.2 (D-144); the paired "I'm in" stays |
 | 21 | Limits: eight tags × Yes / Maybe / No; a No hides matching cards | Pass | The prototype matches a No on card tags; the app's filter is the taxonomy's, unchanged |
 | | **Apart** | | |
 | 22 | Pairing by code, QR and link | Pass | The QR is drawn for the design; it is not a scannable code |

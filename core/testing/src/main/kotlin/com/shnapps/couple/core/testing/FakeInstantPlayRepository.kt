@@ -10,6 +10,7 @@ import com.shnapps.couple.core.engine.game.ReleasedGame
 import com.shnapps.couple.core.model.ContentItem
 import com.shnapps.couple.core.model.Game
 import com.shnapps.couple.core.model.GamePlayers
+import com.shnapps.couple.core.model.GamePrompt
 import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.Mode
 import kotlinx.coroutines.flow.Flow
@@ -92,6 +93,10 @@ class FakeInstantPlayRepository(
 
     override suspend fun setTier(tier: Intensity) {
         this.tier.value = tier
+    }
+
+    override suspend fun refusePrompt(prompt: GamePrompt, alsoItsKind: Boolean) {
+        refused += prompt.id to alsoItsKind
     }
 
     override suspend fun refuse(card: InstantCard, alsoItsKind: Boolean) {

@@ -100,17 +100,15 @@ class InstantAccessibilityTest {
     @Composable
     private fun play() {
         InstantPlayContent(
-            state = InstantPlayUiState(card = card, tier = Intensity.HOT, loading = false, position = 2),
-            onBack = {},
-            onDone = {},
-            onSkip = {},
-            onTooFar = {},
-            onRefuse = {},
-            onTurnUp = {},
-            onKeepHeat = {},
-            onTier = {},
-            onToggleTimer = {},
-            onKeepGoing = {},
+            // Turned over, so the audit sees the card a couple actually reads.
+            state = InstantPlayUiState(
+                card = card,
+                tier = Intensity.HOT,
+                loading = false,
+                position = 2,
+                revealedId = card.id,
+            ),
+            actions = DeckActions(),
         )
     }
 

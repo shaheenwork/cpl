@@ -66,7 +66,7 @@ or `core/ui/src/main/kotlin/com/shnapps/couple/core/ui/` (**ui**).
 | Limits sheet (`.seg`, `.limit-row`) | feature/boundaries `LimitsScreen.kt` | Restyle; reachable as a sheet as well as a screen. Yes / Maybe / No unchanged |
 | Too far sheet | feature/instant `InstantPlayScreen.kt` refusal | Restyle: from a full screen into a sheet over the card |
 | Stopped | ui `Safety.kt` → `PausedContent`, `PausedDock` | Restyle. Adds one line, "Breathe. Check in with each other." (CHANGELOG) |
-| Extreme gate | ui `Safety.kt` → `ExtremeGateContent`, `ExtremeGateDock` | Restyle: a lock that warms and opens, two progress marks. **Proposed**: the same gate before Game Night and games at Extreme (ANALYSIS.md §4.2) |
+| ~~Extreme gate~~ | ~~ui `Safety.kt` → `ExtremeGateContent`, `ExtremeGateDock`~~ | **Removed** (D-144): choosing the tier is the consent. The prototype still draws it; the app does not |
 | `.ring` | ui `TimerRing.kt`, ds `component/CountdownRing.kt` | Restyle: the last fifth warms to `flame` |
 | `.progress` | ui `RunProgress.kt` | Restyle |
 | `.phases` | feature/instant `GameNightScreen.kt` | New component: labelled phase segments sized to their share |

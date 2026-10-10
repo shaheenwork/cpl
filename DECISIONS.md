@@ -2812,3 +2812,53 @@ rather than as the other two options.
 The lengths moved onto the screen, under the heading that asks about them, as three cells of one
 object — the chosen one filled with the tier's container and rimmed, the others on
 `surfaceContainer`. The dock holds one button. `GameNightSnapshotTest` is new and holds it there.
+
+## D-143 — One safety rail, a card dealt face down, and the heat behind a chip
+
+The first port of the after-dark redesign (`design/redesign/`) is behaviour, not paint. Five calls,
+each answered yes by the user before any code moved (ANALYSIS.md §6).
+
+**One rail, at the bottom, on everything that plays.** Stop was at the top of the deck, at the
+bottom of the two-phone game, and absent from one-phone games and Game Night — the same promise in
+two places, one of them out of thumb reach, and missing from two screens M7 covers. `SafetyRail`
+(`:core:designsystem`) is now the one row: `StopPill` first, then whatever that screen may offer
+(Too far, Pause), then the bar's extra (the chat, D-141). `StopPauseBar` is a `SafetyRail` with
+Pause in it; `ScreenScaffold(rail = …)` draws it under the dock, and a screen with a rail does not
+also draw the chat in its top bar — one way in per screen. Stop still asks nothing; from the paused
+screen "Turn it down to Mild" sets Mild and deals again, and the end is the screen's own back.
+
+**Too far in one-phone games.** "Not this one" skips a prompt and says nothing about the next one.
+`DealtGameViewModel.refuse(alsoItsKind)` gives the deck's two answers: just this one, or never this
+kind of thing — written through `InstantPlayRepository.refusePrompt` and honoured from the next
+round by `GameRun.withBlocked`, so the round on screen is not swapped under them.
+
+**Face down, tap to turn.** The deck deals each card as `TurnOverCard`: velvet, a double gold edge
+and the sigil, and nothing of the card composed until it is turned — so a screen reader, a
+screenshot and a glance over a shoulder all find the back. `InstantPlayUiState.revealedId` is the
+card that has been turned, so a new deal is face down without anyone resetting anything. Done and
+the timer wait for it; Skip and Too far do not, because passing on a card unseen is still a pass.
+It costs one tap a card, which is the point: the moment before it is read is the mood.
+
+**The heat is a chip.** A third of the playing screen was a picker set a minute earlier. `HeatChip`
+in the top bar shows the tier as flames and its name, and opens the picker in an `AfterhoursSheet`
+(`:core:ui`) — drawn inside the screen's own window rather than as a dialog, so it stays under
+`SecureScreen` and a screenshot test can see it. The lanes went the same way. `DeckSheet` names the
+one open; `showSheet(null)` closes it.
+
+**And the lock screen says "Enter your PIN".** It said "Welcome back / Unlock your private world",
+which with a Notes or Calculator icon chosen (D-127) gives the app away on the one screen anybody
+might see.
+
+## D-144 — Choosing the tier is the consent; the Extreme gate is gone
+
+D-126 put a two-tap "Both of you want this?" in front of Extreme, once a session, on the deck only.
+Asked whether to extend it to Game Night and one-phone games, the user said no — and not there
+either: a couple who pick Extreme on the heat picker have already said so, together, on one phone,
+and asking again is the app doubting them.
+
+So the gate is removed everywhere a phone plays alone. `InstantPlayViewModel` no longer holds
+`extremeConfirmed` or a `gating` deal; picking Extreme on the chip's sheet sets it like any other tier. What is **not**
+removed: the paired session's "I'm in" on each phone (D-061), which is the server recording that two
+separate people agreed, and nothing on one phone can stand in for it. Stop, Too far, the limits
+profile and aftercare after Hot and Extreme are all unchanged, and a pack still opens only the levels
+it pays for (D-135).

@@ -1,22 +1,26 @@
 # Changelog — after dark
 
-What the redesign changes, what it keeps, and what it would change about behaviour if you say yes.
-The prototype is `afterhours-redesign.html`; nothing in the app has changed.
+What the redesign changes, what it keeps, and what it changes about behaviour. The prototype is
+`afterhours-redesign.html`. The behaviour below is **in the app** (phase 1, DECISIONS.md D-143 and
+D-144); the visual changes are the prototype's until phase 2 ports them.
 
 ## Behaviour changes
 
-**None made.** Seven are *proposed* and drawn in the prototype with a gold **proposed** badge (the
-designer panel can hide the badges). Each waits for a yes; see ANALYSIS.md §6 for the reasoning.
+Seven were proposed in the prototype; the answers are in ANALYSIS.md §6. Six were made as drawn,
+and one the other way round:
 
-| # | Proposal | Why |
-|---|---|---|
-| 1 | **Stop on one-phone games and Game Night** | M7 says it is on every screen that plays anything. Today it is on the deck and the two-phone game only — a gap, not a design choice (ANALYSIS.md §4.1) |
-| 2 | **The Extreme gate before Game Night and games at Extreme** | Today only the deck asks. The prototype routes every way into Extreme through one gate, once a session |
-| 3 | **Too far in one-phone games**, beside "Not this one" | "Not this one" skips a prompt; there is no way to say "never this kind of thing" in a game |
-| 4 | **Cards dealt face down, tap to reveal** | The heart of the new mood. It adds one tap per card; the designer panel's "Deal face down" shows both, and a setting could offer either |
-| 5 | **The heat picker leaves the deck screen** for a chip in the bar that opens it | A third of the playing screen was a control set a minute ago. One tap further away |
-| 6 | **One safety rail at the bottom of every playing screen** — Stop, Too far, Pause, chat | Stop is at the top of the deck today and at the bottom of the two-phone game: the same control in two places, one of them out of thumb reach |
-| 7 | **The lock screen says nothing about the app** | It says "Welcome back / Unlock your private world" today. With the Notes or Calculator icon chosen, that line gives the app away. The prototype says "Enter PIN" and nothing else |
+| # | Change | Answer | Where |
+|---|---|---|---|
+| 1 | **Stop on one-phone games and Game Night** | Yes | `SafetyRail` on `DealtGameScreen` and `GameNightScreen` |
+| 2 | **The Extreme gate** | **Removed everywhere** — choosing the tier is the consent | `InstantPlayViewModel`; the paired "I'm in" (D-061) is untouched |
+| 3 | **Too far in one-phone games**, beside "Not this one" | Yes | `DealtGameViewModel.refuse`, `RefusalChoices` in a sheet |
+| 4 | **Cards dealt face down, tap to reveal** | Yes, always face down | `TurnOverCard`; Done and the timer wait for it |
+| 5 | **The heat picker leaves the deck screen** for a chip in the bar | Yes | `HeatChip` + `AfterhoursSheet`; the lanes too |
+| 6 | **One safety rail at the bottom of every playing screen** | Yes | `SafetyRail`: Stop, then Too far or Pause, then the chat |
+| 7 | **The lock screen says nothing about the app** | Yes | "Unlock / Enter your PIN" in `AppLockScreen` |
+
+Inter stays for UI, and Done, Skip and Too far keep their names. "Keep this card" in the Too far
+sheet became "Keep this one", to match "Just this one" above it.
 
 ## What changed visually
 

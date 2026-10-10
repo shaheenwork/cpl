@@ -23,7 +23,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import java.time.LocalDateTime
+import java.time.LocalDate
 import java.time.ZoneId
 
 /**
@@ -237,8 +237,13 @@ class ChatSnapshotTest {
     ): androidx.compose.ui.graphics.ImageBitmap =
         Bitmap.createBitmap(wide, tall, Bitmap.Config.ARGB_8888).asImageBitmap()
 
-    private fun at(hour: Int, minute: Int): Long = LocalDateTime
-        .of(2026, 10, 8, hour, minute)
+    /**
+     * Today, at this time. Today on purpose: the conversation labels its days against the phone's
+     * own clock, so a fixed date turned TODAY into a date heading the day after it was recorded —
+     * a new separator, a taller list, and a golden that failed for nothing but the calendar.
+     */
+    private fun at(hour: Int, minute: Int): Long = LocalDate.now()
+        .atTime(hour, minute)
         .atZone(ZoneId.systemDefault())
         .toInstant()
         .toEpochMilli()
