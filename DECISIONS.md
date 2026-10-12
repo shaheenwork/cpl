@@ -2909,3 +2909,51 @@ Kept on purpose: the type scale (only the eyebrow and a new `TeaseTextStyle` cha
 stays at 19/30, larger than the prototype's 17/27, because it is the one thing a couple reads), the
 spacing, the shapes, and Inter (§6.5). Playfair's italic is synthesised; bundling the real italic is
 a font download, left for when someone asks for it.
+
+## D-146 — Settings as objects; a lock you can turn off; Apart needs a pair
+
+Eight things came back from a device check, and they share one cause: parts of the app had been
+built to say a thing and not to do it.
+
+**The app lock could be turned on and never off.** `AppLockSetupScreen` was the only lock screen
+there was, so the only way back from a lock was clearing the app's data. `AppLockSettingsScreen`
+(`Route.AppLockSettings`) is now what Settings opens: on or off, and from there the sensor, a new
+PIN, and switching the lock off. **Turning it off and changing the PIN both ask for the current
+PIN.** The phone is unlocked when somebody reaches that screen, and an unlocked phone in someone
+else's hands is exactly the case the lock exists for. The sensor is the one change that asks for
+nothing: it only ever adds a way in beside the PIN, and `disableBiometric` goes back to the PIN alone
+*keeping the PIN they had*, rather than making them choose another to stop using a finger.
+`disableLock` still forgets the PIN, so a later lock starts clean.
+
+**Unpairing now says what is happening.** The tap did the whole job — it cleared the pair on both
+phones — and showed nothing at all. It is now a question first (a sheet, whose loud button is "Keep
+the pair", so a thumb that lands there by habit keeps it), then a card that says "Unpairing…" with
+nothing to tap while it works, then a card that says "You're unpaired" in words and what is left.
+A failure says that nothing has changed, at the top of the screen where it is seen. `paired` holds
+false the moment the call returns, because the profile catches up a beat later and a screen that has
+just been told the pair is gone must not keep drawing it.
+
+**Apart needs a pair.** V2 rule 2 had Apart show "Not paired yet" in a line and carry on, so a couple
+could choose a phone each and then play on one phone — the opposite of what they had picked. With
+Apart selected and nobody paired, `HomeUiState.needsPairing` is true: the heat and the games are not
+offered, Play Now becomes "Pair to play apart", and `HomeViewModel.play` refuses as a second lock on
+the same door. Together never needs a pair. Paired and Apart is unchanged: Play Now and Game Night
+are still one phone, because there is no two-phone card deck, and that is a question for another day.
+
+**Three rows left Settings:** Panic, the launcher-icon picker, and "What you own". The panic gesture
+itself (two taps of back, `MainActivity`) is untouched — only its row is gone — and so is the icon
+alias code in `:core:security`; a phone already showing Notes or Calculator keeps showing it, with no
+way back from Settings. The packs are reached from a locked level, which is where a pack is wanted.
+
+**The component library and the content inspector left home.** They were debug tools drawn on the
+product's front door — and the gallery's button was drawn in *every* build, a release one included,
+because only the inspector had a release twin that said no. Both are now rows in a "Developer" group
+at the foot of Settings, drawn only when `Route`s for them are given, and `CplNavHost` registers
+neither route outside a debug build (`DEV_TOOLS_AVAILABLE`).
+
+**Settings is objects, not text.** A heading, a line, a heading, a line is what a list is when
+nothing separates a control from a caption. `SettingsGroup` / `SettingsRow` / `SettingsSwitchRow` /
+`StatusCard` in `:core:ui`: one lit card for the pair, which is the thing that can change under you,
+then groups of 64 dp rows with an icon in a gold tile, a hairline between them and a chevron. A row
+says its state before it is opened ("App lock — ON"). The hairlines are the group's own colour
+showing through a one-pixel gap, so no row needs to know whether it is the last.

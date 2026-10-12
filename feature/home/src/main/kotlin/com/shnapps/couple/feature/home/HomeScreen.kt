@@ -48,6 +48,7 @@ import com.shnapps.couple.core.ui.LockedLevelCard
 import com.shnapps.couple.core.ui.ScreenHeading
 import com.shnapps.couple.core.ui.ScreenScaffold
 import com.shnapps.couple.core.ui.SecureScreen
+import com.shnapps.couple.core.ui.StatusCard
 import com.shnapps.couple.core.ui.TierPicker
 import com.shnapps.couple.core.ui.Wordmark
 import com.shnapps.couple.core.ui.rememberNudge
@@ -102,9 +103,6 @@ data class HomeActions(
     val onDealtGame: (gameId: String) -> Unit = {},
     /** Something the server built, and the session both phones follow. */
     val onOpen: (experienceId: String, type: ExperienceType, twoPhones: Boolean) -> Unit = { _, _, _ -> },
-    /** Debug builds only: the component gallery and the content inspector. */
-    val onGallery: (() -> Unit)? = null,
-    val onInspector: (() -> Unit)? = null,
     val onPlay: (gameId: String) -> Unit = {},
     val onTier: (Intensity) -> Unit = {},
     /** A level they tapped that they have not bought: the card, then the store (V2 rule 5). */
@@ -185,10 +183,17 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
                 )
             }
 
+            // Apart with nobody paired is not a screen with a warning on it: there is nothing to play
+            // a phone each *with* yet. The heat and the games wait for the pair (D-146).
+            if (state.needsPairing) {
+                Entrance(index = 2) { NeedsPairing(onPair = actions.onPairPartner) }
+                return@ScreenScaffold
+            }
+
             // Apart says what it needs of them, in one line under the control it belongs to: these
-            // two phones are a pair, or they are not yet (V2 rule 2).
+            // two phones are a pair, and they are (V2 rule 2).
             if (state.mode == Mode.APART) {
-                Entrance(index = 1) { PairedLine(state.company, actions.onPairPartner) }
+                Entrance(index = 1) { PairedLine() }
             }
 
             // How far tonight goes belongs with the room it sets, directly under the toggle.
@@ -241,9 +246,6 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
                     )
                 }
             }
-
-            actions.onGallery?.let { Quiet("Component gallery", it) }
-            actions.onInspector?.let { Quiet("Content inspector", it) }
         }
     }
 }
@@ -302,6 +304,17 @@ private fun ModeToggle(selected: Mode, onMode: (Mode) -> Unit) {
  */
 @Composable
 private fun Start(state: HomeUiState, actions: HomeActions) {
+    // Apart, with nobody to be apart with: the button that would deal a card says what is missing
+    // instead, and does the one thing that fixes it.
+    if (state.needsPairing) {
+        GlowButton(
+            text = "Pair to play apart",
+            onClick = actions.onPairPartner,
+            leadingIcon = AfterhoursIcons.Link,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        return
+    }
     GlowButton(
         text = if (state.making) "Getting it ready…" else "Play Now",
         onClick = actions.onCards,
@@ -311,35 +324,37 @@ private fun Start(state: HomeUiState, actions: HomeActions) {
     )
 }
 
+/** Apart, with a pair: said under the toggle that asks it, in one line (V2 rule 2). */
+@Composable
+private fun PairedLine() {
+    Text(
+        text = "Paired with their phone.",
+        style = MaterialTheme.typography.bodyMedium,
+        color = AfterhoursTheme.colors.textMuted,
+    )
+}
+
 /**
- * Whether these two phones are a pair, under the toggle that asks it (V2 rule 2).
+ * What Apart is waiting for (D-146).
  *
- * Apart is not a second half of the app any more — it is the same games, played a phone each — so
- * the only thing this has to say is the one thing that might be missing. A line and a quiet word,
- * not a section and not a wall: everything below still works on this phone alone.
+ * Not a line and a quiet word any more: with nobody paired, the games and the heat are not shown,
+ * because a phone each needs the other phone and there is no one-phone way to play it. The button in
+ * the dock says the same thing; this says what pairing is, and that it happens once.
  */
 @Composable
-private fun PairedLine(company: Company, onPair: () -> Unit) {
-    if (company.paired) {
-        Text(
-            text = "Paired with their phone.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = AfterhoursTheme.colors.textMuted,
-        )
-        return
-    }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
+private fun NeedsPairing(onPair: () -> Unit) {
+    StatusCard(
+        icon = AfterhoursIcons.Phones,
+        title = "Apart needs both phones",
+        body = "Pair once, and every game opens on both. Until then, Together is one tap away.",
     ) {
-        Text(
-            text = "Not paired yet.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = AfterhoursTheme.colors.textMuted,
-            modifier = Modifier.weight(1f),
+        GlowButton(
+            text = "Pair your phones",
+            onClick = onPair,
+            style = GlowButtonStyle.Secondary,
+            leadingIcon = AfterhoursIcons.Link,
+            modifier = Modifier.fillMaxWidth(),
         )
-        GlowButton(text = "Pair", onClick = onPair, style = GlowButtonStyle.Quiet)
     }
 }
 
@@ -392,16 +407,6 @@ private fun Section(title: String, index: Int = 0, content: @Composable () -> Un
             Column(verticalArrangement = Arrangement.spacedBy(spacing.item)) { content() }
         }
     }
-}
-
-@Composable
-private fun Quiet(text: String, onClick: () -> Unit) {
-    GlowButton(
-        text = text,
-        onClick = onClick,
-        style = GlowButtonStyle.Quiet,
-        modifier = Modifier.fillMaxWidth(),
-    )
 }
 
 private fun HomeError.message(): String = when (this) {

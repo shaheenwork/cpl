@@ -112,6 +112,41 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `apart with nobody paired deals nothing, on this phone or any other`() = test {
+        val vm = home()
+        act { vm.setMode(Mode.APART) }
+
+        assertThat(vm.uiState.value.needsPairing).isTrue()
+        act { vm.play(TestGames.TRUTH_OR_DARE) }
+
+        // A phone each needs the other phone. Before this, choosing Apart and tapping a game dealt it
+        // here anyway — the one phone the couple had just said they were not playing on.
+        assertThat(vm.uiState.value.opened).isNull()
+        assertThat(gameStarts.calls).isEmpty()
+    }
+
+    @Test
+    fun `signed in but not paired is still not apart`() = test {
+        auth.user.value = AuthUser(uid = "u1", email = "a@b.c", isEmailVerified = true)
+        val vm = home()
+        act { vm.setMode(Mode.APART) }
+
+        assertThat(vm.uiState.value.company).isEqualTo(Company.SIGNED_IN)
+        assertThat(vm.uiState.value.needsPairing).isTrue()
+    }
+
+    @Test
+    fun `together never needs a pair, and a pair is all apart needs`() = test {
+        val vm = home()
+        assertThat(vm.uiState.value.needsPairing).isFalse()
+
+        paired()
+        act { vm.setMode(Mode.APART) }
+
+        assertThat(vm.uiState.value.needsPairing).isFalse()
+    }
+
+    @Test
     fun `together, the same game is one phone passed between them`() = test {
         paired()
         val vm = home()

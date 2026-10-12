@@ -9,7 +9,9 @@ android {
 }
 
 dependencies {
-    // The discreet launcher icon (M8): which alias the launcher shows is a platform component
-    // setting, and :core:security is where the platform's own privacy surfaces live.
+    // Whether the app lock is on, for the row that opens it (D-146). The lock itself is
+    // :core:security's, and its screens are :feature:applock's.
     implementation(project(":core:security"))
+    // The tests keep a lock in a real in-memory store, which is made of AppPreferences.
+    testImplementation(project(":core:datastore"))
 }

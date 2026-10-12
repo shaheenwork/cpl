@@ -3,47 +3,49 @@ package com.shnapps.couple.feature.settings
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.shnapps.couple.core.data.entitlement.LevelAccess
+import com.shnapps.couple.core.designsystem.component.GlowButton
+import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
+import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
-import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
-import com.shnapps.couple.core.model.Intensity
-import com.shnapps.couple.core.security.DiscreetIcon
+import com.shnapps.couple.core.ui.AfterhoursSheet
 import com.shnapps.couple.core.ui.ErrorBanner
 import com.shnapps.couple.core.ui.LegalUrls
 import com.shnapps.couple.core.ui.ScreenHeading
 import com.shnapps.couple.core.ui.ScreenScaffold
 import com.shnapps.couple.core.ui.SecureScreen
-import com.shnapps.couple.core.ui.onDay
+import com.shnapps.couple.core.ui.SettingsGroup
+import com.shnapps.couple.core.ui.SettingsRow
+import com.shnapps.couple.core.ui.StatusCard
 
 /**
- * Settings (BUILD_PROMPT.md §14.9).
+ * Settings (BUILD_PROMPT.md §14.9, D-146).
  *
- * Most of it is doors: the private things — answers, limits, the app lock — each already have a
- * screen, and this is where they are found. There is no account in v2, so nothing here signs in,
- * signs out or deletes one: what lives here is this phone, and the pair it is half of.
+ * Doors, mostly: the private things — limits, notifications, the app lock — each have a screen, and
+ * this is where they are found. What lives here is this phone, and the pair it is half of. There is
+ * no account in v2, so nothing here signs in, signs out or deletes one.
+ *
+ * It is drawn as objects rather than as text: one card for the pair, which is the thing that can
+ * change under you, and then groups of rows with an icon each.
  */
 @Composable
 fun SettingsScreen(
@@ -57,8 +59,10 @@ fun SettingsScreen(
         state = state,
         routes = routes,
         actions = SettingsActions(
-            onIcon = viewModel::setIcon,
+            onAskUnpair = viewModel::askUnpair,
+            onKeepPair = viewModel::keepPair,
             onUnpair = viewModel::unpair,
+            onDismissUnpaired = viewModel::dismissUnpaired,
             onDismissError = viewModel::dismissError,
         ),
         modifier = modifier,
@@ -70,80 +74,20 @@ data class SettingsRoutes(
     val onBoundaries: () -> Unit = {},
     val onNotifications: () -> Unit = {},
     val onAppLock: () -> Unit = {},
-    val onPremium: () -> Unit = {},
     /** The only setup in the app, and the only row here that touches the other phone (V2). */
     val onPairing: () -> Unit = {},
+    /** Debug builds only. Null in a product build, which then draws no "Developer" group at all. */
+    val onGallery: (() -> Unit)? = null,
+    val onInspector: (() -> Unit)? = null,
     val onBack: () -> Unit = {},
 )
 
-/**
- * Which icon the launcher shows (M8).
- *
- * Three across, with what each one looks like under the name, because "Notes" on its own does not
- * tell anybody what they will be tapping tomorrow.
- */
-@Composable
-private fun DiscreetIconRow(selected: DiscreetIcon, onIcon: (DiscreetIcon) -> Unit) {
-    val spacing = AfterhoursTheme.spacing
-    Column(verticalArrangement = Arrangement.spacedBy(spacing.xs)) {
-        Text(
-            text = "HOW IT LOOKS ON YOUR HOME SCREEN",
-            style = MaterialTheme.typography.labelSmall,
-            color = AfterhoursTheme.colors.textFaint,
-        )
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(spacing.xs),
-            modifier = Modifier.selectableGroup(),
-        ) {
-            DiscreetIcon.entries.forEach { icon ->
-                IconTile(icon = icon, selected = icon == selected, onIcon = onIcon, modifier = Modifier.weight(1f))
-            }
-        }
-        Text(
-            text = selected.describes,
-            style = MaterialTheme.typography.bodySmall,
-            color = AfterhoursTheme.colors.textMuted,
-        )
-    }
-}
-
-/**
- * One of the three names this app can wear on a home screen (M8).
- *
- * A tile rather than a button, because "Afterhours" does not fit across a third of a phone at a
- * button's type size — it wrapped mid-word, which is the kind of thing a golden is for.
- */
-@Composable
-private fun IconTile(
-    icon: DiscreetIcon,
-    selected: Boolean,
-    onIcon: (DiscreetIcon) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val spacing = AfterhoursTheme.spacing
-    Box(
-        modifier = modifier
-            .heightIn(min = spacing.touchTarget)
-            .clip(MaterialTheme.shapes.small)
-            .background(if (selected) AfterhoursTheme.tier.container else MaterialTheme.colorScheme.surfaceContainerLow)
-            .selectable(selected = selected, onClick = { onIcon(icon) }, role = Role.RadioButton)
-            .padding(horizontal = spacing.xs, vertical = spacing.sm),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = icon.label,
-            style = MaterialTheme.typography.labelMedium,
-            maxLines = 1,
-            textAlign = TextAlign.Center,
-            color = if (selected) AfterhoursTheme.tier.onContainer else AfterhoursTheme.colors.textMuted,
-        )
-    }
-}
-
 /** What this screen does on its own. */
 internal data class SettingsActions(
-    val onIcon: (DiscreetIcon) -> Unit = {},
+    val onAskUnpair: () -> Unit = {},
+    val onKeepPair: () -> Unit = {},
     val onUnpair: () -> Unit = {},
+    val onDismissUnpaired: () -> Unit = {},
     val onDismissError: () -> Unit = {},
 )
 
@@ -154,109 +98,218 @@ internal fun SettingsContent(
     actions: SettingsActions,
     modifier: Modifier = Modifier,
 ) {
-    ScreenScaffold(
-        modifier = modifier,
-        title = "Settings",
-        onBack = routes.onBack,
-    ) {
-        ScreenHeading(
-            eyebrow = "Settings",
-            headline = "Yours, and the two of you.",
-            // Not "signed in as": there is nobody to be signed in as. What this phone is, is
-            // either on its own or half of a pair (V2 rule 1).
-            body = if (state.paired) "Paired with their phone." else "Not paired. Together mode needs nothing.",
-        )
+    val spacing = AfterhoursTheme.spacing
+    Box(modifier = modifier.fillMaxSize()) {
+        ScreenScaffold(title = "Settings", onBack = routes.onBack) {
+            ScreenHeading(eyebrow = "Settings", headline = "Yours, and the two of you.")
 
-        Group("You") {
-            Row("Your limits", "What you are up for, and what you are not.", routes.onBoundaries)
-            Row("Notifications", "What this phone may say out loud.", routes.onNotifications)
-            Row("App lock", "A PIN or your fingerprint, on this phone.", routes.onAppLock)
-        }
+            // At the top, where a failure of the thing they just tapped is seen — not at the foot of
+            // a list that has scrolled it out of view.
+            state.error?.let { ErrorBanner(message = it.message(), onDismiss = actions.onDismissError) }
 
-        Group("On this phone") {
-            // What the home screen shows. Not a lock and not a disguise: a name and an icon that
-            // do not announce what the app is, for a phone somebody else might pick up (M8).
-            DiscreetIconRow(selected = state.icon, onIcon = actions.onIcon)
-            Row(
-                title = "Panic",
-                detail = "Two taps of back locks the app. Set a PIN above and it asks for it.",
-                onClick = routes.onAppLock,
-            )
-        }
+            if (state.unpaired) UnpairedNotice(onDismiss = actions.onDismissUnpaired)
 
-        Group("The two of you") {
-            Row(
-                title = if (state.paired) "Paired" else "Not paired",
-                detail = if (state.paired) {
-                    "These two phones are a pair until one of you unpairs."
-                } else {
-                    "Together mode needs nobody. Pair only to play apart."
+            PairingCard(
+                state = state,
+                onPair = {
+                    // They are pairing again: what it said about the last pair has been read.
+                    actions.onDismissUnpaired()
+                    routes.onPairing()
                 },
-                onClick = routes.onPairing,
+                onUnpair = actions.onAskUnpair,
             )
-            if (state.paired) {
-                // The one destructive thing in the app, and the sentence says the whole of it.
-                Row(
-                    title = "Unpair and wipe",
-                    detail = "Clears the pair on both phones and everything you shared. " +
-                        "Your own limits stay on this phone.",
-                    onClick = actions.onUnpair,
+
+            SettingsGroup(title = "Yours") {
+                SettingsRow(
+                    icon = AfterhoursIcons.Limits,
+                    title = "Your limits",
+                    detail = "What you are up for, and what you are not.",
+                    onClick = routes.onBoundaries,
+                )
+                SettingsRow(
+                    icon = AfterhoursIcons.Bell,
+                    title = "Notifications",
+                    detail = "What this phone may say out loud.",
+                    onClick = routes.onNotifications,
+                )
+                SettingsRow(
+                    icon = AfterhoursIcons.Lock,
+                    title = "App lock",
+                    detail = "A PIN or your fingerprint, on this phone.",
+                    // Said before it is opened: whether the lock is on is the one thing worth
+                    // knowing about it from here.
+                    value = if (state.lock.isEnabled) "On" else "Off",
+                    onClick = routes.onAppLock,
                 )
             }
-        }
 
-        Group("Packs") {
-            // What they own, said as a fact rather than as an offer. A couple who have bought
-            // everything are never sold anything here again (V2 rule 5).
-            Row(
-                title = "What you own",
-                detail = packsDetail(state.access),
-                onClick = routes.onPremium,
+            // Only when they exist: a row here that opens nothing would be worse than no row.
+            if (LegalUrls.published) SmallPrint()
+
+            if (routes.onGallery != null || routes.onInspector != null) {
+                SettingsGroup(title = "Developer") {
+                    routes.onGallery?.let {
+                        SettingsRow(
+                            icon = AfterhoursIcons.Tools,
+                            title = "Component gallery",
+                            detail = "Every component, as drawn. Debug builds only.",
+                            onClick = it,
+                        )
+                    }
+                    routes.onInspector?.let {
+                        SettingsRow(
+                            icon = AfterhoursIcons.Document,
+                            title = "Content inspector",
+                            detail = "Every card in the cache. Debug builds only.",
+                            onClick = it,
+                        )
+                    }
+                }
+            }
+
+            Text(
+                text = "Afterhours · Version ${versionName(LocalContext.current)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = AfterhoursTheme.colors.textFaint,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = spacing.sm),
             )
         }
 
-        // Only when they exist: a row here that opens nothing would be worse than no row.
-        if (LegalUrls.published) {
-            Group("The small print") {
-                val context = LocalContext.current
-                if (LegalUrls.PRIVACY_POLICY.isNotBlank()) {
-                    Row("Privacy policy", "What this app holds, and what it never shares.") {
-                        context.open(LegalUrls.PRIVACY_POLICY)
-                    }
-                }
-                if (LegalUrls.TERMS.isNotBlank()) {
-                    Row("Terms of use", "The agreement between us.") { context.open(LegalUrls.TERMS) }
-                }
-            }
+        AfterhoursSheet(
+            visible = state.confirmingUnpair,
+            onDismiss = actions.onKeepPair,
+            title = "Unpair",
+        ) {
+            UnpairQuestion(onKeep = actions.onKeepPair, onUnpair = actions.onUnpair)
+        }
+    }
+}
+
+/**
+ * The pair, as the state it is in: paired, working on it, or not paired (D-146).
+ *
+ * The one card on the screen that can change under you, so it is the one drawn as an object. It is
+ * lit while there is a pair, because that is the thing that is working; unpaired it is quiet.
+ */
+@Composable
+private fun PairingCard(state: SettingsUiState, onPair: () -> Unit, onUnpair: () -> Unit) {
+    when {
+        state.busy -> StatusCard(
+            icon = AfterhoursIcons.Phones,
+            title = "Unpairing…",
+            body = "Clearing the pair on both phones.",
+        ) {
+            // Nothing to tap while it is happening: a second tap is the thing that must not land.
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .padding(vertical = AfterhoursTheme.spacing.xs)
+                    .semantics { contentDescription = "Unpairing" },
+                color = AfterhoursTheme.tier.accent,
+                strokeWidth = 3.dp,
+            )
         }
 
-        Group("About") {
-            // A version, and nothing that looks like an account — because there is not one.
-            Row(title = "Afterhours", detail = "Version ${versionName(LocalContext.current)}") {}
+        state.paired -> StatusCard(
+            icon = AfterhoursIcons.Phones,
+            title = "Paired",
+            body = "These two phones are a pair until one of you unpairs.",
+            lit = true,
+        ) {
+            GlowButton(
+                text = "Unpair…",
+                onClick = onUnpair,
+                style = GlowButtonStyle.Secondary,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
 
-        state.error?.let { ErrorBanner(message = it.message(), onDismiss = actions.onDismissError) }
+        else -> StatusCard(
+            icon = AfterhoursIcons.Link,
+            title = "Not paired",
+            body = "Together mode needs nobody. Pair only to play apart.",
+        ) {
+            GlowButton(
+                text = "Pair your phones",
+                onClick = onPair,
+                leadingIcon = AfterhoursIcons.Link,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+/** What an unpairing left, said once in words: the card below it changing is not enough. */
+@Composable
+private fun UnpairedNotice(onDismiss: () -> Unit) {
+    StatusCard(
+        icon = AfterhoursIcons.Check,
+        title = "You're unpaired",
+        body = "The pair, and everything you shared, is cleared on both phones. " +
+            "Your own limits are still here.",
+    ) {
+        GlowButton(
+            text = "Got it",
+            onClick = onDismiss,
+            style = GlowButtonStyle.Quiet,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+/** The question before the only destructive thing in the app, and the sentence says the whole of it. */
+@Composable
+private fun ColumnScope.UnpairQuestion(onKeep: () -> Unit, onUnpair: () -> Unit) {
+    Text(
+        text = "Unpair from their phone?",
+        style = MaterialTheme.typography.headlineSmall,
+        color = MaterialTheme.colorScheme.onSurface,
+    )
+    Text(
+        text = "Clears the pair on both phones and everything you shared. " +
+            "Your own limits stay on this phone.",
+        style = MaterialTheme.typography.bodyLarge,
+        color = AfterhoursTheme.colors.textMuted,
+    )
+    Text(
+        text = "You can pair again later, with a new code.",
+        style = MaterialTheme.typography.bodyMedium,
+        color = AfterhoursTheme.colors.textFaint,
+    )
+    // The safe answer is the primary one: a thumb that lands here by habit keeps the pair.
+    Column(verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm)) {
+        GlowButton(text = "Keep the pair", onClick = onKeep, modifier = Modifier.fillMaxWidth())
+        GlowButton(
+            text = "Unpair and wipe",
+            onClick = onUnpair,
+            style = GlowButtonStyle.Secondary,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
 @Composable
-private fun Group(title: String, content: @Composable () -> Unit) {
-    Text(text = title.uppercase(), style = EyebrowTextStyle, color = AfterhoursTheme.colors.textFaint)
-    Column(verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.xs)) { content() }
-}
-
-@Composable
-private fun Row(title: String, detail: String, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = AfterhoursTheme.spacing.touchTarget)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(vertical = AfterhoursTheme.spacing.xs),
-        verticalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.xxs),
-    ) {
-        Text(text = title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
-        Text(text = detail, style = MaterialTheme.typography.bodyMedium, color = AfterhoursTheme.colors.textMuted)
+private fun SmallPrint() {
+    val context = LocalContext.current
+    SettingsGroup(title = "The small print") {
+        if (LegalUrls.PRIVACY_POLICY.isNotBlank()) {
+            SettingsRow(
+                icon = AfterhoursIcons.Shield,
+                title = "Privacy policy",
+                detail = "What this app holds, and what it never shares.",
+                onClick = { context.open(LegalUrls.PRIVACY_POLICY) },
+            )
+        }
+        if (LegalUrls.TERMS.isNotBlank()) {
+            SettingsRow(
+                icon = AfterhoursIcons.Document,
+                title = "Terms of use",
+                detail = "The agreement between us.",
+                onClick = { context.open(LegalUrls.TERMS) },
+            )
+        }
     }
 }
 
@@ -265,18 +318,8 @@ private fun Context.open(url: String) {
 }
 
 private fun SettingsError.message(): String = when (this) {
-    SettingsError.OFFLINE -> "You're offline. That one needs the network."
-    SettingsError.OTHER -> "That didn't work. Try again."
-}
-
-/** What settings says about the packs: owned, free for now, or what there is to have. */
-private fun packsDetail(access: LevelAccess): String = when {
-    access.isOwned(Intensity.EXTREME) -> "Everything's yours."
-    access.freeForNow -> access.freeUntilMillis
-        ?.let { "Everything unlocked until ${onDay(it)}." }
-        ?: "Everything unlocked for now."
-    access.owned.isNotEmpty() -> "${LevelAccess.ceilingOf(access.owned).label} and below. Restore, or go further."
-    else -> "Mild and Flirty are free. Spicy, Hot and Extreme are packs."
+    SettingsError.OFFLINE -> "You're offline. Unpairing needs the network, so nothing has changed."
+    SettingsError.OTHER -> "That didn't work, and nothing has changed. Try again."
 }
 
 /** This build's version, as the system records it. Nothing to maintain, and never wrong. */

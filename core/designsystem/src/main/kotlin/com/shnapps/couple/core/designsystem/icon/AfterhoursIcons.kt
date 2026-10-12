@@ -294,6 +294,29 @@ object AfterhoursIcons {
         "M18 14h2",
     )
 
+    /** What this phone may say out loud. */
+    val Bell = icon(
+        "Bell",
+        "M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z",
+        "M10 21a2 2 0 0 0 4 0",
+    )
+
+    /** A document: the small print. */
+    val Document = icon(
+        "Document",
+        "M7 3.5h7.5L18 7v13.5H7z",
+        "M14.5 3.5V7H18",
+        "M10 12h5",
+        "M10 15.5h5",
+    )
+
+    /** A wrench: what only a debug build shows. */
+    val Tools = icon(
+        "Tools",
+        "M14.5 6.5a4 4 0 0 0 4.8 4.8l-9.3 9.3a2 2 0 0 1-2.8-2.8z",
+        "M14.5 6.5L17 4l3 3-2.5 2.5",
+    )
+
     /** Every icon in the set, for the gallery and for the audit that holds them to one spec. */
     val all: List<Pair<String, ImageVector>> = listOf(
         "back" to Back, "forward" to Forward, "close" to Close, "check" to Check, "plus" to Plus,
@@ -309,6 +332,7 @@ object AfterhoursIcons {
         "fork" to Fork, "flame ask" to FlameAsk, "sealed" to Sealed, "aftercare" to Aftercare, "lanes" to Lanes,
         "card back" to CardBack, "retry" to Retry, "down" to Down, "up" to Up, "backspace" to Backspace,
         "fingerprint" to Fingerprint, "share" to Share, "qr" to Qr,
+        "bell" to Bell, "document" to Document, "tools" to Tools,
     )
 }
 

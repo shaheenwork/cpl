@@ -105,6 +105,18 @@ class AppLockManager @Inject constructor(
         markUnlocked()
     }
 
+    /**
+     * Back to the PIN alone, keeping the PIN. The sensor was a convenience on top of it (§3.4), so
+     * taking it away never leaves anyone without a way in — or with a different PIN than they had.
+     */
+    suspend fun disableBiometric() {
+        val saved = preferences.preferences.first()
+        val hash = saved.pinHash ?: return
+        val salt = saved.pinSalt ?: return
+        preferences.setPinLock(hash = hash, salt = salt)
+    }
+
+    /** Switches the lock off for good, and forgets the PIN: a lock that is off has nothing to remember. */
     suspend fun disableLock() {
         preferences.setLockOff()
         markUnlocked()

@@ -3,12 +3,14 @@ package com.shnapps.couple.feature.home
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.google.common.truth.Truth.assertThat
 import com.shnapps.couple.core.data.entitlement.LevelAccess
 import com.shnapps.couple.core.designsystem.theme.AfterhoursSurface
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
@@ -126,10 +128,16 @@ class HomeSnapshotTest {
 
         capture("home-apart-unpaired") { HomeContent(state, HomeActions()) }
 
-        composeRule.onNodeWithText("Not paired yet.").assertIsDisplayed()
-        composeRule.onNodeWithText("Pair").assertIsDisplayed()
-        // Everything still works on this phone alone, so it is a line and not a wall.
-        composeRule.onNodeWithText("Game Night").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Apart needs both phones").assertIsDisplayed()
+        // The dock offers the one thing that fixes it, where Play Now would have been.
+        composeRule.onNodeWithText("Pair to play apart").assertIsDisplayed()
+        // Nothing is dealt on one phone under a toggle that says two (D-146): no way to start, and
+        // none of the games or the heat that would have started it.
+        for (word in listOf("Play Now", "Game Night", "Truth or Dare", "Or play something")) {
+            assertThat(
+                composeRule.onAllNodesWithText(word, ignoreCase = true).fetchSemanticsNodes(),
+            ).isEmpty()
+        }
     }
 
     @Test

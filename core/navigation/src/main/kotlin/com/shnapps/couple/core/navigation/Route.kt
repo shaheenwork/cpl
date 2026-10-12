@@ -94,9 +94,13 @@ object Route {
     @Serializable
     data object AppLock
 
-    /** Turning the app lock on. Reached from Settings once Phase 20 builds it. */
+    /** Turning the app lock on, or choosing another PIN. Reached from [AppLockSettings]. */
     @Serializable
     data object AppLockSetup
+
+    /** The lock as it stands — on or off — and how to change it. Reached from Settings (D-146). */
+    @Serializable
+    data object AppLockSettings
 
     // --- Development ---
 

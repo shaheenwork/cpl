@@ -8,11 +8,9 @@ import com.shnapps.couple.core.data.account.AccountRepository
 import com.shnapps.couple.core.data.auth.AuthRepository
 import com.shnapps.couple.core.data.billing.BillingRepository
 import com.shnapps.couple.core.data.couple.CoupleRepository
-import com.shnapps.couple.core.data.entitlement.LevelAccess
-import com.shnapps.couple.core.data.entitlement.LevelAccessRepository
+import com.shnapps.couple.core.model.AppLockMode
 import com.shnapps.couple.core.model.Entitlement
-import com.shnapps.couple.core.security.DiscreetIcon
-import com.shnapps.couple.core.security.DiscreetIcons
+import com.shnapps.couple.core.security.AppLockManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -34,17 +32,21 @@ data class SettingsUiState(
     val email: String? = null,
     val paired: Boolean = false,
     val entitlement: Entitlement = Entitlement(),
-    /** Which packs this phone has, and how far they reach (V2 rule 5). */
-    val access: LevelAccess = LevelAccess.FREE,
+    /** Whether the app lock is on, and how it opens: the one fact its row shows before it is opened. */
+    val lock: AppLockMode = AppLockMode.OFF,
     val exporting: Boolean = false,
     val export: ExportSummary? = null,
     val busy: Boolean = false,
     val error: SettingsError? = null,
     /** Set once the account is gone: the screen leaves for the beginning. */
     val deleted: Boolean = false,
+    /** The question before unpairing is on screen: the pair is not touched until it is answered. */
+    val confirmingUnpair: Boolean = false,
+    /**
+     * The pair has just been ended, from this screen. Said once, in words, until it is dismissed or
+     * they set about pairing again — because the only other sign was a row that quietly changed.
+     */
     val unpaired: Boolean = false,
-    /** Which launcher icon is showing (M8). Read from the components, not from a stored guess. */
-    val icon: DiscreetIcon = DiscreetIcon.DEFAULT,
 )
 
 /**
@@ -55,37 +57,27 @@ data class SettingsUiState(
 class SettingsViewModel @Inject constructor(
     private val account: AccountRepository,
     private val couples: CoupleRepository,
-    private val icons: DiscreetIcons,
+    appLock: AppLockManager,
     auth: AuthRepository,
     billing: BillingRepository,
-    levels: LevelAccessRepository,
 ) : ViewModel() {
 
-    private val local = MutableStateFlow(SettingsUiState(icon = icons.current()))
-
-    /**
-     * Shows [icon] on the home screen (M8).
-     *
-     * Read back from the components rather than trusted: the platform is the record of which alias
-     * is enabled, and a stored copy of it would be a second answer that could disagree.
-     */
-    fun setIcon(icon: DiscreetIcon) {
-        icons.show(icon)
-        local.update { it.copy(icon = icons.current()) }
-    }
+    private val local = MutableStateFlow(SettingsUiState())
 
     val uiState: StateFlow<SettingsUiState> = combine(
         local,
         auth.currentProfile,
         auth.authState,
         billing.entitlement,
-        levels.access,
-    ) { state, profile, user, tier, access ->
+        appLock.lockMode,
+    ) { state, profile, user, tier, lock ->
         state.copy(
             email = user?.email,
-            paired = profile?.coupleId != null,
+            // The profile catches up with an unpairing a moment after the call returns. Until it
+            // does, the screen has been told the pair is gone, and says so rather than disagreeing.
+            paired = profile?.coupleId != null && !state.unpaired,
             entitlement = tier,
-            access = access,
+            lock = lock,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), SettingsUiState())
 
@@ -107,15 +99,28 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun unpair() = act {
-        when (val result = couples.unpair()) {
-            is Outcome.Success -> {
-                local.update { it.copy(unpaired = true) }
-                result
+    /** The question, first: unpairing clears the pair on both phones, and a stray tap must not. */
+    fun askUnpair() = local.update { it.copy(confirmingUnpair = true, error = null) }
+
+    fun keepPair() = local.update { it.copy(confirmingUnpair = false) }
+
+    /** Unpairs for real. Only the confirmation calls this; the row never does. */
+    fun unpair() {
+        if (local.value.busy) return
+        local.update { it.copy(confirmingUnpair = false) }
+        act {
+            when (val result = couples.unpair()) {
+                is Outcome.Success -> {
+                    local.update { it.copy(unpaired = true) }
+                    result
+                }
+                is Outcome.Failure -> result
             }
-            is Outcome.Failure -> result
         }
     }
+
+    /** They have read it, or are about to pair again: either way it has said what it had to. */
+    fun dismissUnpaired() = local.update { it.copy(unpaired = false) }
 
     /** Deletes the account, the couple, and everything either of them made (D-093). */
     fun deleteAccount() = act {

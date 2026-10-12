@@ -252,6 +252,13 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   finishes what was left.
 - Settings (`:feature:settings`) is the hub for all of it (§14.9); home keeps only memories, limits
   and a way in.
+- **Settings is built from `SettingsGroup` / `SettingsRow` / `StatusCard`** in `:core:ui` (D-146),
+  not from headings and lines. Unpairing is a question, then "Unpairing…", then a card that says it
+  is done — never a tap that does the whole job and shows nothing.
+- **The app lock has an off switch** (`AppLockSettingsScreen`), and turning it off or changing the
+  PIN asks for the current PIN. The component gallery and content inspector are rows in a debug-only
+  "Developer" group at the foot of Settings, never on home, and their routes do not exist in a
+  product build (`DEV_TOOLS_AVAILABLE`).
 
 ### Subscription
 
@@ -397,6 +404,8 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
 - **The deal is not the pool.** `cards` is everything this phone may be shown; `next()` is what
   comes up, and it climbs to the tier and never repeats (D-124). Dealing from index zero over a
   pool in bundle order is what made 790 items look like six.
+- **Apart needs a pair** (D-146): with Apart selected and nobody paired, home offers no games and no
+  heat — only "Pair to play apart" — and `HomeViewModel.play` refuses. Together never needs one.
 - The packs are a **lane** a couple can ask for by name (D-125): only ones with cards at this tier
   are offered, and a lane is only ever narrower than the open deck.
 - A refusal is captured mid-play by `Too far` and honoured from the next card. The **limits

@@ -11,6 +11,7 @@ import com.shnapps.couple.core.security.BiometricAuthenticator
 import com.shnapps.couple.debug.CONTENT_INSPECTOR_AVAILABLE
 import com.shnapps.couple.debug.ContentInspectorScreen
 import com.shnapps.couple.feature.applock.AppLockScreen
+import com.shnapps.couple.feature.applock.AppLockSettingsScreen
 import com.shnapps.couple.feature.applock.AppLockSetupScreen
 import com.shnapps.couple.feature.boundaries.LimitsScreen
 import com.shnapps.couple.feature.chat.ChatLayer
@@ -116,6 +117,14 @@ fun CplNavHost(
                 )
             }
 
+            composable<Route.AppLockSettings> {
+                AppLockSettingsScreen(
+                    onBack = { navController.popBackStack() },
+                    onSetUp = { navController.navigate(Route.AppLockSetup) },
+                    biometricAuthenticator = biometricAuthenticator,
+                )
+            }
+
             // The only setup in the app. Reached from home or from settings, never in front of
             // anything (V2 rule 2).
             composable<Route.Pairing> {
@@ -138,10 +147,21 @@ fun CplNavHost(
                     routes = SettingsRoutes(
                         onBoundaries = { navController.navigate(Route.Boundaries) },
                         onNotifications = { navController.navigate(Route.NotificationSettings) },
-                        onAppLock = { navController.navigate(Route.AppLockSetup) },
-                        onPremium = { navController.navigate(Route.Store()) },
+                        onAppLock = { navController.navigate(Route.AppLockSettings) },
                         onPairing = { navController.navigate(Route.Pairing) },
                         onBack = { navController.popBackStack() },
+                        // Debug builds only, and in Settings rather than on home: a couple opening
+                        // the app should never be offered the component library (D-146).
+                        onGallery = if (DEV_TOOLS_AVAILABLE) {
+                            { navController.navigate(Route.DesignGallery) }
+                        } else {
+                            null
+                        },
+                        onInspector = if (DEV_TOOLS_AVAILABLE) {
+                            { navController.navigate(Route.ContentInspector) }
+                        } else {
+                            null
+                        },
                     ),
                 )
             }
@@ -171,12 +191,16 @@ fun CplNavHost(
                 Home(navController)
             }
 
-            composable<Route.DesignGallery> {
-                ComponentGallery()
-            }
+            // Both are reachable only from a debug build's Settings, and are not even registered in
+            // a product build: the gallery is shipped code, so the route is what keeps it out.
+            if (DEV_TOOLS_AVAILABLE) {
+                composable<Route.DesignGallery> {
+                    ComponentGallery()
+                }
 
-            composable<Route.ContentInspector> {
-                ContentInspectorScreen(onBack = { navController.popBackStack() })
+                composable<Route.ContentInspector> {
+                    ContentInspectorScreen(onBack = { navController.popBackStack() })
+                }
             }
         }
     }
@@ -209,12 +233,14 @@ private fun Home(navController: NavHostController) {
             onOpen = { experienceId, _, twoPhones ->
                 navController.navigate(Route.Game(experienceId, twoPhones))
             },
-            onGallery = { navController.navigate(Route.DesignGallery) },
-            onInspector = if (CONTENT_INSPECTOR_AVAILABLE) {
-                { navController.navigate(Route.ContentInspector) }
-            } else {
-                null
-            },
         ),
     )
 }
+
+/**
+ * Whether the component gallery and the content inspector exist in this build.
+ *
+ * Debug builds only. The inspector has a release twin that says no; the gallery is ordinary shipped
+ * code, so before this it was reachable from home in every build, a product one included (D-146).
+ */
+private const val DEV_TOOLS_AVAILABLE = CONTENT_INSPECTOR_AVAILABLE

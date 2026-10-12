@@ -88,6 +88,16 @@ data class HomeUiState(
 ) {
     /** Nothing else can start while the couple already has something under way (D-059). */
     val canStart: Boolean get() = active == null && !making
+
+    /**
+     * Apart, with nobody paired: there is nothing to play yet (D-146).
+     *
+     * Apart means a phone each, and a phone each needs the other phone. It used to say so in a line
+     * and carry on, which let a couple choose Apart and then play on one phone — the opposite of
+     * what they had picked. Now it is a state of its own: the games are not offered, and the one
+     * thing on offer is the pairing that would make them playable.
+     */
+    val needsPairing: Boolean get() = mode == Mode.APART && !company.paired
 }
 
 /**
@@ -189,6 +199,8 @@ class HomeViewModel @Inject constructor(
      */
     fun play(gameId: String) {
         val state = uiState.value
+        // Not offered while it is true, so this is the second lock on the same door.
+        if (state.needsPairing) return
         if (!state.company.paired) {
             local.update { it.copy(opened = Opened.Dealt(gameId), error = null) }
             return

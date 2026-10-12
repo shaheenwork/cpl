@@ -196,4 +196,29 @@ class AppLockManagerTest {
         assertThat(preferences.state.value.lockMode).isEqualTo(AppLockMode.BIOMETRIC)
         assertThat(manager.hasPinFallback()).isTrue()
     }
+
+    @Test
+    fun `taking the sensor away keeps the pin they already had`() = runTest {
+        val manager = manager()
+        manager.setPin("2468")
+        manager.enableBiometric()
+
+        manager.disableBiometric()
+
+        assertThat(preferences.state.value.lockMode).isEqualTo(AppLockMode.PIN)
+        // The same PIN, not a new one: nobody should have to choose again to stop using a finger.
+        assertThat(manager.verifyPin("2468")).isTrue()
+    }
+
+    @Test
+    fun `switching the lock off forgets the pin, so a later lock starts clean`() = runTest {
+        val manager = manager()
+        manager.setPin("2468")
+
+        manager.disableLock()
+
+        assertThat(preferences.state.value.lockMode).isEqualTo(AppLockMode.OFF)
+        assertThat(manager.hasPinFallback()).isFalse()
+        assertThat(manager.lockState.first()).isEqualTo(LockState.Unlocked)
+    }
 }
