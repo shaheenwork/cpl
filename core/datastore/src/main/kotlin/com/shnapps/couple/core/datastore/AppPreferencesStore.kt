@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
  * written. A relaxed mock silently drops writes, which made "biometric requires a PIN"
  * untestable against one.
  */
+@Suppress("TooManyFunctions") // A phone's own settings, one function each: the lock, the hints, the mode.
 interface AppPreferencesStore {
     val preferences: Flow<AppPreferences>
 
@@ -35,6 +36,9 @@ interface AppPreferencesStore {
 
     /** What a notification may say on this phone (§16.2), cached for when one arrives. */
     suspend fun setShowNotificationContent(show: Boolean)
+
+    /** The phone has been asked whether it may notify, or the answer is already known (D-151). */
+    suspend fun setNotificationPermissionAsked()
 
     /** Called on sign-out and account deletion. Leaves no trace of the previous user. */
     suspend fun clear()

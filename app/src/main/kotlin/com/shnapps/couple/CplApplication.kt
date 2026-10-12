@@ -9,6 +9,7 @@ import com.shnapps.couple.core.data.content.ContentSyncScheduler
 import com.shnapps.couple.core.firebase.FirebaseInitializer
 import com.shnapps.couple.core.firebase.config.RemoteConfigSource
 import com.shnapps.couple.core.notifications.Notifier
+import com.shnapps.couple.core.notifications.TrackedAppVisibility
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -46,6 +47,9 @@ class CplApplication : Application(), Configuration.Provider {
     lateinit var notifier: Notifier
 
     @Inject
+    lateinit var appVisibility: TrackedAppVisibility
+
+    @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
 
@@ -54,6 +58,8 @@ class CplApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        // Before anything can start, so that "is the app open" is never answered from a guess (D-151).
+        appVisibility.register(this)
         firebaseInitializer.initialize(
             context = this,
             isDebugBuild = BuildConfig.DEBUG,

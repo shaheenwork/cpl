@@ -27,7 +27,8 @@ import org.robolectric.annotation.Config
 class NotifierTest {
 
     private val context = ApplicationProvider.getApplicationContext<Context>()
-    private val notifier = Notifier(context)
+    private val visibility = FakeVisibility()
+    private val notifier = Notifier(context, visibility)
     private val manager = context.getSystemService(NotificationManager::class.java)
 
     @Before
@@ -40,6 +41,51 @@ class NotifierTest {
     private fun Notification.title(): String = extras.getString(Notification.EXTRA_TITLE).orEmpty()
 
     private fun Notification.body(): String = extras.getString(Notification.EXTRA_TEXT).orEmpty()
+
+    /** Whether the app is on the screen, set by hand. */
+    private class FakeVisibility(var open: Boolean = false) : AppVisibility {
+        override val inForeground: Boolean get() = open
+    }
+
+    @Test
+    fun `an open app is not told what its screen already says`() {
+        visibility.open = true
+
+        // A step in an evening, a game starting, a pairing: each is on the screen the phone is
+        // looking at, and a banner over it is the same news twice (D-151).
+        for (kind in PushKind.entries.filter { !it.speaksWhileOpen }) {
+            notifier.show(PushMessage(kind), showContent = true)
+        }
+
+        assertThat(posted()).isEmpty()
+    }
+
+    @Test
+    fun `the same steps are told to a phone that is not looking`() {
+        visibility.open = false
+
+        for (kind in PushKind.entries.filter { !it.speaksWhileOpen }) {
+            notifier.show(PushMessage(kind), showContent = true)
+        }
+
+        // One per kind: a second of the same kind replaces the first, it does not stack.
+        assertThat(posted()).hasSize(PushKind.entries.count { !it.speaksWhileOpen })
+    }
+
+    @Test
+    fun `a message from them is still told to an open app`() {
+        visibility.open = true
+
+        notifier.show(PushMessage(PushKind.THEY_SENT_SOMETHING), showContent = false)
+
+        assertThat(posted()).hasSize(1)
+    }
+
+    @Test
+    fun `only a message from them speaks while the app is open`() {
+        // Held as a list so a new kind has to be decided about rather than defaulting into either.
+        assertThat(PushKind.entries.filter { it.speaksWhileOpen }).containsExactly(PushKind.THEY_SENT_SOMETHING)
+    }
 
     @Test
     fun `hides the kind of thing it was, until asked not to`() {

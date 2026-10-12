@@ -8,6 +8,8 @@ import com.shnapps.couple.core.firebase.notifications.PushDataSource
 import com.shnapps.couple.core.firebase.user.UserProfileDataSource
 import com.shnapps.couple.core.model.NotificationSettings
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -30,6 +32,17 @@ interface NotificationsRepository {
     suspend fun forgetThisPhone(): Outcome<Unit>
 
     suspend fun update(settings: NotificationSettings): Outcome<Unit>
+
+    /**
+     * Whether it is time to ask this phone for permission to notify (D-151): it is paired, and it has
+     * not been asked. Never before pairing — until then there is nobody to send a notification — and
+     * never twice, because the system shows the question at most twice in a phone's life and a "no"
+     * costs only the notifications.
+     */
+    val shouldAskPermission: Flow<Boolean>
+
+    /** The question has been put, or its answer was already known: do not put it again. */
+    suspend fun permissionAsked()
 }
 
 @Singleton
@@ -42,6 +55,13 @@ class DefaultNotificationsRepository @Inject constructor(
 
     override val settings: Flow<NotificationSettings> =
         auth.currentProfile.map { it?.notificationSettings ?: NotificationSettings() }
+
+    override val shouldAskPermission: Flow<Boolean> = combine(
+        auth.currentProfile.map { it?.coupleId != null },
+        preferences.preferences.map { it.notificationPermissionAsked },
+    ) { paired, asked -> paired && !asked }.distinctUntilChanged()
+
+    override suspend fun permissionAsked() = preferences.setNotificationPermissionAsked()
 
     override suspend fun registerThisPhone(): Outcome<Unit> = withPhone { uid, token ->
         push.register(uid, token)

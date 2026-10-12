@@ -14,6 +14,19 @@ class FakeNotificationsRepository(
     val current = MutableStateFlow(initial)
     override val settings = current
 
+    /** Paired and not yet asked: what a test sets to say it is time. */
+    val shouldAsk = MutableStateFlow(false)
+    override val shouldAskPermission = shouldAsk
+
+    /** How many times the question has been marked as put. */
+    var asked = 0
+        private set
+
+    override suspend fun permissionAsked() {
+        asked += 1
+        shouldAsk.value = false
+    }
+
     var registered = false
         private set
     var failNext: AppError? = null

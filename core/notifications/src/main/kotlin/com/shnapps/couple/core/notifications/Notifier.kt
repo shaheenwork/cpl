@@ -28,6 +28,7 @@ import javax.inject.Singleton
 @Singleton
 class Notifier @Inject constructor(
     @param:ApplicationContext private val context: Context,
+    private val visibility: AppVisibility,
 ) {
 
     private val manager = NotificationManagerCompat.from(context)
@@ -57,6 +58,9 @@ class Notifier @Inject constructor(
      * no content here to show.
      */
     fun show(message: PushMessage, showContent: Boolean) {
+        // The app is open and looking at it: the screen already says so. Only a message from them
+        // is worth a banner over something else (D-151).
+        if (visibility.inForeground && !message.kind.speaksWhileOpen) return
         // Android 13+ asks before the first notification, and a phone can refuse them wholesale.
         // Either answer is respected here rather than left to the system to swallow.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&

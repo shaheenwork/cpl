@@ -44,6 +44,7 @@ class AppPreferencesDataSource @Inject constructor(
             },
             mode = prefs[Keys.MODE]?.let { name -> Mode.entries.firstOrNull { it.name == name } } ?: Mode.TOGETHER,
             showNotificationContent = prefs[Keys.SHOW_NOTIFICATION_CONTENT] ?: false,
+            notificationPermissionAsked = prefs[Keys.NOTIFICATION_PERMISSION_ASKED] ?: false,
             tier = prefs[Keys.TIER]
                 ?.let { name -> Intensity.entries.firstOrNull { it.name == name } }
                 ?: Intensity.DEFAULT,
@@ -103,6 +104,10 @@ class AppPreferencesDataSource @Inject constructor(
 
     override suspend fun setShowNotificationContent(show: Boolean) {
         context.dataStore.edit { it[Keys.SHOW_NOTIFICATION_CONTENT] = show }
+    }
+
+    override suspend fun setNotificationPermissionAsked() {
+        context.dataStore.edit { it[Keys.NOTIFICATION_PERMISSION_ASKED] = true }
     }
 
     override suspend fun setMode(mode: Mode) {
@@ -176,6 +181,7 @@ class AppPreferencesDataSource @Inject constructor(
         val SECOND_PLAYER = stringPreferencesKey("game_second_player")
         val MODE = stringPreferencesKey("home_mode")
         val SHOW_NOTIFICATION_CONTENT = booleanPreferencesKey("show_notification_content")
+        val NOTIFICATION_PERMISSION_ASKED = booleanPreferencesKey("notification_permission_asked")
 
         /**
          * The tier, under a new key.

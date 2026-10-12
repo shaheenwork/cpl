@@ -6,7 +6,16 @@ package com.shnapps.couple.core.model
  * whatever the notification is about is fetched afterwards with the signed-in user's credentials
  * (§16.2).
  */
-enum class PushKind(val channel: PushChannel) {
+enum class PushKind(
+    val channel: PushChannel,
+    /**
+     * Whether it is still worth a banner when the app is open (D-151). Only a message from them:
+     * a person reading something else wants to know one has come. Everything else is a step in
+     * something the screen already shows — a partner's answer, a game started, a pairing — and a
+     * banner over the thing it is about is that news twice.
+     */
+    val speaksWhileOpen: Boolean = false,
+) {
     PARTNER_INVITED(PushChannel.PAIRING),
     PARTNER_JOINED(PushChannel.PAIRING),
     SURPRISE_LEFT(PushChannel.SURPRISES),
@@ -16,7 +25,7 @@ enum class PushKind(val channel: PushChannel) {
     PARTNER_FINISHED(PushChannel.TOGETHER),
     BOTH_READY(PushChannel.TOGETHER),
     SESSION_EXPIRING(PushChannel.TOGETHER),
-    THEY_SENT_SOMETHING(PushChannel.MESSAGES),
+    THEY_SENT_SOMETHING(PushChannel.MESSAGES, speaksWhileOpen = true),
     ;
 
     companion object {

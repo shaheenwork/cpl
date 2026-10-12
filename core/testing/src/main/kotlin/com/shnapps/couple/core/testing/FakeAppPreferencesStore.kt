@@ -42,6 +42,9 @@ class FakeAppPreferencesStore(
     override suspend fun setOnboardingCompleteHint(complete: Boolean) =
         state.update { it.copy(onboardingCompleteHint = complete) }
 
+    override suspend fun setNotificationPermissionAsked() =
+        state.update { it.copy(notificationPermissionAsked = true) }
+
     override suspend fun setGamePlayers(players: GamePlayers) = state.update { it.copy(gamePlayers = players) }
 
     override suspend fun setShowNotificationContent(show: Boolean) =

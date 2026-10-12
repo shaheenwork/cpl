@@ -1,15 +1,11 @@
 package com.shnapps.couple
 
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,7 +13,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
@@ -57,9 +52,6 @@ class MainActivity : FragmentActivity() {
 
     @Inject
     lateinit var notifications: NotificationsRepository
-
-    /** Android 13+ asks before a single notification may be posted (§16). Asked once, on start. */
-    private val askToNotify = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Before super, as the platform requires: it swaps the splash theme for the app's own.
@@ -159,19 +151,7 @@ class MainActivity : FragmentActivity() {
         // Where this phone can be reached (§16). Harmless when signed out — there is no user to
         // register a token against, and the repository says so rather than writing anything.
         lifecycleScope.launch { notifications.registerThisPhone() }
-        askToNotifyOnce()
-    }
-
-    /**
-     * The system shows this at most twice in a phone's lifetime and ignores it afterwards, so it
-     * is asked plainly rather than wrapped in a screen of its own: nothing in the app depends on
-     * the answer, and a "no" costs only the notifications.
-     */
-    private fun askToNotifyOnce() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-        val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
-            PackageManager.PERMISSION_GRANTED
-        if (!granted) askToNotify.launch(Manifest.permission.POST_NOTIFICATIONS)
+        // Not asking for permission to notify here any more: that waits for pairing (D-151).
     }
 
     override fun onNewIntent(intent: Intent) {

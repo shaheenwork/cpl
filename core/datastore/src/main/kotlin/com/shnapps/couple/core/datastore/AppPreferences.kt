@@ -50,6 +50,12 @@ data class AppPreferences(
     val showNotificationContent: Boolean = false,
 
     /**
+     * Whether this phone has been asked for permission to notify (D-151). Asked once, after pairing,
+     * and never before: nothing is worth a notification until there is somebody to send one.
+     */
+    val notificationPermissionAsked: Boolean = false,
+
+    /**
      * How far tonight goes, as this phone last set it (REDESIGN_PROMPT.md §2).
      *
      * Device-local on purpose: before a couple has signed in there is nowhere else to keep it, and

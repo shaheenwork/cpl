@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.shnapps.couple.AskToNotifyAfterPairing
 import com.shnapps.couple.core.designsystem.gallery.ComponentGallery
 import com.shnapps.couple.core.navigation.Route
 import com.shnapps.couple.core.security.BiometricAuthenticator
@@ -52,6 +53,9 @@ fun CplNavHost(
     // It is hosted here because only :app may depend on every feature it has to cover (§4.2).
     // It wraps the graph rather than sitting beside it, because the way *in* to the chat is
     // offered to each screen's own bar (LocalBarExtra) instead of floating over it.
+    // Asks for permission to notify, once, when the two of them are paired (D-151).
+    AskToNotifyAfterPairing()
+
     ChatLayer(modifier = modifier) {
         NavHost(
             navController = navController,
