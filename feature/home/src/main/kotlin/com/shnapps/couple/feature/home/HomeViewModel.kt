@@ -99,6 +99,15 @@ data class HomeUiState(
      * thing on offer is the pairing that would make them playable.
      */
     val needsPairing: Boolean get() = mode == Mode.APART && !company.paired
+
+    /**
+     * Cards and Game Night are played on one phone, so Apart does not offer them (D-150).
+     *
+     * They are not games and have no phone-each version: they deal from the whole catalogue on the
+     * phone in your hand. Offered under a toggle that says "a phone each" they were two ways to
+     * quietly play alone, which is the thing Apart exists to not be.
+     */
+    val offersOnePhoneModes: Boolean get() = mode == Mode.TOGETHER
 }
 
 /**

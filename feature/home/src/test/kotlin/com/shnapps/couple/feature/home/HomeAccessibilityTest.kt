@@ -53,7 +53,7 @@ class HomeAccessibilityTest {
     fun `home holds at 200 percent`() {
         capture("a11y-home-200", LARGEST) { HomeContent(state(), HomeActions()) }
 
-        composeRule.onNodeWithText("Play Now").assertIsDisplayed()
+        composeRule.onNodeWithText("Cards").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Game Night").performScrollTo().assertIsDisplayed()
     }
 

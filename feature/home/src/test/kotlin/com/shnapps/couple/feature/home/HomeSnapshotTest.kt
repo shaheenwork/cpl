@@ -50,12 +50,14 @@ class HomeSnapshotTest {
     }
 
     @Test
-    fun `with no account it is the whole app, and Play Now is one tap`() {
+    fun `with no account it is the whole app, and every way to start is a named row`() {
         capture("home-alone") { HomeContent(state(Company.ALONE), HomeActions()) }
 
         composeRule.onNodeWithText("One phone, both of you.").assertIsDisplayed()
-        // The brief's first card within two taps: this, and whatever the card says.
-        composeRule.onNodeWithText("Play Now").assertIsDisplayed()
+        // The first card is two taps away: this row, and whatever the card says (D-150).
+        composeRule.onNodeWithText("Cards").assertIsDisplayed()
+        // There is no button that starts something the list does not contain.
+        assertThat(composeRule.onAllNodesWithText("Play Now").fetchSemanticsNodes()).isEmpty()
         // Game Night is first and is not one of the catalogue's games: it is a plan over all of it.
         composeRule.onNodeWithText("Game Night").performScrollTo().assertIsDisplayed()
         // Nothing is hidden until later: the other half of the app is a toggle away, saying so.
@@ -66,9 +68,9 @@ class HomeSnapshotTest {
     fun `paired is the same screen with more of it working`() {
         capture("home-paired") { HomeContent(state(Company.PAIRED), HomeActions()) }
 
-        // The same heading and the same one button: signing in adds, it does not replace (§6).
+        // The same heading and the same first row: signing in adds, it does not replace (§6).
         composeRule.onNodeWithText("One phone, both of you.").assertIsDisplayed()
-        composeRule.onNodeWithText("Play Now").assertIsDisplayed()
+        composeRule.onNodeWithText("Cards").assertIsDisplayed()
         composeRule.onNodeWithText("Truth or Dare").performScrollTo().assertIsDisplayed()
     }
 
@@ -78,10 +80,13 @@ class HomeSnapshotTest {
         capture("home-apart-mode") { HomeContent(apart, HomeActions()) }
 
         // It used to replace the list below it with a second surface. V2 has no second surface:
-        // apart is the same games played a phone each, so only the heading changes.
+        // apart is the same games played a phone each, so the heading changes and the list loses
+        // the two things that are played on one phone (D-150).
         composeRule.onNodeWithText("Two phones, one evening.").assertIsDisplayed()
-        composeRule.onNodeWithText("Play Now").assertIsDisplayed()
-        composeRule.onNodeWithText("Game Night").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Truth or Dare").performScrollTo().assertIsDisplayed()
+        for (word in listOf("Cards", "Game Night")) {
+            assertThat(composeRule.onAllNodesWithText(word).fetchSemanticsNodes()).isEmpty()
+        }
     }
 
     @Test
@@ -129,15 +134,33 @@ class HomeSnapshotTest {
         capture("home-apart-unpaired") { HomeContent(state, HomeActions()) }
 
         composeRule.onNodeWithText("Apart needs both phones").assertIsDisplayed()
-        // The dock offers the one thing that fixes it, where Play Now would have been.
-        composeRule.onNodeWithText("Pair to play apart").assertIsDisplayed()
+        // The one thing on offer is the thing that fixes it.
+        composeRule.onNodeWithText("Pair your phones").assertIsDisplayed()
         // Nothing is dealt on one phone under a toggle that says two (D-146): no way to start, and
         // none of the games or the heat that would have started it.
-        for (word in listOf("Play Now", "Game Night", "Truth or Dare", "Or play something")) {
+        for (word in listOf("Cards", "Game Night", "Truth or Dare", "Play")) {
             assertThat(
                 composeRule.onAllNodesWithText(word, ignoreCase = true).fetchSemanticsNodes(),
             ).isEmpty()
         }
+    }
+
+    @Test
+    fun `the cards row says how far it goes, in the heat's own word`() {
+        val hot = state(Company.ALONE).copy(tier = Intensity.HOT)
+        capture("home-cards-hot") { HomeContent(hot, HomeActions()) }
+
+        // What the row will do is what the picker above it says: a ceiling, not a promise.
+        composeRule.onNodeWithText("One dare at a time. Six a round, up to Hot.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a game being made says so where it was tapped`() {
+        val making = state(Company.PAIRED).copy(making = true)
+        capture("home-getting-ready") { HomeContent(making, HomeActions()) }
+
+        // The button that used to say it is gone: a tap that gets no answer looks like no tap.
+        composeRule.onNodeWithText("Getting it ready…").assertIsDisplayed()
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.shnapps.couple.core.ui
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -21,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -56,9 +58,16 @@ fun ChoiceRow(
     trailing: String? = null,
     icon: ImageVector? = null,
     locked: Boolean = false,
+    /**
+     * The one row on a screen that is the default way in, drawn in the heat's own colours (D-150).
+     * Only ever one: two lit rows are a list with nothing in it that stands out.
+     */
+    lit: Boolean = false,
 ) {
     val spacing = AfterhoursTheme.spacing
     val colors = AfterhoursTheme.colors
+    val tier = AfterhoursTheme.tier
+    val ink = rowInk(locked = locked, lit = lit)
     // The same press as every button in the app, so a row and a button feel like one language.
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
@@ -84,12 +93,19 @@ fun ChoiceRow(
             .heightIn(min = spacing.touchTarget)
             .scale(press)
             .background(
-                color = if (pressed) {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = PRESSED_FILL)
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainer
+                color = when {
+                    pressed -> MaterialTheme.colorScheme.onSurface.copy(alpha = PRESSED_FILL)
+                    lit -> tier.container
+                    else -> MaterialTheme.colorScheme.surfaceContainer
                 },
                 shape = MaterialTheme.shapes.small,
+            )
+            .then(
+                if (lit) {
+                    Modifier.border(spacing.hairline, tier.rim.copy(alpha = LIT_EDGE), MaterialTheme.shapes.small)
+                } else {
+                    Modifier
+                },
             )
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)
             .semantics { contentDescription = words.joinToString(". ") }
@@ -101,7 +117,7 @@ fun ChoiceRow(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (locked) colors.textFaint else colors.textMuted,
+                tint = ink.icon,
                 modifier = Modifier.size(LEAD),
             )
         }
@@ -113,10 +129,10 @@ fun ChoiceRow(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                color = if (locked) colors.textMuted else MaterialTheme.colorScheme.onSurface,
+                color = ink.title,
             )
             subtitle?.let {
-                Text(text = it, style = MaterialTheme.typography.bodyMedium, color = colors.textMuted)
+                Text(text = it, style = MaterialTheme.typography.bodyMedium, color = ink.subtitle)
             }
         }
 
@@ -141,8 +157,23 @@ fun ChoiceRow(
     }
 }
 
+/** What a row's icon and two lines are drawn in: locked recedes, lit takes the heat, the rest is plain. */
+private class RowInk(val icon: Color, val title: Color, val subtitle: Color)
+
+@Composable
+private fun rowInk(locked: Boolean, lit: Boolean): RowInk {
+    val colors = AfterhoursTheme.colors
+    val tier = AfterhoursTheme.tier
+    return when {
+        locked -> RowInk(colors.textFaint, colors.textMuted, colors.textMuted)
+        lit -> RowInk(tier.onDark, tier.onContainer, tier.onContainer)
+        else -> RowInk(colors.textMuted, MaterialTheme.colorScheme.onSurface, colors.textMuted)
+    }
+}
+
 private val LEAD = 20.dp
 private val GO = 16.dp
+private const val LIT_EDGE = 0.5f
 
 /** The app's one press language: a scale, and a brighter fill. Never a bigger halo. */
 private const val PRESSED_SCALE = 0.985f

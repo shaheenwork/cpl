@@ -3054,3 +3054,33 @@ the partner's phone has never checked it against what she owns, so the question 
 other one: what she may pick on *her* phone, for a card, a guided evening, or a game she starts.
 
 **Deployed with it:** `firestore:rules` to staging. The functions did not change.
+
+## D-150 — Home has no Play Now: every way to play is a named row
+
+Play Now was a red button under a list of games that dealt something the list did not contain: the
+card deck. Nothing on the screen called it anything — its own bar said "Tonight" — so a person who
+pressed it without choosing a game had no way to know what was starting, and a couple who had chosen
+Apart got cards on one phone without being told. Asked which of three fixes, the user chose to make
+the deck a row.
+
+**The list.** Under "Play": **Cards** first, lit in the heat's colours (`ChoiceRow(lit = true)`, one
+only — two lit rows is a list with nothing that stands out), with a line that says what it is and
+how far it goes in the picker's own word: "One dare at a time. Six a round, up to Hot." Then Game
+Night, then the games. The deck's bar is "Cards", so the name on the row is the name on the screen
+it opens.
+
+**Apart.** Cards and Game Night are one-phone — they deal from the whole catalogue on the phone in
+your hand, and neither has a phone-each version — so an Apart toggle with them under it offered two
+quiet ways to play alone. `HomeUiState.offersOnePhoneModes` is Together only; Apart shows the games.
+With nobody paired it is still the pairing card (D-146), whose button is now the one loud thing on
+the screen. The dock is gone; there is no bottom button.
+
+**What the dock was doing that is now done elsewhere.** It said "Getting it ready…" while the server
+made a game, and disabled itself while something was already under way. The first is now a line
+and spinner at the top of the list, where the tap was — a tap that gets no answer looks like no tap.
+The second was never needed for Cards: they are dealt on the phone and nothing conflicts with a
+session. A game started with one already under way is still refused by `HomeViewModel.play`.
+
+**A change to the brief, knowingly.** The brief's zero-friction rule had "Play Now" as the one large
+button. The first card is still two taps from opening the app — the Cards row, then the card — and the
+heat it opens at is still the one the picker above it shows.

@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -12,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -26,11 +26,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.CinematicCard
 import com.shnapps.couple.core.designsystem.component.GlowButton
-import com.shnapps.couple.core.designsystem.component.GlowButtonStyle
 import com.shnapps.couple.core.designsystem.icon.AfterhoursIcons
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
@@ -119,10 +119,6 @@ data class HomeActions(
 internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Modifier = Modifier) {
     // Everything on this screen takes tonight's tier (DESIGN_PROMPT.md §4.4).
     ProvideTier(state.tier) {
-        // The one primary action docks, so it is in reach whatever the list below has grown to.
-        // It used to sit at the top of a column that scrolled past it.
-        val dock: (@Composable ColumnScope.() -> Unit) = { Start(state = state, actions = actions) }
-
         ScreenScaffold(
             modifier = modifier,
             trailing = {
@@ -139,7 +135,6 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
                 }
             },
             belowBar = { Wordmark(modifier = Modifier.padding(horizontal = AfterhoursTheme.spacing.gutter)) },
-            dock = dock,
         ) {
             Entrance(index = 0) {
                 ScreenHeading(
@@ -184,7 +179,8 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
             }
 
             // Apart with nobody paired is not a screen with a warning on it: there is nothing to play
-            // a phone each *with* yet. The heat and the games wait for the pair (D-146).
+            // a phone each *with* yet. The heat and the games wait for the pair (D-146), and the pair
+            // is the one thing on offer — so its button is the screen's one loud one.
             if (state.needsPairing) {
                 Entrance(index = 2) { NeedsPairing(onPair = actions.onPairPartner) }
                 return@ScreenScaffold
@@ -218,18 +214,35 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
                 }
             }
 
-            // One grid, both modes. The toggle says how a game is played — one phone between
-            // them, or a phone each — not which half of an app they are in (V2 rule 3): there is
-            // no second surface any more, so there is nothing else for it to switch to.
-            Section("Or play something", index = 3) {
-                // Game Night is first and is not one of the games in the catalogue: it is a plan
-                // over the whole of it, so it has no entry in games.json (M5).
-                ChoiceRow(
-                    title = "Game Night",
-                    subtitle = "A guided evening: warm up, build, peak, then land.",
-                    icon = AfterhoursIcons.Clock,
-                    onClick = actions.onGameNight,
-                )
+            // Every way to start is a named row (D-150). There used to be a Play Now button under
+            // this list that started something the list did not contain: a deck of cards, with no
+            // name anywhere on the screen. Now it is the first row, called what it is.
+            Section("Play", index = 3) {
+                // A game a paired couple starts is asked of the server, which takes a moment. The
+                // button that used to say so is gone, and a tap with no answer is a tap that looks
+                // like nothing (D-150).
+                if (state.making) GettingReady()
+                // One phone, so only when the two of them are on one: Apart is a phone each, and
+                // neither of these has a version where they are.
+                if (state.offersOnePhoneModes) {
+                    ChoiceRow(
+                        title = "Cards",
+                        // The heat said in its own word, so what the row will do is what the picker
+                        // above it says: it is not a promise that everything will be that hot.
+                        subtitle = "One dare at a time. Six a round, up to ${state.tier.label}.",
+                        icon = AfterhoursIcons.CardBack,
+                        lit = true,
+                        onClick = actions.onCards,
+                    )
+                    // Not one of the games in the catalogue: it is a plan over the whole of it, so
+                    // it has no entry in games.json (M5).
+                    ChoiceRow(
+                        title = "Game Night",
+                        subtitle = "A guided evening: warm up, build, peak, then land.",
+                        icon = AfterhoursIcons.Clock,
+                        onClick = actions.onGameNight,
+                    )
+                }
                 state.games.forEach { game ->
                     ChoiceRow(
                         title = game.title,
@@ -292,37 +305,29 @@ private fun ModeToggle(selected: Mode, onMode: (Mode) -> Unit) {
     }
 }
 
-/**
- * Play Now (the brief's zero-friction rule).
- *
- * One button, and it deals a card. It used to open a sheet of five shapes — cards, surprise us, a
- * mystery, fifteen minutes, plan the evening — which meant a person arriving at eleven at night had
- * to make a decision before anything happened. Four of those five needed an account, so for anyone
- * who had not signed up the sheet was one real choice and four locked rows.
- *
- * The first card is now two taps from opening the app: this, and whatever the card says.
- */
+/** The server is making a game. Said where the tap was, and gone the moment there is something to open. */
 @Composable
-private fun Start(state: HomeUiState, actions: HomeActions) {
-    // Apart, with nobody to be apart with: the button that would deal a card says what is missing
-    // instead, and does the one thing that fixes it.
-    if (state.needsPairing) {
-        GlowButton(
-            text = "Pair to play apart",
-            onClick = actions.onPairPartner,
-            leadingIcon = AfterhoursIcons.Link,
-            modifier = Modifier.fillMaxWidth(),
+private fun GettingReady() {
+    Row(
+        modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = "Getting it ready" },
+        horizontalArrangement = Arrangement.spacedBy(AfterhoursTheme.spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(READY_SPINNER),
+            color = AfterhoursTheme.tier.accent,
+            strokeWidth = READY_STROKE,
         )
-        return
+        Text(
+            text = "Getting it ready…",
+            style = MaterialTheme.typography.bodyMedium,
+            color = AfterhoursTheme.colors.textMuted,
+        )
     }
-    GlowButton(
-        text = if (state.making) "Getting it ready…" else "Play Now",
-        onClick = actions.onCards,
-        enabled = state.canStart,
-        leadingIcon = AfterhoursIcons.Flame,
-        modifier = Modifier.fillMaxWidth(),
-    )
 }
+
+private val READY_SPINNER = 18.dp
+private val READY_STROKE = 2.dp
 
 /** Apart, with a pair: said under the toggle that asks it, in one line (V2 rule 2). */
 @Composable
@@ -351,7 +356,6 @@ private fun NeedsPairing(onPair: () -> Unit) {
         GlowButton(
             text = "Pair your phones",
             onClick = onPair,
-            style = GlowButtonStyle.Secondary,
             leadingIcon = AfterhoursIcons.Link,
             modifier = Modifier.fillMaxWidth(),
         )

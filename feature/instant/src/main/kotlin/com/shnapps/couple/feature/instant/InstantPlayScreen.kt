@@ -128,7 +128,8 @@ internal fun InstantPlayContent(state: InstantPlayUiState, actions: DeckActions)
         Box(modifier = Modifier.fillMaxSize()) {
             ScreenScaffold(
                 calm = state.stopped,
-                title = if (state.playing) "Tonight" else null,
+                // Named for what it is, as the row that opened it was (D-150).
+                title = if (state.playing) "Cards" else null,
                 onBack = actions.onBack,
                 trailing = if (state.showsTierPicker) {
                     { HeatChip(tier = state.tier, onClick = { actions.onOpenSheet(DeckSheet.HEAT) }) }

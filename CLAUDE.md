@@ -75,7 +75,7 @@ Compiled bytecode targets **Java 17** regardless of the daemon JVM.
 :core:notifications   FCM + privacy-aware builders
 :core:testing         Fakes, fixtures, rules
 :architecture         Konsist rules that fail the build on violations
-:feature:home         Home: Play Now, the Together/Apart toggle, the game grid
+:feature:home         Home: the Together/Apart toggle, the heat, and the list of ways to play
 :feature:instant      The card deck and Game Night — the whole of Together mode
 :feature:games        The seven games' player, over the one interpreter
 :feature:boundaries   The limits profile: eight questions over twenty-seven themes
@@ -408,6 +408,11 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   starting phone, `forSharedPhone` lifts the couple's own level so it is `min(request, 5)`, and both
   phones show it (`HeatTag`, from what the server released). Exclusions and ask-first themes still
   apply; only the number is lifted. A server change: redeploy the functions after touching it.
+- **Home has no Play Now** (D-150). Every way to start is a named row under "Play": Cards (the
+  deck, lit in the heat, first), Game Night, then the games. Cards and Game Night are one-phone, so
+  Apart (paired) shows only the games, and Apart with nobody paired shows only "Pair your phones".
+  A game a paired couple starts is asked of the server, so home says "Getting it ready…" where the
+  tap was. The deck's own bar says "Cards".
 - **Apart needs a pair** (D-146): with Apart selected and nobody paired, home offers no games and no
   heat — only "Pair to play apart" — and `HomeViewModel.play` refuses. Together never needs one.
 - The packs are a **lane** a couple can ask for by name (D-125): only ones with cards at this tier
