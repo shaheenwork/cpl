@@ -164,7 +164,7 @@ class HomeSnapshotTest {
     }
 
     @Test
-    fun `the free month says when it ends, and never counts down`() {
+    fun `the free period says when it ends, and never counts down`() {
         val free = state(Company.ALONE).copy(
             access = LevelAccess(
                 ceiling = Intensity.EXTREME,
@@ -175,11 +175,13 @@ class HomeSnapshotTest {
         )
         capture("home-free-month") { HomeContent(free, HomeActions()) }
 
-        composeRule.onNodeWithText("Everything unlocked until 14 November.").assertIsDisplayed()
+        composeRule.onNodeWithText("Everything is open until 14 November").assertIsDisplayed()
+        composeRule.onNodeWithText("Then Mild and Flirty stay free, and the rest are one-time packs.")
+            .assertIsDisplayed()
     }
 
     @Test
-    fun `when the month is over the dial says which levels are not theirs`() {
+    fun `when the free period is over the dial says which levels are not theirs`() {
         val locked = state(Company.ALONE).copy(access = LevelAccess.FREE, tier = Intensity.FLIRTY)
         capture("home-locked") { HomeContent(locked, HomeActions()) }
 
@@ -192,7 +194,7 @@ class HomeSnapshotTest {
         company = company,
         games = games,
         tier = Intensity.HOT,
-        // Open, as it is for the first month after install (V2 rule 5).
+        // Open, as it is while the free period is on (V2 rule 5, D-151).
         access = LevelAccess.OPEN,
     )
 

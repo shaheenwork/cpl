@@ -151,7 +151,11 @@ internal fun HomeContent(state: HomeUiState, actions: HomeActions, modifier: Mod
 
             // Everything is open, and when that stops. A date, never a countdown (V2 rule 5).
             state.access.freeUntilMillis?.let { until ->
-                Entrance(index = 1) { FreeRunBanner(untilMillis = until) }
+                // A tap goes to the packs on its own terms: what is on offer after the date, said
+                // where it was asked about, and never pushed at somebody mid-evening.
+                Entrance(index = 1) {
+                    FreeRunBanner(untilMillis = until, onClick = { actions.onStore(Intensity.SPICY) })
+                }
             }
 
             // What is already happening comes before anything that could be started, and it is

@@ -1,8 +1,6 @@
 package com.shnapps.couple.core.data.di
 
-import com.shnapps.couple.core.data.entitlement.AndroidInstallDate
 import com.shnapps.couple.core.data.entitlement.DefaultLevelAccessRepository
-import com.shnapps.couple.core.data.entitlement.InstallDate
 import com.shnapps.couple.core.data.entitlement.LaunchOffer
 import com.shnapps.couple.core.data.entitlement.LevelAccessRepository
 import com.shnapps.couple.core.data.entitlement.RemoteLaunchOffer
@@ -25,9 +23,6 @@ abstract class EntitlementModule {
     @Binds
     @Singleton
     abstract fun bindLevelAccessRepository(impl: DefaultLevelAccessRepository): LevelAccessRepository
-
-    @Binds
-    abstract fun bindInstallDate(impl: AndroidInstallDate): InstallDate
 
     @Binds
     abstract fun bindLaunchOffer(impl: RemoteLaunchOffer): LaunchOffer

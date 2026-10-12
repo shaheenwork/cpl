@@ -452,9 +452,14 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   already inside the APK. Changing it is a rules change: deploy `firestore:rules` as well.
 - **The money is the top of the range, not the volume** (V2 rule 5, D-135). Mild and Flirty are free
   for ever; Spicy, Hot and Extreme are one-time packs, and **a pack opens every level below it** —
-  a ceiling with a hole in it would skip rungs on the climb. Everything is open for the first month
-  after install (`PackageManager.firstInstallTime`), and `everything_free` in Remote Config opens it
-  globally. Nothing counts cards: there is no limit that can stop an evening that has started.
+  a ceiling with a hole in it would skip rungs on the climb. **Everything is open until a date set in
+  Firebase** (Remote Config `free_until`, D-151): `2026-11-06` is the whole of that day, a full ISO
+  moment is exactly then, blank ends it now, and a value nobody can read falls back to the date the
+  app ships with. Nothing counts cards: there is no limit that can stop an evening that has started.
+- **Notifications are for a phone that is not looking** (D-151). `Notifier` posts nothing for a kind
+  whose `speaksWhileOpen` is false while the app is on screen — only a message from them speaks over
+  an open app — and permission to notify is asked once, after pairing (`AskToNotifyAfterPairing`),
+  never at first launch.
 - The ceiling is applied in `InstantPlayRepository` — deck, guided evening and dealt game alike —
   never on a screen. A purchase is recorded on the phone (`ownedLevels`) because an unpaired phone
   has no account; Play is the authority and `restore` asks it, on demand and on opening the store.

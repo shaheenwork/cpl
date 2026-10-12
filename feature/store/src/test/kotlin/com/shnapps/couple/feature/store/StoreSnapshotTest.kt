@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.google.common.truth.Truth.assertThat
@@ -51,9 +52,12 @@ class StoreSnapshotTest {
         capture("store-packs") {
             StoreContent(StoreUiState(access = LevelAccess.FREE, offers = offers), StoreActions())
         }
-        composeRule.onNodeWithText("Three packs.").assertIsDisplayed()
-        composeRule.onNodeWithText("Unlock — £3.99").assertIsDisplayed()
-        composeRule.onNodeWithText("Unlock — £5.99").assertIsDisplayed()
+        composeRule.onNodeWithText("Go as far as you like.").assertIsDisplayed()
+        // What nobody pays for, first; then each pack with its price once and its own button.
+        composeRule.onNodeWithText("Mild and Flirty").assertIsDisplayed()
+        composeRule.onNodeWithText("£3.99").assertIsDisplayed()
+        composeRule.onNodeWithText("Unlock Spicy").assertIsDisplayed()
+        composeRule.onNodeWithText("Unlock Extreme").performScrollTo().assertIsDisplayed()
         // The way out is the bar's back label, in the same place as on every other screen.
         composeRule.onNodeWithContentDescription("Not now").assertExists()
         // Nothing that counts down, expires, or implies it will.
@@ -66,6 +70,19 @@ class StoreSnapshotTest {
     }
 
     @Test
+    fun eachPackSaysWhichLevelsItOpens() {
+        capture("store-ladder") {
+            StoreContent(StoreUiState(access = LevelAccess.FREE, offers = offers), StoreActions())
+        }
+
+        // The ladder, in words for anything that cannot see the chips: Hot opens Spicy under it.
+        composeRule.onNodeWithContentDescription("Opens Mild, Flirty, Spicy").performScrollTo().assertExists()
+        composeRule.onNodeWithContentDescription("Opens Mild, Flirty, Spicy, Hot").performScrollTo().assertExists()
+        composeRule.onNodeWithContentDescription("Opens Mild, Flirty, Spicy, Hot, Extreme")
+            .performScrollTo().assertExists()
+    }
+
+    @Test
     fun arrivingFromALockedLevel() {
         val state = StoreUiState(asked = Intensity.SPICY, access = LevelAccess.FREE, offers = offers)
         capture("store-asked") { StoreContent(state, StoreActions()) }
@@ -73,7 +90,7 @@ class StoreSnapshotTest {
     }
 
     @Test
-    fun duringTheOpeningMonth() {
+    fun duringTheFreePeriod() {
         val state = StoreUiState(
             access = LevelAccess(
                 ceiling = Intensity.EXTREME,
@@ -84,9 +101,12 @@ class StoreSnapshotTest {
             offers = offers,
         )
         capture("store-free-month") { StoreContent(state, StoreActions()) }
-        composeRule.onNodeWithText("Everything unlocked until 14 November.").assertIsDisplayed()
-        // Nobody is sold what they already have.
-        assertThat(composeRule.onAllNodesWithText("Unlock — £3.99").fetchSemanticsNodes()).isEmpty()
+        composeRule.onNodeWithText("Everything is open until 14 November").assertIsDisplayed()
+        composeRule.onNodeWithText("Then Mild and Flirty stay free, and the rest are one-time packs.")
+            .assertIsDisplayed()
+        // Nobody is sold what they already have: the price is information, with a date, not a button.
+        composeRule.onNodeWithText("Open until 14 November, then £3.99").performScrollTo().assertIsDisplayed()
+        assertThat(composeRule.onAllNodesWithText("Unlock Spicy").fetchSemanticsNodes()).isEmpty()
     }
 
     @Test
@@ -97,8 +117,8 @@ class StoreSnapshotTest {
         )
         capture("store-owned") { StoreContent(state, StoreActions()) }
         // The ladder, shown: Spicy came with Hot, and only Extreme is still for sale.
-        assertThat(composeRule.onAllNodesWithText("Yours.").fetchSemanticsNodes()).hasSize(2)
-        composeRule.onNodeWithText("Unlock — £5.99").assertIsDisplayed()
+        assertThat(composeRule.onAllNodesWithText("Yours, for good.").fetchSemanticsNodes()).hasSize(2)
+        composeRule.onNodeWithText("Unlock Extreme").performScrollTo().assertIsDisplayed()
     }
 
     private companion object {

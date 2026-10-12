@@ -69,16 +69,12 @@
         <value>3.0</value>
     </entry>
     <!--
-      The launch period (M9). Free is the default, so a first launch before any fetch lands is
-      free rather than charging: the app must behave correctly with no network, and erring towards
-      free is the only direction that cannot take something away from a couple.
+      The free period (D-151). The date the app ships with, so a first launch before any fetch lands
+      — and a value somebody mistypes in the console — behaves as announced rather than guessing.
+      Must stay the same string as FreeUntil.DEFAULT in :core:data, which cannot be read from here.
     -->
     <entry>
-        <key>everything_free</key>
-        <value>true</value>
-    </entry>
-    <entry>
-        <key>everything_free_until</key>
-        <value>0</value>
+        <key>free_until</key>
+        <value>2026-11-06</value>
     </entry>
 </defaultsMap>

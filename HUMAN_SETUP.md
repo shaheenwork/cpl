@@ -248,6 +248,27 @@ published version can never be replaced (DECISIONS.md D-041).
 
 ---
 
+### ⬜ 2.10 The free period: one date, in Remote Config (D-151)
+
+Everything is open until a date you set, then Spicy, Hot and Extreme are one-time packs. To set or
+move it, with no release:
+
+1. Firebase console → the project (`copl-staging` or the production one) → **Remote Config**.
+2. **Add parameter** `free_until`, type **String**. (If it is there already, edit it.)
+3. Set the default value, then **Publish changes**:
+
+   | You type | It means |
+   |---|---|
+   | `2026-11-06` | Open through the end of 6 November, on each phone's own clock. |
+   | `2026-11-06T18:00:00Z` | Open until exactly that moment (`+01:00` style offsets work too). |
+   | *(empty)* | No free period: the packs are required now. This is how you end it early. |
+   | anything unreadable | Ignored. The app falls back to `2026-11-06`, the date it ships with. |
+
+A phone hears about a change within about an hour of being open, and checks the clock every minute,
+so the end of the period arrives on its own while the app is running. A phone that is offline keeps
+the last date it heard. Nothing is cut off mid-card: the level is applied when the next card is
+chosen, and packs already bought stay bought.
+
 ## 3. Google Play — needed from Phase 19
 
 ### ⬜ 3.1 Play Console app + billing products

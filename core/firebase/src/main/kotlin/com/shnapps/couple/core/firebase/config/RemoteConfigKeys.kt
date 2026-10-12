@@ -25,14 +25,11 @@ object RemoteConfigKeys {
     const val FEATURE_SUBSCRIPTION = "feature_subscription"
 
     /**
-     * The launch period (M9): everything free, until a date.
-     *
-     * The switch decides and the date only ever gets shown, so a date that slips cannot start
-     * charging anybody by itself. Turning the switch off is a console change, not a release.
+     * The free period (D-151): everything open until this date, then Spicy, Hot and Extreme are
+     * packs. A string, because the console takes a date as text: `2026-11-06` is the whole of the
+     * sixth, a full ISO moment is exactly then, and blank means there is no free period.
      */
-    const val EVERYTHING_FREE = "everything_free"
-
-    const val EVERYTHING_FREE_UNTIL = "everything_free_until"
+    const val FREE_UNTIL = "free_until"
 
     // Reveal timing (§5.3) is not here on purpose: the server alone decides when a match is
     // released, from its own Remote Config template (DECISIONS.md D-045).

@@ -3084,3 +3084,50 @@ session. A game started with one already under way is still refused by `HomeView
 **A change to the brief, knowingly.** The brief's zero-friction rule had "Play Now" as the one large
 button. The first card is still two taps from opening the app — the Cards row, then the card — and the
 heat it opens at is still the one the picker above it shows.
+
+## D-151 — The free period is a date in Firebase; notifications are for a phone that is not looking
+
+Three changes asked for together, and one reason runs through them: the app was telling people things
+at the wrong moment.
+
+**Free until a date the owner sets.** "Free for the first month after install, or while
+`everything_free` is on" was two rules, and the switch defaulted to *on* — so in practice everything
+was free for ever, and the banner's date was the install month, a different day on each of the two
+phones. It is one value now: Remote Config `free_until`, read by `RemoteLaunchOffer` through
+`FreeUntil.parse`. A date (`2026-11-06`) is the whole of that day on the phone's own clock; an ISO
+moment is exactly then; **blank is "no free period"**, which is how it is ended early; and anything
+unreadable is ignored in favour of the date the app ships with, so a typo in a console cannot switch
+everybody's levels off. The shipped date is `FreeUntil.DEFAULT` and the same string in
+`remote_config_defaults.xml`, which `:core:data` cannot read.
+
+It is a gate now and not only a caption, which the old note on `LaunchOffer` ruled out ("nothing is
+gated on it"). What keeps that safe is what the gate does: it lowers the *ceiling* applied when the
+next card is chosen, so nothing is cut off mid-card; packs already bought are untouched; and Mild and
+Flirty are not behind it. `DefaultLevelAccessRepository` re-reads the clock every minute, because the
+end of the period arrives while nobody is pressing anything and a date moved in Firebase arrives while
+the app is open. Remote Config's fetch interval went from twelve hours to one for the same reason.
+
+`InstallDate`, `AndroidInstallDate` and `OPENING_MONTH_MS` are gone (the class is in `_to_remove/`).
+A reinstall used to restart the month; it no longer does anything.
+
+**The store.** A pack is a card in its own heat with the price said once and large, a chip for each
+level it opens (the ladder, visible, and read out as "Opens Mild, Flirty, Spicy"), "one-time, shared
+with your partner" (D-149), and one button. What is free comes first, as a row, because a store that
+leads with a price for the gentle half is not one to trust with the rest. During the free period a
+pack shows the date and the price it will be — "Open until 6 November, then £3.99" — and no button:
+nobody is sold what they already have. The banner is the same on home and in the store, gold rather
+than the heat's colour because it is about the app and not about tonight, still a date and never a
+countdown, and a tap on home goes to the packs.
+
+**Notifications while the app is open.** A push is for somebody looking at something else. A partner's
+answer, a game starting, a pairing: each is already on the screen, so a banner on top of it was the same
+news twice, once a step. `PushKind.speaksWhileOpen` says which kinds still speak over an open app, and
+only a message from them does (`THEY_SENT_SOMETHING`, the chat — kept as it was). `Notifier` asks
+`AppVisibility` — a count of started activities, registered in `Application.onCreate` — before it
+posts. The phone decides this, not the server, because only the phone knows whether it is open.
+
+**Permission to notify, after pairing.** It was asked on every app start until answered, to someone
+with nobody to send them anything. `NotificationsRepository.shouldAskPermission` is paired and not yet
+asked; `AskToNotifyAfterPairing` is hosted at the root, so it does not matter which screen pairing
+finished on, and puts the system question once, a moment after "You're paired". A phone that has
+already said yes is marked as asked without a question.

@@ -82,6 +82,10 @@ class RemoteConfigSource @Inject constructor(
         /** Against the emulator, config should update as fast as it is edited. */
         val DEV_FETCH_INTERVAL = 0.minutes.inWholeSeconds
 
-        val PROD_FETCH_INTERVAL = 12.hours.inWholeSeconds
+        /**
+         * An hour, not twelve: the free period ends on a date somebody can move, and a phone should
+         * hear about it the same afternoon rather than the next day.
+         */
+        val PROD_FETCH_INTERVAL = 1.hours.inWholeSeconds
     }
 }

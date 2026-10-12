@@ -65,7 +65,8 @@ private fun includedIn(level: Intensity): String {
     val below = Intensity.entries
         .filter { it.level in Intensity.SPICY.level until level.level }
         .joinToString(" and ") { it.label }
-    val once = "Bought once, yours for good. Mild and Flirty stay free whatever you do."
+    val once = "Bought once, yours for good — and your partner's too, once you are paired. " +
+        "Mild and Flirty stay free whatever you do."
     return when {
         below.isEmpty() -> "Every ${level.label} card, in all seven games. $once"
         else -> "Every ${level.label} card, in all seven games — and $below with it. $once"

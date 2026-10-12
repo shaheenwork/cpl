@@ -1,36 +1,49 @@
 package com.shnapps.couple.core.data.entitlement
 
 import com.shnapps.couple.core.common.Clock
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * The launch period: everything free until a date, then premium (M9).
+ * The free period: everything open until a date, then the packs (D-151).
  *
- * Two Remote Config values and nothing else. `everything_free` is the switch, and
- * `everything_free_until` is the date the app shows. Turning it off is a console change rather than
- * a release, which is exactly what the brief asks for — and it is the switch rather than the date
- * that decides, so a date that slips does not accidentally start charging anybody.
+ * One value, in Firebase: Remote Config `free_until`. The owner sets the date in the console and
+ * publishes, and nobody has to ship a release to move it, bring it forward, or end it.
  *
- * The date is only ever used to *say* something: the banner, and the two reminders. Nothing is
- * gated on it. A clock that is wrong, or a fetch that has not landed, must never be the reason a
- * couple loses something they had.
+ * - **A date**, as `2026-11-06`: open through the end of that day on the phone's own clock, which
+ *   is what "until the sixth" means to the person holding it.
+ * - **A moment**, as `2026-11-06T18:00:00Z` or `2026-11-06T18:00:00+01:00`: exactly then.
+ * - **Blank**: there is no free period. Clearing it is how the offer ends today.
+ * - **Anything else**: ignored, and the date shipped in the app applies. A typo in a console must
+ *   not be able to switch everybody's levels off.
+ *
+ * Until this, free was "a month from install, or while a switch was on" — and the switch defaulted
+ * to on, so in practice it never ended. A date is the thing somebody can plan around, say on a
+ * banner, and change.
+ *
+ * It is a gate now and not only a caption: after the date, Spicy, Hot and Extreme are packs. What it
+ * is *not* is a cut-off in the middle of an evening — the ceiling is applied when a card is chosen,
+ * so a couple at Hot at midnight finish the card they are on (V2 rule 5).
  */
 interface LaunchOffer {
-    /** Whether nothing at all is counted right now. */
-    val everythingFree: Boolean
-
-    /** When that ends, for the banner. Null when the date is not set or has passed. */
+    /** When everything stops being free, or null when there is no free period at all. */
     val freeUntilMillis: Long?
 
-    /** Days until it ends, or null when there is nothing to count down to. */
+    /** Whether everything is open right now: there is a date, and the clock has not reached it. */
+    val isFree: Boolean
+
+    /** Whole days until it ends, or null when it is not on. */
     val daysLeft: Int?
 
     /**
      * Whether to say something about it now.
      *
-     * At the start, and again at fourteen days and three days, which is what the brief asks for. A
-     * banner that is always up is wallpaper; one that appears twice is a reminder.
+     * At fourteen days and again at three, which is what the brief asks for. A banner that is always
+     * up is wallpaper; one that appears twice is a reminder.
      */
     val shouldRemind: Boolean
 }
@@ -41,18 +54,16 @@ class RemoteLaunchOffer @Inject constructor(
     private val clock: Clock,
 ) : LaunchOffer {
 
-    override val everythingFree: Boolean get() = config.everythingFree()
+    override val freeUntilMillis: Long? get() = FreeUntil.parse(config.freeUntil())
 
-    override val freeUntilMillis: Long?
-        get() = config.freeUntilMillis().takeIf { it > 0 && it > clock.nowMillis() }
+    override val isFree: Boolean get() = freeUntilMillis?.let { clock.nowMillis() <= it } == true
 
     override val daysLeft: Int?
-        get() = freeUntilMillis?.let { until ->
-            ((until - clock.nowMillis()) / DAY_MS).toInt().coerceAtLeast(0)
+        get() = freeUntilMillis?.takeIf { clock.nowMillis() <= it }?.let { until ->
+            ((until - clock.nowMillis()) / DAY_MS).toInt()
         }
 
-    override val shouldRemind: Boolean
-        get() = everythingFree && daysLeft?.let { it in REMINDERS } == true
+    override val shouldRemind: Boolean get() = daysLeft in REMINDERS
 
     private companion object {
         const val DAY_MS = 24L * 60 * 60 * 1000
@@ -62,16 +73,54 @@ class RemoteLaunchOffer @Inject constructor(
     }
 }
 
+/** Reading `free_until`. Pure, so every spelling the console might be given is a test. */
+object FreeUntil {
+
+    /**
+     * The date the app ships with, for a phone that has not fetched anything and for a value that
+     * cannot be read. The same string as the Remote Config default in `:core:firebase`, which
+     * cannot be imported from here.
+     */
+    const val DEFAULT = "2026-11-06"
+
+    /** Epoch milliseconds the free period ends at, or null when there is none. */
+    fun parse(raw: String, zone: ZoneId = ZoneId.systemDefault()): Long? {
+        val text = raw.trim()
+        if (text.isEmpty()) return null
+        return read(text, zone) ?: read(DEFAULT, zone)
+    }
+
+    private fun read(text: String, zone: ZoneId): Long? = when {
+        // A number is a moment, in seconds or in milliseconds: both are what somebody pastes.
+        text.all(Char::isDigit) -> text.toLongOrNull()?.let { if (it < SECONDS_BELOW) it * MILLIS else it }
+        else -> endOfDay(text, zone) ?: instant(text) ?: local(text, zone)
+    }
+
+    /** `2026-11-06` is the whole of the sixth, so it ends a millisecond before the seventh begins. */
+    private fun endOfDay(text: String, zone: ZoneId): Long? = runCatching {
+        LocalDate.parse(text).plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1
+    }.getOrNull()
+
+    private fun instant(text: String): Long? = runCatching {
+        OffsetDateTime.parse(text).toInstant().toEpochMilli()
+    }.getOrNull()
+
+    private fun local(text: String, zone: ZoneId): Long? = runCatching {
+        LocalDateTime.parse(text).atZone(zone).toInstant().toEpochMilli()
+    }.getOrNull()
+
+    /** Below this a number can only be seconds: in milliseconds it would be a day in January 1973. */
+    private const val SECONDS_BELOW = 100_000_000_000L
+    private const val MILLIS = 1_000L
+}
+
 /**
- * The two values the launch period needs, behind a seam.
+ * The one value the free period needs, behind a seam.
  *
  * Remote Config lives in `:core:firebase`, which `:core:data` may not import (BUILD_PROMPT.md §4).
- * This is the narrow interface the app binds to the real source, and that a test binds to two
- * numbers.
+ * This is the narrow interface the app binds to the real source, and that a test binds to a string.
  */
 interface LaunchConfig {
-    fun everythingFree(): Boolean
-
-    /** Epoch milliseconds, or 0 when unset. */
-    fun freeUntilMillis(): Long
+    /** The raw `free_until`, as the console holds it. */
+    fun freeUntil(): String
 }

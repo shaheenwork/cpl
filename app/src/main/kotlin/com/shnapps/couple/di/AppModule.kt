@@ -55,16 +55,14 @@ object AppModule {
         CoroutineScope(SupervisorJob() + dispatchers.default)
 
     /**
-     * The launch period's two values, read from Remote Config (M9).
+     * The free period's one value, read from Remote Config (D-151).
      *
      * Here rather than in `:core:data`, which may not import `:core:firebase` (BUILD_PROMPT.md §4).
-     * The seam is one interface with two methods, so a test binds two numbers instead of a client.
+     * The seam is one interface with one method, so a test binds a string instead of a client.
      */
     @Provides
     @Singleton
     fun launchConfig(config: RemoteConfigSource): LaunchConfig = object : LaunchConfig {
-        override fun everythingFree(): Boolean = config.boolean(RemoteConfigKeys.EVERYTHING_FREE)
-
-        override fun freeUntilMillis(): Long = config.long(RemoteConfigKeys.EVERYTHING_FREE_UNTIL)
+        override fun freeUntil(): String = config.string(RemoteConfigKeys.FREE_UNTIL)
     }
 }
