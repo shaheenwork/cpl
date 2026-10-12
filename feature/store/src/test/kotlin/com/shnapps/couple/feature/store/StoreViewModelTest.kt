@@ -121,6 +121,27 @@ class StoreViewModelTest {
     }
 
     @Test
+    fun `a payment still clearing is said, and grants nothing`() = test {
+        val vm = screen()
+        billing.failNext = AppError.Validation("pending")
+
+        act { vm.buy(activity, Intensity.HOT) }
+
+        assertThat(vm.uiState.value.error).isEqualTo(StoreError.PENDING)
+        assertThat(vm.uiState.value.access.ceiling).isEqualTo(Intensity.FLIRTY)
+    }
+
+    @Test
+    fun `a pack the store does not have is not called a failed restore`() = test {
+        val vm = screen()
+        billing.failNext = AppError.Validation("not-for-sale")
+
+        act { vm.buy(activity, Intensity.HOT) }
+
+        assertThat(vm.uiState.value.error).isEqualTo(StoreError.NOT_FOR_SALE)
+    }
+
+    @Test
     fun `restoring finds what the store holds, or says there was nothing`() = test {
         val vm = screen()
 

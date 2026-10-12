@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -38,8 +39,17 @@ interface BillingClient {
     /** Opens the store's own purchase flow for one product and returns the token it produced. */
     suspend fun purchase(activity: Activity, productId: String): Outcome<String>
 
-    /** The product ids this store account already holds — after a reinstall, or on another phone. */
+    /**
+     * The product ids this store account already holds and has paid for — after a reinstall, or on
+     * another phone. A payment still clearing is not among them (D-152).
+     */
     suspend fun owned(): Outcome<Set<String>>
+
+    /**
+     * A tick whenever the store changes what the account holds *without this app asking* — a
+     * payment that was pending has cleared, a code was redeemed in the Play app. Nothing by default.
+     */
+    val updates: Flow<Unit> get() = emptyFlow()
 }
 
 /**
@@ -75,6 +85,17 @@ interface BillingRepository {
 
     /** Asks the store what this account holds and writes it down. The answer may be nothing. */
     suspend fun restore(): Outcome<Set<Intensity>>
+
+    /**
+     * Restores now, and again whenever the store says its answer changed (D-152). It does not
+     * return: the caller launches it once for as long as the app is in use.
+     *
+     * Without it a pack was only found by opening the store, so a reinstalled phone showed Spicy as
+     * locked until somebody went looking for a button, and a payment that cleared an hour after it
+     * was made opened nothing until then either. The failure is silent: a store that cannot be
+     * reached is the same as a store with nothing new, and the store screen is where it is said.
+     */
+    suspend fun keepRestored()
 
     /**
      * What the other half of this couple has bought (D-149), by the level each pack opens.
@@ -168,9 +189,24 @@ class DefaultBillingRepository @Inject constructor(
         val product = LevelPacks.productOf(level)
             ?: return Outcome.Failure(AppError.Validation("already-free"))
         return when (val purchased = client.purchase(activity, product)) {
-            is Outcome.Failure -> purchased
+            // The store says this account holds the pack already. The answer is to look and record
+            // it, not to fail: it is the same pack, bought from another phone or before a reinstall.
+            is Outcome.Failure ->
+                if (purchased.error is AppError.Conflict) alreadyHeld(level) else purchased
             is Outcome.Success -> record(setOf(level))
         }
+    }
+
+    private suspend fun alreadyHeld(level: Intensity): Outcome<Set<Intensity>> =
+        when (val held = restore()) {
+            is Outcome.Failure -> held
+            is Outcome.Success ->
+                if (level in held.value) held else Outcome.Failure(AppError.Conflict())
+        }
+
+    override suspend fun keepRestored() {
+        restore()
+        client.updates.collect { restore() }
     }
 
     override suspend fun restore(): Outcome<Set<Intensity>> =

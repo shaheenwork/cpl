@@ -271,18 +271,68 @@ chosen, and packs already bought stay bought.
 
 ## 3. Google Play — needed from Phase 19
 
-### ⬜ 3.1 Play Console app + billing products
+### ⬜ 3.1 Play Console app + the three packs (D-152)
 
-Create the app, then the subscription products the paywall expects. Until then the `dev`
-flavor uses a fake `BillingRepository` and entitlement can be set directly in the
-emulator.
+What is sold is **three one-time products**, not a subscription: Spicy, Hot and "Everything"
+(Extreme). There is no server verification, no service account and no Pub/Sub topic to set up:
+the phone asks Play what the account holds, and a pack opens content that is already inside the
+app (see `BillingRepository`). The `dev` flavor has a fake store and never needs any of this.
 
-Phase 19 needs one **subscription** product, id `afterhours.premium.monthly`, and the app's
-service account granted "View financial data" so Cloud Functions can call `androidpublisher`.
-Nothing about the real purchase flow has been run: `dev` uses a fake store (DECISIONS.md D-091),
-and the first real purchase can only be made on an internal-test track build. Also enable
-**Real-time developer notifications** with a Pub/Sub topic, and point it at the function that
-applies them.
+**1. Decide which package the Play app is.** A Play app has exactly one package name, and the
+build you install on your two phones has to match it:
+
+| Build | Package | Use it when |
+|---|---|---|
+| `staging` | `com.shnapps.couple.staging` | You run on the `copl-staging` Firebase project, which is what you do today. **Simplest for a private two-phone app.** |
+| `prod` | `com.shnapps.couple` | You have created a separate production Firebase project (§2.1). |
+
+The package is fixed forever once the first bundle is uploaded, so choose before step 3.
+
+**2. Create the app.** Play Console → *Create app* → name, default language, *App*, *Free*
+(the packs are in-app products, so the app itself is free). Enter the package from step 1 when it
+asks for it with the first upload.
+
+**3. Build and upload a bundle** (after §3.3 has created the upload key):
+
+```bash
+./gradlew :app:bundleStagingRelease -PversionCode=1
+```
+
+The file is `app/build/outputs/bundle/stagingRelease/app-staging-release.aab`. Upload it under
+*Testing → Internal testing → Create new release*, and accept **Play App Signing** when asked.
+Every later upload needs a higher `-PversionCode` than any before it. Play may ask you to finish
+some of *App content* (privacy policy, content rating, data safety, target audience) before it
+lets a release roll out; §3.2 and §4 cover those.
+
+**4. Create the three products.** *Monetize → Products → In-app products → Create product*.
+The ids must be exactly these, and each must be **Active**:
+
+| Product id | Name to show | Opens |
+|---|---|---|
+| `afterhours.pack.spicy` | Spicy pack | Mild, Flirty, Spicy |
+| `afterhours.pack.hot` | Hot pack | up to Hot |
+| `afterhours.pack.everything` | Everything pack (Extreme) | every level |
+
+Give each a one-time **Buy** purchase option and a price. Do not make them consumable: the app
+never consumes a purchase, because that is what makes a restore on a new phone work. Products only
+become buyable once a build that includes the billing permission is on a track — step 3 does that.
+
+**5. Install from Play on both phones.** *Testing → Internal testing → Testers*: make a list with
+both of your Google accounts, then open the *opt-in link* on each phone and install from Play. A
+build sideloaded with `adb` cannot buy anything; the app says *"The store doesn't have this pack
+yet"* instead.
+
+**6. License testers, so testing is free.** *Settings → License testing*: add both Google
+accounts. Their purchases are test purchases, charged to a test card that always approves, and can
+be refunded from *Order management* so you can buy again. Also pick the slow test card at least
+once: it produces the *pending* payment, and the app should say *"Your payment is waiting to
+clear"* and open the pack by itself when it clears.
+
+**7. End the free period, or nothing is for sale.** While the free period is on, the store sells
+nothing (§2.10). To test a purchase, set Remote Config `free_until` to an empty value and publish.
+Then check, on phone A: a pack shows its real price (not "(dev)"), buying it opens the level, and
+phone B, once paired, has the same level without buying. Delete the app and install it again: the
+pack must be back without pressing anything.
 
 ### ⬜ 3.2 Content rating and policy
 
@@ -297,7 +347,17 @@ leaving Play for direct APK or web distribution. Flagging it, not deciding it.
 
 ### ⬜ 3.3 Upload key
 
-Create and back up the upload keystore. Add its SHA fingerprints per §2.5.
+Create the upload keystore once, in the repository root (`*.jks` and `keystore.properties` are
+git-ignored; never commit either), and **back it up outside this machine**:
+
+```bash
+keytool -genkeypair -v -keystore afterhours-upload.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000
+cp keystore.properties.example keystore.properties
+```
+
+Put the passwords you chose into `keystore.properties`. From then on `./gradlew
+:app:bundleStagingRelease` signs with it by itself; without the file a release build is signed with
+the debug key and Play will refuse it. Add the SHA fingerprints per §2.5.
 
 ---
 

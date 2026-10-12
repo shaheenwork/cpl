@@ -319,6 +319,8 @@ private const val CHIP_FILL = 0.14f
 private fun StoreError.message(): String = when (this) {
     StoreError.OFFLINE -> "You're offline. Buying needs the network."
     StoreError.UNAVAILABLE -> "Purchases aren't available on this device."
+    StoreError.NOT_FOR_SALE -> "The store doesn't have this pack yet. Nothing was charged."
+    StoreError.PENDING -> "Your payment is waiting to clear. The pack opens by itself once it does."
     StoreError.NOTHING_TO_RESTORE -> "Nothing to restore on this account."
     StoreError.OTHER -> "That didn't work. Nothing was charged."
 }

@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /** Why a purchase did not happen. "Cancelled" is not an error worth a banner. */
-enum class StoreError { OFFLINE, UNAVAILABLE, NOTHING_TO_RESTORE, OTHER }
+enum class StoreError { OFFLINE, UNAVAILABLE, NOT_FOR_SALE, PENDING, NOTHING_TO_RESTORE, OTHER }
 
 data class StoreUiState(
     /** The level they tapped to get here, so its pack is the one in front. */
@@ -121,6 +121,9 @@ private fun AppError.toStoreError(): StoreError? = when {
     this is AppError.Validation && code == "cancelled" -> null
     this is AppError.Network -> StoreError.OFFLINE
     this is AppError.Validation && code == "billing-unavailable" -> StoreError.UNAVAILABLE
+    this is AppError.Validation && code == "not-for-sale" -> StoreError.NOT_FOR_SALE
+    // Not a failure of the store: the payment exists and has not cleared (D-152).
+    this is AppError.Validation && code == "pending" -> StoreError.PENDING
     this is AppError.NotFound -> StoreError.NOTHING_TO_RESTORE
     else -> StoreError.OTHER
 }

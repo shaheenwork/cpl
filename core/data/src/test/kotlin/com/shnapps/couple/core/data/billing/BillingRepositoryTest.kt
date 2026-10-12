@@ -2,6 +2,7 @@ package com.shnapps.couple.core.data.billing
 
 import android.app.Activity
 import com.google.common.truth.Truth.assertThat
+import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.firebase.billing.BillingRemoteDataSource
 import com.shnapps.couple.core.firebase.billing.EntitlementDoc
@@ -11,6 +12,7 @@ import com.shnapps.couple.core.testing.FakeAppPreferencesStore
 import com.shnapps.couple.core.testing.FakeAuthRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
@@ -38,14 +40,12 @@ class BillingRepositoryTest {
     private val store = FakeAppPreferencesStore()
     private val remote = FakeRemote()
 
+    private val client = FakeStore()
+
     private val repository = DefaultBillingRepository(
         auth = auth,
         remote = remote,
-        client = object : BillingClient {
-            override suspend fun offers() = Outcome.Success(emptyList<PackOffer>())
-            override suspend fun purchase(activity: Activity, productId: String) = Outcome.Success("token")
-            override suspend fun owned() = Outcome.Success(emptySet<String>())
-        },
+        client = client,
         purchases = store,
     )
 
@@ -144,6 +144,90 @@ class BillingRepositoryTest {
         assertThat(repository.partnerPacks.first()).isEmpty()
     }
 
+    @Test
+    fun `a pack the store says is already held is recorded, not refused`() = runTest {
+        client.purchaseResult = Outcome.Failure(AppError.Conflict())
+        client.holding = setOf(HOT_PRODUCT)
+
+        val result = repository.buy(Activity(), Intensity.HOT)
+
+        // The same pack, bought on another phone or before a reinstall: the answer is to find it.
+        assertThat(result).isEqualTo(Outcome.Success(setOf(Intensity.HOT)))
+        assertThat(store.ownedLevels.first()).contains(Intensity.HOT)
+    }
+
+    @Test
+    fun `already held, but not this pack, is still a conflict`() = runTest {
+        client.purchaseResult = Outcome.Failure(AppError.Conflict())
+        client.holding = setOf(SPICY_PRODUCT)
+
+        val result = repository.buy(Activity(), Intensity.HOT)
+
+        assertThat(result).isInstanceOf(Outcome.Failure::class.java)
+        assertThat(store.ownedLevels.first()).doesNotContain(Intensity.HOT)
+    }
+
+    @Test
+    fun `a payment that is still clearing opens nothing and says why`() = runTest {
+        client.purchaseResult = Outcome.Failure(AppError.Validation("pending"))
+
+        val result = repository.buy(Activity(), Intensity.HOT)
+
+        assertThat(result).isEqualTo(Outcome.Failure(AppError.Validation("pending")))
+        assertThat(store.ownedLevels.first()).doesNotContain(Intensity.HOT)
+    }
+
+    @Test
+    fun `the store is asked on opening, so a reinstalled phone finds its packs unprompted`() = runTest {
+        client.holding = setOf(HOT_PRODUCT)
+
+        keeping()
+
+        assertThat(store.ownedLevels.first()).contains(Intensity.HOT)
+    }
+
+    @Test
+    fun `a payment that clears later is found when the store says it changed`() = runTest {
+        keeping()
+        assertThat(store.ownedLevels.first()).doesNotContain(Intensity.HOT)
+
+        client.holding = setOf(HOT_PRODUCT)
+        client.changes.emit(Unit)
+        advanceUntilIdle()
+
+        assertThat(store.ownedLevels.first()).contains(Intensity.HOT)
+    }
+
+    @Test
+    fun `a store that cannot be reached when the app opens is not a thing to report`() = runTest {
+        client.ownedResult = Outcome.Failure(AppError.Network())
+
+        keeping()
+
+        assertThat(store.ownedLevels.first()).doesNotContain(Intensity.HOT)
+    }
+
+    private fun TestScope.keeping() {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { repository.keepRestored() }
+        advanceUntilIdle()
+    }
+
+    /** A store whose answers a test sets, and which can say that something changed. */
+    private class FakeStore : BillingClient {
+        var holding: Set<String> = emptySet()
+        var purchaseResult: Outcome<String> = Outcome.Success("token")
+        var ownedResult: Outcome<Set<String>>? = null
+        val changes = MutableSharedFlow<Unit>()
+
+        override val updates: Flow<Unit> = changes
+
+        override suspend fun offers() = Outcome.Success(emptyList<PackOffer>())
+
+        override suspend fun purchase(activity: Activity, productId: String) = purchaseResult
+
+        override suspend fun owned() = ownedResult ?: Outcome.Success(holding)
+    }
+
     private class FakeRemote : BillingRemoteDataSource {
         val packs = MutableStateFlow<Map<String, Int>>(emptyMap())
         val published = mutableListOf<Triple<String, String, Int>>()
@@ -168,5 +252,7 @@ class BillingRepositoryTest {
         const val ME = "uid_me"
         const val PARTNER = "uid_partner"
         const val COUPLE = "couple_1"
+        const val SPICY_PRODUCT = "afterhours.pack.spicy"
+        const val HOT_PRODUCT = "afterhours.pack.hot"
     }
 }

@@ -3131,3 +3131,40 @@ with nobody to send them anything. `NotificationsRepository.shouldAskPermission`
 asked; `AskToNotifyAfterPairing` is hosted at the root, so it does not matter which screen pairing
 finished on, and puts the system question once, a moment after "You're paired". A phone that has
 already said yes is marked as asked without a question.
+
+## D-152 — The Play client acknowledges, waits for pending payments, and can be shipped
+
+The first Play client only worked on the happy path, and a store is mostly not the happy path. Four
+gaps, and one that stopped a release build from existing at all.
+
+**A paid purchase that was never acknowledged is refunded by Play after three days.** The client
+acknowledged only at the moment of buying, so a phone that died or lost its network between paying and
+the acknowledgement kept a pack the store was about to take back. Every `owned()` now acknowledges
+whatever is settled and unacknowledged, and the repository asks the store when the app opens
+(`keepRestored`, launched from home next to `shareOwnership`), so there is always a restore inside the
+three days even if nobody opens the store.
+
+**Pending is not bought.** With pending purchases enabled, a slow card or a cash payment reports
+`PENDING`, and the old listener treated the first purchase it was given as a success. Only a settled
+purchase opens a level now; a pending one is the error `pending`, said as "Your payment is waiting to
+clear", and it opens by itself when it clears — Play calls the listener with nobody waiting, the client
+acknowledges it and raises `BillingClient.updates`, and `keepRestored` records it. Which purchases are
+owned, which need acknowledging and which are pending is `PurchaseTriage`, in `:core:data` with the
+store's types taken out, because the client itself cannot be run without Play and these decisions can.
+
+**The rest of the error surface.** A failed query was reported as "holds nothing" ("nothing to
+restore") instead of as a failure; a product the store does not have was reported as the same
+"nothing to restore"; `ITEM_ALREADY_OWNED` failed a purchase of a pack the account holds, when the
+right answer is to find it and record it (`buy` restores on `Conflict`). Those are now a failure, "the
+store doesn't have this pack yet" (`not-for-sale`, also for `ITEM_UNAVAILABLE` and `DEVELOPER_ERROR`),
+and a restore.
+
+**It can be shipped.** `bundleStagingRelease` failed in R8 because the Firebase Performance Gradle plugin
+was still applied after M10 removed the SDK it instruments for; the plugin is gone with it. Release
+signing reads `keystore.properties` (git-ignored, with an `.example`), falling back to the debug key so a
+local release build still installs, and `versionCode` takes `-PversionCode`, because Play rejects an
+upload whose number it has seen.
+
+Server-side verification of purchases stays out, as it was: a pack opens content already in the APK
+(D-091's bounded departure), so a forged purchase gets cards the phone already had. The money is only at
+risk with a store that can be talked to by something other than Play, and there is none.

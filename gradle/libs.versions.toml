@@ -27,7 +27,6 @@ work = "2.11.2"
 firebaseBom = "34.19.0"
 googleServices = "4.5.0"
 firebaseCrashlyticsPlugin = "3.0.8"
-firebasePerfPlugin = "2.0.2"
 
 # --- DI ---
 hilt = "2.60.1"
@@ -156,4 +155,3 @@ detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
 firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlyticsPlugin" }
-firebase-perf = { id = "com.google.firebase.firebase-perf", version.ref = "firebasePerfPlugin" }

@@ -36,6 +36,15 @@ class FakeBillingRepository(
         awaitCancellation()
     }
 
+    /** How many times something has started keeping what the store holds up to date (D-152). */
+    var keeps = 0
+        private set
+
+    override suspend fun keepRestored() {
+        keeps += 1
+        awaitCancellation()
+    }
+
     /** What this fake store holds for the account, for a restore to find. */
     var holding: Set<Intensity> = emptySet()
 

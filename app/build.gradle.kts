@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -5,8 +7,15 @@ plugins {
     id("afterhours.detekt")
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
-    alias(libs.plugins.firebase.perf)
 }
+
+// The upload key, when this machine has one (HUMAN_SETUP.md §3.3). It lives in `keystore.properties`
+// at the repository root, which is git-ignored; `keystore.properties.example` shows the four lines.
+// Without the file a release build is still signed, with the debug key, so it can be installed and
+// run locally but can never be uploaded to Play.
+val uploadKey: Properties? = rootProject.file("keystore.properties")
+    .takeIf { it.isFile }
+    ?.let { file -> Properties().also { properties -> file.inputStream().use(properties::load) } }
 
 android {
     namespace = "com.shnapps.couple"
@@ -19,7 +28,9 @@ android {
         applicationId = "com.shnapps.couple"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 1
+        // Play refuses an upload whose versionCode it has already seen. Raise it for each one with
+        // `-PversionCode=2` rather than editing this file.
+        versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
         versionName = "1.0"
 
         testInstrumentationRunner = "com.shnapps.couple.HiltTestRunner"
@@ -66,6 +77,17 @@ android {
         }
     }
 
+    signingConfigs {
+        if (uploadKey != null) {
+            create("upload") {
+                storeFile = rootProject.file(uploadKey.getProperty("storeFile"))
+                storePassword = uploadKey.getProperty("storePassword")
+                keyAlias = uploadKey.getProperty("keyAlias")
+                keyPassword = uploadKey.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             // R8 on, with the keep rules in proguard-rules.pro (§18). Most of this app needs
@@ -78,10 +100,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 file("proguard-rules.pro"),
             )
-            // Local verification only: a release build has to be signable to be installed and
-            // run at all (the Phase 22 exit criterion). The real upload key is a human step —
-            // HUMAN_SETUP.md §3.3 — and replaces this.
-            signingConfig = signingConfigs.getByName("debug")
+            // The upload key when `keystore.properties` exists. Otherwise local verification only:
+            // a release build has to be signable to be installed and run at all (the Phase 22 exit
+            // criterion), but one signed this way cannot go to Play.
+            signingConfig = signingConfigs.findByName("upload") ?: signingConfigs.getByName("debug")
         }
     }
 

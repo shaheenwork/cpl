@@ -275,6 +275,12 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
   moves a night on may ever call one.**
 - A refusal is `premium-required:GATE`; `AppError.gate()` turns it into a `Gate`, and the screen
   shows `PremiumNudge` where the tap happened.
+- **A pack is one-time products in Play, and the Play client is thin** (D-152). What counts as owned,
+  what must be acknowledged (Play refunds an unacknowledged purchase after three days) and what is
+  merely pending is `PurchaseTriage` in `:core:data`, with tests; `PlayBillingClient` only talks to Play.
+  A pending payment opens nothing and says so; `keepRestored` (launched from home) restores on open and
+  whenever `BillingClient.updates` ticks. Setup is HUMAN_SETUP.md §3.1; ship with
+  `./gradlew :app:bundleStagingRelease -PversionCode=N` (signed by `keystore.properties` when present).
 - `node functions/scripts/dev-couple.js tier` shows what the couple is entitled to and how much of
   the free tier they have used; `free` takes premium away again for checking a gate.
 

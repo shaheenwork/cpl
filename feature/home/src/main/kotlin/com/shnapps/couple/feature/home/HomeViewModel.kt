@@ -142,6 +142,9 @@ class HomeViewModel @Inject constructor(
         // levels for both. Home is the one screen that is always there, and the sharing runs for as
         // long as it is.
         viewModelScope.launch { billing.shareOwnership() }
+        // And what the store holds, asked for here and not only in the store (D-152): a reinstalled
+        // phone, or a payment that has cleared since, should not need anybody to open a screen.
+        viewModelScope.launch { billing.keepRestored() }
     }
 
     /** Signed in at all, and joined to someone: the two facts that enable things. */
