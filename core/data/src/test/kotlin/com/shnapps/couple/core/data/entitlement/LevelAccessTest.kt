@@ -86,6 +86,46 @@ class LevelAccessTest {
     }
 
     @Test
+    fun `a pack the partner bought opens the levels for this phone too`() = runTest {
+        installedAt = NOW - LevelAccess.OPENING_MONTH_MS - 1
+        billing.partner.value = setOf(Intensity.HOT)
+
+        val access = access()
+
+        // One of them paying is enough (D-149): this phone bought nothing and goes as far as Hot.
+        assertThat(access.ceiling).isEqualTo(Intensity.HOT)
+        assertThat(access.allows(Intensity.SPICY)).isTrue()
+        assertThat(access.isOwned(Intensity.HOT)).isTrue()
+        assertThat(access.locked).containsExactly(Intensity.EXTREME)
+    }
+
+    @Test
+    fun `the two phones' packs add up to the further of them, never less than either`() = runTest {
+        installedAt = NOW - LevelAccess.OPENING_MONTH_MS - 1
+        preferences.unlock(setOf(Intensity.SPICY))
+        billing.partner.value = setOf(Intensity.EXTREME)
+
+        assertThat(access().ceiling).isEqualTo(Intensity.EXTREME)
+
+        // And the other way round: a partner who bought less takes nothing from what was bought here.
+        billing.partner.value = setOf(Intensity.SPICY)
+        preferences.unlock(setOf(Intensity.HOT))
+        assertThat(access().ceiling).isEqualTo(Intensity.HOT)
+    }
+
+    @Test
+    fun `a partner who unpairs takes their packs with them, and nobody else's`() = runTest {
+        installedAt = NOW - LevelAccess.OPENING_MONTH_MS - 1
+        preferences.unlock(setOf(Intensity.SPICY))
+        billing.partner.value = setOf(Intensity.EXTREME)
+        assertThat(access().ceiling).isEqualTo(Intensity.EXTREME)
+
+        billing.partner.value = emptySet()
+
+        assertThat(access().ceiling).isEqualTo(Intensity.SPICY)
+    }
+
+    @Test
     fun `the top pack opens everything, which is what the bundle is`() = runTest {
         installedAt = NOW - LevelAccess.OPENING_MONTH_MS - 1
         preferences.unlock(setOf(Intensity.EXTREME))

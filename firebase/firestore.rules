@@ -224,6 +224,28 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // What each partner has bought (D-149): a pack opens its levels for both of them, so each
+      // phone says how far its own packs reach and reads the other's. One document per member, its
+      // id their own uid. The only thing in it is a level a pack can be — Spicy, Hot or Extreme —
+      // and when it was said, by the server's clock.
+      //
+      // It decides nothing that costs the project anything. A pack opens content that already
+      // shipped inside the APK (V2 rule 5), so a partner who wrote a level they had not bought would
+      // get cards they already had on disk; every gate that does cost something is still the
+      // server's own. That is why a client may write this at all, and why only its own.
+      match /packs/{packUid} {
+        allow get, list: if isActiveMember(coupleId);
+        allow create, update: if isSelf(packUid)
+                              && isActiveMember(coupleId)
+                              && request.resource.data.keys().hasOnly(['level', 'at'])
+                              && request.resource.data.keys().hasAll(['level', 'at'])
+                              && request.resource.data.level is int
+                              && request.resource.data.level >= 3
+                              && request.resource.data.level <= 5
+                              && request.resource.data.at == request.time;
+        allow delete: if false;
+      }
+
       // Released mutual matches (§5.2): positives only, and only what the server revealed.
       // A member may do exactly one thing to one — mark it seen, for themselves. No client
       // can create, delete or reword a match (§7.3 row R), and no answer is ever in here.

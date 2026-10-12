@@ -3018,3 +3018,39 @@ the partner is being asked to be in for. A game dealt on one phone shows the sam
 play. After the free month, a starter who owns Extreme starts an Extreme game and her phone plays it
 whether or not she owns the pack. Packs are a phone-side gate (V2 rule 5) and the server has never
 known them. That is a product question, not a bug in this change.
+
+## D-149 — A couple buys a pack once
+
+Packs were sold to a phone (D-135): the purchase was a line in that phone's own settings, because a
+phone with no account has nowhere else to put one. For a couple that meant two purchases for one
+evening — the partner who did not pay stayed at Flirty beside the one who did, and could not pick
+Spicy on her own phone even though the game they were about to play would go there.
+
+**What the owner's phone does.** `BillingRepository.shareOwnership()` writes the furthest level its
+packs reach to `couples/{cid}/packs/{uid}` — one document per member, holding `level` (3 to 5) and
+`at`. It is keyed on who the phone is, who it is paired with and what it holds, and writes again when
+any of the three changes, so a pack bought before the couple existed reaches a partner who joins
+later, and a bigger pack says so. Newest wins (`collectLatest`): a write waiting on the network must
+not hold up the next one. `HomeViewModel` starts it, because home is the one screen that is always
+there; the beat is the repository's and not a loop in a ViewModel (D-076).
+
+**What the other phone does.** `partnerPacks` reads the collection and keeps everyone's but its own.
+`DefaultLevelAccessRepository` takes the further of its own packs, the partner's and the old
+subscription — still the ladder, so a partner's Hot opens Spicy too. A record that cannot be read is
+"no packs", never an error: the only thing worse than a level that did not arrive is a screen
+complaining about it. Unpairing ends the couple, and with it the partner's reach; a phone's own packs
+stay its own.
+
+**The rule, and why a client may write it.** `match /packs/{packUid}`: members read both, a member
+writes only their own, only `{level, at}`, `level` an int from 3 to 5 and `at` the server's time,
+never deleted. That is a client deciding entitlement, which D-091 forbids for anything that costs the
+project something. This costs nothing: a pack opens content that already shipped in the APK (V2 rule
+5), so the worst a partner can do with a level they had not paid for is read cards that were already on
+their disk. Every gate that does cost something — a night, an arc, a surprise — is still the
+server's own, and none of it moved. §7.3 row V holds the rule.
+
+**Games.** Nothing in the game path needed to change. A game goes to the starter's level (D-148) and
+the partner's phone has never checked it against what she owns, so the question this answers is the
+other one: what she may pick on *her* phone, for a card, a guided evening, or a game she starts.
+
+**Deployed with it:** `firestore:rules` to staging. The functions did not change.

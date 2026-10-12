@@ -8,6 +8,7 @@ import com.shnapps.couple.core.data.billing.LevelPacks
 import com.shnapps.couple.core.data.billing.PackOffer
 import com.shnapps.couple.core.model.Entitlement
 import com.shnapps.couple.core.model.Intensity
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
@@ -21,6 +22,19 @@ class FakeBillingRepository(
 
     val current = MutableStateFlow(initial)
     override val entitlement = current
+
+    /** What the partner has bought, as the couple's record would say it (D-149). */
+    val partner = MutableStateFlow<Set<Intensity>>(emptySet())
+    override val partnerPacks = partner
+
+    /** How many times something has started sharing what this phone holds. */
+    var shares = 0
+        private set
+
+    override suspend fun shareOwnership() {
+        shares += 1
+        awaitCancellation()
+    }
 
     /** What this fake store holds for the account, for a restore to find. */
     var holding: Set<Intensity> = emptySet()

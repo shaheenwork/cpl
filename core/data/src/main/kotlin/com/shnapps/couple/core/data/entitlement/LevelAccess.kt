@@ -39,7 +39,11 @@ import javax.inject.Singleton
 data class LevelAccess(
     /** The highest level this phone may play. Never below Flirty. */
     val ceiling: Intensity,
-    /** The packs bought on this phone, by the level each one opens. */
+    /**
+     * The packs bought on this phone, or by the partner it is paired with, by the level each one
+     * opens (D-149). One of them buying a pack opens it for both: a couple is one purchase, and
+     * the phone that did not pay is not asked to.
+     */
     val owned: Set<Intensity>,
     /** Everything is open and nobody has paid: the opening month, or the launch switch. */
     val freeForNow: Boolean = false,
@@ -124,13 +128,19 @@ class DefaultLevelAccessRepository @Inject constructor(
     }
 
     override val access: Flow<LevelAccess> =
-        combine(preferences.preferences, billing.entitlement) { prefs, entitlement ->
-            // Everything the phone has, plus anything the server says this couple holds. A
-            // subscription is kept as a way in because somebody may already have one, and it opens
-            // everything exactly as the top pack does.
+        combine(
+            preferences.preferences,
+            billing.entitlement,
+            billing.partnerPacks,
+        ) { prefs, entitlement, partner ->
+            // Everything the phone has, plus whatever the partner it is paired with has bought
+            // (D-149), plus anything the server says this couple holds. A subscription is kept as a
+            // way in because somebody may already have one, and it opens everything exactly as the
+            // top pack does.
+            val bought = prefs.ownedLevels + partner
             val owned = when {
-                entitlement.premium -> prefs.ownedLevels + Intensity.EXTREME
-                else -> prefs.ownedLevels
+                entitlement.premium -> bought + Intensity.EXTREME
+                else -> bought
             }
             val free = freeRun(installed.firstInstalledAtMillis())
             LevelAccess(

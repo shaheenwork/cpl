@@ -146,6 +146,7 @@ names; the deeper coverage lives in the per-collection suites above it.
 | R | A creates a `mutualPreferences` doc | DENIED | matrix R; mutual discovery suite |
 | S | A reads a surprise payload before delivery | DENIED | matrix S; experiences suite row S |
 | T | Both members read and write their own permitted paths | ALLOWED | matrix T |
+| V | A writes B's `packs` doc, a level that is not a pack, a forged time, or deletes one | DENIED; A writing their own pack level, and B reading it, ALLOWED | matrix V (D-149) |
 | U | A writes a message as B, back-dates one, or edits one after it was read | DENIED | chat suite |
 | V | A marks the chat read on B's behalf | DENIED | chat suite |
 

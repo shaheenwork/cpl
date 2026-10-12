@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.data.auth.AuthRepository
+import com.shnapps.couple.core.data.billing.BillingRepository
 import com.shnapps.couple.core.data.entitlement.LevelAccess
 import com.shnapps.couple.core.data.game.GameRepository
 import com.shnapps.couple.core.data.instant.InstantPlayRepository
@@ -117,6 +118,7 @@ class HomeViewModel @Inject constructor(
     private val nights: NightRepository,
     private val instant: InstantPlayRepository,
     private val gameStarts: GameRepository,
+    billing: BillingRepository,
     auth: AuthRepository,
 ) : ViewModel() {
 
@@ -127,6 +129,10 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             instant.mode.collect { mode -> local.update { it.copy(mode = mode) } }
         }
+        // What this phone has bought, told to the couple (D-149), so one of them paying opens the
+        // levels for both. Home is the one screen that is always there, and the sharing runs for as
+        // long as it is.
+        viewModelScope.launch { billing.shareOwnership() }
     }
 
     /** Signed in at all, and joined to someone: the two facts that enable things. */

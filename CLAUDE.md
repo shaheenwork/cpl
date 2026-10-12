@@ -440,6 +440,11 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
 - **The primitive renderers live in `:core:ui`**, not in `:feature:games`: two players draw them now,
   and a feature may not import another feature. A second renderer for a primitive is what §11.1
   forbids, so they belong to neither feature.
+- **A couple buys a pack once** (D-149): `HomeViewModel` starts `BillingRepository.shareOwnership()`,
+  which writes how far this phone's packs reach to `couples/{cid}/packs/{uid}`; the other phone reads
+  it (`partnerPacks`) and `LevelAccess` takes the further of the two. A client may write only its own
+  document, and only a level a pack can be — a rule that is allowed because the packs open content
+  already inside the APK. Changing it is a rules change: deploy `firestore:rules` as well.
 - **The money is the top of the range, not the volume** (V2 rule 5, D-135). Mild and Flirty are free
   for ever; Spicy, Hot and Extreme are one-time packs, and **a pack opens every level below it** —
   a ceiling with a hole in it would skip rungs on the climb. Everything is open for the first month

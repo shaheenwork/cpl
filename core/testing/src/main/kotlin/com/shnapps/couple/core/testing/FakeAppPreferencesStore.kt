@@ -10,7 +10,9 @@ import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.LimitAnswer
 import com.shnapps.couple.core.model.LimitTag
 import com.shnapps.couple.core.model.Mode
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
 /** In-memory [AppPreferencesStore] that really keeps what is written to it. */
@@ -63,6 +65,8 @@ class FakeAppPreferencesStore(
             playedCardIds = if (deckSize in 1..played.size) setOf(cardId) else played,
         )
     }
+
+    override val ownedLevels: Flow<Set<Intensity>> = state.map { it.ownedLevels }
 
     override suspend fun unlock(levels: Set<Intensity>) {
         state.value = state.value.copy(ownedLevels = state.value.ownedLevels + levels)

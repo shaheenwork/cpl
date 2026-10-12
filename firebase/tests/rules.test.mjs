@@ -10,6 +10,7 @@
  *   firebase emulators:start --only auth,firestore,storage --project afterhours-dev-emulator
  */
 
+import assert from 'node:assert/strict';
 import { after, before, beforeEach, describe, it } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -1158,6 +1159,29 @@ describe('§7.3 — the mandatory matrix', () => {
     await assertFails(getDoc(ours(b(), 'surprises', 's_waiting', 'payload', 'content')));
     // That something is waiting is readable; the inside of it is not.
     await assertSucceeds(getDoc(ours(b(), 'surprises', 's_waiting')));
+  });
+
+  it('V: packs — a member publishes how far their own reach, and the partner reads it (D-149)', async () => {
+    // Either member writes their own, in the shape a pack can have, by the server's clock.
+    await assertSucceeds(setDoc(ours(a(), 'packs', A), { level: 4, at: serverTimestamp() }));
+    // And the other member reads it, which is the whole point of it.
+    const seen = await assertSucceeds(getDoc(ours(b(), 'packs', A)));
+    assert.equal(seen.data().level, 4);
+    await assertSucceeds(getDocs(collection(b(), 'couples', CID, 'packs')));
+    // Never the other member's: a partner cannot say what the other bought.
+    await assertFails(setDoc(ours(a(), 'packs', B), { level: 5, at: serverTimestamp() }));
+    // Only a level a pack can be: the two free ones have nothing to say, and there is no sixth.
+    await assertFails(setDoc(ours(a(), 'packs', A), { level: 2, at: serverTimestamp() }));
+    await assertFails(setDoc(ours(a(), 'packs', A), { level: 6, at: serverTimestamp() }));
+    await assertFails(setDoc(ours(a(), 'packs', A), { level: '5', at: serverTimestamp() }));
+    // Only that shape, and only with the server's time rather than one a phone chose.
+    await assertFails(setDoc(ours(a(), 'packs', A), { level: 4, at: serverTimestamp(), note: 'x' }));
+    await assertFails(setDoc(ours(a(), 'packs', A), { level: 4, at: Timestamp.fromMillis(0) }));
+    await assertFails(setDoc(ours(a(), 'packs', A), { level: 4 }));
+    // Not by a stranger, not read by one, and not taken back.
+    await assertFails(setDoc(ours(mallory(), 'packs', MALLORY), { level: 5, at: serverTimestamp() }));
+    await assertFails(getDoc(ours(mallory(), 'packs', A)));
+    await assertFails(deleteDoc(ours(a(), 'packs', A)));
   });
 
   it('T: the happy path — both members read and write their own permitted paths', async () => {

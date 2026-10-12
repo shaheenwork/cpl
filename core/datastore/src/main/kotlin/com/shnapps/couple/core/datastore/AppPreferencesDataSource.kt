@@ -17,6 +17,7 @@ import com.shnapps.couple.core.model.LimitTag
 import com.shnapps.couple.core.model.Mode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -120,6 +121,8 @@ class AppPreferencesDataSource @Inject constructor(
             prefs[Keys.PLAYED_CARDS] = if (deckSize in 1..played.size) setOf(cardId) else played
         }
     }
+
+    override val ownedLevels: Flow<Set<Intensity>> = preferences.map { it.ownedLevels }.distinctUntilChanged()
 
     override suspend fun unlock(levels: Set<Intensity>) {
         context.dataStore.edit { prefs ->

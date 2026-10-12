@@ -84,6 +84,9 @@ interface PlaySettingsStore {
  * three — the split is for the reader, and for the seam a receipt check would be added at.
  */
 interface PurchaseStore {
+    /** The packs this phone has bought, by the level each one opens. */
+    val ownedLevels: Flow<Set<Intensity>>
+
     /**
      * Records the packs this phone has bought, by the level each one opens.
      *

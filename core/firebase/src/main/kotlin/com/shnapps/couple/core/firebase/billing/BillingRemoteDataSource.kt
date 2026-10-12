@@ -1,12 +1,15 @@
 package com.shnapps.couple.core.firebase.billing
 
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.functions.FirebaseFunctions
 import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.firebase.callFunction
+import com.shnapps.couple.core.firebase.firestoreCall
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,6 +35,16 @@ interface BillingRemoteDataSource {
 
     /** What this account is entitled to, as the server holds it: for a restore or a reinstall. */
     suspend fun current(): Outcome<EntitlementDoc>
+
+    /**
+     * How far each member's packs reach, by uid (D-149): the couple's own record of what has been
+     * bought, so that one of them buying a pack opens it for both. Members with nothing to say are
+     * absent.
+     */
+    fun observePacks(coupleId: String): Flow<Map<String, Int>>
+
+    /** Says how far this member's own packs reach. Only ever their own: the rules see to that. */
+    suspend fun publishPack(coupleId: String, uid: String, level: Int): Outcome<Unit>
 }
 
 @Singleton
@@ -58,6 +71,27 @@ class FirebaseBillingRemoteDataSource @Inject constructor(
                 )
             }
         awaitClose { registration.remove() }
+    }
+
+    override fun observePacks(coupleId: String): Flow<Map<String, Int>> = callbackFlow {
+        val registration = firestore.collection("couples").document(coupleId).collection("packs")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                trySend(
+                    snapshot?.documents.orEmpty().mapNotNull { doc ->
+                        doc.getLong("level")?.toInt()?.let { level -> doc.id to level }
+                    }.toMap(),
+                )
+            }
+        awaitClose { registration.remove() }
+    }
+
+    override suspend fun publishPack(coupleId: String, uid: String, level: Int): Outcome<Unit> = firestoreCall {
+        firestore.collection("couples").document(coupleId).collection("packs").document(uid)
+            .set(mapOf("level" to level, "at" to FieldValue.serverTimestamp())).await()
     }
 
     override suspend fun verify(purchaseToken: String): Outcome<String> =

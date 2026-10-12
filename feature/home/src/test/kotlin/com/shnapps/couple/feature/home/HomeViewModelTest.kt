@@ -11,6 +11,7 @@ import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionState
 import com.shnapps.couple.core.model.UserProfile
 import com.shnapps.couple.core.testing.FakeAuthRepository
+import com.shnapps.couple.core.testing.FakeBillingRepository
 import com.shnapps.couple.core.testing.FakeGameRepository
 import com.shnapps.couple.core.testing.FakeInstantPlayRepository
 import com.shnapps.couple.core.testing.FakeNightRepository
@@ -44,6 +45,7 @@ class HomeViewModelTest {
     private val instant = FakeInstantPlayRepository()
     private val gameStarts = FakeGameRepository()
     private val auth = FakeAuthRepository()
+    private val billing = FakeBillingRepository()
 
     /** Signed in and joined to someone: everything the server does is open to them. */
     private fun paired() {
@@ -55,6 +57,7 @@ class HomeViewModelTest {
         nights = nights,
         instant = instant,
         gameStarts = gameStarts,
+        billing = billing,
         auth = auth,
     ).also { vm ->
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
@@ -95,6 +98,14 @@ class HomeViewModelTest {
         assertThat(vm.uiState.value.opened)
             .isInstanceOf(Opened.Session::class.java)
         assertThat((vm.uiState.value.opened as Opened.Session).type).isEqualTo(ExperienceType.GAME)
+    }
+
+    @Test
+    fun `home starts telling the couple what this phone has bought, once`() = test {
+        home()
+
+        // Home is the one screen that is always there, so it is what keeps the couple told (D-149).
+        assertThat(billing.shares).isEqualTo(1)
     }
 
     @Test
