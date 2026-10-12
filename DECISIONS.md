@@ -2957,3 +2957,29 @@ nothing separates a control from a caption. `SettingsGroup` / `SettingsRow` / `S
 then groups of 64 dp rows with an icon in a gold tile, a hairline between them and a chevron. A row
 says its state before it is opened ("App lock — ON"). The hairlines are the group's own colour
 showing through a one-pixel gap, so no row needs to know whether it is the last.
+
+## D-147 — The heat a phone is at is the account's own level
+
+A paired couple's games are chosen on the server, and the server's ceiling is
+`min(request, lower of the two accounts' contentLevel)` (`effectiveIntensity`, `computeEngineFilters`).
+That is the design: nobody is dealt past the more careful partner. What was missing is the half
+that makes it true — nothing ever told the account where the phone was. An account's `contentLevel`
+is written once, to Flirty, when its profile is made (`UserProfileDataSource`), and
+`LocalPlayReconciler`, which was written to carry the phone's heat across, has no caller outside
+its tests. So both accounts sat at Flirty for ever, `couples/{id}.contentLevelEffective` was 2, and
+every game a couple started was capped there: Mild was Mild, and Flirty, Spicy, Hot and Extreme dealt
+the same Flirty cards. The deck and Game Night never showed it, because they are dealt on the phone
+and never ask the server.
+
+`HomeViewModel` now publishes the phone's own tier (`InstantPlayRepository.tier`, already clamped to
+what the phone may play) with `AuthRepository.setContentLevel` whenever it differs from the profile's.
+On the difference rather than on the tap, so that an account already out of step is put right the
+next time the app opens, a write that did not land is tried again, and the deck's heat chip — which
+never touches home — is covered by the same preference flow. `collectLatest`, because a write
+waiting on the network must not hold up the next tap. `onUserWritten` recomputes the couple's filters
+when a level changes, so the server follows within a moment.
+
+**Both phones have to run it.** The ceiling is the lower of the two, so a partner whose phone has
+not been updated keeps her account at Flirty and the couple stays capped there. That is the
+consent working, not the fix failing: each person's heat is theirs, and the game goes as far as the
+more careful of them.

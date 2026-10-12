@@ -172,6 +172,57 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `the heat this phone is at becomes the account's own level, so the server's ceiling follows it`() = test {
+        paired()
+        // Made at Flirty, which is what every account is, and never touched since.
+        assertThat(auth.profile.value!!.contentLevel).isEqualTo(Intensity.FLIRTY)
+        act { instant.tier.value = Intensity.EXTREME }
+
+        home()
+
+        // A couple's games are chosen under the lower of the two accounts' levels. Left at Flirty,
+        // Spicy, Hot and Extreme all dealt the same Flirty cards.
+        assertThat(auth.profile.value!!.contentLevel).isEqualTo(Intensity.EXTREME)
+    }
+
+    @Test
+    fun `moving the heat moves the account's level with it, from anywhere in the app`() = test {
+        paired()
+        home()
+
+        // Not through home: the deck's own heat chip writes the same preference.
+        act { instant.tier.value = Intensity.HOT }
+        assertThat(auth.profile.value!!.contentLevel).isEqualTo(Intensity.HOT)
+
+        act { instant.tier.value = Intensity.MILD }
+        assertThat(auth.profile.value!!.contentLevel).isEqualTo(Intensity.MILD)
+    }
+
+    @Test
+    fun `with no account there is nothing to tell, and nothing fails`() = test {
+        act { instant.tier.value = Intensity.EXTREME }
+
+        val vm = home()
+
+        assertThat(auth.profile.value).isNull()
+        assertThat(vm.uiState.value.error).isNull()
+    }
+
+    @Test
+    fun `a level that could not be written is tried again when the heat next moves`() = test {
+        paired()
+        auth.contentLevelResult = Outcome.Failure(AppError.Network())
+        act { instant.tier.value = Intensity.HOT }
+        home()
+        assertThat(auth.profile.value!!.contentLevel).isEqualTo(Intensity.FLIRTY)
+
+        auth.contentLevelResult = Outcome.Success(Unit)
+        act { instant.tier.value = Intensity.EXTREME }
+
+        assertThat(auth.profile.value!!.contentLevel).isEqualTo(Intensity.EXTREME)
+    }
+
+    @Test
     fun `signed in but nobody joined yet is its own answer`() = test {
         auth.user.value = AuthUser(uid = "u1", email = "a@b.c", isEmailVerified = true)
         auth.profile.value = UserProfile(uid = "u1", coupleId = null)

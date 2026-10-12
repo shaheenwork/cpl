@@ -404,6 +404,10 @@ Layering: `UI → ViewModel → UseCase → Repository → DataSource`.
 - **The deal is not the pool.** `cards` is everything this phone may be shown; `next()` is what
   comes up, and it climbs to the tier and never repeats (D-124). Dealing from index zero over a
   pool in bundle order is what made 790 items look like six.
+- **The phone tells the account its heat** (D-147): `HomeViewModel` writes `instant.tier` to the
+  profile's `contentLevel` whenever they differ. A paired couple's games are capped by the lower of
+  the two accounts' levels on the server, and that level used to be Flirty for ever. Both phones
+  must be on a build that does this, or the couple stays capped by the one that is not.
 - **Apart needs a pair** (D-146): with Apart selected and nobody paired, home offers no games and no
   heat — only "Pair to play apart" — and `HomeViewModel.play` refuses. Together never needs one.
 - The packs are a **lane** a couple can ask for by name (D-125): only ones with cards at this tier

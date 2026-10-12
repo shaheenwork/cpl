@@ -18,6 +18,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -126,6 +127,19 @@ class HomeViewModel @Inject constructor(
         // The mode this phone was last left in, so the app opens where it was (M6).
         viewModelScope.launch {
             instant.mode.collect { mode -> local.update { it.copy(mode = mode) } }
+        }
+        // This phone's heat, told to the account (D-147). A paired couple's games are chosen on the
+        // server, whose ceiling is the lower of the two *accounts'* levels — and an account's level
+        // was set once, to Flirty, when it was made, and never again. So every game stopped at
+        // Flirty whatever the picker said, and Spicy, Hot and Extreme dealt the same cards. Written
+        // whenever the two differ rather than when the picker is tapped, so an account that is
+        // already out of step is put right the next time the app opens, and a write that did not
+        // land is tried again. `collectLatest`: a write that is waiting for the network must not
+        // hold up the next tap.
+        viewModelScope.launch {
+            combine(instant.tier, auth.currentProfile, ::Pair).collectLatest { (tier, profile) ->
+                if (profile != null && profile.contentLevel != tier) auth.setContentLevel(tier)
+            }
         }
     }
 
