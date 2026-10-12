@@ -19,6 +19,7 @@ import { Timestamp, type DocumentData, type DocumentSnapshot, type Firestore } f
 import { filtersRef, recomputeCouple } from '../couple/recompute';
 import { loadCatalogue, type Catalogue } from '../engine/catalogue';
 import { askFirstUids, permits } from '../engine/chokepoint';
+import { MAX_CONTENT_LEVEL } from '../engine/filters';
 import { generate } from '../engine/pipeline';
 import {
   DEFAULT_WEIGHTS,
@@ -170,10 +171,21 @@ export function forHost(filters: FiltersInput, hostUid: string): FiltersInput {
  * The filters for a game passed between the partners on one phone (DECISIONS.md D-069). Every
  * ask-first theme is left out, the host's own included: on a phone both partners hold, asking
  * anyone would show the other that a limit exists.
+ *
+ * **And the couple's level is not a ceiling here** (D-148). A game goes as far as the person who
+ * started it chose — the request carries that, and `effectiveIntensity` takes the lower of it and
+ * this. It used to be the lower of the two *accounts'* levels, which nothing kept in step with
+ * what either phone was set to, so every game stopped at Flirty. Themes and items a partner
+ * excluded still are: only the number is theirs to lift, and the exclusions are the limits.
  */
 export function forSharedPhone(filters: FiltersInput): FiltersInput {
   const excluded = new Set([...filters.excludedThemes, ...Object.keys(filters.askFirstThemes)]);
-  return { ...filters, excludedThemes: [...excluded].sort(), askFirstThemes: {} };
+  return {
+    ...filters,
+    maxIntensity: MAX_CONTENT_LEVEL,
+    excludedThemes: [...excluded].sort(),
+    askFirstThemes: {},
+  };
 }
 
 interface ActiveCouple {

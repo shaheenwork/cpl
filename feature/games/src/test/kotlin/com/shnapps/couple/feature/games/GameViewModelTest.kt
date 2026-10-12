@@ -6,6 +6,7 @@ import com.shnapps.couple.core.analytics.AnalyticsEvent
 import com.shnapps.couple.core.analytics.AnalyticsLogger
 import com.shnapps.couple.core.common.AppError
 import com.shnapps.couple.core.common.FakeClock
+import com.shnapps.couple.core.common.Outcome
 import com.shnapps.couple.core.engine.game.Answer
 import com.shnapps.couple.core.engine.game.GameMoment
 import com.shnapps.couple.core.engine.game.RoundPrimitive
@@ -13,6 +14,7 @@ import com.shnapps.couple.core.engine.game.encode
 import com.shnapps.couple.core.model.CloseCheckIn
 import com.shnapps.couple.core.model.ExperienceType
 import com.shnapps.couple.core.model.GamePlayers
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionEndReason
 import com.shnapps.couple.core.model.SessionKind
@@ -117,6 +119,25 @@ class GameViewModelTest {
             AnalyticsEvent.GameStarted(TestGames.CHOICES),
             AnalyticsEvent.GameCompleted(TestGames.CHOICES),
         )
+    }
+
+    @Test
+    fun `a game's heat is the one it was started at, whichever phone is looking`() = test {
+        // What the server released carries the heat its starter chose (D-148). Both phones read it
+        // off that, so the partner — who never picked it — is shown the same one.
+        for (level in Intensity.entries) {
+            val started = (games.start(TestGames.TRUTH_OR_DARE, level) as Outcome.Success).value
+            assertThat(GameUiState(started = started).tier).isEqualTo(level)
+        }
+        assertThat(GameUiState().tier).isNull()
+    }
+
+    @Test
+    fun `the phone that did not start it is shown the heat the game was started at`() = test {
+        val vm = player()
+
+        // `load` is the partner's way in: nothing about the heat comes from this phone.
+        assertThat(vm.uiState.value.tier).isEqualTo(Intensity.EXTREME)
     }
 
     @Test

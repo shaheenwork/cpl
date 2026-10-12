@@ -30,6 +30,7 @@ import com.shnapps.couple.core.engine.game.GameMoment
 import com.shnapps.couple.core.model.GamePlayers
 import com.shnapps.couple.core.ui.AfterhoursCard
 import com.shnapps.couple.core.ui.AfterhoursSheet
+import com.shnapps.couple.core.ui.HeatTag
 import com.shnapps.couple.core.ui.PausedContent
 import com.shnapps.couple.core.ui.PausedDock
 import com.shnapps.couple.core.ui.PrimitiveRenderer
@@ -124,6 +125,12 @@ internal fun DealtGameContent(
             ScreenScaffold(
                 calm = state.stopped,
                 title = state.title.takeIf { it.isNotEmpty() && playing && !state.askingNames },
+                // How far this game goes, where the bar already has room for it (D-148).
+                trailing = if (playing && !state.stopped && !state.askingNames) {
+                    { HeatTag(tier = state.tier) }
+                } else {
+                    null
+                },
                 onBack = onBack,
                 backLabel = "Leave the game",
                 belowBar = if (playing && state.rounds > 0 && !state.askingNames) {

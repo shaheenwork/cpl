@@ -2960,6 +2960,9 @@ showing through a one-pixel gap, so no row needs to know whether it is the last.
 
 ## D-147 — The heat a phone is at is the account's own level
 
+**Superseded by D-148, within the hour: the diagnosis below is right and the remedy was not what was
+wanted. The code it describes is gone.**
+
 A paired couple's games are chosen on the server, and the server's ceiling is
 `min(request, lower of the two accounts' contentLevel)` (`effectiveIntensity`, `computeEngineFilters`).
 That is the design: nobody is dealt past the more careful partner. What was missing is the half
@@ -2983,3 +2986,35 @@ when a level changes, so the server follows within a moment.
 not been updated keeps her account at Flirty and the couple stays capped there. That is the
 consent working, not the fix failing: each person's heat is theirs, and the game goes as far as the
 more careful of them.
+
+## D-148 — A game is played at the heat its starter chose, and both phones say so
+
+D-147 found why every paired game dealt Flirty cards — the server capped it at the lower of the two
+accounts' levels, and those never moved — and fixed it by making each phone publish its heat. That
+kept the cap and made it follow the phones, so a game still went as far as the **more careful** of the
+two. What was wanted is the other rule: **the level is the one selected by the person who starts the
+game**, and both phones play at it.
+
+So the cap is gone, for games only. `forSharedPhone` — the one place a game's filters are made, for
+`startGame` and for `blockedNow`'s mid-game recheck alike — lifts `maxIntensity` to the top, which
+leaves `effectiveIntensity = min(request, 5)`: the request is what the starter's phone sent, which is
+the heat on it at the moment of the tap (`HomeViewModel.play`). Nothing else is lifted. Every theme
+and item either partner ruled out still is, and the ask-first themes still go (D-069): the number was
+the only part of a partner's limits that was never theirs to set from a phone, and the exclusions are
+the part that always were. Nights and arcs keep their own rule; none of them is reachable in v2.
+
+The phone-side half of D-147 is removed rather than left to write a level nothing reads — it would
+have cost a Firestore write and a trigger invocation per tap to maintain a number that no longer
+decides anything.
+
+**Both phones say it.** A game's heat is read off what the server released
+(`GameUiState.tier`, from `ReleasedGame.effectiveIntensity`), so the partner's phone — which never
+picked it — has exactly what the starter's has. It is `HeatTag` in `:core:ui`, the heat chip with
+nothing to press, opposite the game's name; the game takes the heat's colour and lights the room in
+it on both phones; and the "I'm in" screens say "up to Spicy" in the heat's own word, which is what
+the partner is being asked to be in for. A game dealt on one phone shows the same tag in its bar.
+
+**Not done, and worth knowing:** the partner's phone does not check the heat against what *she* may
+play. After the free month, a starter who owns Extreme starts an Extreme game and her phone plays it
+whether or not she owns the pack. Packs are a phone-side gate (V2 rule 5) and the server has never
+known them. That is a product question, not a bug in this change.

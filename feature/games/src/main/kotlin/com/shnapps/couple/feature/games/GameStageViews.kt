@@ -448,10 +448,15 @@ internal fun ResultsStage(state: GameUiState, actions: GameActions) {
     }
 }
 
-/** How far the game goes: its most intense round. */
+/**
+ * How far the game goes: the heat it was started at — the same on both phones, and the one thing a
+ * partner is being asked to be "in" for (D-148). Before that is known, its most intense round.
+ */
 private fun peakOf(state: GameUiState): String =
-    state.started?.released?.rounds?.flatMap { it.prompts }?.maxOfOrNull { it.intensity.level }
-        ?.let { level -> Intensity.ofLevel(level).name } ?: Intensity.HOT.name
+    state.tier?.label
+        ?: state.started?.released?.rounds?.flatMap { it.prompts }?.maxOfOrNull { it.intensity.level }
+            ?.let { level -> Intensity.ofLevel(level).label }
+        ?: Intensity.HOT.label
 
 /** The score so far, as the game keeps it — or nothing, for a game that keeps none. */
 private fun scoreLine(state: GameUiState): String? {

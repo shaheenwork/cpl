@@ -98,6 +98,29 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `each game asks the server for the heat that is selected when it is started`() = test {
+        paired()
+        val vm = home()
+
+        act { vm.setTier(Intensity.SPICY) }
+        act { vm.play(TestGames.TRUTH_OR_DARE) }
+        act(vm::onShown)
+        act { vm.setTier(Intensity.MILD) }
+        act { vm.play(TestGames.TRUTH_OR_DARE) }
+        act(vm::onShown)
+        act { vm.setTier(Intensity.EXTREME) }
+        act { vm.play(TestGames.TRUTH_OR_DARE) }
+
+        // Whoever starts a game decides how far it goes (D-148): the level on their phone at that
+        // moment, not a level remembered from the last one, and not the other account's.
+        assertThat(gameStarts.calls).containsExactly(
+            "start:${TestGames.TRUTH_OR_DARE}:3",
+            "start:${TestGames.TRUTH_OR_DARE}:1",
+            "start:${TestGames.TRUTH_OR_DARE}:5",
+        ).inOrder()
+    }
+
+    @Test
     fun `apart, a game that can be played a phone each opens on both of them`() = test {
         paired()
         val vm = home()
@@ -169,57 +192,6 @@ class HomeViewModelTest {
         // seeded by the round (§10), so the phone that is not rolling computes the same faces and
         // watches the roll without a thing being sent.
         assertThat((vm.uiState.value.opened as Opened.Session).twoPhones).isTrue()
-    }
-
-    @Test
-    fun `the heat this phone is at becomes the account's own level, so the server's ceiling follows it`() = test {
-        paired()
-        // Made at Flirty, which is what every account is, and never touched since.
-        assertThat(auth.profile.value!!.contentLevel).isEqualTo(Intensity.FLIRTY)
-        act { instant.tier.value = Intensity.EXTREME }
-
-        home()
-
-        // A couple's games are chosen under the lower of the two accounts' levels. Left at Flirty,
-        // Spicy, Hot and Extreme all dealt the same Flirty cards.
-        assertThat(auth.profile.value!!.contentLevel).isEqualTo(Intensity.EXTREME)
-    }
-
-    @Test
-    fun `moving the heat moves the account's level with it, from anywhere in the app`() = test {
-        paired()
-        home()
-
-        // Not through home: the deck's own heat chip writes the same preference.
-        act { instant.tier.value = Intensity.HOT }
-        assertThat(auth.profile.value!!.contentLevel).isEqualTo(Intensity.HOT)
-
-        act { instant.tier.value = Intensity.MILD }
-        assertThat(auth.profile.value!!.contentLevel).isEqualTo(Intensity.MILD)
-    }
-
-    @Test
-    fun `with no account there is nothing to tell, and nothing fails`() = test {
-        act { instant.tier.value = Intensity.EXTREME }
-
-        val vm = home()
-
-        assertThat(auth.profile.value).isNull()
-        assertThat(vm.uiState.value.error).isNull()
-    }
-
-    @Test
-    fun `a level that could not be written is tried again when the heat next moves`() = test {
-        paired()
-        auth.contentLevelResult = Outcome.Failure(AppError.Network())
-        act { instant.tier.value = Intensity.HOT }
-        home()
-        assertThat(auth.profile.value!!.contentLevel).isEqualTo(Intensity.FLIRTY)
-
-        auth.contentLevelResult = Outcome.Success(Unit)
-        act { instant.tier.value = Intensity.EXTREME }
-
-        assertThat(auth.profile.value!!.contentLevel).isEqualTo(Intensity.EXTREME)
     }
 
     @Test

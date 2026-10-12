@@ -62,6 +62,8 @@ class DealtGameSnapshotTest {
 
         // The game's name is the bar's; where the round is, is the rail's (DESIGN_PROMPT.md §5.6).
         composeRule.onNodeWithText("DIRTY DICE").assertIsDisplayed()
+        // And how far it goes, in the bar too (D-148): the default tier here.
+        composeRule.onNodeWithContentDescription("Heat: level 2 of 5, Flirty").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Card 1 of 6").assertExists()
         composeRule.onNodeWithText("Not this one").assertIsDisplayed()
         // What the game is, in one line, on its first round — and nowhere after it (D-131).

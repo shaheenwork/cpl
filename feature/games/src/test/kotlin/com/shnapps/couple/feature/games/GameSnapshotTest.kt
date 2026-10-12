@@ -3,6 +3,7 @@ package com.shnapps.couple.feature.games
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -192,6 +193,19 @@ class GameSnapshotTest {
         composeRule.onNodeWithContentDescription("Over to them.", substring = true).assertIsDisplayed()
         assertThat(composeRule.onAllNodesWithText("Would you rather…").fetchSemanticsNodes()).isEmpty()
         composeRule.onNodeWithText("Stop").assertIsDisplayed()
+    }
+
+    @Test
+    fun theHeatIsOnScreenForBothOfThem() {
+        // Both phones read it off what the server released, so the one that never picked it shows
+        // it exactly as the one that did (D-148). The fixture releases at Extreme.
+        val state = playingApart { it }
+        capture("game-heat") { GameContent(state, GameActions()) }
+
+        composeRule.onNodeWithContentDescription("Heat: level 5 of 5, Extreme").assertIsDisplayed()
+        // Shown, never offered: nothing on a game under way changes how far it goes.
+        val offered = composeRule.onAllNodesWithContentDescription("Heat: level 5 of 5, Extreme. Change it")
+        assertThat(offered.fetchSemanticsNodes()).isEmpty()
     }
 
     @Test

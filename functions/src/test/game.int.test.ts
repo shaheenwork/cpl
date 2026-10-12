@@ -138,13 +138,21 @@ describe('starting a game', () => {
     }
   });
 
-  it("the more careful partner's content level caps a game, whatever is asked", async () => {
-    const { a } = await couple([5, 2]);
+  it('goes as far as the person who started it chose, whatever either account says (D-148)', async () => {
+    // Accounts at Flirty and Mild: the numbers a phone never updated. They must not decide.
+    const { a, b } = await couple([2, 1]);
     const byId = await prompts();
-    const game = await startGame(db, a, { game: 'FANTASY_MATCH', intensity: 5 }, NOW, deps());
-    assert.equal(game.effectiveIntensity, 2);
-    for (const id of released(game)) assert.ok(byId.get(id)!.intensity <= 2, id);
+
+    const hot = await startGame(db, a, { game: 'FANTASY_MATCH', intensity: 4 }, NOW, deps());
+    assert.equal(hot.effectiveIntensity, 4);
+    assert.equal(Math.max(...released(hot).map((id) => byId.get(id)!.intensity)), 4);
+
+    // The other partner starting it gets the level *they* chose, not the first one's.
+    const mild = await startGame(db, b, { game: 'FANTASY_MATCH', intensity: 1 }, NOW, deps(7));
+    assert.equal(mild.effectiveIntensity, 1);
+    for (const id of released(mild)) assert.ok(byId.get(id)!.intensity <= 1, id);
   });
+
 
   it('refuses unknown games, fields the server decides, and anyone unpaired', async () => {
     const { a } = await couple();

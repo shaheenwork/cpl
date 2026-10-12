@@ -8,6 +8,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -23,9 +24,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shnapps.couple.core.designsystem.component.StopPauseBar
 import com.shnapps.couple.core.designsystem.theme.AfterhoursTheme
 import com.shnapps.couple.core.designsystem.theme.EyebrowTextStyle
+import com.shnapps.couple.core.designsystem.theme.LightTheRoom
+import com.shnapps.couple.core.designsystem.theme.ProvideTier
 import com.shnapps.couple.core.engine.game.Answer
 import com.shnapps.couple.core.model.CloseCheckIn
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.ui.ErrorBanner
+import com.shnapps.couple.core.ui.HeatTag
 import com.shnapps.couple.core.ui.RunProgress
 import com.shnapps.couple.core.ui.SecureScreen
 
@@ -100,6 +105,16 @@ internal data class GameActions(
 
 @Composable
 internal fun GameContent(state: GameUiState, actions: GameActions, modifier: Modifier = Modifier) {
+    // The game's heat is its starter's, and both phones take it: its colour on the buttons and the
+    // card rims, and in the light the room is lit by (D-148).
+    ProvideTier(state.tier ?: Intensity.DEFAULT) {
+        LightTheRoom(if (state.tier != null) AfterhoursTheme.tier.accent else null)
+        GameFrame(state = state, actions = actions, modifier = modifier)
+    }
+}
+
+@Composable
+private fun GameFrame(state: GameUiState, actions: GameActions, modifier: Modifier) {
     val motion = AfterhoursTheme.motion
     val live = GameStages.isLive(state.stage)
     Column(modifier = modifier.fillMaxSize()) {
@@ -162,13 +177,21 @@ private fun Stage(stage: GameStage, state: GameUiState, actions: GameActions) {
 private fun RoundProgress(state: GameUiState) {
     val spacing = AfterhoursTheme.spacing
     Column(modifier = Modifier.padding(top = spacing.sm)) {
-        state.started?.released?.game?.title?.let { name ->
+        // The name and, opposite it, the heat: what both of them are playing, said to both of them.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = spacing.gutter),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
-                text = name.uppercase(),
+                text = state.started?.released?.game?.title.orEmpty().uppercase(),
                 style = EyebrowTextStyle,
                 color = AfterhoursTheme.colors.textFaint,
-                modifier = Modifier.padding(horizontal = spacing.gutter),
+                modifier = Modifier.weight(1f),
             )
+            state.tier?.let { HeatTag(tier = it) }
         }
         RunProgress(current = state.roundNumber - 1, total = state.roundCount)
     }

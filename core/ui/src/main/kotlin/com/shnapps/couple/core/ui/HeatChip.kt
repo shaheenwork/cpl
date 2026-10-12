@@ -46,6 +46,28 @@ fun HeatChip(tier: Intensity, onClick: () -> Unit, modifier: Modifier = Modifier
     }
 }
 
+/**
+ * The heat a game is being played at, shown and not offered (D-148).
+ *
+ * A game's heat is set by whoever starts it and cannot be changed from inside it, so the partner's
+ * phone — which never picked it — shows it the same way the starter's does. The same chip as
+ * [HeatChip] with nothing to tap: it is the one place a person who did not choose can read what was
+ * chosen, and "Spicy" is not something to be able to press.
+ */
+@Composable
+fun HeatTag(tier: Intensity, modifier: Modifier = Modifier) {
+    val accent = AfterhoursTheme.tier
+    Chip(
+        onClick = null,
+        description = "Heat: level ${tier.level} of 5, ${tier.label}",
+        modifier = modifier,
+        lit = true,
+    ) {
+        HeatFlames(count = tier.level, color = accent.accent)
+        Text(text = tier.label, style = MaterialTheme.typography.labelLarge, color = accent.onDark, maxLines = 1)
+    }
+}
+
 /** A lane, folded the same way: the pack being dealt from, or "Everything". */
 @Composable
 fun LaneChip(label: String?, icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -70,7 +92,7 @@ fun LaneChip(label: String?, icon: ImageVector, onClick: () -> Unit, modifier: M
 /** 36 dp to look at, 48 dp to hit: the touch target is the row's, padded to the minimum. */
 @Composable
 private fun Chip(
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
     description: String,
     lit: Boolean,
     modifier: Modifier = Modifier,
@@ -83,9 +105,10 @@ private fun Chip(
     val edge = if (lit) tier.rim.copy(alpha = LIT_EDGE) else AfterhoursTheme.colors.rimTop
     Row(
         modifier = modifier
-            .heightIn(min = spacing.touchTarget)
+            // 48 dp to hit, but only a chip that can be hit has to be: a tag is read, not pressed.
+            .then(if (onClick != null) Modifier.heightIn(min = spacing.touchTarget) else Modifier)
             .clip(shape)
-            .clickable(role = Role.Button, onClick = onClick)
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
             .semantics(mergeDescendants = true) { contentDescription = description }
             .padding(vertical = spacing.xs + spacing.xxs),
         verticalAlignment = Alignment.CenterVertically,

@@ -21,6 +21,7 @@ import com.shnapps.couple.core.engine.game.decodeAnswer
 import com.shnapps.couple.core.engine.game.encode
 import com.shnapps.couple.core.model.CloseCheckIn
 import com.shnapps.couple.core.model.GamePlayers
+import com.shnapps.couple.core.model.Intensity
 import com.shnapps.couple.core.model.NightSession
 import com.shnapps.couple.core.model.SessionEndReason
 import com.shnapps.couple.core.model.SessionKind
@@ -106,6 +107,17 @@ data class GameUiState(
     val partnerAway: Boolean = false,
 ) {
     val roundCount: Int get() = started?.released?.rounds?.size ?: session?.chapterCount ?: 0
+
+    /**
+     * How far this game goes: the heat on the phone of whoever started it (D-148).
+     *
+     * Read off what the server released, so it is the same on both phones — the partner's never
+     * picked it, and shows it all the same. Null until the game has been loaded.
+     */
+    val tier: Intensity?
+        get() = started?.released?.effectiveIntensity?.let { level ->
+            Intensity.entries.firstOrNull { it.level == level }
+        }
 
     /**
      * This phone has seen the round's reveal and the other has not: on two phones the round
