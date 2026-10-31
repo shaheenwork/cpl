@@ -219,7 +219,7 @@ class HomeViewModel @Inject constructor(
         val state = uiState.value
         // Not offered while it is true, so this is the second lock on the same door.
         if (state.needsPairing) return
-        if (!state.company.paired) {
+        if (!state.company.paired || state.mode == Mode.TOGETHER) {
             local.update { it.copy(opened = Opened.Dealt(gameId), error = null) }
             return
         }

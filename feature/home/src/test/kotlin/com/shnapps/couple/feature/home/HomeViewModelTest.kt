@@ -89,6 +89,7 @@ class HomeViewModelTest {
     fun `a paired couple's game is the server's, at the tier they set`() = test {
         paired()
         val vm = home()
+        act { vm.setMode(Mode.APART) }
         act { vm.setTier(Intensity.EXTREME) }
 
         act { vm.play(TestGames.TRUTH_OR_DARE) }
@@ -112,6 +113,7 @@ class HomeViewModelTest {
     fun `each game asks the server for the heat that is selected when it is started`() = test {
         paired()
         val vm = home()
+        act { vm.setMode(Mode.APART) }
 
         act { vm.setTier(Intensity.SPICY) }
         act { vm.play(TestGames.TRUTH_OR_DARE) }
@@ -188,7 +190,7 @@ class HomeViewModelTest {
 
         act { vm.play(TestGames.TRUTH_OR_DARE) }
 
-        assertThat((vm.uiState.value.opened as Opened.Session).twoPhones).isFalse()
+        assertThat(vm.uiState.value.opened).isInstanceOf(Opened.Dealt::class.java)
     }
 
     @Test
@@ -256,6 +258,7 @@ class HomeViewModelTest {
     fun `a game that cannot be started is said plainly, and nothing is left half-done`() = test {
         paired()
         val vm = home()
+        act { vm.setMode(Mode.APART) }
         gameStarts.startResult = Outcome.Failure(AppError.Validation(HomeViewModel.NOT_ENOUGH_CONTENT))
 
         act { vm.play(TestGames.TRUTH_OR_DARE) }
